@@ -1,7 +1,7 @@
 source ~/anaconda3/bin/activate
 conda init
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
 cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
@@ -49,4 +49,4 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lazy_preprocess True \
     --report_to wandb  \
     --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer'
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' 

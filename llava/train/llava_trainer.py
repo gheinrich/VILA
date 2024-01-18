@@ -179,7 +179,7 @@ class LLaVATrainer(Trainer):
 
             current_folder = output_dir.split('/')[-1]
             parent_folder = os.path.dirname(output_dir)
-            if current_folder.startswith('checkpoint-'):
+            if 'checkpoint-' in current_folder:
                 mm_projector_folder = os.path.join(
                     parent_folder, "mm_projector")
                 os.makedirs(mm_projector_folder, exist_ok=True)

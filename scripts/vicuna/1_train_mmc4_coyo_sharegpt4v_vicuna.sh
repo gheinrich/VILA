@@ -1,7 +1,7 @@
 source ~/anaconda3/bin/activate
 conda init
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
 cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
@@ -11,7 +11,7 @@ export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((128 / n_node))
+bs=$((256 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "total batch size:" $((bs * 8 * n_node))
@@ -44,10 +44,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --model_max_length 5120 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer'
