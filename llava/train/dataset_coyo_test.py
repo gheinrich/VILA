@@ -14,10 +14,9 @@ import torch
 import transformers
 from PIL import Image
 from torch.utils.data import ConcatDataset, Dataset
-from torchvision.transforms import Resize
-import decord
-from decord import VideoReader
-
+from pytorchvideo.data.encoded_video import EncodedVideo
+from pytorchvideo.transforms import ApplyTransformToKey, UniformTemporalSubsample
+from torchvision.transforms import Compose, Resize
 
 
 from llava import conversation as conversation_lib
@@ -30,8 +29,22 @@ from llava.train.token_config import (
     IGNORE_INDEX,
 )
 from llava.train import datasets_mixture
-from llava.train.utils import mprint, rprint
 
+def dprint(*args, **kwargs):
+    rank = int(os.environ.get("RANK", 0))
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    if world_size > 1:
+        return print(f"[dist-{rank}-of-{world_size}]", *args, **kwargs)
+    else:
+        return print(*args, **kwargs)
+    
+
+def mprint(*args, **kwargs):
+    rank = int(os.environ.get("RANK", 0))
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    if world_size > 1 and rank == 0:
+        return print(f"[dist-{rank}-of-{world_size}]", *args, **kwargs)
+    
 
 def tokenizer_image_token(
     prompt, tokenizer, n_image_tokens=256, image_token_index=32000, return_tensors=None
@@ -297,7 +310,7 @@ class LazySupervisedDataset(Dataset):
         return len(self.list_data_dict)
 
     @staticmethod
-    def _process_image(image_file, multimodal_cfg: dict, resize=False):
+    def _process_image(image_file, multimodal_cfg: dict):
         from torchvision import transforms
 
         image_folder = multimodal_cfg["image_folder"]
@@ -305,7 +318,6 @@ class LazySupervisedDataset(Dataset):
         if isinstance(image_file, str):
             if image_folder is not None:
                 image_file = os.path.join(image_folder, image_file)
-
             image = Image.open(image_file).convert("RGB")
         else:
             image = image_file  # already PIL image
@@ -316,9 +328,7 @@ class LazySupervisedDataset(Dataset):
         h, w = image.size
         if h < 10 and w < 10:
             image = image.resize((30, 30))
-            
-        if resize:
-            image = image.resize((336, 336))
+        
         if multimodal_cfg["image_aspect_ratio"] == "keep":
             max_hw, min_hw = max(image.size), min(image.size)
             aspect_ratio = max_hw / min_hw
@@ -354,22 +364,48 @@ class LazySupervisedDataset(Dataset):
         return image
 
     def load_video(self, video_path, num_video_frames):
-        decord.bridge.set_bridge("torch")
-        video_reader = VideoReader(uri=video_path)
-    
-        idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
-        try:
-            video_outputs = video_reader.get_batch(idx)
-        except:
-            print(f'bad data path {video_path}')
-            video_outputs = torch.zeros(8, 336, 336, 3, dtype=torch.uint8)
+        video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+        duration = video.duration
+        start_sec = 0  # secs
+        end_sec = duration  # secs
+        video_data = video.get_clip(start_sec=start_sec, end_sec=end_sec) # TODO 1 cannot load the full video
 
-        b, h, w, c = video_outputs.size()
-        image_tensor = torch.zeros(b, c, 336, 336, dtype=torch.uint8)
-        video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
-        video_frames = Resize(size=[336, 336], antialias=True)(video_frames)
-        image_tensor[:, :, :, :] = video_frames
+        transform = ApplyTransformToKey(
+            key="video",
+            transform=Compose(
+                [
+                    UniformTemporalSubsample(num_video_frames),
+                ]
+            ),
+        )
 
+        video_outputs = transform(video_data)
+
+        use_padding = True
+
+        if use_padding:
+            c, b, h, w = video_outputs['video'].size()
+
+            image_tensor = torch.zeros(b, c, 336, 336, dtype=torch.uint8)
+            video_frames = video_outputs['video'].permute(1, 0, 2, 3).contiguous()
+
+            if h>=w:
+                new_h = 336
+                new_w = int(336.0/h*w)
+            else:
+                new_w = 336
+                new_h = int(336.0/w*h)
+            video_frames = Resize(size=[new_h, new_w])(video_frames)
+
+            h_start = (336 - new_h) // 2
+            h_end = h_start + new_h
+
+            w_start = (336 - new_w) // 2
+            w_end = w_start + new_w
+
+            image_tensor[:, :, h_start:h_end, w_start:w_end] = video_frames
+        else:
+            image_tensor = video_outputs['video'].permute(1, 0, 2, 3).contiguous()
         return image_tensor
 
 
@@ -425,12 +461,9 @@ class LazySupervisedDataset(Dataset):
             sources = replace_image_patch_tokens(
                 [e["conversations"] for e in sources], self.multimodal_cfg
             )
-        elif ("video" in sources[0]) or ("video_id" in sources[0]):
-            num_video_frames = 8
-            if "video" in sources[0]:
-                video_file = sources[0]['video']
-            else:
-                video_file = sources[0]['video_id'] + '.mp4'
+        elif "video" in sources[0]:
+            num_video_frames = 4
+            video_file = sources[0]['video']
             video_folder = self.multimodal_cfg["image_folder"]
             video_path = os.path.join(video_folder, video_file)
             image_tensor = self.load_video(video_path, num_video_frames)
@@ -439,12 +472,8 @@ class LazySupervisedDataset(Dataset):
             image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
             image_tensor = torch.stack(image_tensor)
 
-            if "video" in sources[0]:
-                question = sources[0]['conversations'][0]["value"].rstrip()
-                answer = sources[0]['conversations'][1]["value"].rstrip()
-            else:
-                question = sources[0]['q']
-                answer = sources[0]['a']
+            question = sources[0]['conversations'][0]["value"].rstrip()
+            answer = sources[0]['conversations'][1]["value"].rstrip()
 
             question = (
                 question.replace("<image>\n", "")
@@ -488,7 +517,7 @@ class LazySupervisedDataset(Dataset):
         # image exist in the data
         if "image" in self.list_data_dict[i]:
             data_dict["image"] = image
-        elif ("video" in self.list_data_dict[i]) or ("video_id" in self.list_data_dict[i]):
+        elif "video" in self.list_data_dict[i]:
             data_dict["image"] = image_tensor
         elif self.multimodal_cfg["is_multimodal"]:
             # image does not exist in the data, but the model is multimodal
@@ -690,8 +719,8 @@ class LazyVFlanDataset(Dataset):
         if isinstance(images, str):
             images = [images]
         assert len(images) <= 8, "Too many images in one sample {}".format(len(images))
-        # if len(images) == 8:  # sample it to be 4
-        #     images = images[::2]
+        if len(images) == 8:  # sample it to be 4
+            images = images[::2]
         n_images = len(images)
 
         decode_images = []
@@ -701,12 +730,8 @@ class LazyVFlanDataset(Dataset):
             else:  # jpeg bytes
                 rawbytes = base64.b64decode(image_str)
                 decode_images.append(Image.open(io.BytesIO(rawbytes)).convert("RGB"))
-        if n_images == 8:
-            resize = True
-        else:
-            resize = False
         images = [
-            LazySupervisedDataset._process_image(img, self.multimodal_cfg, resize=resize)
+            LazySupervisedDataset._process_image(img, self.multimodal_cfg)
             for img in decode_images
         ]
 
@@ -754,15 +779,11 @@ class LazyVFlanDataset(Dataset):
         sources = replace_image_patch_tokens([conversation], self.multimodal_cfg)
 
         # NOTE: here we use the simple version without the system prompt
-        if n_images == 8:
-            conv_version = "vicuna_v1_1"
-        else:
-            conv_version = "vicuna_v1_1_nosys"
         data_dict = preprocess(
             sources,
             self.tokenizer,
             n_image_tokens=cur_token_len,
-            conv_version=conv_version,
+            conv_version="vicuna_v1_1_nosys",
         )
 
         if isinstance(i, int):
@@ -1026,6 +1047,8 @@ class LazyCoyoDataset(Dataset):
         tokenizer: transformers.PreTrainedTokenizer,
         multimodal_cfg: dict,
         n_samples_per_idx=4,
+        max_shareds_to_load=None,
+        overwrite_caption_info=None,
     ):
         super().__init__()
 
@@ -1034,6 +1057,12 @@ class LazyCoyoDataset(Dataset):
         n_samples = []
         # actually shards and stats info
         n_shards = len(os.listdir(data_path)) // 2
+        
+        if max_shareds_to_load is not None:
+            n_shards = min(max_shareds_to_load, n_shards)
+            mprint(f"Overwriting, only load {n_shards} shards.")
+            
+        
         count_info_list = sorted(
             [f for f in os.listdir(data_path) if f.endswith(".count")]
         )
@@ -1042,21 +1071,21 @@ class LazyCoyoDataset(Dataset):
             for f in count_info_list
         ]
 
-        print("total COYO samples", sum(n_samples))
-
-        rank = int(os.environ["RANK"])
-        world_size = int(os.environ["WORLD_SIZE"])
+        rank = int(os.environ.get("RANK", 0))
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
         shared_size = n_shards // world_size
+        
+        mprint("total COYO samples", sum(n_samples), f"rank:{rank} / world:{world_size} / shared_size:{shared_size}")
 
-        gpu_samples = [
+        self.gpu_samples = [
             sum(n_samples[i * shared_size : (i + 1) * shared_size]) // n_samples_per_idx
             for i in range(world_size)
         ]
-        self.n_samples = min(gpu_samples) * world_size  # total size
-        self.idx_offset = rank * min(gpu_samples)
+        self.n_samples = min(self.gpu_samples) * world_size  # total size
+        self.idx_offset = rank * min(self.gpu_samples)
 
         shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
-        print(f" * loading data from shard {shard_start}-{shard_end}")
+        mprint(f" * loading data from shard {shard_start}-{shard_end}, n_samples:{self.gpu_samples}")
 
         shard_names = [d.replace(".count", ".pkl") for d in count_info_list]
         shard_names = shard_names[shard_start:shard_end]
@@ -1066,13 +1095,14 @@ class LazyCoyoDataset(Dataset):
         for shard_name in shard_names:
             # load shard
             with open(os.path.join(data_path, shard_name), "rb") as f:
+                mprint(os.path.join(data_path, shard_name))
                 shard_data = pickle.load(f)
                 random.seed(42)
                 if "mmc4" in data_path:
                     random.shuffle(shard_data)  # shuffle for MMC4cap only
                 full_data_list.extend(shard_data)
 
-        print("* loaded totally {} samples".format(len(full_data_list)))
+        mprint("* loaded totally {} samples".format(len(full_data_list)))
 
         # now pack the samples into groups
         n_groups = len(full_data_list) // n_samples_per_idx
@@ -1083,27 +1113,43 @@ class LazyCoyoDataset(Dataset):
         if len(full_data_list[-1]) < n_samples_per_idx:
             full_data_list = full_data_list[:-1]
         assert len(full_data_list) == n_groups
-        print("split into {} groups".format(n_groups))
+        mprint("split into {} groups".format(n_groups))
 
         self.data_list = full_data_list
 
         self.tokenizer = tokenizer
         self.multimodal_cfg = multimodal_cfg
+        ##### support for GPT-4 captioner
+        self.overwrite_caption_info = None
+        if overwrite_caption_info is not None and overwrite_caption_info.endswith(".json"):
+            self.overwrite_caption_info = json.load(open(overwrite_caption_info, "r"))
 
     def __len__(self):
         return self.n_samples
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         CONCAT_SAMPLES = False
-        info_list = self.data_list[i - self.idx_offset]
+        try:
+            info_list = self.data_list[i ]
+        except IndexError as e:
+            dprint(f"DEBUG i:{i}  idx_offset:{self.idx_offset}, data_list:{len(self.data_list)}")
+            raise e
 
         text_list = []
         image_list = []
-
+        raw_info_list = []
+        
         for sample in info_list:
             caption_key = "text" if "text" in sample else "caption"
+            # added for ShareGPT4V data 
+            raw_info_list.append([sample["id"], sample["url"], sample[caption_key]])
+            uuid = sample["url"]
+            text_data = sample[caption_key]
+            if self.overwrite_caption_info is not None:
+                text_data = self.overwrite_caption_info[uuid]
+            
             text_list.append(
-                DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token
+                DEFAULT_IMAGE_TOKEN + text_data + self.tokenizer.eos_token
             )
             if "image" in sample:
                 image_base64 = sample["image"]
@@ -1112,13 +1158,18 @@ class LazyCoyoDataset(Dataset):
                 rawbytes = sample["rawbytes"]
             image = Image.open(io.BytesIO(rawbytes)).convert("RGB")
             image_list.append(image)
-
-        image_list = torch.stack(
-            [
-                LazySupervisedDataset._process_image(image, self.multimodal_cfg)
-                for image in image_list
-            ]
-        )
+        
+        try:
+            image_list = torch.stack(
+                [
+                    LazySupervisedDataset._process_image(image, self.multimodal_cfg)
+                    for image in image_list
+                ]
+            )
+        except ValueError as e:
+            dprint(raw_info_list)
+            dprint(image_list)
+            raise e
 
         # the same size for all images, so we concat
         cur_token_len = (
@@ -1189,119 +1240,8 @@ class LazyCoyoDataset(Dataset):
             ).sum(), input_ids
         targets[targets == self.tokenizer.pad_token_id] = IGNORE_INDEX
 
-        return dict(input_ids=input_ids, labels=targets, image=image_list)
+        return dict(input_ids=input_ids, labels=targets, image=image_list, raw_info_list=raw_info_list)
 
-
-class LazyCoyoFull(Dataset):
-    """Dataset for supervised fine-tuning."""
-
-    def __init__(
-        self,
-        data_path: str,
-        tokenizer: transformers.PreTrainedTokenizer,
-        multimodal_cfg: dict,
-    ):
-        super().__init__()
-        
-        from llava.train.simple_coyo_dataset import SimpleCoyoDataset
-        
-        self.dataset = SimpleCoyoDataset(data_path=data_path)
-
-        print("total samples", len(self.dataset))  # 10,881,869
-        rank = int(os.environ["RANK"])
-        world_size = int(os.environ["WORLD_SIZE"])
-        # print("Loading done. Total time: {:.2f} seconds".format(t2 - t1))
-
-        self.tokenizer = tokenizer
-        self.multimodal_cfg = multimodal_cfg
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        ADD_TEXT_PROMPT = False
-
-        info = self.dataset[i]
-        caption, image_path = info[".txt"], info[".jpg"]
-
-        if ADD_TEXT_PROMPT:
-            from llava.data.template import CAPTION_TEMPLATE
-
-            rand_prompt = random.choice(CAPTION_TEMPLATE)
-            rand_prompt = "<image>\n" + rand_prompt
-        else:
-            rand_prompt = "<image>\n"
-        sources = [
-            {
-                "image": image_path,
-                "conversations": [
-                    {"from": "human", "value": rand_prompt},
-                    {"from": "gpt", "value": caption},
-                ],
-            }
-        ]
-
-        # one example of sources
-        # [{'id': 'GCC_train_001738742', 'image': 'GCC_train_001738742.jpg', 'conversations': [{'from': 'human', 'value': 'Provide a brief description of the given image.\n<image>'}, {'from': 'gpt', 'value': 'a sketch of an ostrich'}]}]
-        if "image" in sources[0]:
-            image = LazySupervisedDataset._process_image(
-                sources[0]["image"], self.multimodal_cfg
-            )
-            image = torch.unsqueeze(image, dim=0)
-
-            # now random pick some context samples for training
-            if self.multimodal_cfg["num_shots"] > 0:
-                raise NotImplementedError
-            
-            # the same size for all images, so we concat
-            cur_token_len = (image.shape[-2] // self.multimodal_cfg["patch_size"]) * (
-                image.shape[-1] // self.multimodal_cfg["patch_size"]
-            )
-            cur_token_len += self.multimodal_cfg["n_extra_patch"]
-            sources = replace_image_patch_tokens(
-                [e["conversations"] for e in sources], self.multimodal_cfg
-            )
-        else:
-            raise NotImplementedError
-
-        if not ADD_TEXT_PROMPT:
-            assert len(sources) == 1
-            # tokenize conversations
-            image_tokens = tokenizer_image_token(
-                sources[0][0]["value"],
-                self.tokenizer,
-                n_image_tokens=cur_token_len,
-                return_tensors="pt",
-            ).view(1, -1)
-            text_tokens = self.tokenizer(
-                [sources[0][1]["value"] + "</s>"],
-                return_tensors="pt",
-                max_length=self.tokenizer.model_max_length,
-                truncation=True,
-            ).input_ids
-            input_ids = torch.cat([image_tokens, text_tokens[:, 1:]], dim=-1)
-            targets = input_ids.clone()
-
-            targets[:, : image_tokens.shape[-1]] = IGNORE_INDEX
-            data_dict = dict(input_ids=input_ids, labels=targets)
-
-        else:
-            data_dict = preprocess(
-                sources, self.tokenizer, n_image_tokens=cur_token_len
-            )
-
-        if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
-            )
-
-        # image exist in the data
-        if image is not None:
-            data_dict["image"] = image
-        else:
-            raise NotImplementedError
-
-        return data_dict
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):
@@ -1311,17 +1251,14 @@ class DataCollatorForSupervisedDataset(object):
     concat_prob: 0.0
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        # TODO(ligeng): what is this check for?
         if self.concat_prob > 0.0 and random.random() < self.concat_prob:
             raise NotImplementedError
         # how to support mixing text only & text image???
-        # NOTE(ligeng): temporally disable the check for webcoyo dataset
         assert all(["image" in instance for instance in instances])
-        # print(instances)
         input_ids, labels, images = tuple(
             [instance[key] for instance in instances] for key in ("input_ids", "labels", "image")
         )
-        # exit(0)
+
         new_input_ids, new_labels, new_images = [], [], []
         for input_id, label, image in zip(input_ids, labels, images):
             if input_id.dim() > 1:
@@ -1402,7 +1339,7 @@ class DataCollatorForSupervisedDataset(object):
             images = flat_batch_images,
             position_ids=position_ids
         )
-        # rprint("input_ids: ", batch["input_ids"].shape, "labels: ", batch["labels"].shape)
+
         return batch
 
 
@@ -1432,12 +1369,6 @@ def make_supervised_data_module(
             dataset_cls = LazyMMC4DatasetSub
         elif dataset_type == "coyo":
             dataset_cls = LazyCoyoDataset
-        elif dataset_type == "coyowebds":
-            print("dataset.py: Loading LazyCoyoFull class")
-            # NOTE:(ligeng) this impl has bugs, do not use 
-            # from llava.train.webcoyo import LazyCoyoWebDataset
-            # dataset_cls = LazyCoyoWebDataset
-            dataset_cls = LazyCoyoFull
         else:
             raise NotImplementedError
 
@@ -1460,22 +1391,8 @@ def make_supervised_data_module(
         )
         all_datasets.append(train_dataset)
         extra_info.append(len(train_dataset))
-    
-    if len(all_datasets) > 1:
-        print("Concatnating datasets")
+
     all_datasets = ConcatDataset(all_datasets)
-    # disable nvgpt4 utils
-    # from nvgpt4.data import BlendDataset, WorkerConfig
-    # rank = int(os.environ.get("RANK", 0))
-    # world_size = int(os.environ.get("WORLD_SIZE", 1))
-    # all_datasets = BlendDataset(
-    #     *[(dst, 1) for dst in all_datasets],
-    #     worker_config=WorkerConfig(
-    #         rank=rank,
-    #         world_size=world_size,
-    #         num_workers=1,
-    #     )
-    # )
 
     data_collator = DataCollatorForSupervisedDataset(
         tokenizer=tokenizer, concat_prob=0.0
