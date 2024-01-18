@@ -1,6 +1,6 @@
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
 
@@ -12,7 +12,7 @@ else
     echo "Data already exists..."
 fi
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 python -m llava.eval.eval_llava15_vqa \
     --model_name $1 \

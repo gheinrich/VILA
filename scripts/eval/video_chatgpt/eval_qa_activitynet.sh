@@ -1,10 +1,10 @@
 #!/bin/bash
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 GPT_Zero_Shot_QA="eval/GPT_Zero_Shot_QA"
 output_name=$1

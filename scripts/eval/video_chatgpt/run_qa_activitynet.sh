@@ -1,10 +1,10 @@
 #!/bin/bash
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 CKPT_NAME=$1
 model_path="checkpoints/${CKPT_NAME}"

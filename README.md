@@ -35,6 +35,9 @@ conda install -c nvidia cuda-toolkit
 
 pip install pytorchvideo
 pip install decord
+pip install datasets
+pip install scikit-learn
+pip install openai
 
 pip install ninja
 pip install flash-attn --no-build-isolation

@@ -1,10 +1,10 @@
 SPLIT="mmbench_dev_cn_20231003"
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 python -m llava.eval.model_vqa_mmbench \
     --model-name $1 \

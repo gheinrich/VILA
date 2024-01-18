@@ -21,7 +21,7 @@ def get_answer(question_id: int, question: str, max_tokens: int):
     }
     for _ in range(3):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model=MODEL,
                 messages=[{
                     'role': 'system',
@@ -32,7 +32,7 @@ def get_answer(question_id: int, question: str, max_tokens: int):
                 }],
                 max_tokens=max_tokens,
             )
-            ans['text'] = response['choices'][0]['message']['content']
+            ans['text'] = response.choices[0].message.content
             return ans
         except Exception as e:
             print('[ERROR]', e)

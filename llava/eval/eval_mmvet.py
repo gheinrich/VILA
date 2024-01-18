@@ -159,12 +159,12 @@ while need_more_runs():
 
             while not grade_sample_run_complete:
                 try:
-                    response = openai.ChatCompletion.create(
+                    response = openai.chat.completions.create(
                         model=gpt_model,
                         max_tokens=3,
                         temperature=temperature,
                         messages=messages)
-                    content = response['choices'][0]['message']['content']
+                    content = response.choices[0].message.content
                     flag = True
                     try_time = 1
                     while flag:
@@ -179,12 +179,12 @@ while need_more_runs():
                             messages = [
                             {"role": "user", "content": question},
                             ]
-                            response = openai.ChatCompletion.create(
+                            response = openai.chat.completions.create(
                                 model=gpt_model,
                                 max_tokens=3,
                                 temperature=temperature,
                                 messages=messages)
-                            content = response['choices'][0]['message']['content']
+                            content = response.choices[0].message.content
                             try_time += 1
                             temperature += 0.5
                             print(f"{id} try {try_time} times")
