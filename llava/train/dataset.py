@@ -197,9 +197,16 @@ def preprocess_v1(
                     )
                     - 2
                 )
+                if i>0:
+                    round_len = round_len - 1
+                    instruction_len = instruction_len - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
+                
+                if i>0:
+                    round_len = round_len - 1
+                    instruction_len = instruction_len - 1
 
             target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
 
@@ -255,7 +262,8 @@ class SupervisedDataset(Dataset):
     def __init__(self, data_path: str, tokenizer: transformers.PreTrainedTokenizer):
         super(SupervisedDataset, self).__init__()
         logging.warning("Loading data...")
-        list_data_dict = json.load(open(data_path, "r"))
+        with open(data_path, "r") as f:
+            list_data_dict = json.load(f)
 
         logging.warning("Formatting inputs...")
         sources = [example["conversations"] for example in list_data_dict]
@@ -283,7 +291,8 @@ class LazySupervisedDataset(Dataset):
     ):
         super(LazySupervisedDataset, self).__init__()
         logging.warning("Loading data...")
-        list_data_dict = json.load(open(data_path, "r"))
+        with open(data_path, "r") as f:
+            list_data_dict = json.load(f)
 
         print("total Dataset samples ", len(list_data_dict), " ", data_path)
 
@@ -1267,7 +1276,10 @@ class DataCollatorForSupervisedDataset(object):
         )
 
         # assert len(batch_images) == torch.sum(input_ids==32000)/576
-        flat_batch_images = torch.concat(batch_images, dim=0)
+        if batch_images:
+            flat_batch_images = torch.concat(batch_images, dim=0)
+        else:
+            flat_batch_images = None
 
         assert seqlens_in_batch.sum() == input_ids.ne(self.tokenizer.pad_token_id).flatten().sum()
 

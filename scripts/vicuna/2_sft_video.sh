@@ -1,9 +1,9 @@
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -19,7 +19,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path checkpoints/vicuna-13b-clip336-finetune-mmc4sub+coyo-linear-e11 \
+    --model_name_or_path checkpoints/vicuna-7b-clip336-finetune-mmc4sub+coyo-linear-e1_v1_draco \
     --version v1 \
     --datasets_mixture_name vflan_sharegpt4v_sft_valley_video_chatgpt \
     --vision_tower openai/clip-vit-large-patch14-336 \
@@ -27,7 +27,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-13b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1010 \
+    --output_dir ./checkpoints/vicuna-7b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1_v1_draco \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps 1 \
@@ -41,10 +41,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --model_max_length 5120 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 24 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \
+    --fsdp "full_shard auto_wrap" \
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer'

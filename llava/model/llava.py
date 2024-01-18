@@ -49,7 +49,7 @@ from llava.train.token_config import (
 
 
 class LlavaConfig(LlamaConfig):
-    model_type = "llava"
+    model_type = "llava_orig"
 
 
 class LlavaLlamaModel(LlamaModel):
@@ -1242,5 +1242,5 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
         )[0]
 
 
-AutoConfig.register("llava", LlavaConfig)
+AutoConfig.register(LlavaConfig.model_type, LlavaConfig)
 AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)

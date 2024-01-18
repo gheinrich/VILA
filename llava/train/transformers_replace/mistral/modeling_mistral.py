@@ -817,9 +817,6 @@ class MistralPreTrainedModel(PreTrainedModel):
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
 
-    def _set_gradient_checkpointing(self, module, value=False):
-        if isinstance(module, MistralModel):
-            module.gradient_checkpointing = value
 
 MISTRAL_INPUTS_DOCSTRING = r"""
     Args:

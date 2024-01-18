@@ -7,6 +7,7 @@ def patched_normalize(
     mean: Union[float, Iterable[float]],
     std: Union[float, Iterable[float]],
     data_format: Optional[ChannelDimension] = None,
+    input_data_format: Optional[Union[str, ChannelDimension]] = None,
 ) -> np.ndarray:
     """
     Normalizes `image` using the mean and standard deviation specified by `mean` and `std`.
@@ -35,6 +36,7 @@ def patched_normalize(
             if num_channels == 1:
                 num_channels = 3
                 image = np.concatenate([image, image, image], axis=channel_axis)
+                print(f"image.shape {image.shape}")
             else:
                 raise ValueError(f"mean must have {num_channels} elements if it is an iterable, got {len(mean)}")
     else:

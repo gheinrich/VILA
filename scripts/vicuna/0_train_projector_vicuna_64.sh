@@ -1,8 +1,8 @@
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -18,7 +18,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path  /home/jil/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path  /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version v1 \
     --datasets_mixture_name ccs_recaptioned \
     --vision_tower openai/clip-vit-large-patch14-336 \
@@ -27,7 +27,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-clip336-pretrain-ccs-linear-e1 \
+    --output_dir ./checkpoints/vicuna-7b-clip336-pretrain-ccs-linear-e1_v1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps 2 \
@@ -46,4 +46,4 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lazy_preprocess True \
     --report_to wandb  \
     --fsdp "full_shard auto_wrap" \
-    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer'
+    --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' 
