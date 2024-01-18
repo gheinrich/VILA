@@ -19,6 +19,19 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    coyo_webds_vila = Dataset(
+        dataset_name='coyowebds',
+        dataset_type='coyowebds',
+        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+    )
+    add_dataset(coyo_webds_vila)
+    coyo_webds_full = Dataset(
+        dataset_name='coyowebds',
+        dataset_type='coyowebds',
+        data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
+    )
+    add_dataset(coyo_webds_full)
     coyo_25m = Dataset(
         dataset_name='coyo',
         dataset_type='coyo',
@@ -110,14 +123,20 @@ def register_datasets_mixtures():
     add_dataset(valley_test)
 
 
+    DATASETS_MIXTURES.update({'coyo_webds_vila': [coyo_webds_vila, ]})
+    DATASETS_MIXTURES.update({'coyo_webds_full': [coyo_webds_full, ]})
+    
+
     DATASETS_MIXTURES.update({'ccs_recaptioned': [ccs_recaptioned]})
     DATASETS_MIXTURES.update({'ccs_recaptioned_test': [ccs_recaptioned_test]})
+    
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core': [coyo_25m, mmc4core]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v': [coyo_25m, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v_valley': [coyo_25m, mmc4core, sharegpt4v_pretrain, valley]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v_valley_test': [coyo_25m_test, mmc4core_test, sharegpt4v_pretrain, valley_test]})
     DATASETS_MIXTURES.update({'valley_test': [valley_test]})
     DATASETS_MIXTURES.update({'video_chatgpt': [video_chatgpt]})
+    DATASETS_MIXTURES.update({'coyo_25m_test': [coyo_25m_test, ]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_test': [coyo_25m_test, mmc4core_test]})
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft': [vflan, sharegpt4v_sft]})
     DATASETS_MIXTURES.update({'vflan_llava_1_5_sft': [vflan, llava_1_5_sft]})
