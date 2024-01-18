@@ -301,6 +301,7 @@ class LazySupervisedDataset(Dataset):
 
         image_folder = multimodal_cfg["image_folder"]
         processor = multimodal_cfg["image_processor"]
+        image_size = multimodal_cfg["image_size"]
         if isinstance(image_file, str):
             if image_folder is not None:
                 image_file = os.path.join(image_folder, image_file)
@@ -310,7 +311,7 @@ class LazySupervisedDataset(Dataset):
             image = image_file  # already PIL image
 
         if resize:
-            image = image.resize((336, 336))
+            image = image.resize((image_size, image_size))
         if multimodal_cfg["image_aspect_ratio"] == "keep":
             max_hw, min_hw = max(image.size), min(image.size)
             aspect_ratio = max_hw / min_hw
@@ -354,12 +355,12 @@ class LazySupervisedDataset(Dataset):
             video_outputs = video_reader.get_batch(idx)
         except:
             print(f'bad data path {video_path}')
-            video_outputs = torch.zeros(8, 336, 336, 3, dtype=torch.uint8)
+            video_outputs = torch.zeros(8, image_size, image_size, 3, dtype=torch.uint8)
 
         b, h, w, c = video_outputs.size()
-        image_tensor = torch.zeros(b, c, 336, 336, dtype=torch.uint8)
+        image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
         video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
-        video_frames = Resize(size=[336, 336], antialias=True)(video_frames)
+        video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
         image_tensor[:, :, :, :] = video_frames
 
         return image_tensor
@@ -1288,6 +1289,7 @@ def make_supervised_data_module(
     tokenizer: transformers.PreTrainedTokenizer,
     data_args,
     patch_size,
+    image_size,
     n_extra_patch=0,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
@@ -1327,6 +1329,7 @@ def make_supervised_data_module(
                 use_im_start_end=getattr(data_args, "mm_use_im_start_end", False),
                 image_processor=getattr(data_args, "image_processor", None),
                 patch_size=patch_size,
+                image_size=image_size,
                 n_extra_patch=n_extra_patch,
             ),
         )

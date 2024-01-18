@@ -364,6 +364,13 @@ def train():
         and "eva" not in str(type(model.get_vision_tower())).lower()
     ):
         patch_size = 28  # qwen
+    elif "siglip" in str(type(model.get_vision_tower())).lower():
+        if "16" in model_args.vision_tower:
+            patch_size = 16
+        elif "so400m" in model_args.vision_tower:
+            patch_size = 14
+        else:
+            raise ValueError("Unknown siglip model, please set the patch size")
     else:  # clip or eva
         patch_size = 14
     patch_size = patch_size * 2 ** model_args.mm_projector_type.count("ds")
@@ -372,6 +379,7 @@ def train():
         tokenizer=tokenizer,
         data_args=data_args,
         patch_size=patch_size,
+        image_size=vision_config.image_size,
         n_extra_patch=n_extra_patch,
     )
 
