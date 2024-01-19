@@ -63,3 +63,6 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
+
+    total_time_limit: int = field(default=-1, metadata={"help": "Timeout limit for this job (in minutes)."})
+    pre_terminate_time: int = field(default=10, metadata={"help": "Time to terminate the task inadvance (minutes), saveing checkpoints needs time."})
