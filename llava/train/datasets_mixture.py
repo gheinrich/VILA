@@ -131,13 +131,16 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update({'ccs_recaptioned_test': [ccs_recaptioned_test]})
     
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core': [coyo_25m, mmc4core]})
+
+    DATASETS_MIXTURES.update({'coyo_webds_vila_mmc4core_sharegpt4v': [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]})
+
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v': [coyo_25m, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v_valley': [coyo_25m, mmc4core, sharegpt4v_pretrain, valley]})
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v_valley_test': [coyo_25m_test, mmc4core_test, sharegpt4v_pretrain, valley_test]})
     DATASETS_MIXTURES.update({'valley_test': [valley_test]})
     DATASETS_MIXTURES.update({'video_chatgpt': [video_chatgpt]})
     DATASETS_MIXTURES.update({'coyo_25m_test': [coyo_25m_test, ]})
-    DATASETS_MIXTURES.update({'coyo_25m_mmc4core_test': [coyo_25m_test, mmc4core_test]})
+    DATASETS_MIXTURES.update({'coyo_25m_mmc4core_test': [coyo_webds_vila, mmc4core_test]})
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft': [vflan, sharegpt4v_sft]})
     DATASETS_MIXTURES.update({'vflan_llava_1_5_sft': [vflan, llava_1_5_sft]})
     DATASETS_MIXTURES.update({'vflan_captioner': [vflan, sharegpt4v_gpt4_100k]})

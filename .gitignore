@@ -3,6 +3,7 @@ core.*
 captioner_bk/
 slurm-logs/
 captioner/
+eval/
 hostfile
 *_dev.py
 *.ipynb
