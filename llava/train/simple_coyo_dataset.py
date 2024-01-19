@@ -12,7 +12,7 @@ import tarfile
 from multiprocessing.pool import ThreadPool as Pool
 
 import torch
-import torch.distributed_
+import torch.distributed
 from torch.utils.data import Dataset, get_worker_info, ConcatDataset
 
 import wids
@@ -20,6 +20,12 @@ import wids
 # @lru_cache(maxsize=32)
 def load_tarfile(tar_path):
     return tarfile.open(tar_path)
+
+
+COYO_25M_VILA = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila"
+COYO_700M = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata"
+COYO_700M_FILTERED = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata_fullmeta/stage2_filtered_v2"
+OBELISC = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/interleaved/obelisc/stage4"
 
 
 class SimpleCoyoDataset(torch.utils.data.Dataset):
