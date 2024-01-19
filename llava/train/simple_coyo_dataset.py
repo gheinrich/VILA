@@ -12,7 +12,7 @@ import tarfile
 from multiprocessing.pool import ThreadPool as Pool
 
 import torch
-import torch.distributed
+import torch.distributed_
 from torch.utils.data import Dataset, get_worker_info, ConcatDataset
 
 import wids
@@ -26,18 +26,24 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
-        cache_dir="~/.cache/simplecoyo",
-        overwrite_meta=False,
+        cache_dir="/home/ligengz/.cache/simplecoyo",
+        meta_path=None,
         image_load_mode="pil",  # pil / rawbytes / fpath,
         max_shards_to_load = None,
     ):
         self.data_path = data_path
-        self.meta_path = osp.join(
-            osp.expanduser(cache_dir), data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json"
-        )
-        self.max_shards_to_load = max_shards_to_load
         
+        self.meta_path = meta_path
+        if meta_path is None:
+            self.meta_path = osp.join(
+                osp.expanduser(cache_dir), data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json"
+            )
+            self.max_shards_to_load = max_shards_to_load
+            
         if not osp.exists(self.meta_path):
+            assert not torch.distributed.is_initialized(), "Dataset meta file does not exist and generating may take a long time. \
+                Please exit distributed mode and run `python llava/train/simple_coyo_dataset.py <webdataset path>`. \
+                or set proper `meta_path=` when initializing."
             print(f"Walking through dirs {data_path}")
             # tar_list = sorted([f for f in os.listdir(data_path) if f.endswith(".tar")])
             tar_list = []

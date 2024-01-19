@@ -1213,7 +1213,10 @@ class LazyCoyoFull(Dataset):
         
         from llava.train.simple_coyo_dataset import SimpleCoyoDataset
         
-        self.dataset = SimpleCoyoDataset(data_path=data_path)
+        self.dataset = SimpleCoyoDataset(
+            data_path=data_path,
+            
+        )
 
         print("total samples", len(self.dataset))  # 10,881,869
         rank = int(os.environ["RANK"])
