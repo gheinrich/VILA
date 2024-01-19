@@ -315,11 +315,13 @@ def eval_model(args, idx, total):
         lazy_preprocess=True,
     )
 
-    from llava.train.simple_coyo_dataset_vila_ji import SimpleCoyoDataset
-
-    data_path="/home/jasonlu/datasets/coyo-700m/pkl02-split"
+    # data_path="/home/jasonlu/datasets/coyo-700m/pkl02-split"
     # data_path = "/home/jasonlu/vlm_datasets/debug/coyo-700m/pkl02-split"
-    train_dataset = SimpleCoyoDataset(data_path=data_path)
+    # from llava.train.simple_coyo_dataset_vila_ji import SimpleCoyoDataset
+    # train_dataset = SimpleCoyoDataset(data_path=data_path)
+    
+    from llava.train.simple_coyo_dataset import SimpleCoyoDataset
+    train_dataset = SimpleCoyoDataset()
     # sampler = DistributedSampler(train_dataset)
     # dloader = torch.utils.data.DataLoader(train_dataset, shuffle=False, sampler=sampler, num_workers=8)
     # sampler.set_epoch(0)
