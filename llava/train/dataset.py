@@ -1250,7 +1250,7 @@ class LazyCoyoFull(Dataset):
             tar_name = osp.relpath(shard, osp.realpath(self.data_path))
             shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
             shard_json = lru_json_load(shard_json_path)
-            caption = shard_json["url"]["output"]
+            caption = shard_json[url]["output"]
             
         if ADD_TEXT_PROMPT:
             from llava.data.template import CAPTION_TEMPLATE
@@ -1337,6 +1337,9 @@ class LazyCoyoFullRecaptioned(LazyCoyoFull):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.caption_chocie = "/home/ligengz/workspace/VILA/captioner"
+        
+        print(f"Loading recaptioned texts from VILA {self.caption_chocie}")
+        
 
 
 @dataclass
@@ -1454,6 +1457,7 @@ def make_supervised_data_module(
     """Make dataset and collator for supervised fine-tuning."""
     extra_info = []
     all_datasets = []
+    # print(datasets_mixture.DATASETS_MIXTURES)
     mixture = datasets_mixture.DATASETS_MIXTURES[data_args.datasets_mixture_name]
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1477,6 +1481,12 @@ def make_supervised_data_module(
             # from llava.train.webcoyo import LazyCoyoWebDataset
             # dataset_cls = LazyCoyoWebDataset
             dataset_cls = LazyCoyoFull
+        elif dataset_type == "coyowebds_recap":
+            print("dataset.py: Loading LazyCoyoFull class with captioned results")
+            # NOTE:(ligeng) this impl has bugs, do not use 
+            # from llava.train.webcoyo import LazyCoyoWebDataset
+            # dataset_cls = LazyCoyoWebDataset
+            dataset_cls = LazyCoyoFullRecaptioned
         else:
             raise NotImplementedError
 

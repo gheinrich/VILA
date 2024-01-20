@@ -19,6 +19,21 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    coyo_webds_refilerted = Dataset(
+        dataset_name='coyo_webds_refilerted',
+        dataset_type='coyowebds',
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata_fullmeta/stage2_filtered_v2",
+    )
+    add_dataset(coyo_webds_refilerted)
+    
+    
+    coyo_webds_vila_recaption = Dataset(
+        dataset_name='coyowebds_vila_recaption',
+        dataset_type='coyowebds_recap',
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+    )
+    add_dataset(coyo_webds_vila_recaption)
+    
     coyo_webds_vila = Dataset(
         dataset_name='coyowebds',
         dataset_type='coyowebds',
@@ -27,7 +42,7 @@ def register_datasets_mixtures():
     )
     add_dataset(coyo_webds_vila)
     coyo_webds_full = Dataset(
-        dataset_name='coyowebds',
+        dataset_name='coyowebds_full',
         dataset_type='coyowebds',
         data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
     )
@@ -122,7 +137,8 @@ def register_datasets_mixtures():
     )
     add_dataset(valley_test)
 
-
+    DATASETS_MIXTURES.update({'coyo_webds_refilerted': [coyo_webds_refilerted, ]})
+    DATASETS_MIXTURES.update({'coyo_webds_vila_recap': [coyo_webds_vila_recaption, ]})
     DATASETS_MIXTURES.update({'coyo_webds_vila': [coyo_webds_vila, ]})
     DATASETS_MIXTURES.update({'coyo_webds_full': [coyo_webds_full, ]})
     
