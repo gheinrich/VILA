@@ -3,7 +3,7 @@ import copy
 import io
 import json
 import logging
-import os
+import os, os.path as osp
 import random
 import time
 from dataclasses import dataclass, field
@@ -1199,10 +1199,14 @@ class LazyCoyoDataset(Dataset):
 
         return dict(input_ids=input_ids, labels=targets, image=image_list)
 
+from functools import lru_cache
+
+@lru_cache(maxsize=16)
+def lru_json_load(jpath):
+    return json.load(open(jpath, "r"))
 
 class LazyCoyoFull(Dataset):
     """Dataset for supervised fine-tuning."""
-
     def __init__(
         self,
         data_path: str,
@@ -1215,9 +1219,13 @@ class LazyCoyoFull(Dataset):
         
         self.dataset = SimpleCoyoDataset(
             data_path=data_path,
-            
         )
 
+        # None: use original caption
+        # folder path: use original caption
+        self.caption_chocie = None
+        self.data_path = data_path
+        
         print("total samples", len(self.dataset))  # 10,881,869
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
@@ -1234,7 +1242,16 @@ class LazyCoyoFull(Dataset):
 
         info = self.dataset[i]
         caption, image_path = info[".txt"], info[".jpg"]
-
+        
+        if self.caption_chocie is not None:
+            # load new captions 
+            shard = info["__shard__"]
+            url = info[".json"]["url"]
+            tar_name = osp.relpath(shard, osp.realpath(self.data_path))
+            shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
+            shard_json = lru_json_load(shard_json_path)
+            caption = shard_json["url"]["output"]
+            
         if ADD_TEXT_PROMPT:
             from llava.data.template import CAPTION_TEMPLATE
 
@@ -1313,6 +1330,14 @@ class LazyCoyoFull(Dataset):
             raise NotImplementedError
 
         return data_dict
+
+
+
+class LazyCoyoFullRecaptioned(LazyCoyoFull):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.caption_chocie = "/home/ligengz/workspace/VILA/captioner"
+
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):

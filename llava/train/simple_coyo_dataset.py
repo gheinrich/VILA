@@ -76,8 +76,13 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                 print(f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}")
                 if not osp.exists(tar_meta_path):
                     print(f"    Generating meta: {tar_meta_path}")
-                    tar = load_tarfile(tar_abspath)
-                    uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
+                    try:
+                        tar = load_tarfile(tar_abspath)
+                        uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
+                    except tarfile.ReadError as e:
+                        print(f"Skipping {tar_abspath}")
+                        print(e)
+                        continue
                     nsamples = len(uuids)
                     url = osp.realpath(tar_abspath)
                     tar_meta = {
@@ -92,11 +97,12 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                 meta["shardlist"].append(tar_meta)
                 if self.max_shards_to_load is not None and idx > self.max_shards_to_load:
                     break
-            
+            # sorted by tar names
+            meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
             os.makedirs(osp.dirname(self.meta_path), exist_ok=True)
             json.dump(meta, open(self.meta_path, "w+"), indent=2)
         
-        print(f"Loading webdataset from meta {self.meta_path}", flush=True)
+        print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
         self.dataset = wids.ShardListDataset(self.meta_path)
 
         
@@ -155,12 +161,18 @@ if __name__ == "__main__":
     import torch.distributed as dist
     from torch.utils.data.distributed import DistributedSampler
 
-    data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata"
-    # obelisc
-    # data_path = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/interleaved/obelisc/stage4/no-partial"
+    import argparse 
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data_path", nargs='?', type=str, default=COYO_25M_VILA)
+    # replaced by rank and world size
+    parser.add_argument("-m", "--max-shards", type=int, default=None)
+    args = parser.parse_args()
+    
+        
     train_dataset = SimpleCoyoDataset(
-        data_path=data_path,
-        max_shards_to_load=None,
+        data_path=args.data_path,
+        max_shards_to_load=args.max_shards,
     )
 
     sampler = None
