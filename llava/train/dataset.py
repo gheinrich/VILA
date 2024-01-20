@@ -12,7 +12,7 @@ from typing import Dict, Sequence
 import numpy as np
 import torch
 import transformers
-from PIL import Image
+
 from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Resize
 import decord
@@ -33,6 +33,8 @@ from llava.train.token_config import (
 from llava.train import datasets_mixture
 from llava.train.utils import mprint, rprint
 
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def tokenizer_image_token(
     prompt, tokenizer, n_image_tokens=256, image_token_index=32000, return_tensors=None

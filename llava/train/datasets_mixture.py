@@ -144,6 +144,9 @@ def register_datasets_mixtures():
     )
     add_dataset(valley_test)
 
+    # TODO: 
+    #   datacomp
+    #   datacomp + mmc4core
     DATASETS_MIXTURES.update({'coyo_25m_refilter+mmc4core': [coyo_webds_refilerted, mmc4core]})
     DATASETS_MIXTURES.update({'coyo_25m_recap+mmc4core': [coyo_webds_vila_recaption, mmc4core]})
     
@@ -157,6 +160,7 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update({'ccs_recaptioned': [ccs_recaptioned]})
     DATASETS_MIXTURES.update({'ccs_recaptioned_test': [ccs_recaptioned_test]})
     
+    # original VILA step-1
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core': [coyo_25m, mmc4core]})
 
     DATASETS_MIXTURES.update({'coyo_webds_vila_mmc4core_sharegpt4v': [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]})
