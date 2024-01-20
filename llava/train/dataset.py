@@ -17,6 +17,7 @@ from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Resize
 import decord
 from decord import VideoReader
+from io import BytesIO
 
 
 
@@ -313,7 +314,8 @@ class LazySupervisedDataset(Dataset):
         if isinstance(image_file, str):
             if image_folder is not None:
                 image_file = os.path.join(image_folder, image_file)
-
+            image = Image.open(image_file).convert("RGB")
+        elif isinstance(image_file, io.BytesIO):
             image = Image.open(image_file).convert("RGB")
         else:
             image = image_file  # already PIL image
@@ -1241,7 +1243,23 @@ class LazyCoyoFull(Dataset):
         ADD_TEXT_PROMPT = False
 
         info = self.dataset[i]
-        caption, image_path = info[".txt"], info[".jpg"]
+        
+        if ".jpg" in info:
+            caption, image_path = info[".txt"], info[".jpg"]
+        elif ".png" in info:
+            caption, image_path = info[".txt"], info[".png"]
+        elif ".webp" in info:
+            caption, image_path = info[".txt"], info[".webp"]
+        elif ".bmp" in info:
+            caption, image_path = info[".txt"], info[".bmp"]
+        else:
+            print(info.keys())
+            print(info)
+            raise KeyError
+        # except KeyError as e:
+        #     print(info.keys())
+        #     print(info)
+        #     raise e
         
         if self.caption_chocie is not None:
             # load new captions 

@@ -25,7 +25,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     llava/train/train_mem.py \
     --model_name_or_path  /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version v1 \
-    --datasets_mixture_name coyo_webds_refilerted \
+    --datasets_mixture_name datacomp_webds \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --tune_mm_mlp_adapter True \
     --mm_projector_type linear \

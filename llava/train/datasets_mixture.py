@@ -19,6 +19,13 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    datacomp_webds = Dataset(
+        dataset_name='datacomp_webds',
+        dataset_type='coyowebds',
+        data_path="/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filtering/dc1b_filtered",
+    )
+    
+    
     coyo_webds_refilerted = Dataset(
         dataset_name='coyo_webds_refilerted',
         dataset_type='coyowebds',
@@ -139,6 +146,8 @@ def register_datasets_mixtures():
 
     DATASETS_MIXTURES.update({'coyo_25m_refilter+mmc4core': [coyo_webds_refilerted, mmc4core]})
     DATASETS_MIXTURES.update({'coyo_25m_recap+mmc4core': [coyo_webds_vila_recaption, mmc4core]})
+    
+    DATASETS_MIXTURES.update({'datacomp_webds': [datacomp_webds, ]})
     DATASETS_MIXTURES.update({'coyo_webds_refilerted': [coyo_webds_refilerted, ]})
     DATASETS_MIXTURES.update({'coyo_webds_vila_recap': [coyo_webds_vila_recaption, ]})
     DATASETS_MIXTURES.update({'coyo_webds_vila': [coyo_webds_vila, ]})

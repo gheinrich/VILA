@@ -14,7 +14,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 n_node=${SLURM_JOB_NUM_NODES:-1}
 
 bs=$((128 / n_node))
-bs=4
+# bs=4
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
