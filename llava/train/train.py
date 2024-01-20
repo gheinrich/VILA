@@ -103,6 +103,7 @@ def train():
           'mixtral' in model_args.model_name_or_path):
         model_cls = LlavaMixtralForCausalLM
 
+
     if model_args.vision_tower is not None:
         # NOTE: a temporay hack to address the CPU OOM problem during model loading
         if "70" in model_args.model_name_or_path:
@@ -114,8 +115,20 @@ def train():
 
                 time.sleep(300)
 
+        # Set RoPE scaling factor
+        config = transformers.AutoConfig.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=training_args.cache_dir,
+            trust_remote_code=model_args.trust_remote_code,
+        )
+        orig_ctx_len = getattr(config, "max_position_embeddings", None)
+        if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+            scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
+            config.rope_scaling = {"type": "linear", "factor": scaling_factor}
+
         model = model_cls.from_pretrained(
             model_args.model_name_or_path,
+            config=config,
             # low_cpu_mem_usage="70" in model_args.model_name_or_path,
         )
     else:

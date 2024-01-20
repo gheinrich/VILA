@@ -1,4 +1,4 @@
-TOTAL_RUNS=1
+TOTAL_RUNS=5
 
 for i in $(seq 1 $TOTAL_RUNS); do
 srun --label -A nvr_lpr_aiagent -N 16 -t 4:00:00 -J nvr_lpr_aiagent-vlm:pretraining \

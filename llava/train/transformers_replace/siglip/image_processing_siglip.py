@@ -105,7 +105,7 @@ class SiglipImageProcessor(BaseImageProcessor):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        size = size if size is not None else {"shortest_edge": 224}
+        size = size if size is not None else {"shortest_edge": 384}
         size = get_size_dict(size, default_to_square=False)
         image_mean = image_mean if image_mean is not None else IMAGENET_STANDARD_MEAN
         image_std = image_std if image_std is not None else IMAGENET_STANDARD_STD
@@ -263,7 +263,7 @@ class SiglipImageProcessor(BaseImageProcessor):
         # if input_data_format is None:
         #     # We assume that all images have the same channel dimension format.
         #     input_data_format = infer_channel_dimension_format(images[0])
-
+        
         if do_resize:
             images = [self.resize(image=image, size=size, resample=resample) for image in images]
 

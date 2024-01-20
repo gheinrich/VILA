@@ -42,12 +42,12 @@ from .configuration_siglip import SiglipConfig, SiglipTextConfig, SiglipVisionCo
 
 logger = logging.get_logger(__name__)
 
-_CHECKPOINT_FOR_DOC = "google/siglip-base-patch16-224"
+# _CHECKPOINT_FOR_DOC = "google/siglip-base-patch16-224"
 
-SIGLIP_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "google/siglip-base-patch16-224",
-    # See all SigLIP models at https://huggingface.co/models?filter=siglip
-]
+# SIGLIP_PRETRAINED_MODEL_ARCHIVE_LIST = [
+#     "google/siglip-base-patch16-224",
+#     # See all SigLIP models at https://huggingface.co/models?filter=siglip
+# ]
 
 
 def _trunc_normal_(tensor, mean, std, a, b):

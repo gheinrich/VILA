@@ -123,7 +123,7 @@ class LlavaLlamaModel(LlamaModel):
                 self.vision_tower = [
                     SiglipVisionModel.from_pretrained(config.mm_vision_tower)
                 ]
-                vision_config = vision_tower.config
+                vision_config = self.vision_tower[0].config
             else:
                 self.vision_tower = [
                     CLIPVisionModel.from_pretrained(config.mm_vision_tower)
@@ -180,10 +180,14 @@ class LlavaLlamaModel(LlamaModel):
                 add_visual_expert_attn=self.config.add_visual_expert_attn,
             )
 
-        if not hasattr(self, "vision_tower") and self.vision_tower_class == "siglip":
+        print(" * Loading vision tower from", vision_tower)
+        print(" * Using vision tower class", self.vision_tower_class)
+        print(" hasattr vision_tower: ", hasattr(self, "vision_tower"))
+        if hasattr(self, "vision_tower") and self.vision_tower_class == "siglip":
             image_processor = SiglipImageProcessor.from_pretrained(vision_tower)
         else:
             image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        print(" * Using image processor", image_processor)
 
         if not hasattr(self, "vision_tower"):
             if self.vision_tower_class == "qwen":

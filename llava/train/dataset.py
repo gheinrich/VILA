@@ -319,6 +319,10 @@ class LazySupervisedDataset(Dataset):
         else:
             image = image_file  # already PIL image
 
+        h, w = image.size
+        if h < 10 and w < 10:
+            image = image.resize((30, 30))
+            
         if resize:
             image = image.resize((image_size, image_size))
         if multimodal_cfg["image_aspect_ratio"] == "keep":
@@ -358,6 +362,7 @@ class LazySupervisedDataset(Dataset):
     def load_video(self, video_path, num_video_frames):
         decord.bridge.set_bridge("torch")
         video_reader = VideoReader(uri=video_path)
+        image_size = self.multimodal_cfg["image_size"]
     
         idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
         try:
