@@ -2,6 +2,10 @@ import os
 
 import torch
 from transformers import AutoTokenizer, CLIPImageProcessor, CLIPVisionModel
+from transformers.models.siglip import (
+    SiglipVisionModel,
+    SiglipImageProcessor,
+)
 
 from llava.conversation import SeparatorStyle, conv_templates
 from llava.model import LlavaLlamaForCausalLM
@@ -43,9 +47,14 @@ def build_model(model_name, conv_version):
     ).cuda()
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
 
-    image_processor = CLIPImageProcessor.from_pretrained(
-        model.config.mm_vision_tower, torch_dtype=torch.float16
-    )
+    if "siglip" in model_name:
+        image_processor = SiglipImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
+    else:
+        image_processor = CLIPImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
 
     mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
     # assert mm_use_im_start_end

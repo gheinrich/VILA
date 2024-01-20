@@ -19,6 +19,7 @@ import pathlib
 import re
 import shutil
 import time
+import math
 from typing import Dict
 
 import torch
@@ -103,6 +104,7 @@ def train():
           'mixtral' in model_args.model_name_or_path):
         model_cls = LlavaMixtralForCausalLM
 
+
     if model_args.vision_tower is not None:
         # NOTE: a temporay hack to address the CPU OOM problem during model loading
         if "70" in model_args.model_name_or_path:
@@ -114,8 +116,20 @@ def train():
 
                 time.sleep(300)
 
+        # Set RoPE scaling factor
+        config = transformers.AutoConfig.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=training_args.cache_dir,
+            trust_remote_code=model_args.trust_remote_code,
+        )
+        orig_ctx_len = getattr(config, "max_position_embeddings", None)
+        if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+            scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
+            config.rope_scaling = {"type": "linear", "factor": scaling_factor}
+
         model = model_cls.from_pretrained(
             model_args.model_name_or_path,
+            config=config,
             # low_cpu_mem_usage="70" in model_args.model_name_or_path,
         )
     else:
@@ -364,6 +378,13 @@ def train():
         and "eva" not in str(type(model.get_vision_tower())).lower()
     ):
         patch_size = 28  # qwen
+    elif "siglip" in str(type(model.get_vision_tower())).lower():
+        if "16" in model_args.vision_tower:
+            patch_size = 16
+        elif "so400m" in model_args.vision_tower:
+            patch_size = 14
+        else:
+            raise ValueError("Unknown siglip model, please set the patch size")
     else:  # clip or eva
         patch_size = 14
     patch_size = patch_size * 2 ** model_args.mm_projector_type.count("ds")
@@ -372,6 +393,7 @@ def train():
         tokenizer=tokenizer,
         data_args=data_args,
         patch_size=patch_size,
+        image_size=vision_config.image_size,
         n_extra_patch=n_extra_patch,
     )
 
