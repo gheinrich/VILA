@@ -1250,7 +1250,11 @@ class LazyCoyoFull(Dataset):
             tar_name = osp.relpath(shard, osp.realpath(self.data_path))
             shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
             shard_json = lru_json_load(shard_json_path)
-            caption = shard_json[url]["output"]
+            try:
+                caption = shard_json[url]["output"]
+            except KeyError:
+                print(f"{url} not in caption. fallback to original caption temporarially")
+                
             
         if ADD_TEXT_PROMPT:
             from llava.data.template import CAPTION_TEMPLATE
