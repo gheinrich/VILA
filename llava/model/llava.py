@@ -29,6 +29,12 @@ from transformers import (
     LlamaForCausalLM,
     LlamaModel,
 )
+
+from transformers.models.siglip import (
+    SiglipVisionModel,
+    SiglipImageProcessor,
+)
+
 from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
     CausalLMOutputWithPast,
@@ -113,6 +119,11 @@ class LlavaLlamaModel(LlamaModel):
                         "patch_size": 14,
                     }
                 )
+            elif self.vision_tower_class == "siglip":
+                self.vision_tower = [
+                    SiglipVisionModel.from_pretrained(config.mm_vision_tower)
+                ]
+                vision_config = self.vision_tower[0].config
             else:
                 self.vision_tower = [
                     CLIPVisionModel.from_pretrained(config.mm_vision_tower)
@@ -142,6 +153,8 @@ class LlavaLlamaModel(LlamaModel):
             vision_tower_arch = "eva"
         elif "raw" in self.config.mm_vision_tower.lower():
             vision_tower_arch = "raw"
+        elif "siglip" in self.config.mm_vision_tower.lower():
+            vision_tower_arch = "siglip"
         else:
             vision_tower_arch = "clip"
         return vision_tower_arch
@@ -167,7 +180,14 @@ class LlavaLlamaModel(LlamaModel):
                 add_visual_expert_attn=self.config.add_visual_expert_attn,
             )
 
-        image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        print(" * Loading vision tower from", vision_tower)
+        print(" * Using vision tower class", self.vision_tower_class)
+        print(" hasattr vision_tower: ", hasattr(self, "vision_tower"))
+        if hasattr(self, "vision_tower") and self.vision_tower_class == "siglip":
+            image_processor = SiglipImageProcessor.from_pretrained(vision_tower)
+        else:
+            image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        print(" * Using image processor", image_processor)
 
         if not hasattr(self, "vision_tower"):
             if self.vision_tower_class == "qwen":
@@ -227,6 +247,9 @@ class LlavaLlamaModel(LlamaModel):
                         "patch_size": 14,
                     }
                 )
+            elif self.vision_tower_class == "siglip":
+                vision_tower = SiglipVisionModel.from_pretrained(vision_tower)
+                vision_config = vision_tower.config
 
             else:
                 vision_tower = CLIPVisionModel.from_pretrained(vision_tower)

@@ -8,6 +8,7 @@ import transformers
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
     version: Optional[str] = field(default="v0")
+    trust_remote_code: bool = field(default=True)
     freeze_backbone: bool = field(default=False)
     tune_mm_mlp_adapter: bool = field(default=False)
     tune_vision_encoder: bool = field(default=False)
