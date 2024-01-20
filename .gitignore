@@ -12,6 +12,7 @@ core.*
 
 # Data
 !**/alpaca-data-conversation.json
+eval/*
 
 # Editor
 .idea
