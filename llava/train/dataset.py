@@ -320,14 +320,10 @@ class LazySupervisedDataset(Dataset):
             image = Image.open(image_file).convert("RGB")
         else:
             image = image_file  # already PIL image
-<<<<<<< HEAD
-
-=======
         # special handling for 
         '''
         [4879083473105, 'https://cdn.billiger.com/dynimg/iBpF8x19A1EeE6JWhZ4CUgA2-pEoXYO2FO0obcY2xnQ1YO06rOi28g98iBnbjTFUopXq5ZfhHBQqF1VM8lIcu26sKkZG1CqYItu6E_XkUrRJATRZBfIhttOPYy5HiC-CEfUD0VilOp6Da-X9DPpbmdzQ7_-pwCreVTNv4QUAJ7hPqVE2WFUAuxagDi9LZMVqA/2061311384_large.png', 'AVM FRITZ!Repeater 1200 WLAN Mesh (866Mbit/s, 400Mbit/s), WLAN Repeater']
         '''
->>>>>>> 79fe8a7f1dab768b7a4e5f963b52c01717de551b
         h, w = image.size
         if h < 10 and w < 10:
             image = image.resize((30, 30))
