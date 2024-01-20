@@ -137,6 +137,8 @@ def register_datasets_mixtures():
     )
     add_dataset(valley_test)
 
+    DATASETS_MIXTURES.update({'coyo_25m_refilter+mmc4core': [coyo_webds_refilerted, mmc4core]})
+    DATASETS_MIXTURES.update({'coyo_25m_recap+mmc4core': [coyo_webds_vila_recaption, mmc4core]})
     DATASETS_MIXTURES.update({'coyo_webds_refilerted': [coyo_webds_refilerted, ]})
     DATASETS_MIXTURES.update({'coyo_webds_vila_recap': [coyo_webds_vila_recaption, ]})
     DATASETS_MIXTURES.update({'coyo_webds_vila': [coyo_webds_vila, ]})
