@@ -1,9 +1,9 @@
 #!/bin/bash
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 python -m llava.eval.model_vqa \
     --model-name $1 \

@@ -91,7 +91,7 @@ class LocalDistributedSamplerAugCoyo(DistributedSampler):
         # NOTE: org_ is without drop last
         self.org_sample_len_list = self.per_replica_samples = sample_len_list
 
-        assert sum(sample_len_list) == len(self.dataset)
+        assert sum(sample_len_list) == len(self.dataset), f"{sum(sample_len_list)} != {len(self.dataset)}"
 
         self.batch_size = batch_size
         self.global_batch_size = batch_size * num_replicas

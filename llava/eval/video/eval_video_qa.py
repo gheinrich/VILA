@@ -31,7 +31,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
         pred = qa_set['pred']
         try:
             # Compute the correctness score
-            completion = openai.ChatCompletion.create(
+            completion = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -60,7 +60,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
                 ]
             )
             # Convert response to a Python dictionary.
-            response_message = completion["choices"][0]["message"]["content"]
+            response_message = completion.choices[0].message.content
             response_dict = ast.literal_eval(response_message)
             result_qa_pair = [response_dict, qa_set]
 

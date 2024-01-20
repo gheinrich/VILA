@@ -1,10 +1,10 @@
 #!/bin/bash
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 if [ ! -d "/tmp/seed" ]; then
     echo "Preparing dataset..."

@@ -1,9 +1,19 @@
+hostfile
+core.*
+*.out
+captioner_bk/
+slurm-logs/
+captioner/
+eval/
+hostfile
+*_dev.py
+*.ipynb
+
 # Python
 __pycache__
 *.pyc
 *.egg-info
 dist
-core.*
 
 # Log
 *.log

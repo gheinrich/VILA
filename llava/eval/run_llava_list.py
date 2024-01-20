@@ -14,6 +14,7 @@ from transformers import (
     CLIPImageProcessor,
     CLIPVisionModel,
     StoppingCriteria,
+    AutoModel,
 )
 
 from llava.conversation import SeparatorStyle, conv_templates
@@ -37,6 +38,12 @@ def load_image(image_file):
         image = Image.open(BytesIO(response.content)).convert("RGB")
     else:
         image = Image.open(image_file).convert("RGB")
+    '''
+    [4879083473105, 'https://cdn.billiger.com/dynimg/iBpF8x19A1EeE6JWhZ4CUgA2-pEoXYO2FO0obcY2xnQ1YO06rOi28g98iBnbjTFUopXq5ZfhHBQqF1VM8lIcu26sKkZG1CqYItu6E_XkUrRJATRZBfIhttOPYy5HiC-CEfUD0VilOp6Da-X9DPpbmdzQ7_-pwCreVTNv4QUAJ7hPqVE2WFUAuxagDi9LZMVqA/2061311384_large.png', 'AVM FRITZ!Repeater 1200 WLAN Mesh (866Mbit/s, 400Mbit/s), WLAN Repeater']
+    '''
+    h, w = image.size
+    if h < 10 and w < 10:
+        image = image.resize((30, 30))
     return image
 
 
@@ -46,7 +53,7 @@ def execute_llava(
     image_processor,
     tokenizer,
     vision_config,
-    image_files: str,
+    image_paths: str,
     prompt_query: str,
 ):
     mm_use_im_start_end = vision_config.use_im_start_end
@@ -63,7 +70,7 @@ def execute_llava(
         image_token_len += 2
 
     # read images first
-    image_file_list = image_files.split("###")
+    image_file_list = image_paths.split("###")
     image_list = [load_image(image_file) for image_file in image_file_list]
     image_tensor = torch.cat(
         [
@@ -179,7 +186,7 @@ def eval_model(args):
     # Model
     disable_torch_init()
     model_name = os.path.expanduser(args.model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, trust_remote_code=True)
 
     # Output
     logging.set_verbosity_error()
@@ -191,6 +198,15 @@ def eval_model(args):
             torch_dtype=torch.float16,
             use_cache=True,
         ).cuda()
+    # elif "share" in model_name.lower():
+    #     print("loading sharecaptioner_bk")
+    #     model = AutoModel.from_pretrained(
+    #         model_name,
+    #         low_cpu_mem_usage=True,
+    #         torch_dtype=torch.float16,
+    #         use_cache=True,
+    #         trust_remote_code=True,
+    #     ).cuda()
     else:
         model = LlavaLlamaForCausalLM.from_pretrained(
             model_name,
@@ -237,6 +253,7 @@ def eval_model(args):
     dataset2fpath = {
         "coco": "~/datasets/ShareGPT4V/data/coco/train2017",
         "sam": "~/datasets/ShareGPT4V/data/sam/images",
+        "vfc": "~/datasets/vfc_captions/images",
     }
 
     img_file_list = sorted(list(glob.glob(
@@ -250,8 +267,8 @@ def eval_model(args):
     stop_idx = chunk_size * (args.idx + 1)
     img_file_list = img_file_list[begin_idx: stop_idx]
     
-    # out_fpath = f"captioner/{dataset}-{osp.basename(model_name)}-{args.idx}-of-{args.total}.json"
-    out_fpath = f"captioner/{dataset}-{osp.basename(model_name)}-{args.idx}-of-{args.total}.json"
+    # out_fpath = f"captioner_bk/{dataset}-{osp.basename(model_name)}-{args.idx}-of-{args.total}.json"
+    out_fpath = f"captioner_bk/{dataset}-{osp.basename(model_name)}-{args.idx}-of-{args.total}.json"
     os.makedirs(osp.dirname(out_fpath), exist_ok=True)
     
     info_json = {}
@@ -276,7 +293,7 @@ def eval_model(args):
             image_processor=image_processor,
             tokenizer=tokenizer,
             vision_config=vision_config,
-            image_files=img_file,
+            image_paths=img_file,
             prompt_query=query,
         )
         
@@ -291,8 +308,13 @@ def eval_model(args):
                 indent=2
             )
             
-        if idx >= 10000:
-            break
+    json.dump(
+        info_json,
+        open(out_fpath, "w+"),
+        indent=2
+    )
+            
+  
 
 
 if __name__ == "__main__":
@@ -300,7 +322,7 @@ if __name__ == "__main__":
     parser.add_argument("--model-name", type=str, default="facebook/opt-350m")
     # parser.add_argument("--image-file", type=str, required=True)
     # parser.add_argument("--query", type=str, required=True)
-    parser.add_argument("--dataset", type=str, default="coco")
+    parser.add_argument("--dataset", type=str, default="vfc")
     parser.add_argument("--conv-mode", type=str, default=None)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--pad", action="store_true")
@@ -310,5 +332,17 @@ if __name__ == "__main__":
     parser.add_argument("--total", type=int, default=1)
     
     args = parser.parse_args()
+    
+    import torch.distributed as dist
+    
+    dist.init_process_group()
 
+    if dist.is_initialized():
+        rank = int(os.environ.get("RANK", 0))
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        torch.cuda.set_device(local_rank)
+        args.idx = rank
+        args.total = world_size
+        
     eval_model(args)

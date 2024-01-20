@@ -2,7 +2,7 @@
 
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
 if [ ! -d "/tmp/gqa" ]; then
@@ -13,7 +13,7 @@ else
     echo "Data already exists..."
 fi
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 source ~/.bashrc
-conda activate vila
+conda activate vila_debug
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA/
 
 python -m llava.eval.eval_mmmu \
     --output_path $1/eval/llava15/mmmu_output.json \

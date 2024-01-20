@@ -417,8 +417,18 @@ def train():
     training_args.sample_lens = extra_info
     LLaVATrainer._get_train_sampler = LLaVATrainer._get_local_train_sampler_aug_coyo
 
+    callbacks = []
+    if training_args.total_time_limit > 10:
+        from llava.train.slurm_utils import TimeoutTerminateCallback
+        time_out_callback = TimeoutTerminateCallback(
+            args=training_args,
+            total_time_limit=training_args.total_time_limit,
+            pre_terminate_time=training_args.pre_terminate_time
+        )
+        callbacks = [time_out_callback, ]
+    
     trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module
+        model=model, tokenizer=tokenizer, args=training_args, **data_module, callbacks=callbacks
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):

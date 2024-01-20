@@ -11,7 +11,7 @@ import time
 def get_eval(content: str, max_tokens: int):
     while True:
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model='gpt-4',
                 messages=[{
                     'role': 'system',
@@ -31,7 +31,7 @@ def get_eval(content: str, max_tokens: int):
         time.sleep(1)
 
     print('success!')
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content
 
 
 def parse_score(review):

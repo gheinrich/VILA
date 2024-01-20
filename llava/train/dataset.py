@@ -3,7 +3,7 @@ import copy
 import io
 import json
 import logging
-import os
+import os, os.path as osp
 import random
 import time
 from dataclasses import dataclass, field
@@ -17,6 +17,7 @@ from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Resize
 import decord
 from decord import VideoReader
+from io import BytesIO
 
 
 
@@ -30,6 +31,7 @@ from llava.train.token_config import (
     IGNORE_INDEX,
 )
 from llava.train import datasets_mixture
+from llava.train.utils import mprint, rprint
 
 
 def tokenizer_image_token(
@@ -203,7 +205,6 @@ def preprocess_v1(
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
-                
                 if i>0:
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
@@ -314,11 +315,19 @@ class LazySupervisedDataset(Dataset):
         if isinstance(image_file, str):
             if image_folder is not None:
                 image_file = os.path.join(image_folder, image_file)
-
+            image = Image.open(image_file).convert("RGB")
+        elif isinstance(image_file, io.BytesIO):
             image = Image.open(image_file).convert("RGB")
         else:
             image = image_file  # already PIL image
+<<<<<<< HEAD
 
+=======
+        # special handling for 
+        '''
+        [4879083473105, 'https://cdn.billiger.com/dynimg/iBpF8x19A1EeE6JWhZ4CUgA2-pEoXYO2FO0obcY2xnQ1YO06rOi28g98iBnbjTFUopXq5ZfhHBQqF1VM8lIcu26sKkZG1CqYItu6E_XkUrRJATRZBfIhttOPYy5HiC-CEfUD0VilOp6Da-X9DPpbmdzQ7_-pwCreVTNv4QUAJ7hPqVE2WFUAuxagDi9LZMVqA/2061311384_large.png', 'AVM FRITZ!Repeater 1200 WLAN Mesh (866Mbit/s, 400Mbit/s), WLAN Repeater']
+        '''
+>>>>>>> 79fe8a7f1dab768b7a4e5f963b52c01717de551b
         h, w = image.size
         if h < 10 and w < 10:
             image = image.resize((30, 30))
@@ -1198,6 +1207,168 @@ class LazyCoyoDataset(Dataset):
 
         return dict(input_ids=input_ids, labels=targets, image=image_list)
 
+from functools import lru_cache
+
+@lru_cache(maxsize=16)
+def lru_json_load(jpath):
+    return json.load(open(jpath, "r"))
+
+class LazyCoyoFull(Dataset):
+    """Dataset for supervised fine-tuning."""
+    def __init__(
+        self,
+        data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        multimodal_cfg: dict,
+    ):
+        super().__init__()
+        
+        from llava.train.simple_coyo_dataset import SimpleCoyoDataset
+        
+        self.dataset = SimpleCoyoDataset(
+            data_path=data_path,
+        )
+
+        # None: use original caption
+        # folder path: use original caption
+        self.caption_chocie = None
+        self.data_path = data_path
+        
+        print("total samples", len(self.dataset))  # 10,881,869
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+        # print("Loading done. Total time: {:.2f} seconds".format(t2 - t1))
+
+        self.tokenizer = tokenizer
+        self.multimodal_cfg = multimodal_cfg
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        ADD_TEXT_PROMPT = False
+
+        info = self.dataset[i]
+        
+        if ".jpg" in info:
+            caption, image_path = info[".txt"], info[".jpg"]
+        elif ".png" in info:
+            caption, image_path = info[".txt"], info[".png"]
+        elif ".webp" in info:
+            caption, image_path = info[".txt"], info[".webp"]
+        elif ".bmp" in info:
+            caption, image_path = info[".txt"], info[".bmp"]
+        else:
+            print(info.keys())
+            print(info)
+            raise KeyError
+        # except KeyError as e:
+        #     print(info.keys())
+        #     print(info)
+        #     raise e
+        
+        if self.caption_chocie is not None:
+            # load new captions 
+            shard = info["__shard__"]
+            url = info[".json"]["url"]
+            tar_name = osp.relpath(shard, osp.realpath(self.data_path))
+            shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
+            shard_json = lru_json_load(shard_json_path)
+            try:
+                caption = shard_json[url]["output"]
+            except KeyError:
+                print(f"{url} not in caption. fallback to original caption temporarially")
+                
+            
+        if ADD_TEXT_PROMPT:
+            from llava.data.template import CAPTION_TEMPLATE
+
+            rand_prompt = random.choice(CAPTION_TEMPLATE)
+            rand_prompt = "<image>\n" + rand_prompt
+        else:
+            rand_prompt = "<image>\n"
+        sources = [
+            {
+                "image": image_path,
+                "conversations": [
+                    {"from": "human", "value": rand_prompt},
+                    {"from": "gpt", "value": caption},
+                ],
+            }
+        ]
+
+        # one example of sources
+        # [{'id': 'GCC_train_001738742', 'image': 'GCC_train_001738742.jpg', 'conversations': [{'from': 'human', 'value': 'Provide a brief description of the given image.\n<image>'}, {'from': 'gpt', 'value': 'a sketch of an ostrich'}]}]
+        if "image" in sources[0]:
+            image = LazySupervisedDataset._process_image(
+                sources[0]["image"], self.multimodal_cfg
+            )
+            image = torch.unsqueeze(image, dim=0)
+
+            # now random pick some context samples for training
+            if self.multimodal_cfg["num_shots"] > 0:
+                raise NotImplementedError
+            
+            # the same size for all images, so we concat
+            cur_token_len = (image.shape[-2] // self.multimodal_cfg["patch_size"]) * (
+                image.shape[-1] // self.multimodal_cfg["patch_size"]
+            )
+            cur_token_len += self.multimodal_cfg["n_extra_patch"]
+            sources = replace_image_patch_tokens(
+                [e["conversations"] for e in sources], self.multimodal_cfg
+            )
+        else:
+            raise NotImplementedError
+
+        if not ADD_TEXT_PROMPT:
+            assert len(sources) == 1
+            # tokenize conversations
+            image_tokens = tokenizer_image_token(
+                sources[0][0]["value"],
+                self.tokenizer,
+                n_image_tokens=cur_token_len,
+                return_tensors="pt",
+            ).view(1, -1)
+            text_tokens = self.tokenizer(
+                [sources[0][1]["value"] + "</s>"],
+                return_tensors="pt",
+                max_length=self.tokenizer.model_max_length,
+                truncation=True,
+            ).input_ids
+            input_ids = torch.cat([image_tokens, text_tokens[:, 1:]], dim=-1)
+            targets = input_ids.clone()
+
+            targets[:, : image_tokens.shape[-1]] = IGNORE_INDEX
+            data_dict = dict(input_ids=input_ids, labels=targets)
+
+        else:
+            data_dict = preprocess(
+                sources, self.tokenizer, n_image_tokens=cur_token_len
+            )
+
+        if isinstance(i, int):
+            data_dict = dict(
+                input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
+            )
+
+        # image exist in the data
+        if image is not None:
+            data_dict["image"] = image
+        else:
+            raise NotImplementedError
+
+        return data_dict
+
+
+
+class LazyCoyoFullRecaptioned(LazyCoyoFull):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.caption_chocie = "/home/ligengz/workspace/VILA/captioner"
+        
+        print(f"Loading recaptioned texts from VILA {self.caption_chocie}")
+        
+
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):
@@ -1207,14 +1378,17 @@ class DataCollatorForSupervisedDataset(object):
     concat_prob: 0.0
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
+        # TODO(ligeng): what is this check for?
         if self.concat_prob > 0.0 and random.random() < self.concat_prob:
             raise NotImplementedError
         # how to support mixing text only & text image???
+        # NOTE(ligeng): temporally disable the check for webcoyo dataset
         assert all(["image" in instance for instance in instances])
+        # print(instances)
         input_ids, labels, images = tuple(
             [instance[key] for instance in instances] for key in ("input_ids", "labels", "image")
         )
-
+        # exit(0)
         new_input_ids, new_labels, new_images = [], [], []
         for input_id, label, image in zip(input_ids, labels, images):
             if input_id.dim() > 1:
@@ -1298,7 +1472,7 @@ class DataCollatorForSupervisedDataset(object):
             images = flat_batch_images,
             position_ids=position_ids
         )
-
+        # rprint("input_ids: ", batch["input_ids"].shape, "labels: ", batch["labels"].shape)
         return batch
 
 
@@ -1312,6 +1486,7 @@ def make_supervised_data_module(
     """Make dataset and collator for supervised fine-tuning."""
     extra_info = []
     all_datasets = []
+    # print(datasets_mixture.DATASETS_MIXTURES)
     mixture = datasets_mixture.DATASETS_MIXTURES[data_args.datasets_mixture_name]
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1329,6 +1504,18 @@ def make_supervised_data_module(
             dataset_cls = LazyMMC4DatasetSub
         elif dataset_type == "coyo":
             dataset_cls = LazyCoyoDataset
+        elif dataset_type == "coyowebds":
+            print("dataset.py: Loading LazyCoyoFull class")
+            # NOTE:(ligeng) this impl has bugs, do not use 
+            # from llava.train.webcoyo import LazyCoyoWebDataset
+            # dataset_cls = LazyCoyoWebDataset
+            dataset_cls = LazyCoyoFull
+        elif dataset_type == "coyowebds_recap":
+            print("dataset.py: Loading LazyCoyoFull class with captioned results")
+            # NOTE:(ligeng) this impl has bugs, do not use 
+            # from llava.train.webcoyo import LazyCoyoWebDataset
+            # dataset_cls = LazyCoyoWebDataset
+            dataset_cls = LazyCoyoFullRecaptioned
         else:
             raise NotImplementedError
 
@@ -1352,8 +1539,22 @@ def make_supervised_data_module(
         )
         all_datasets.append(train_dataset)
         extra_info.append(len(train_dataset))
-
+    
+    if len(all_datasets) > 1:
+        print("Concatnating datasets")
     all_datasets = ConcatDataset(all_datasets)
+    # disable nvgpt4 utils
+    # from nvgpt4.data import BlendDataset, WorkerConfig
+    # rank = int(os.environ.get("RANK", 0))
+    # world_size = int(os.environ.get("WORLD_SIZE", 1))
+    # all_datasets = BlendDataset(
+    #     *[(dst, 1) for dst in all_datasets],
+    #     worker_config=WorkerConfig(
+    #         rank=rank,
+    #         world_size=world_size,
+    #         num_workers=1,
+    #     )
+    # )
 
     data_collator = DataCollatorForSupervisedDataset(
         tokenizer=tokenizer, concat_prob=0.0
