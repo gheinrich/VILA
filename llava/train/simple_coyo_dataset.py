@@ -15,7 +15,8 @@ import torch
 import torch.distributed
 from torch.utils.data import Dataset, get_worker_info, ConcatDataset
 
-import wids
+import getpass
+from llava.wids import ShardListDataset
 
 # @lru_cache(maxsize=32)
 def load_tarfile(tar_path):
@@ -104,11 +105,13 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
             json.dump(meta, open(self.meta_path, "w+"), indent=2)
         
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
-        import getpass
-        uuid = abs(hash(self.meta_path)) % (10 ** 8)
-        self.dataset = wids.ShardListDataset(
+        
+        # uuid = abs(hash(self.meta_path)) % (10 ** 8)
+        import hashlib
+        uuid = hashlib.sha256(self.meta_path.encode()).hexdigest()[:8]
+        self.dataset = ShardListDataset(
             self.meta_path,
-            cache_dir=f"/tmp/{getpass.getuser()}-{uuid}"
+            cache_dir=osp.expanduser(f"~/.cache/_wids_cache_debug/{getpass.getuser()}-{uuid}"),
         )
 
         
@@ -175,10 +178,10 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--max-shards", type=int, default=None)
     args = parser.parse_args()
     
-        
     train_dataset = SimpleCoyoDataset(
         data_path=args.data_path,
         max_shards_to_load=args.max_shards,
+        cache_dir="~/.cache/simplecoyo",
     )
 
     sampler = None
