@@ -103,7 +103,12 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
             json.dump(meta, open(self.meta_path, "w+"), indent=2)
         
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
-        self.dataset = wids.ShardListDataset(self.meta_path)
+        import getpass
+        uuid = abs(hash(self.meta_path)) % (10 ** 8)
+        self.dataset = wids.ShardListDataset(
+            self.meta_path,
+            cache_dir=f"/tmp/{getpass.getuser()}-{uuid}"
+        )
 
         
     def __getitem__(self, idx):
