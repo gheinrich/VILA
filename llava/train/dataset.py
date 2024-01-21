@@ -1254,6 +1254,8 @@ class LazyCoyoFull(Dataset):
             caption, image_path = info[".txt"], info[".webp"]
         elif ".bmp" in info:
             caption, image_path = info[".txt"], info[".bmp"]
+        elif ".tiff" in info:
+            caption, image_path = info[".txt"], info[".tiff"]
         else:
             print(info.keys())
             print(info)
