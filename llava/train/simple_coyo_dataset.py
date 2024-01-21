@@ -32,7 +32,8 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
-        cache_dir="/home/ligengz/.cache/simplecoyo",
+        # cache_dir="/home/ligengz/.cache/simplecoyo",
+        cache_dir="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/vila-webds-meta",
         meta_path=None,
         image_load_mode="pil",  # pil / rawbytes / fpath,
         max_shards_to_load = None,
