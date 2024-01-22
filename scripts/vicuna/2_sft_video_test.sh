@@ -1,10 +1,12 @@
+source ~/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
 
+cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
-cd ~/workspace/multi-modality-research/VILA/
-rm -r ./checkpoints/vicuna-7b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1000_test
+# rm -r ./checkpoints/vicuna-7b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1000_test
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -20,7 +22,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path checkpoints/vicuna-7b-clip336-finetune-mmc4sub+coyo-linear-e10 \
+    --model_name_or_path /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-13b-clip336-finetune-mmc4sub+coyo-linear-e11 \
     --version v1 \
     --datasets_mixture_name video_chatgpt \
     --vision_tower openai/clip-vit-large-patch14-336 \
@@ -28,7 +30,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1000_test \
+    --output_dir /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1000_test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps 1 \
@@ -46,6 +48,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --fsdp_transformer_layer_cls_to_wrap 'LlamaDecoderLayer' \
     --model_max_length 5120 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 32 \
     --lazy_preprocess True \
     --report_to wandb

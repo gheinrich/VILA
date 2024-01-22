@@ -3,6 +3,7 @@ conda init
 source ~/.bashrc
 conda activate vila
 which python
+
 export CUDA_LAUNCH_BLOCKING=1
 cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
@@ -11,7 +12,9 @@ export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((64 / n_node))
+
+
+bs=$((128 / n_node))
 n_gpus=$((n_node * 8))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
@@ -28,10 +31,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-e1010 \
+    --output_dir /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v+video-nosqa-linear-bsz512 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps 4 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 50 \

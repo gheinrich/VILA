@@ -3,7 +3,7 @@ conda init
 source ~/.bashrc
 conda activate vila
 which python
-export CUDA_LAUNCH_BLOCKING=1
+
 cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
