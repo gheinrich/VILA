@@ -57,22 +57,22 @@ def register_datasets_mixtures():
     coyo_25m = Dataset(
         dataset_name='coyo',
         dataset_type='coyo',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/datasets/coyo-700m/pkl02-split')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/datasets/coyo-700m/pkl02-split')
     add_dataset(coyo_25m)
     coyo_25m_test = Dataset(
         dataset_name='coyo_test',
         dataset_type='coyo',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/debug/coyo-700m/pkl02-split')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/debug/coyo-700m/pkl02-split')
     add_dataset(coyo_25m_test)
     mmc4core = Dataset(
         dataset_name='mmc4core',
         dataset_type='mmc4sub',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/datasets/mmc4-core/pkl-core')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/datasets/mmc4-core/pkl-core')
     add_dataset(mmc4core)
     mmc4core_test = Dataset(
         dataset_name='mmc4core_test',
         dataset_type='mmc4sub',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/debug/mmc4-core/pkl-core')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/debug/mmc4-core/pkl-core')
     add_dataset(mmc4core_test)
     ccs_recaptioned = Dataset(
         dataset_name='ccs_recaptioned',
@@ -87,60 +87,60 @@ def register_datasets_mixtures():
     vflan = Dataset(
         dataset_name='vflan',
         dataset_type='vflan',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/datasets/vlm-flan-clean-text1m-nosqa')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/datasets/vlm-flan-clean-text1m-nosqa')
     add_dataset(vflan)
     laion = Dataset(
         dataset_name='laion',
         dataset_type='coyo',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/datasets/laion-recap-pkl')
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/datasets/laion-recap-pkl')
     add_dataset(laion)
     llava_1_5_sft = Dataset(
         dataset_name='llava_1_5_sft',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/datasets/llava-1.5/llava_v1_5_mix665k.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/data'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/datasets/llava-1.5/llava_v1_5_mix665k.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/data'
     )
     add_dataset(llava_1_5_sft)
     sharegpt4v_sft = Dataset(
         dataset_name='sharegpt4v_sft',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/data'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/data'
     )
     add_dataset(sharegpt4v_sft)
     sharegpt4v_gpt4_100k = Dataset(
         dataset_name='sharegpt4v_gpt4_100k',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/filter-sharegpt4v_instruct_gpt4-vision_cap100k.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/data'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/filter-sharegpt4v_instruct_gpt4-vision_cap100k.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/data'
     )
     add_dataset(sharegpt4v_gpt4_100k)
     sharegpt4v_pretrain = Dataset(
         dataset_name='sharegpt4v_pretrain',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/filter-share-captioner_coco_lcs_sam_1246k_1107.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vlm_datasets/ShareGPT4V/data'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/filter-share-captioner_coco_lcs_sam_1246k_1107.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/vlm_datasets/ShareGPT4V/data'
     )
     add_dataset(sharegpt4v_pretrain)
     valley = Dataset(
         dataset_name='valley',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Webvid/chat.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Webvid/data/videos/'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Webvid/chat.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Webvid/data/videos/'
     )
     add_dataset(valley)
     video_chatgpt = Dataset(
         dataset_name='video_chatgpt',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Video_ChatGPT/activitynet_videos/'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Video_ChatGPT/activitynet_videos/'
     )
     add_dataset(video_chatgpt)
     valley_test = Dataset(
         dataset_name='valley_test',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Webvid/chat_test.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Webvid/data/videos/'
+        data_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Webvid/chat_test.json',
+        image_path='/lustre/fsw/portfolios/nvr/users/jasonlu/video_datasets/Webvid/data/videos/'
     )
     add_dataset(valley_test)
 
