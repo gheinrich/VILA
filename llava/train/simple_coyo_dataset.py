@@ -111,7 +111,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
         uuid = hashlib.sha256(self.meta_path.encode()).hexdigest()[:8]
         self.dataset = ShardListDataset(
             self.meta_path,
-            cache_dir=osp.expanduser(f"~/.cache/_wids_cache_debug/{getpass.getuser()}-{uuid}"),
+            cache_dir=osp.expanduser(f"~/.cache/_wids_cache/{getpass.getuser()}-{uuid}"),
         )
 
         

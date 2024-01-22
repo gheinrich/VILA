@@ -2,6 +2,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
+WANDB_RESUME=allow
 # cd ~/workspace/multi-modality-research/VILA/
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
