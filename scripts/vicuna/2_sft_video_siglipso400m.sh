@@ -12,6 +12,8 @@ export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
+
+
 bs=$((128 / n_node))
 n_gpus=$((n_node * 8))
 echo "number of nodes:" $n_node
