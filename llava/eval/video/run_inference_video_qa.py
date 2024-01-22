@@ -56,9 +56,13 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     video_outputs = video_reader.get_batch(idx)
 
     b, h, w, c = video_outputs.size()
-    image_tensor = torch.zeros(b, c, 336, 336, dtype=torch.uint8)
+    patch_size = model.get_model().vision_tower[0].config.patch_size
+    image_size = model.get_model().vision_tower[0].config.image_size
+    n_image_tokens = (image_size // patch_size) ** 2
+    image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
     video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
-    video_frames = Resize(size=[336, 336], antialias=True)(video_frames)
+    
+    video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
     image_tensor[:, :, :, :] = video_frames
 
     image_tensor = [utils.preprocess_image(image, image_processor, use_padding=False) for image in torch.unbind(image_tensor)]
@@ -74,7 +78,7 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     input_ids = tokenizer_image_token(
         prompt,
         tokenizer,
-        n_image_tokens=576,
+        n_image_tokens=n_image_tokens,
         image_token_index=32000,
         return_tensors="pt",
     )
