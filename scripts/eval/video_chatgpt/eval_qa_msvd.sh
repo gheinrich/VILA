@@ -1,10 +1,11 @@
 #!/bin/bash
-
+source ~/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/multi-modality-research/VILA/
+cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
 GPT_Zero_Shot_QA="eval/GPT_Zero_Shot_QA"
 output_name=$1
