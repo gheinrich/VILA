@@ -506,6 +506,7 @@ class ShardListDataset(Dataset[T]):
             nbytes = sum(shard.get("filesize", 0) for shard in self.shards)
             nsamples = sum(shard["nsamples"] for shard in self.shards)
             print(
+                "[WebShardedList]",
                 str(shards)[:50],
                 "base:",
                 self.base,

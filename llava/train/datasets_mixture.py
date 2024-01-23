@@ -25,15 +25,21 @@ def register_datasets_mixtures():
     datacomp_webds = Dataset(
         dataset_name='datacomp_webds',
         dataset_type='coyowebds',
-        data_path='/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filtering/dc1b_filtered',
+        # data_path='/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filtering/dc1b_filtered',
+        # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
+        # TODO(ligeng) move to nvr_elm_llm workspace later.
+        data_path='/home/ligengz/datasets/dc1b_filtered',
         description='Original data source: https://github.com/mlfoundations/datacomp that contains 1B samples, ranked according to CLIP score and choose the top 18M. Short Image - Text pairs.',
     )
-    
+    add_dataset(datacomp_webds)
     
     coyo_webds_refilerted = Dataset(
         dataset_name='coyo_webds_refilerted',
         dataset_type='coyowebds',
-        data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata_fullmeta/stage2_filtered_v2',
+        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata_fullmeta/stage2_filtered_v2',
+        # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
+        # TODO(ligeng) move to nvr_elm_llm workspace later.
+        data_path="/home/ligengz/datasets/coyo-refilter",
         description='Original data source: https://github.com/kakaobrain/coyo-dataset that contains 700M samples, ranked according to CLIP score and choose the top 20M. Short Image - Text pairs.',
     )
     add_dataset(coyo_webds_refilerted)
@@ -42,7 +48,10 @@ def register_datasets_mixtures():
     coyo_webds_vila_recaption = Dataset(
         dataset_name='coyowebds_vila_recaption',
         dataset_type='coyowebds_recap',
-        data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
+        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
+        # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
+        # TODO(ligeng) move to nvr_elm_llm workspace later.
+        data_path="/home/ligengz/datasets/coyo-25m-vila",
         description='See coyo. Relabel coyo w/ VILA captioner, long Image - Text pair.'
     )
     add_dataset(coyo_webds_vila_recaption)
@@ -51,7 +60,10 @@ def register_datasets_mixtures():
         dataset_name='coyowebds',
         dataset_type='coyowebds',
         # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
-        data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
+        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
+        # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
+        # TODO(ligeng) move to nvr_elm_llm workspace later.
+        data_path="/home/ligengz/datasets/coyo-25m-vila",
         description='See coyo. Convert coyo to webds format.'
     )
     add_dataset(coyo_webds_vila)
@@ -62,6 +74,8 @@ def register_datasets_mixtures():
         description='Full coyo700M. Data source: https://github.com/kakaobrain/coyo-dataset, short Image - Text pair.'
     )
     add_dataset(coyo_webds_full)
+    ############################################################################################
+    
     coyo_25m = Dataset(
         dataset_name='coyo',
         dataset_type='coyo',
