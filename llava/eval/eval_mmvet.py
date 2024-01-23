@@ -199,11 +199,11 @@ while need_more_runs():
                     time.sleep(30)
 
             if len(sample_grade['model']) >= j + 1:
-                sample_grade['model'][j] = response['model']
+                sample_grade['model'][j] = response.model
                 sample_grade['content'][j] = content
                 sample_grade['score'][j] = score
             else:
-                sample_grade['model'].append(response['model'])
+                sample_grade['model'].append(response.model)
                 sample_grade['content'].append(content)
                 sample_grade['score'].append(score)
             grade_results[id] = sample_grade

@@ -2,7 +2,7 @@
 
 
 source ~/.bashrc
-conda activate vila_debug
+conda activate vila
 which python
 
 if [ ! -d "/tmp/gqa" ]; then

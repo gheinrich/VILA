@@ -1,7 +1,7 @@
 SPLIT="mmbench_dev_20230712"
 
 source ~/.bashrc
-conda activate vila_debug
+conda activate vila
 which python
 
 cd ~/workspace/VILA/

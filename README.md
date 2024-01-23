@@ -39,6 +39,7 @@ pip install datasets
 pip install scikit-learn
 pip install openai
 pip install webdataset
+pip install openpyxl
 
 pip install ninja
 pip install flash-attn --no-build-isolation
