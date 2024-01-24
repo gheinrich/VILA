@@ -42,8 +42,7 @@ def load_image(image_file):
         image = Image.open(image_file).convert("RGB")
     return image
 
-
-def eval_model(args):
+def load_model(args):
     # Model
     disable_torch_init()
     model_name = os.path.expanduser(args.model_name)
@@ -52,20 +51,12 @@ def eval_model(args):
     # Output
     logging.set_verbosity_error()
 
-    if "mpt" in model_name.lower():
-        model = LlavaMPTForCausalLM.from_pretrained(
-            model_name,
-            low_cpu_mem_usage=True,
-            torch_dtype=torch.float16,
-            use_cache=True,
-        ).cuda()
-    else:
-        model = LlavaLlamaForCausalLM.from_pretrained(
-            model_name,
-            low_cpu_mem_usage=True,
-            torch_dtype=torch.float16,
-            use_cache=True,
-        ).cuda()
+    model = LlavaLlamaForCausalLM.from_pretrained(
+        model_name,
+        low_cpu_mem_usage=True,
+        torch_dtype=torch.float16,
+        use_cache=True,
+    ).cuda()
 
     if 'siglip' in model_name.lower():
         image_processor = SiglipImageProcessor.from_pretrained(
@@ -76,12 +67,7 @@ def eval_model(args):
             model.config.mm_vision_tower, torch_dtype=torch.float16
         )
 
-    mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
     tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
-    if mm_use_im_start_end:
-        tokenizer.add_tokens(
-            [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True
-        )
 
     vision_tower = model.get_model().vision_tower[0]
     if vision_tower.device.type == "meta":
@@ -104,14 +90,7 @@ def eval_model(args):
     vision_config.im_patch_token = tokenizer.convert_tokens_to_ids(
         [DEFAULT_IMAGE_PATCH_TOKEN]
     )[0]
-    vision_config.use_im_start_end = mm_use_im_start_end
-    if mm_use_im_start_end:
-        (
-            vision_config.im_start_token,
-            vision_config.im_end_token,
-        ) = tokenizer.convert_tokens_to_ids(
-            [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN]
-        )
+    vision_config.use_im_start_end = False
     image_token_len = (vision_config.image_size // vision_config.patch_size) ** 2
 
     if (
@@ -124,7 +103,38 @@ def eval_model(args):
         image_token_len += 32
     elif "se" in model.config.mm_projector_type:
         image_token_len += 2
+    return model, tokenizer, image_processor, image_token_len
 
+
+def process_outputs(args, model, tokenizer, input_ids, image_tensor, stopping_criteria, stop_str):
+    with torch.inference_mode():
+        output_ids = model.generate(
+            input_ids,
+            images=image_tensor.half().cuda(),
+            do_sample=args.temperature > 0,
+            temperature=args.temperature,
+            max_new_tokens=512,
+            # top_p=0.7,
+            stopping_criteria=[stopping_criteria],
+        )
+
+    input_token_len = input_ids.shape[1]
+    n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
+    if n_diff_input_output > 0:
+        print(
+            f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids"
+        )
+    outputs = tokenizer.batch_decode(
+        output_ids[:, input_token_len:], skip_special_tokens=True
+    )[0]
+    outputs = outputs.strip()
+    if outputs.endswith(stop_str):
+        outputs = outputs[: -len(stop_str)]
+    outputs = outputs.strip()
+    return outputs
+
+
+def eval_model(args, model, tokenizer, image_processor, image_token_len):
     # read images first
     image_file_list = args.image_file.split("###")
     image_list = [load_image(image_file) for image_file in image_file_list]
@@ -135,16 +145,6 @@ def eval_model(args):
         ],
         dim=0,
     )
-
-    # image_tensor = torch.stack(
-    #     [
-    #         image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-    #         for image in image_list
-    #     ],
-    #     dim=0,
-    # )
-    n_images = image_tensor.shape[0]
-    # print(image_tensor.shape, "image_tensor.shape")
     print("Analyzing input of shape:", image_tensor.shape)
 
     query = args.query
@@ -153,14 +153,7 @@ def eval_model(args):
             lines = f.readlines()
         query = "".join([l.strip() for l in lines])
 
-    if mm_use_im_start_end:
-        image_tokens = (
-            DEFAULT_IM_START_TOKEN
-            + DEFAULT_IMAGE_PATCH_TOKEN * image_token_len
-            + DEFAULT_IM_END_TOKEN
-        )
-    else:
-        image_tokens = DEFAULT_IMAGE_PATCH_TOKEN * image_token_len
+    image_tokens = DEFAULT_IMAGE_PATCH_TOKEN * image_token_len
 
     if not "<image>" in query:
         assert "###" not in query  # single query
@@ -178,26 +171,6 @@ def eval_model(args):
                 query = query.replace("<image>", image_tokens)
             new_query_list.append(query)
         query_list = new_query_list
-
-    if "v1" in model_name.lower():
-        conv_mode = "llava_v1"
-    elif "mpt" in model_name.lower():
-        conv_mode = "mpt_multimodal"
-    else:
-        conv_mode = "multimodal"
-
-    if args.conv_mode is not None and conv_mode != args.conv_mode:
-
-        print("Now using conversation mode {}".format(args.conv_mode))
-        
-        # print(
-        #    "[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}".format(
-        #        conv_mode, args.conv_mode, args.conv_mode
-        #    )
-        # )
-
-    else:
-        args.conv_mode = conv_mode
 
     if args.manual_prompt is not None:
         prompt = args.manual_prompt.replace("<image>", image_tokens)
@@ -224,31 +197,7 @@ def eval_model(args):
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
     keywords = [stop_str]
     stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-
-    with torch.inference_mode():
-        output_ids = model.generate(
-            input_ids,
-            images=image_tensor.half().cuda(),
-            do_sample=args.temperature > 0,
-            temperature=args.temperature,
-            max_new_tokens=512,
-            # top_p=0.7,
-            stopping_criteria=[stopping_criteria],
-        )
-
-    input_token_len = input_ids.shape[1]
-    n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
-    if n_diff_input_output > 0:
-        print(
-            f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids"
-        )
-    outputs = tokenizer.batch_decode(
-        output_ids[:, input_token_len:], skip_special_tokens=True
-    )[0]
-    outputs = outputs.strip()
-    if outputs.endswith(stop_str):
-        outputs = outputs[: -len(stop_str)]
-    outputs = outputs.strip()
+    outputs = process_outputs(args, model, tokenizer, input_ids, image_tensor, stopping_criteria, stop_str)
     print(outputs)
 
 
@@ -264,4 +213,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    eval_model(args)
+    model, tokenizer, image_processor, image_token_len = load_model(args)
+    eval_model(args, model, tokenizer, image_processor, image_token_len)
