@@ -119,7 +119,7 @@ def get_attention_map(args):
         model_name, torch_dtype=torch.float16
     ).cuda()
 
-    if "siglip" in args.model_name:
+    if "siglip" in  model.config.mm_vision_tower.lower():
         image_processor = SiglipImageProcessor.from_pretrained(
             model.config.mm_vision_tower, torch_dtype=torch.float16
         )
@@ -234,7 +234,7 @@ def measure_vis_emb_sim(args):
         model_name, torch_dtype=torch.float16
     ).cuda()
 
-    if "siglip" in args.model_name:
+    if "siglip" in  model.config.mm_vision_tower.lower():
         image_processor = SiglipImageProcessor.from_pretrained(
             model.config.mm_vision_tower, torch_dtype=torch.float16
         )

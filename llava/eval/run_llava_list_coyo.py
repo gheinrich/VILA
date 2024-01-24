@@ -270,7 +270,7 @@ def eval_model(args, idx, total):
             device_map="cuda",
         )  # .cuda()
 
-    if "siglip" in args.model_name:
+    if "siglip" in  model.config.mm_vision_tower.lower():
         image_processor = SiglipImageProcessor.from_pretrained(
             model.config.mm_vision_tower, torch_dtype=torch.float16
         )
@@ -288,7 +288,7 @@ def eval_model(args, idx, total):
 
     vision_tower = model.get_model().vision_tower[0]
     if vision_tower.device.type == "meta":
-        if "siglip" in args.model_name:
+        if "siglip" in  model.config.mm_vision_tower.lower():
             vision_tower = SiglipVisionModel.from_pretrained(
                 vision_tower.config._name_or_path,
                 torch_dtype=torch.float16,
