@@ -11,7 +11,7 @@ export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((512 / n_node))
+bs=$((32 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
@@ -20,7 +20,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path  /lustre/fsw/portfolios/nvr/users/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path  /lustre/fsw/portfolios/nvr/users/jasonlu/models/vicuna-1.5/vicuna-13b-v1.5 \
     --version v1 \
     --datasets_mixture_name ccs_recaptioned_test \
     --vision_tower google/siglip-so400m-patch14-384 \
@@ -29,7 +29,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1-test \
+    --output_dir /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-13b-siglipso400m-pretrain-ccs-linear-e1-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps 1 \
