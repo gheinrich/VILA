@@ -116,7 +116,7 @@ def eval_model(args):
 
     model = LlavaLlamaForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16).cuda()        
     
-    if "siglip" in args.model_name:
+    if "siglip" in model.config.mm_vision_tower.lower():
         image_processor = SiglipImageProcessor.from_pretrained(
             model.config.mm_vision_tower, torch_dtype=torch.float16
         )
@@ -131,7 +131,7 @@ def eval_model(args):
 
     vision_tower = model.get_model().vision_tower[0]
     if False:  # vision_tower.device.type == 'meta':
-        if "siglip" in args.model_name:
+        if "siglip" in model.config.mm_vision_tower.lower():
             vision_tower = SiglipVisionModel.from_pretrained(vision_tower.config._name_or_path, torch_dtype=torch.float16, low_cpu_mem_usage=True).cuda()
         else:
             vision_tower = CLIPVisionModel.from_pretrained(vision_tower.config._name_or_path, torch_dtype=torch.float16, low_cpu_mem_usage=True).cuda()
