@@ -22,7 +22,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path /home/jil/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version v1 \
     --datasets_mixture_name coyo_25m_mmc4core \
     --vision_tower openai/clip-vit-large-patch14-336 \

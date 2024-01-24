@@ -1271,9 +1271,11 @@ class LazyCoyoFull(Dataset):
             # load new captions 
             shard = info["__shard__"]
             url = info[".json"]["url"]
-            tar_name = osp.relpath(shard, osp.realpath(self.data_path))
+            tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
+            # tar_name = osp.dirname(shard)
             shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
             shard_json = lru_json_load(shard_json_path)
+            # print("DEBUG:", shard, self.data_path, tar_name)
             try:
                 caption = shard_json[url]["output"]
             except KeyError:
