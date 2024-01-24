@@ -10,7 +10,6 @@ from llava.utils import disable_torch_init
 from torch.utils.data import Dataset, DataLoader
 from llava.train.dataset import tokenizer_image_token
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from transformers import CLIPVisionModel, CLIPImageProcessor
 from llava.model import *
 
 

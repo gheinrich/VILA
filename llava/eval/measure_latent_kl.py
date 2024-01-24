@@ -16,6 +16,10 @@ from transformers import (
     AutoTokenizer,
     CLIPImageProcessor,
 )
+from transformers.models.siglip import (
+    SiglipVisionModel,
+    SiglipImageProcessor,
+)
 
 from llava import LlavaLlamaForCausalLM
 from llava.model.visual_attn_scale import new_attention_forward
@@ -126,9 +130,14 @@ def eval_model(args):
         model_name, torch_dtype=torch.float16
     ).cuda()
 
-    image_processor = CLIPImageProcessor.from_pretrained(
-        model.config.mm_vision_tower, torch_dtype=torch.float16
-    )
+    if "siglip" in args.model_name:
+        image_processor = SiglipImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
+    else:
+        image_processor = CLIPImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
 
     mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
     tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)

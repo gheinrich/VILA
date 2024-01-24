@@ -124,6 +124,9 @@ def train():
         )
         orig_ctx_len = getattr(config, "max_position_embeddings", None)
         if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+            print(
+                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
+            )
             scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
 
@@ -132,6 +135,7 @@ def train():
             config=config,
             # low_cpu_mem_usage="70" in model_args.model_name_or_path,
         )
+        print("Current max position embeddings:", model.config.max_position_embeddings)
     else:
         raise ValueError('Vision Tower is None that is not expected.')
 

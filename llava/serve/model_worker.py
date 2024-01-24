@@ -108,8 +108,13 @@ def load_model(model_path, model_base, model_name, num_gpus):
     image_processor = None
 
     if 'llava' in model_name.lower():
-        from transformers import CLIPImageProcessor, CLIPVisionModel
-        image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower, torch_dtype=torch.float16)
+
+        if 'siglip' in model_name.lower():
+            from transformers import SiglipImageProcessor, SiglipVisionModel
+            image_processor = SiglipImageProcessor.from_pretrained(model.config.mm_vision_tower, torch_dtype=torch.float16)
+        else:
+            from transformers import CLIPImageProcessor, CLIPVisionModel
+            image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower, torch_dtype=torch.float16)
 
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
         tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
