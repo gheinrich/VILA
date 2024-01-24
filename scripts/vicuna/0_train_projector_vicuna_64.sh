@@ -1,7 +1,7 @@
 source ~/anaconda3/bin/activate
 conda init
 source ~/.bashrc
-conda activate vila_debug
+conda activate vila
 which python
 
 cd /lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA

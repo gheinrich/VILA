@@ -39,12 +39,13 @@ pip install datasets
 pip install scikit-learn
 pip install openai
 pip install webdataset
+pip install openpyxl
 
 pip install ninja
 pip install flash-attn --no-build-isolation
 
 pip install git+https://github.com/huggingface/transformers@v4.36.2
-cp -rv ~/workspace/multi-modality-research/VILA/llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
+cp -rv ~/workspace/VILA/llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
 ```
 
 ## Usage

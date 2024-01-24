@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source ~/anaconda3/bin/activate
-conda init
 source ~/.bashrc
 conda activate vila
 which python
