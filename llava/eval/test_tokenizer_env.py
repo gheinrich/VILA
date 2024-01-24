@@ -46,7 +46,7 @@ def eval_model(args):
     else:
         model = LlavaLlamaForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, torch_dtype=torch.float16, use_cache=True).cuda()
         
-    if "siglip" in args.model_name:
+    if "siglip" in model.config.mm_vision_tower.lower():
         image_processor = SiglipImageProcessor.from_pretrained(model.config.mm_vision_tower, torch_dtype=torch.float16)
     else:
         image_processor = CLIPImageProcessor.from_pretrained(model.config.mm_vision_tower, torch_dtype=torch.float16)
