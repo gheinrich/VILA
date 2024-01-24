@@ -1508,15 +1508,9 @@ def make_supervised_data_module(
             dataset_cls = LazyCoyoDataset
         elif dataset_type == "coyowebds":
             print("dataset.py: Loading LazyCoyoFull class")
-            # NOTE:(ligeng) this impl has bugs, do not use 
-            # from llava.train.webcoyo import LazyCoyoWebDataset
-            # dataset_cls = LazyCoyoWebDataset
             dataset_cls = LazyCoyoFull
         elif dataset_type == "coyowebds_recap":
             print("dataset.py: Loading LazyCoyoFull class with captioned results")
-            # NOTE:(ligeng) this impl has bugs, do not use 
-            # from llava.train.webcoyo import LazyCoyoWebDataset
-            # dataset_cls = LazyCoyoWebDataset
             dataset_cls = LazyCoyoFullRecaptioned
         else:
             raise NotImplementedError

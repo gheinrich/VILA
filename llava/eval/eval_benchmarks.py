@@ -14,7 +14,6 @@ from tqdm import tqdm
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    CLIPImageProcessor,
     CLIPVisionModel,
     StoppingCriteria,
 )

@@ -26,6 +26,11 @@ from transformers import (
     CLIPVisionConfig,
     CLIPVisionModel,
 )
+
+from transformers.models.siglip import (
+    SiglipImageProcessor,
+    SiglipVisionModel,
+)
 from transformers.models.mixtral import (
     MixtralConfig,
     MixtralModel, 
@@ -115,6 +120,10 @@ class LlavaMixtralModel(MixtralModel):
                         "patch_size": 14,
                     }
                 )
+            elif self.vision_tower_class == "siglip":
+                self.vision_tower = [
+                    SiglipVisionModel.from_pretrained(config.mm_vision_tower)
+                ]
             else:
                 self.vision_tower = [
                     CLIPVisionModel.from_pretrained(config.mm_vision_tower)
@@ -144,6 +153,8 @@ class LlavaMixtralModel(MixtralModel):
             vision_tower_arch = "eva"
         elif "raw" in self.config.mm_vision_tower.lower():
             vision_tower_arch = "raw"
+        elif 'siglip' in self.config.mm_vision_tower.lower():
+            vision_tower_arch = "siglip"
         else:
             vision_tower_arch = "clip"
         return vision_tower_arch
@@ -169,7 +180,10 @@ class LlavaMixtralModel(MixtralModel):
                 add_visual_expert_attn=self.config.add_visual_expert_attn,
             )
 
-        image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        if self.vision_tower_class == "siglip":
+            image_processor = SiglipImageProcessor.from_pretrained(vision_tower)
+        else:
+            image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
 
         if not hasattr(self, "vision_tower"):
             if self.vision_tower_class == "qwen":

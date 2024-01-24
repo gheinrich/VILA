@@ -7,6 +7,10 @@ from torch.utils.data.distributed import DistributedSampler
 import transformers
 from transformers import AutoTokenizer
 from transformers import CLIPVisionModel, CLIPImageProcessor, StoppingCriteria
+from transformers.models.siglip import (
+    SiglipVisionModel,
+    SiglipImageProcessor,
+)
 
 from llava.train import datasets_mixture
 from llava.train.dataset_coyo_test import LazyCoyoDataset
@@ -30,6 +34,7 @@ from transformers import (
     StoppingCriteria,
     AutoModel,
 )
+
 
 from llava.conversation import SeparatorStyle, conv_templates
 from llava.eval.utils import preprocess_image
@@ -265,9 +270,14 @@ def eval_model(args, idx, total):
             device_map="cuda",
         )  # .cuda()
 
-    image_processor = CLIPImageProcessor.from_pretrained(
-        model.config.mm_vision_tower, torch_dtype=torch.float16
-    )
+    if "siglip" in args.model_name:
+        image_processor = SiglipImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
+    else:
+        image_processor = CLIPImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
 
     mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
     tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
@@ -278,11 +288,18 @@ def eval_model(args, idx, total):
 
     vision_tower = model.get_model().vision_tower[0]
     if vision_tower.device.type == "meta":
-        vision_tower = CLIPVisionModel.from_pretrained(
-            vision_tower.config._name_or_path,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-        ).cuda()
+        if "siglip" in args.model_name:
+            vision_tower = SiglipVisionModel.from_pretrained(
+                vision_tower.config._name_or_path,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            ).cuda()
+        else:
+            vision_tower = CLIPVisionModel.from_pretrained(
+                vision_tower.config._name_or_path,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            ).cuda()
         model.get_model().vision_tower[0] = vision_tower
     else:
         vision_tower.to(device="cuda", dtype=torch.float16)
@@ -306,9 +323,21 @@ def eval_model(args, idx, total):
     }
 
     # tokenizer = AutoTokenizer.from_pretrained("NousResearch/Llama-2-7b-hf")
-    image_processor = CLIPImageProcessor.from_pretrained(
-        "openai/clip-vit-large-patch14-336", torch_dtype=torch.float16
-    )
+    if 'siglip' in model_name:
+        if 'so400m' in model_name:
+            image_processor = SiglipImageProcessor.from_pretrained(
+                "google/siglip-so400m-patch14-384",
+                torch_dtype=torch.float16,
+            )
+        else:
+            image_processor = SiglipImageProcessor.from_pretrained(
+                "google/siglip-large-patch16-384",
+                torch_dtype=torch.float16,
+            )
+    else:
+        image_processor = CLIPImageProcessor.from_pretrained(
+            "openai/clip-vit-large-patch14-336", torch_dtype=torch.float16
+        )
     data_args = DataArguments(
         datasets_mixture_name="coyo_25m_mmc4core_test",
         is_multimodal=True,
