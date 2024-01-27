@@ -16,6 +16,10 @@ from transformers import (
     StoppingCriteria,
     AutoModel,
 )
+from transformers.models.siglip import (
+    SiglipImageProcessor,
+    SiglipVisionModel,
+)
 
 from llava.conversation import SeparatorStyle, conv_templates
 from llava.eval.utils import preprocess_image
@@ -215,9 +219,14 @@ def eval_model(args):
             use_cache=True,
         ).cuda()
 
-    image_processor = CLIPImageProcessor.from_pretrained(
-        model.config.mm_vision_tower, torch_dtype=torch.float16
-    )
+    if "siglip" in model.config.mm_vision_tower.lower():
+        image_processor = SiglipImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
+    else:
+        image_processor = CLIPImageProcessor.from_pretrained(
+            model.config.mm_vision_tower, torch_dtype=torch.float16
+        )
 
     mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
     tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
@@ -228,11 +237,18 @@ def eval_model(args):
 
     vision_tower = model.get_model().vision_tower[0]
     if vision_tower.device.type == "meta":
-        vision_tower = CLIPVisionModel.from_pretrained(
-            vision_tower.config._name_or_path,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-        ).cuda()
+        if "siglip" in model.config.mm_vision_tower.lower():
+            vision_tower = SiglipVisionModel.from_pretrained(
+                vision_tower.config._name_or_path,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            ).cuda()
+        else:
+            vision_tower = CLIPVisionModel.from_pretrained(
+                vision_tower.config._name_or_path,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            ).cuda()
         model.get_model().vision_tower[0] = vision_tower
     else:
         vision_tower.to(device="cuda", dtype=torch.float16)

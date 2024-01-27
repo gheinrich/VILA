@@ -16,6 +16,10 @@ from transformers import (
     CLIPVisionModel,
     StoppingCriteria,
 )
+from transformers.models.siglip import (
+    SiglipImageProcessor,
+    SiglipVisionModel,
+)
 
 from llava import LlavaLlamaForCausalLM
 from llava.conversation import conv_templates

@@ -60,6 +60,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
             ), "Dataset meta file does not exist and generating may take a long time. \
                 Please exit distributed mode and run `python llava/train/simple_coyo_dataset.py <webdataset path>`. \
                 or set proper `meta_path=` when initializing."
+            print(f"Meta path not found: {self.meta_path}")
             print(f"Walking through dirs {data_path}")
             # tar_list = sorted([f for f in os.listdir(data_path) if f.endswith(".tar")])
             tar_list = []

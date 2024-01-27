@@ -26,6 +26,10 @@ from transformers import (
     CLIPVisionConfig,
     CLIPVisionModel,
 )
+from transformers.models.siglip import (
+    SiglipImageProcessor,
+    SiglipVisionModel,
+)
 from transformers.models.mistral import (
     MistralConfig,
     MistralModel, 
@@ -115,6 +119,10 @@ class LlavaMistralModel(MistralModel):
                         "patch_size": 14,
                     }
                 )
+            elif self.vision_tower_class == "siglip":
+                self.vision_tower = [
+                    SiglipVisionModel.from_pretrained(config.mm_vision_tower)
+                ]
             else:
                 self.vision_tower = [
                     CLIPVisionModel.from_pretrained(config.mm_vision_tower)
@@ -144,6 +152,8 @@ class LlavaMistralModel(MistralModel):
             vision_tower_arch = "eva"
         elif "raw" in self.config.mm_vision_tower.lower():
             vision_tower_arch = "raw"
+        elif "siglip" in self.config.mm_vision_tower.lower():
+            vision_tower_arch = "siglip"
         else:
             vision_tower_arch = "clip"
         return vision_tower_arch
@@ -168,8 +178,10 @@ class LlavaMistralModel(MistralModel):
                 add_visual_expert_mlp=self.config.add_visual_expert_mlp,
                 add_visual_expert_attn=self.config.add_visual_expert_attn,
             )
-
-        image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        if self.vision_tower_class == "siglip":
+            image_processor = SiglipImageProcessor.from_pretrained(vision_tower)
+        else:
+            image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
 
         if not hasattr(self, "vision_tower"):
             if self.vision_tower_class == "qwen":
@@ -229,7 +241,9 @@ class LlavaMistralModel(MistralModel):
                         "patch_size": 14,
                     }
                 )
-
+            elif  'siglip' == self.vision_tower_class:
+                vision_tower = SiglipVisionModel.from_pretrained(vision_tower)
+                vision_config = vision_tower.config
             else:
                 vision_tower = CLIPVisionModel.from_pretrained(vision_tower)
                 vision_config = vision_tower.config
@@ -820,7 +834,7 @@ class LlavaMistralModel(MistralModel):
                         image_features = image_forward_outs.hidden_states[
                             select_hidden_state_layer
                         ]
-                if isinstance(vision_tower, CLIPVisionModel):  # clip case, not for sam
+                if isinstance(vision_tower, CLIPVisionModel) or isinstance(vision_tower, SiglipVisionModel):  # clip case, not for sam
                     image_features = image_features[:, 1:].to(images.dtype)  # (B, N, D)
             image_features = self.mm_projector(image_features)
 
