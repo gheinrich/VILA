@@ -21,22 +21,22 @@ echo "per device batch size :" $bs
 echo "node rank:" $SLURM_PROCID
 
 
-DATASET=${DATASET:-"coyo_25m_recap+mmc4core+sharegpt4v_pretrain"}
+DATASET=${DATASET:-"vflan_llava_1_5_sft"}
 
 echo "dataset: " $DATASET
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path ./checkpoints/vicuna-7b-clip336-finetune-$DATASET-linear-e8 \
+    --model_name_or_path ./checkpoints/vicuna-7b-clip336-finetune-mmc4core-linear-e8 \
     --version v1 \
-    --datasets_mixture_name vflan_sharegpt4v_sft_valley_video_chatgpt \
+    --datasets_mixture_name $DATASET \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type linear \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-clip336-$DATASET-linear-e8-sft \
+    --output_dir ./checkpoints/cvpr-rebuttal-vicuna-7b-clip336-$DATASET-linear-e8-sft \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps $acc_step \

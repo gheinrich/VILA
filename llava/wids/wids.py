@@ -480,7 +480,7 @@ class ShardListDataset(Dataset[T]):
             self.spec = options
             self.shards = shards
             self.dataset_name = dataset_name or hash_dataset_name(str(shards))
-
+                
         self.lengths = [shard["nsamples"] for shard in self.shards]
         self.cum_lengths = np.cumsum(self.lengths)
         self.total_length = self.cum_lengths[-1]
@@ -570,6 +570,10 @@ class ShardListDataset(Dataset[T]):
         # Get the shard and return the corresponding element.
         desc = self.shards[shard_idx]
         url = desc["url"]
+        if url.startswith("https://") or url.startswith("http://") or url.startswith("/"):
+            # absolute path or url path
+            url = url 
+        
         shard = self.cache.get_shard(url)
         return shard, inner_idx, desc
 
