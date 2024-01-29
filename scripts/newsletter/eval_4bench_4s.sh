@@ -3,9 +3,9 @@
 #conda activate openflamingo
 #which python
 
-source ~/.bashrc
-source /lustre/fsw/portfolios/llmservice/users/dannyy/lib/anaconda3/etc/profile.d/conda.sh
-conda activate vila-cvpr
+# source ~/.bashrc
+# source /lustre/fsw/portfolios/llmservice/users/dannyy/lib/anaconda3/etc/profile.d/conda.sh
+# conda activate vila-cvpr
 which python
 
 #if [ ! -d "/tmp/coco" ]; then
@@ -48,7 +48,7 @@ else
 fi
 
 #cd ~/workspace/LLaVA/
-cd /lustre/fsw/portfolios/llmservice/users/dannyy/vila/vila-dev/github_version/VILA
+# cd /lustre/fsw/portfolios/llmservice/users/dannyy/vila/vila-dev/github_version/VILA
 
 checkpoint=$1
 conv_version=${2:-"vicuna_v1_1_nosys"}

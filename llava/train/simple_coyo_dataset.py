@@ -34,7 +34,7 @@ DATACOMP = "/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filt
 class SimpleCoyoDataset(torch.utils.data.Dataset):
     def __init__(
         self,
-        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+        data_path=COYO_25M_VILA,
         # cache_dir="/home/ligengz/.cache/simplecoyo",
         # cache_dir="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/vila-webds-meta",
         cache_dir="/home/ligengz/datasets/vila-webds-meta",
@@ -45,16 +45,25 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
     ):
         self.data_path = data_path
         self.meta_path = meta_path
-        if meta_path is None:
+        self.max_shards_to_load = max_shards_to_load
+
+        _local_meta_path = osp.join(data_path, "wids-meta.json")
+        print(_local_meta_path, osp.exists(_local_meta_path))
+        if meta_path is None and osp.exists(_local_meta_path):
+            self.meta_path = meta_path = _local_meta_path
+            
+        if meta_path is None :
             self.meta_path = osp.join(
                 osp.expanduser(cache_dir),
                 data_path.replace("/", "--")
                 + f".max_shards:{max_shards_to_load}"
                 + ".wdsmeta.json",
             )
-            self.max_shards_to_load = max_shards_to_load
 
         if not osp.exists(self.meta_path) or overwrite:
+            # TODO(ligeng): speedup the generation
+            #       1. parallelize the meta file generation 
+            #       2. add options for meta file 
             assert (
                 not torch.distributed.is_initialized()
             ), "Dataset meta file does not exist and generating may take a long time. \
@@ -101,7 +110,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                 print(
                     f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}"
                 )
-
+                
                 if not osp.exists(tar_meta_path) and not osp.exists(tar_real_meta_path):
                     print(f"    Generating meta: {tar_meta_path}")
                     try:
@@ -133,6 +142,8 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                     raise NotImplementedError
 
                 tar_meta["url"] = osp.abspath(tar_abspath)
+                # tar_meta["url"] = tar_relpath
+                
                 os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
                 json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
                 if tar_meta_path != tar_real_meta_path and not osp.exists(tar_real_meta_path):

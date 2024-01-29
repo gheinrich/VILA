@@ -575,6 +575,7 @@ class ShardListDataset(Dataset[T]):
             # absolute path or url path
             url = url 
         else:
+            # concat relative path
             if self.base is None and "base_path" not in self.spec: 
                 raise FileNotFoundError("passing a relative path in shardlist but no base found.")
             base_path = self.spec["base_path"] if "base_path" in self.spec else self.base

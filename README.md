@@ -42,10 +42,15 @@ pip install webdataset
 pip install openpyxl
 
 pip install ninja
-pip install flash-attn --no-build-isolation
+pip install flash-attn --no-build-isolation --no-cache-dir # force rebuilding flash attn with conda provided nvcc
 
 pip install git+https://github.com/huggingface/transformers@v4.36.2
-cp -rv ~/workspace/VILA/llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
+cp -rv llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
+
+
+# if you want to launch evaluation
+pip install open-flamingo[eval]
+
 ```
 
 ## Usage
