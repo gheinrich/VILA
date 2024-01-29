@@ -2,7 +2,7 @@ import base64
 import gzip
 import hashlib
 import io
-import os
+import os, os.path as osp
 import random
 import re
 import sqlite3
@@ -470,17 +470,19 @@ class ShardListDataset(Dataset[T]):
         # to map indices to shards and indices within shards.
         if isinstance(shards, (str, io.IOBase)):
             if base is None and isinstance(shards, str):
+                shards = osp.expanduser(shards)
                 base = urldir(shards)
             self.base = base
             self.spec = load_dsdesc_and_resolve(shards, options=options, base=base)
             self.shards = self.spec.get("shardlist", [])
             self.dataset_name = self.spec.get("name") or hash_dataset_name(str(shards))
         else:
+            raise NotImplementedError("Only support taking path/url to JSON descriptor file.")
             self.base = None
             self.spec = options
             self.shards = shards
             self.dataset_name = dataset_name or hash_dataset_name(str(shards))
-                
+
         self.lengths = [shard["nsamples"] for shard in self.shards]
         self.cum_lengths = np.cumsum(self.lengths)
         self.total_length = self.cum_lengths[-1]
@@ -496,7 +498,6 @@ class ShardListDataset(Dataset[T]):
             self.localname = localname
         else:
             import getpass
-            import os, os.path as osp
             # when no cache dir or localname are given, use the cache from the environment
             self.cache_dir = os.environ.get("WIDS_CACHE", f"~/.cache/_wids_cache")
             self.cache_dir = osp.expanduser(self.cache_dir)
@@ -507,7 +508,7 @@ class ShardListDataset(Dataset[T]):
             nsamples = sum(shard["nsamples"] for shard in self.shards)
             print(
                 "[WebShardedList]",
-                str(shards)[:50],
+                str(shards),
                 "base:",
                 self.base,
                 "name:",
@@ -570,10 +571,16 @@ class ShardListDataset(Dataset[T]):
         # Get the shard and return the corresponding element.
         desc = self.shards[shard_idx]
         url = desc["url"]
-        if url.startswith("https://") or url.startswith("http://") or url.startswith("/"):
+        if url.startswith(("https://", "http://", "gs://", "/", "~")):
             # absolute path or url path
             url = url 
-        
+        else:
+            if self.base is None and "base_path" not in self.spec: 
+                raise FileNotFoundError("passing a relative path in shardlist but no base found.")
+            base_path = self.spec["base_path"] if "base_path" in self.spec else self.base
+            url = osp.abspath(osp.join(osp.expanduser(base_path), url))
+            
+        desc["url"] = url
         shard = self.cache.get_shard(url)
         return shard, inner_idx, desc
 

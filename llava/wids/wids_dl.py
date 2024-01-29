@@ -78,6 +78,7 @@ default_cmds = {
     "s3": "aws s3 cp {url} {local}",
 }
 
+#TODO(ligeng): change HTTPS download to python requests library
 
 def download_file_no_log(remote, local, handlers=default_cmds):
     """Download a file from a remote url to a local path.
