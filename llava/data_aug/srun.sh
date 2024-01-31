@@ -14,7 +14,6 @@ for f in captioner/*.json; do
     -p batch_block1,batch_block2,batch_block3 -t 4:00:00 \
     -J llmservice_nlp_fm-dev:cap2qa-$fname-$model --gpus-per-node 8 --exclusive \
     -e slurm-logs/dev/$fname-$model-$j.err -o slurm-logs/dev/$fname-$model-$j.out \
-    torchrun --nproc-per-node 8  llava/data_aug/caption2qa.py --data_path=$f --model_id=$model_id &
+    torchrun --nproc-per-node 8 llava/data_aug/caption2qa.py --data_path=$f --model_id=$model_id &
 done
-
 wait

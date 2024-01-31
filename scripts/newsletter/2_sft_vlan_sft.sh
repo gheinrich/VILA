@@ -21,14 +21,16 @@ echo "per device batch size :" $bs
 echo "node rank:" $SLURM_PROCID
 
 
-DATASET=${DATASET:-"vflan_llava_1_5_sft"}
+PT_DATASET=${PT_DATASET:-"mmc4core"}
+DATASET=${DATASET:-"vflan_sharegpt4v_sft"}
 
+echo "PT dataset: " $PT_DATASET
 echo "dataset: " $DATASET
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path ./checkpoints/vicuna-7b-clip336-finetune-mmc4core-linear-e8 \
+    --model_name_or_path ./checkpoints/vicuna-7b-clip336-finetune-$PT_DATASET-linear-e8 \
     --version v1 \
     --datasets_mixture_name $DATASET \
     --vision_tower openai/clip-vit-large-patch14-336 \
@@ -36,7 +38,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/cvpr-rebuttal-vicuna-7b-clip336-$DATASET-linear-e8-sft \
+    --output_dir ./checkpoints/ablation-vicuna-7b-clip336-PT:$PT_DATASET-SFT:$DATASET \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps $acc_step \

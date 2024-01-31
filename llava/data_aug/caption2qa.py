@@ -19,6 +19,7 @@ def safely_merge_info(out_fpath, info):
             info.update(new_info)
         json.dump(info, open(out_fpath + ".meta", "w+"), indent=2)
         shutil.move(out_fpath + ".meta", out_fpath)
+    return info
         
 def process_caption(msg):
     # msg = v['output']
@@ -80,8 +81,15 @@ def main(model_id='NousResearch/Llama-2-7b-chat-hf', data_path="captioner/coyo25
     output_path = osp.join(save_folder, data_path)
     os.makedirs(osp.dirname(output_path), exist_ok=True)
     
+    output_json = safely_merge_info(output_path, output_json)
+    
     for idx, (k, v) in enumerate(dloader):
         input_msg = v["cap2llm"]
+        
+        if all([url in output_json for url in k]):
+            print(f"[{idx}-of-{len(dloader)}] already labeled, skip")
+            continue
+        
         result = pipe(input_msg, **generation_config)
         print("---" * 20, f" {idx}-of-{len(dloader)} ", flush=True)
         # print(input_msg)
@@ -95,11 +103,11 @@ def main(model_id='NousResearch/Llama-2-7b-chat-hf', data_path="captioner/coyo25
             }
 
         if idx % 20 == 0:
-            safely_merge_info(output_path, output_json)        
+            output_json = safely_merge_info(output_path, output_json)        
     
     # with open(output_path, "w") as fp:
     #     json.dump(output_json, fp, indent=2)
-    safely_merge_info(output_path, output_json)
+    output_json = safely_merge_info(output_path, output_json)
 
 
 if __name__ == "__main__":
