@@ -78,7 +78,6 @@ if __name__ == "__main__":
                 continue
 
             if api.file_exists(repo_id=repo, filename=rpath, repo_type=repo_type):
-                # TODO: move to hash check
                 if not args.hash_check:
                     print(
                         colored(

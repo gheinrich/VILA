@@ -106,23 +106,21 @@ def group_by_key(names):
         A list of lists of indices, where each sublist contains indices of files
         with the same key.
     """
+    # NOTE(ligeng): change to ordered mapping to more flexbile dict
+    # TODO(ligeng):  submit a PR to fix the mapping issue.
     groups = []
-    last_key = None
-    current = []
+    kmaps = {}
     for i, fname in enumerate(names):
         # Ignore files that are not in a subdirectory.
         if "." not in fname:
             print(f"Warning: Ignoring file {fname} (no '.')")
             continue
         key, ext = splitname(fname)
-        if key != last_key:
-            if current:
-                groups.append(current)
-            current = []
-            last_key = key
-        current.append(i)
-    if current:
-        groups.append(current)
+        if key not in kmaps:
+            kmaps[key] = []
+        kmaps[key].append(i)
+    for k, v in kmaps.items():
+        groups.append(v)
     return groups
 
 
@@ -233,6 +231,11 @@ class IndexedTarSamples:
             stream.seek(0)
 
         # use either the mmap or the stream based implementation
+        # NOTE(ligeng): https://stackoverflow.com/questions/11072705/twitter-trends-api-unicodedecodeerror-utf8-codec-cant-decode-byte-0x8b-in-po
+        # import gzip
+        # print("convert to gzip IO stream")
+        # stream = gzip.GzipFile(fileobj=stream)
+        
         if use_mmap:
             self.reader = MMIndexedTar(stream)
         else:
@@ -243,6 +246,8 @@ class IndexedTarSamples:
 
         # Group files by key into samples
         self.samples = group_by_key(all_files)
+        print("DEBUG:", list(all_files)[:20])
+        print("DEBUG:", self.samples[:20])
 
         # check that the number of samples is correct
         if expected_size is not None:
@@ -582,7 +587,11 @@ class ShardListDataset(Dataset[T]):
             url = osp.abspath(osp.join(osp.expanduser(base_path), url))
             
         desc["url"] = url
-        shard = self.cache.get_shard(url)
+        try:
+            shard = self.cache.get_shard(url)
+        except UnicodeDecodeError as e:
+            print("UnicodeDecodeError:", desc)
+            raise e
         return shard, inner_idx, desc
 
     def __getitem__(self, index):

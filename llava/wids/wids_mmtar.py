@@ -44,6 +44,7 @@ def next_header(offset, header):
     return offset + block_size + padded_file_size
 
 
+# TODO(ligeng): support gzip stream
 class MMIndexedTar:
     def __init__(self, fname, index_file=None, verbose=True, cleanup_callback=None):
         self.verbose = verbose
