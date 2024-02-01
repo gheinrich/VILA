@@ -260,9 +260,9 @@ if __name__ == "__main__":
         train_dataset,
         shuffle=False,
         sampler=sampler,
-        batch_size=2,
+        batch_size=1,
         collate_fn=SimpleCoyoDataset.custom_collate,
-        num_workers=8,
+        # num_workers=8,
     )
     # sampler.set_epoch(0)
     print(len(train_dataset), len(dloader))

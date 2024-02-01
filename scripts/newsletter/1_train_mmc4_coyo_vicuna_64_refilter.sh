@@ -13,11 +13,12 @@ worker_list=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | tr '\n' ' ')
 echo "JobID: $SLURM_JOB_ID Full worker list: $worker_list"
 echo "MASTER_ADDR="$MASTER_ADDR
 n_node=${SLURM_JOB_NUM_NODES:-1}
-
-bs=$((128 / n_node))
+acc_step=${ACC_STEP:-2}
+bs=$((256 / n_node / acc_step))
 # bs=4
 echo "number of nodes:" $n_node
-echo "per device batch size:" $bs
+echo "accmulation steps:" $acc_step
+echo "per device batch size :" $bs
 echo "node rank:" $SLURM_PROCID
 
 DATASET=${DATASET:-"coyo_25m_refilter+mmc4core"}
@@ -39,7 +40,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --output_dir ./checkpoints/vicuna-7b-clip336-finetune-$DATASET-linear-e8 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps $acc_step \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 100 \
