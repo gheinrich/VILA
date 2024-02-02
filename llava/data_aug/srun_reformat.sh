@@ -1,17 +1,18 @@
-JOBS_LIMIT=16  # Set your limit here
+JOBS_LIMIT=100  # Set your limit here
 ACCOUNT=llmservice_nlp_fm
 
 src_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-raw
+
 for f in $src_folder/*.tar; do
   while [ $(jobs -rp | wc -l) -ge $JOBS_LIMIT ]; do
-    sleep 1
+    sleep 5
   done
 
   fname=$(echo $f | rev | cut -d "/" -f 1 | rev)
-  echo $fname
   
+  echo "Running $fname,  now total jobs $(jobs -rp | wc -l)"; \
   srun --label -A $ACCOUNT -N 1 \
-    -p cpu,cpu_1,cpu_long -t 4:00:00 \
+    -p cpu,cpu_1,cpu_long -t 1:00:00 \
     -J $ACCOUNT-dev:reformat-$fname \
     -e slurm-logs/dev-split/$fname-$j.err -o slurm-logs/dev-split/$fname-$j.out \
     python llava/data_aug/reformat_tar.py --src_tar=$f --src_folder=$src_folder \
