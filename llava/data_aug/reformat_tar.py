@@ -2,6 +2,7 @@ from fire import Fire
 from tqdm import tqdm
 import os, os.path as osp
 import tarfile
+import shutil
 
 def main(
     src_tar="~/workspace/sa_000000.tar", 
@@ -15,6 +16,7 @@ def main(
     tgt_folder_path = osp.expanduser(tgt_folder)
     rpath = osp.relpath(src_tar_path, src_folder_path)
     fpath = osp.join(tgt_folder_path, rpath)
+    fpath_tmp = osp.join(tgt_folder_path, rpath + ".tmp")
     
     if osp.exists(fpath) and not overwrite:
         print("Skipping")
@@ -23,8 +25,8 @@ def main(
     
     t = tarfile.open(src_tar_path)
 
-    os.makedirs(osp.dirname(fpath), exist_ok=True)
-    tdev = tarfile.open(fpath, "w")
+    os.makedirs(osp.dirname(fpath_tmp), exist_ok=True)
+    tdev = tarfile.open(fpath_tmp, "w")
 
     for idx, member in tqdm(enumerate(t.getmembers())):
         print(idx, member, flush=True)
@@ -32,6 +34,8 @@ def main(
         
     t.close()
     tdev.close()
+    
+    shutil.move(fpath_tmp, fpath)
     print("Finish")
     
 if __name__ == "__main__":

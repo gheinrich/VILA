@@ -1,5 +1,6 @@
 JOBS_LIMIT=100  # Set your limit here
-ACCOUNT=llmservice_nlp_fm
+ACCOUNT=${ACCOUNT:-llmservice_nlp_fm}
+PARTITION=${PARTITION:-cpu,cpu_long} #draco: cpu,cpu_long,batch_singlenode,grizzly,polar
 
 src_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-raw
 
@@ -12,10 +13,10 @@ for f in $src_folder/*.tar; do
   
   echo "Running $fname,  now total jobs $(jobs -rp | wc -l)"; \
   srun --label -A $ACCOUNT -N 1 \
-    -p cpu,cpu_1,cpu_long -t 1:00:00 \
+    -p $PARTITION -t 1:00:00 \
     -J $ACCOUNT-dev:reformat-$fname \
     -e slurm-logs/dev-split/$fname-$j.err -o slurm-logs/dev-split/$fname-$j.out \
     python llava/data_aug/reformat_tar.py --src_tar=$f --src_folder=$src_folder \
-      --src_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-raw &
+      --tgt_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/saw-reformat --overwrite=True &
 done
 wait
