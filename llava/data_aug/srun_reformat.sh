@@ -17,6 +17,6 @@ for f in $src_folder/*.tar; do
     -J $ACCOUNT-dev:reformat-$fname \
     -e slurm-logs/dev-split/$fname-$j.err -o slurm-logs/dev-split/$fname-$j.out \
     python llava/data_aug/reformat_tar.py --src_tar=$f --src_folder=$src_folder \
-      --tgt_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/saw-reformat --overwrite=True &
+      --tgt_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat --overwrite=True &
 done
 wait

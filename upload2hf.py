@@ -39,7 +39,7 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument("--model-name", type=str, default=None)
-    parser.add_argument("--hash-check", action="store_true")
+    parser.add_argument("--fast-check", action="store_true")
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
 
@@ -62,7 +62,10 @@ if __name__ == "__main__":
             private=True,
             repo_type=repo_type,
         )
-    print(colored(f"Uploading {osp.join('https://hf.co', repo)}", "green"))
+    BASE_URL = "https://hf.co"
+    if args.repo_type == "dataset":
+        BASE_URL = "https://hf.co/datasets"
+    print(colored(f"Uploading {osp.join(BASE_URL, repo)}", "green"))
 
     ops = []
     commit_description = ""
@@ -78,10 +81,10 @@ if __name__ == "__main__":
                 continue
 
             if api.file_exists(repo_id=repo, filename=rpath, repo_type=repo_type):
-                if not args.hash_check:
+                if args.fast_check:
                     print(
                         colored(
-                            f"Already uploaded {rpath}, no hash check, skipping",
+                            f"Already uploaded {rpath}, fast check pass, skipping",
                             "green",
                         )
                     )

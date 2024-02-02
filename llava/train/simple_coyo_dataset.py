@@ -48,7 +48,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
         self.max_shards_to_load = max_shards_to_load
 
         _local_meta_path = osp.join(data_path, "wids-meta.json")
-        print(_local_meta_path, osp.exists(_local_meta_path))
+        print(_local_meta_path, "exsits status: ", osp.exists(_local_meta_path))
         if meta_path is None and osp.exists(_local_meta_path):
             self.meta_path = meta_path = _local_meta_path
             
@@ -82,6 +82,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                     # fpath = osp.abspath(osp.join(root, file))
                     tar_list.append(fpath)
             tar_list = sorted(tar_list)
+            print(tar_list)
 
             meta = {
                 "name": "coyo-dev",
