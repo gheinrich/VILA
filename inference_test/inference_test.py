@@ -45,14 +45,38 @@ def eval_model(args, model, tokenizer, image_processor, image_token_len):
 
         for i in range(len(test_case["QAs"])):
             query = test_case["QAs"][i]["question"]
-            query = query.replace("<image>", image_tokens)
-
-            conv = conv_templates[args.conv_mode].copy()
-            conv.append_message(conv.roles[0], query)
-            conv.append_message(conv.roles[1], None)
-
-            prompt = conv.get_prompt()
+            query_text = query
             
+            if 1:
+                query = query.replace("<image>", image_tokens)
+                conv = conv_templates[args.conv_mode].copy()
+                conv.append_message(conv.roles[0], query)
+                conv.append_message(conv.roles[1], None)
+                prompt = conv.get_prompt()
+            else:
+                conv = conv_templates[args.conv_mode].copy()
+                if not "<image>" in query:
+                    assert "###" not in query  # single query
+                    query = image_tokens + "\n" + query  # add <image>
+                    query_list = [query]
+                else:
+                    query_list = query.split("###")
+                    assert len(query_list) % 2 == 1  # the last one is from human
+
+                    new_query_list = []
+                    for idx, query in enumerate(query_list):
+                        if "<image>" in query:
+                            assert idx % 2 == 0  # only from human
+                            # assert query.startswith("<image>")
+                        query = query.replace("<image>", image_tokens)
+                        new_query_list.append(query)
+                    query_list = new_query_list
+
+                for idx, query in enumerate(query_list):
+                    conv.append_message(conv.roles[idx % 2], query)
+                conv.append_message(conv.roles[1], None)
+                prompt = conv.get_prompt()
+
             print("%"*10+" "*5+"VILA Response"+" "*5+"%"*10)
 
             inputs = tokenizer([prompt])
@@ -64,6 +88,7 @@ def eval_model(args, model, tokenizer, image_processor, image_token_len):
             stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
 
             outputs = run_llava.process_outputs(args, model, tokenizer, input_ids, image_tensor, stopping_criteria, stop_str)
+            print(f'Question: {query_text}')
             print(f'VILA output: {outputs}')
             print(f'Expected output: {test_case["QAs"][i]["expected_answer"]}')
 
@@ -74,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_json_path", type=str, default=None)
     parser.add_argument("--test_image_path", type=str, default=None)
     parser.add_argument("--conv-mode", type=str, default=None)
-    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--pad", action="store_true")
 
     args = parser.parse_args()

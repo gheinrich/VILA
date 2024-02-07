@@ -74,7 +74,7 @@ def execute_llava(
     vision_config,
     image_files: str = None,
     prompt_query: str = None,
-    image_rawbytes=None,
+    image_PILs=None,
 ):
     mm_use_im_start_end = vision_config.use_im_start_end
     image_token_len = (vision_config.image_size // vision_config.patch_size) ** 2
@@ -90,14 +90,15 @@ def execute_llava(
         image_token_len += 2
 
     # read images first
-    if image_rawbytes is None:
+    if image_PILs is None:
         image_file_list = image_files.split("###")
         image_list = [load_image(image_file) for image_file in image_file_list]
     else:
         image_list = []
-        _image_list = [
-            Image.open(BytesIO(rawbytes)).convert("RGB") for rawbytes in image_rawbytes
-        ]
+        # _image_list = [
+        #     Image.open(BytesIO(rawbytes)).convert("RGB") for rawbytes in image_rawbytes
+        # ]
+        _image_list = image_PILs
         for image in _image_list:
             h, w = image.size
             if h < 10 and w < 10:
@@ -224,6 +225,7 @@ def safely_merge_info(out_fpath, info):
             info.update(new_info)
         json.dump(info, open(out_fpath + ".meta", "w+"), indent=2)
         shutil.move(out_fpath + ".meta", out_fpath)
+    return info
 
 
 def eval_model(args, idx, total):
@@ -316,12 +318,6 @@ def eval_model(args, idx, total):
             [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN]
         )
 
-    dataset = args.dataset
-    dataset2fpath = {
-        "coco": "~/datasets/ShareGPT4V/data/coco/train2017",
-        "sam": "~/datasets/ShareGPT4V/data/sam/images",
-    }
-
     # tokenizer = AutoTokenizer.from_pretrained("NousResearch/Llama-2-7b-hf")
     if 'siglip' in model_name:
         if 'so400m' in model_name:
@@ -338,19 +334,10 @@ def eval_model(args, idx, total):
         image_processor = CLIPImageProcessor.from_pretrained(
             "openai/clip-vit-large-patch14-336", torch_dtype=torch.float16
         )
-    data_args = DataArguments(
-        datasets_mixture_name="coyo_25m_mmc4core_test",
-        is_multimodal=True,
-        lazy_preprocess=True,
-    )
-
-    # data_path="/home/jasonlu/datasets/coyo-700m/pkl02-split"
-    # data_path = "/home/jasonlu/vlm_datasets/debug/coyo-700m/pkl02-split"
-    # from llava.train.simple_coyo_dataset_vila_ji import SimpleCoyoDataset
-    # train_dataset = SimpleCoyoDataset(data_path=data_path)
     
+    dataset = args.dataset.split("/")[-1]
     from llava.train.simple_coyo_dataset import SimpleCoyoDataset
-    train_dataset = SimpleCoyoDataset()
+    train_dataset = SimpleCoyoDataset(data_path=args.dataset)
     # sampler = DistributedSampler(train_dataset)
     # dloader = torch.utils.data.DataLoader(train_dataset, shuffle=False, sampler=sampler, num_workers=8)
     # sampler.set_epoch(0)
@@ -359,8 +346,15 @@ def eval_model(args, idx, total):
     begin_idx = chunk_size * idx
     stop_idx = chunk_size * (idx + 1)
     subdataset = torch.utils.data.Subset(train_dataset, range(begin_idx, stop_idx))
-    sampler = DistributedSampler(subdataset)
-    dloader = torch.utils.data.DataLoader(subdataset, shuffle=False, num_workers=12, sampler=sampler)
+    
+    from llava.wids import DistributedLocalSampler, DistributedChunkedSampler
+    
+    sampler = DistributedLocalSampler(subdataset, shuffle=False)
+    sampler.set_epoch(0)
+    dloader = torch.utils.data.DataLoader(subdataset, shuffle=False, num_workers=12, 
+        sampler=sampler, 
+        collate_fn=SimpleCoyoDataset.custom_collate
+    )
 
     print(f"RANKING: {idx} / {total} | CHUNK SIZE: {chunk_size}, {begin_idx} to {stop_idx} | {len(train_dataset)}")
 
@@ -372,21 +366,41 @@ def eval_model(args, idx, total):
 
     info_json = {}
  
-    if osp.exists(out_fpath):
-        new_info = json.load(open(out_fpath, "r"))
-        info_json.update(new_info)
-        print(f"loaded {len(new_info.keys())} from {out_fpath}")
+    # if osp.exists(out_fpath):
+    #     new_info = json.load(open(out_fpath, "r"))
+    #     info_json.update(new_info)
+    #     print(f"loaded {len(new_info.keys())} from {out_fpath}")
 
-   
-    for idx, data in enumerate(dloader):
-        uuid = data["url"][0]
-        orig_text = data["text"][0]
-        image_rawbytes = data["image"][0]
-
-        if uuid in info_json:
+    from collections import defaultdict
+    info_all_files = defaultdict(dict)
+    
+    def safely_merge_all_json(info):
+        out_folder = (
+            f"captioner/{dataset}-{osp.basename(model_name)}"
+        )
+        os.makedirs(out_folder, exist_ok=True)
+        for k, v in info_all_files.items():
+            out_fpath = osp.join(out_folder, osp.basename(k) + ".json")
+            v_new = safely_merge_info(out_fpath, v)
+            info_all_files[k] = v_new
+            
+    
+    for _idx, data in enumerate(dloader):
+        # uuid = data["url"][0]
+        shardID = str(data["__shard__"][0])
+        uuid = osp.join(shardID, str(data["__key__"][0]).replace("./", ""))
+        # orig_text = data["text"][0]
+        image_rawbytes = data[".jpg"][0]
+        
+        print(uuid)
+        if _idx % 100 == 0:
+            safely_merge_all_json(info_all_files)
+        
+        if shardID in info_all_files and uuid in info_all_files[shardID]:
+            print("already labeled, skipped.")
             continue
-
-        query = "<image> Can you briefly explain the content in the image?"
+        
+        query = "<image> Can you briefly describe the content in the image?"
         output = execute_llava(
             model=model,
             model_name=args.model_name,
@@ -394,31 +408,34 @@ def eval_model(args, idx, total):
             tokenizer=tokenizer,
             vision_config=vision_config,
             prompt_query=query,
-            image_rawbytes=[
+            image_PILs=[
                 image_rawbytes,
             ],
         )
 
-        info_json[uuid] = {
+        # info_json[uuid] = {
+        #     "query": query,
+        #     "output": output,
+        # }
+        info_all_files[shardID][uuid] = {
             "query": query,
-            "orig_text": orig_text,
             "output": output,
         }
 
         print(
             "%" * 10
             + " " * 5
-            + f"VILA Response [{idx} / {len(dloader)} / {len(train_dataset)}] [split: {idx} / {total}] [rank: {rank} / {world_size}] "
+            + f"VILA Response [{_idx} / {len(dloader)} / {len(train_dataset)}] [split: {idx} / {total}] [rank: {rank} / {world_size}] "
             + " " * 5
             + "%" * 10
         )
-        print(uuid, info_json[uuid])
+        print(uuid, info_all_files[shardID][uuid])
 
-        if idx % 200 == 0:
-            safely_merge_info(out_fpath, info_json)
-            # safely_merge_info(full_fpath, info_json)
-    safely_merge_info(out_fpath, info_json)
-    # safely_merge_info(full_fpath, info_json)
+        # if _idx % 200 == 0:
+        #     safely_merge_info(out_fpath, info_json)
+    # safely_merge_info(out_fpath, info_json)
+    safely_merge_all_json(info_all_files)
+    
 
 
 if __name__ == "__main__":
@@ -442,7 +459,7 @@ if __name__ == "__main__":
     
     print(args.idx, args.total)
     if args.idx >= 0 and args.total >= 0:
-        print("launch individually")
+        # print("launch individually")
         rank = args.idx
         world_size = args.total
         eval_model(args, rank, world_size)

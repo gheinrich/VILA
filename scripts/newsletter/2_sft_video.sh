@@ -2,23 +2,28 @@ source ~/.bashrc
 conda activate vila
 which python
 
-
 cd ~/workspace/VILA/
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-export MASTER_ADDR=$master_addr
-echo "MASTER_ADDR="$MASTER_ADDR
+export MASTER_ADDR=${master_addr:-"127.0.0.1"}
+export CURRENT_RANK=${SLURM_PROCID:-"0"}
 
-n_node=$SLURM_JOB_NUM_NODES
-bs=$((512 / n_node))
-n_gpus=$((n_node * 8))
+worker_list=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | tr '\n' ' ')
+echo "JobID: $SLURM_JOB_ID Full worker list: $worker_list"
+echo "MASTER_ADDR="$MASTER_ADDR
+n_node=${SLURM_JOB_NUM_NODES:-1}
+acc_step=${ACC_STEP:-1}
+bs=$((512 / n_node / acc_step))
+# bs=4
 echo "number of nodes:" $n_node
-echo "per device batch size:" $bs
+echo "accmulation steps:" $acc_step
+echo "per device batch size :" $bs
 echo "node rank:" $SLURM_PROCID
 
-DATASET=${DATASET:-"coyo_25m_refilter+mmc4core"}
 
-echo $DATASET
+DATASET=${DATASET:-"coyo_25m_recap+mmc4core+sharegpt4v_pretrain"}
+
+echo "dataset: " $DATASET
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
@@ -34,7 +39,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --output_dir ./checkpoints/vicuna-7b-clip336-$DATASET-linear-e8-sft \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps $acc_step \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 150 \
