@@ -246,8 +246,8 @@ class IndexedTarSamples:
 
         # Group files by key into samples
         self.samples = group_by_key(all_files)
-        print("DEBUG:", list(all_files)[:20])
-        print("DEBUG:", self.samples[:20])
+        # print("DEBUG:", list(all_files)[:20])
+        # print("DEBUG:", self.samples[:20])
 
         # check that the number of samples is correct
         if expected_size is not None:
@@ -708,7 +708,7 @@ class ChunkedSampler(Sampler):
         num_samples=None,
         chunksize=2000,
         seed=0,
-        shuffle=True,
+        shuffle=False,
         shufflefirst=False,
     ):
         if isinstance(num_samples, int):
@@ -785,3 +785,40 @@ def DistributedChunkedSampler(
         shuffle=shuffle,
         shufflefirst=shufflefirst,
     )
+
+
+import torch, math
+from torch.utils.data.distributed import DistributedSampler
+
+class DistributedLocalSampler(DistributedSampler):
+    def __iter__(self):
+        if self.shuffle:
+            # deterministically shuffle based on epoch and seed
+            g = torch.Generator()
+            g.manual_seed(self.seed + self.epoch)
+            indices = torch.randperm(len(self.dataset), generator=g).tolist()  # type: ignore[arg-type]
+        else:
+            indices = list(range(len(self.dataset)))  # type: ignore[arg-type]
+
+        if not self.drop_last:
+            # add extra samples to make it evenly divisible
+            padding_size = self.total_size - len(indices)
+            if padding_size <= len(indices):
+                indices += indices[:padding_size]
+            else:
+                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
+        else:
+            # remove tail of data to make it evenly divisible.
+            indices = indices[:self.total_size]
+        assert len(indices) == self.total_size
+
+        # subsample
+        # indices = indices[self.rank:self.total_size:self.num_replicas]
+        chunk_size = self.total_size // self.num_replicas
+        begin_idx = chunk_size * self.rank
+        stop_idx = chunk_size * (self.rank + 1)
+        indices = indices[begin_idx:stop_idx]
+        
+        # print("[SamplerIndices: ]", indices)
+        assert len(indices) == self.num_samples
+        return iter(indices)

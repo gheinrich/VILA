@@ -1130,9 +1130,9 @@ class LazyCoyoDataset(Dataset):
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         CONCAT_SAMPLES = False
         try:
-            info_list = self.data_list[i ]
+            info_list = self.data_list[i]
         except IndexError as e:
-            dprint(f"DEBUG i:{i}  idx_offset:{self.idx_offset}, data_list:{len(self.data_list)}")
+            dprint(f"[LazyCoyoDataset.__getitem__] DEBUG  i:{i}  idx_offset:{self.idx_offset}, data_list:{len(self.data_list)}")
             raise e
 
         text_list = []

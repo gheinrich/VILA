@@ -147,6 +147,8 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
     for idx, tar_path in enumerate(tar_list):
         print(f"{idx}-of-{len(tar_list)}")
         tar_meta = generate_and_load_tar_meta(data_path, tar_path, cache_dir)
+        if tar_meta is None:
+            continue
         tar_meta["url"] = tar_path
         meta["shardlist"].append(tar_meta)
     
@@ -171,6 +173,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
 
         _local_meta_path = osp.join(data_path, "wids-meta.json")
         if meta_path is None and osp.exists(_local_meta_path):
+            print(f"loading from {_local_meta_path}")
             self.meta_path = meta_path = _local_meta_path
             
         if meta_path is None:
@@ -181,7 +184,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                 + ".wdsmeta.json",
             )
 
-        assert osp.exists(self.meta_path), f"meta path not found in {self.meta_path}"
+        assert osp.exists(self.meta_path), f"meta path not found in {self.meta_path} {_local_meta_path}:{osp.exists(_local_meta_path)}"
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
