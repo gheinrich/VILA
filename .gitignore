@@ -1,3 +1,5 @@
+config.json
+eval-result/
 *_dev.sh
 hostfile
 core.*

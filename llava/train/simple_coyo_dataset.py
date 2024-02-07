@@ -1,3 +1,4 @@
+import shutil
 import os, os.path as osp, io
 import argparse
 import pprint
@@ -31,28 +32,148 @@ OBELISC = "/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets
 DATACOMP = "/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filtering/dc1b_filtered"
 
 
+def save_json(obj, fpath):
+    print(f"saving to {fpath}")
+    os.makedirs(osp.dirname(fpath), exist_ok=True)
+    json.dump(obj, open(fpath, "w+"), indent=2)
+
+
+def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
+    tar_abspath = osp.abspath(osp.join(data_path, tar_path))
+    tar_abs_metapath = osp.join(
+        osp.expanduser(cache_dir),
+        "dev",
+        tar_abspath.replace("/", "--") + ".wdsmeta.json",
+    )
+    tar_real_metapath = osp.join(
+        osp.expanduser(cache_dir),
+        "dev",
+        osp.realpath(tar_abspath).replace("/", "--") + ".wdsmeta.json",
+    )
+
+    if not osp.exists(tar_abs_metapath) and not osp.exists(tar_real_metapath) or overwrite:
+        # generate meta information for both abs and real file paths
+        print(f"    Generating meta: {tar_abs_metapath}")
+        try:
+            tar = load_tarfile(tar_abspath)
+            uuids = list(
+                set([".".join(_.split(".")[:-1]) for _ in tar.getnames()])
+            )
+        except tarfile.ReadError as e:
+            print(f"Skipping {tar_abspath}")
+            print(e)
+            return None
+        nsamples = len(uuids)
+        
+        tar_meta = {
+            "url": osp.abspath(tar_abspath),
+            "nsamples": nsamples,
+            "filesize": osp.getsize(tar_abspath),
+        }
+        save_json(tar_meta, tar_abs_metapath)
+        
+        tar_meta = {
+            "url": osp.realpath(tar_abspath),
+            "nsamples": nsamples,
+            "filesize": osp.getsize(tar_abspath),
+        }
+        save_json(tar_meta, tar_real_metapath)
+
+    if osp.exists(tar_abs_metapath):
+        print(f"    Loading abs meta: {tar_abs_metapath}")
+        tar_meta = json.load(open(tar_abs_metapath, "r"))
+    elif osp.exists(tar_real_metapath):
+        print(f"    Loading realpath meta: {tar_real_metapath}")
+        tar_meta = json.load(open(tar_real_metapath, "r"))
+    else:
+        return None
+    return tar_meta
+
+
+def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-meta", overwrite=False):
+    # TODO(ligeng): speedup the generation
+    #   1. parallelize the meta file generation 
+    #   2. add options for meta file 
+    
+    meta_path_of_tar_abs = osp.join(
+        osp.expanduser(cache_dir),
+        data_path.replace("/", "--")
+        + ".wdsmeta.json",
+    )
+    
+    meta_path_of_tar_rel = osp.join(osp.expanduser(data_path), "wids-meta.json")
+    if osp.exists(meta_path_of_tar_rel) and osp.exists(meta_path_of_tar_abs) and not overwrite:
+        return 
+    
+    tar_list = []
+    for root, dirs, files in os.walk(data_path):
+        for file in files:
+            fpath = osp.join(root, file)
+            fpath = osp.relpath(fpath, data_path)
+            print(fpath)
+            if not fpath.endswith(".tar"):
+                continue
+            # fpath = osp.abspath(osp.join(root, file))
+            tar_list.append(fpath)
+    tar_list = sorted(tar_list)
+    assert len(tar_list) > 0, f"no tar was found in the repository {data_path} !"
+
+    ####################################################################################
+    meta = {
+        "name": "coyo-dev",
+        "__kind__": "VILA-WebDataset",
+        "wids_version": 1,
+        "shardlist": [],
+    }
+
+    for idx, tar_path in enumerate(tar_list):
+        print(f"{idx}-of-{len(tar_list)}")
+        tar_meta = generate_and_load_tar_meta(data_path, tar_path, cache_dir)
+        # tar_meta["url"] = tar_path
+        tar_meta["url"] = osp.abspath(osp.join(data_path, tar_path))
+        meta["shardlist"].append(tar_meta)
+    
+    # sorted by tar names
+    meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
+    save_json(meta, meta_path_of_tar_abs)
+    
+    ####################################################################################
+    meta = {
+        "name": "coyo-dev",
+        "__kind__": "VILA-WebDataset",
+        "wids_version": 1,
+        "shardlist": [],
+    }
+    for idx, tar_path in enumerate(tar_list):
+        print(f"{idx}-of-{len(tar_list)}")
+        tar_meta = generate_and_load_tar_meta(data_path, tar_path, cache_dir)
+        tar_meta["url"] = tar_path
+        meta["shardlist"].append(tar_meta)
+    
+    
+    # sorted by tar names
+    meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
+    save_json(meta, meta_path_of_tar_rel)
+    
+
+
 class SimpleCoyoDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         data_path=COYO_25M_VILA,
-        # cache_dir="/home/ligengz/.cache/simplecoyo",
-        # cache_dir="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/vila-webds-meta",
-        cache_dir="/home/ligengz/datasets/vila-webds-meta",
         meta_path=None,
-        image_load_mode="pil",  # pil / rawbytes / fpath,
+        cache_dir="/home/ligengz/datasets/vila-webds-meta",
         max_shards_to_load=None,
-        overwrite=False,
     ):
         self.data_path = data_path
         self.meta_path = meta_path
         self.max_shards_to_load = max_shards_to_load
 
         _local_meta_path = osp.join(data_path, "wids-meta.json")
-        print(_local_meta_path, "exsits status: ", osp.exists(_local_meta_path))
         if meta_path is None and osp.exists(_local_meta_path):
             self.meta_path = meta_path = _local_meta_path
             
-        if meta_path is None :
+        if meta_path is None:
             self.meta_path = osp.join(
                 osp.expanduser(cache_dir),
                 data_path.replace("/", "--")
@@ -60,113 +181,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
                 + ".wdsmeta.json",
             )
 
-        if not osp.exists(self.meta_path) or overwrite:
-            # TODO(ligeng): speedup the generation
-            #       1. parallelize the meta file generation 
-            #       2. add options for meta file 
-            assert (
-                not torch.distributed.is_initialized()
-            ), "Dataset meta file does not exist and generating may take a long time. \
-                Please exit distributed mode and run `python llava/train/simple_coyo_dataset.py <webdataset path>`. \
-                or set proper `meta_path=` when initializing."
-            print(f"Meta path not found: {self.meta_path}")
-            print(f"Walking through dirs {data_path}")
-            # tar_list = sorted([f for f in os.listdir(data_path) if f.endswith(".tar")])
-            tar_list = []
-            for root, dirs, files in os.walk(data_path):
-                for file in files:
-                    fpath = osp.join(root, file)
-                    fpath = osp.relpath(fpath, data_path)
-                    if not fpath.endswith(".tar"):
-                        continue
-                    # fpath = osp.abspath(osp.join(root, file))
-                    tar_list.append(fpath)
-            tar_list = sorted(tar_list)
-            print(tar_list)
-
-            meta = {
-                "name": "coyo-dev",
-                "__kind__": "SimpleCoyoDataset",
-                "wids_version": 1,
-                "shardlist": [],
-            }
-            import shutil
-
-            for idx, tar_relpath in enumerate(tar_list):
-                tar_abspath = osp.join(data_path, tar_relpath)
-                tar_meta_path = osp.join(
-                    osp.expanduser(cache_dir),
-                    "dev",
-                    tar_abspath.replace("/", "--") + ".wdsmeta.json",
-                )
-                # print(data_path, tar_relpath, tar_abspath)
-                # input()
-                tar_realpath = osp.realpath(tar_abspath)
-                tar_real_meta_path = osp.join(
-                    osp.expanduser(cache_dir),
-                    "dev",
-                    tar_realpath.replace("/", "--") + ".wdsmeta.json",
-                )
-
-                print(
-                    f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}"
-                )
-                
-                if not osp.exists(tar_meta_path) and not osp.exists(tar_real_meta_path):
-                    print(f"    Generating meta: {tar_meta_path}")
-                    try:
-                        tar = load_tarfile(tar_abspath)
-                        uuids = list(
-                            set([".".join(_.split(".")[:-1]) for _ in tar.getnames()])
-                        )
-                    except tarfile.ReadError as e:
-                        print(f"Skipping {tar_abspath}")
-                        print(e)
-                        continue
-                    nsamples = len(uuids)
-                    url = osp.abspath(tar_abspath)
-                    tar_meta = {
-                        "url": url,
-                        "nsamples": nsamples,
-                        "filesize": osp.getsize(tar_abspath),
-                    }
-                    os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
-                    json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
-
-                if osp.exists(tar_meta_path):
-                    print(f"    Generating abs meta: {tar_meta_path}")
-                    tar_meta = json.load(open(tar_meta_path, "r"))
-                elif osp.exists(tar_real_meta_path):
-                    print(f"    Generating abs meta: {tar_real_meta_path}")
-                    tar_meta = json.load(open(tar_real_meta_path, "r"))
-                else:
-                    raise NotImplementedError
-
-                tar_meta["url"] = osp.abspath(tar_abspath)
-                # tar_meta["url"] = tar_relpath
-                
-                os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
-                json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
-                if tar_meta_path != tar_real_meta_path and not osp.exists(tar_real_meta_path):
-                    # tar_meta["url"] = osp.realpath(tar_abspath)
-                    print(
-                        f"    [abs2real] Copying {tar_meta_path} => {tar_real_meta_path}"
-                    )
-                    os.makedirs(osp.dirname(tar_real_meta_path), exist_ok=True)
-                    json.dump(tar_meta, open(tar_real_meta_path, "w+"), indent=2)
-
-                # input()
-                meta["shardlist"].append(tar_meta)
-                if (
-                    self.max_shards_to_load is not None
-                    and idx > self.max_shards_to_load
-                ):
-                    break
-            # sorted by tar names
-            meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
-            os.makedirs(osp.dirname(self.meta_path), exist_ok=True)
-            json.dump(meta, open(self.meta_path, "w+"), indent=2)
-
+        assert osp.exists(self.meta_path), f"meta path not found in {self.meta_path}"
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
@@ -243,7 +258,16 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--max-shards", type=int, default=None)
     parser.add_argument("-o", "--overwrite", action="store_true")
     args = parser.parse_args()
+    
+    prepare_wids_meta(args.data_path)
 
+    train_dataset = SimpleCoyoDataset(
+        data_path=args.data_path,
+        max_shards_to_load=args.max_shards,
+    )
+    
+    print(train_dataset[0])
+    exit(0)
     print("overwrite:", args.overwrite)
     train_dataset = SimpleCoyoDataset(
         data_path=args.data_path,

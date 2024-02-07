@@ -21,23 +21,23 @@ echo "accmulation steps:" $acc_step
 echo "per device batch size :" $bs
 echo "node rank:" $SLURM_PROCID
 
-DATASET=${DATASET:-"coyo_25m_refilter+mmc4core"}
+PT_DATASET=${PT_DATASET:-"coyo_25m_refilter+mmc4core"}
 
-echo $DATASET
+echo "scripts/newsletter/1_train_mmc4_coyo_vicuna_64_refilter.sh: $PT_DATASET"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version v1 \
-    --datasets_mixture_name $DATASET \
+    --datasets_mixture_name $PT_DATASET \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type linear \
     --pretrain_mm_mlp_adapter checkpoints/vicuna-7b-clip336-pretrain-ccs-linear-e1/mm_projector.bin \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-clip336-finetune-$DATASET-linear-e8 \
+    --output_dir ./checkpoints/vicuna-7b-clip336-finetune-$PT_DATASET-linear-e8 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --gradient_accumulation_steps $acc_step \
