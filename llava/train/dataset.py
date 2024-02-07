@@ -16,7 +16,8 @@ import transformers
 from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Resize
 import decord
-from decord import VideoReader
+# from decord import VideoReader
+from pytorchvideo.data.encoded_video import EncodedVideo
 from io import BytesIO
 
 
@@ -367,20 +368,24 @@ class LazySupervisedDataset(Dataset):
         return image
 
     def load_video(self, video_path, num_video_frames):
-        decord.bridge.set_bridge("torch")
-        video_reader = VideoReader(uri=video_path)
+        # decord.bridge.set_bridge("torch")
         image_size = self.multimodal_cfg["image_size"]
-    
-        idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
         try:
-            video_outputs = video_reader.get_batch(idx)
-        except:
+            video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            duration = float(video.duration)
+            assert duration >= 0.25
+            video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+            assert video_outputs.size(1) > 8
+            indices = torch.linspace(0, video_outputs.size(1) - 1, 8).long()
+            video_outputs = video_outputs[:, indices, :, :]
+        except Exception as e:
             print(f'bad data path {video_path}')
-            video_outputs = torch.zeros(8, image_size, image_size, 3, dtype=torch.uint8)
+            print(f"Error processing {video_path}: {e}")
+            video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
 
-        b, h, w, c = video_outputs.size()
+        c, b, h, w = video_outputs.size()
         image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-        video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
+        video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
         video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
         image_tensor[:, :, :, :] = video_frames
 
