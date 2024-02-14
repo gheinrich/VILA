@@ -1,4 +1,5 @@
 import os, os.path as osp
+import time
 import argparse
 from hashlib import sha1, sha256
 
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--model-name", type=str, default=None)
     parser.add_argument("--fast-check", action="store_true")
+    parser.add_argument("--sleep-on-error", action="store_true")
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
 
@@ -134,13 +136,27 @@ if __name__ == "__main__":
                 continue
 
             commit_message = "Upload files with huggingface_hub"
-            commit_info = api.create_commit(
-                repo_id=repo,
-                repo_type=repo_type,
-                operations=ops,
-                commit_message=commit_message,
-                commit_description=commit_description,
-            )
+            
+            result = None
+            while result is None:
+                try:
+                    commit_info = api.create_commit(
+                        repo_id=repo,
+                        repo_type=repo_type,
+                        operations=ops,
+                        commit_message=commit_message,
+                        commit_description=commit_description,
+                    )
+                except RuntimeError as e:
+                    print(e)
+                    if not args.sleep_on_error:
+                        raise e
+                    else:
+                        print("sleeping for one hour then re-try")
+                        time.sleep(3600)
+                        continue
+                result = "success"
+                
             commit_description = ""
             ops = []
             commit_size = 0
