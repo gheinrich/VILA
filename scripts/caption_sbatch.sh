@@ -7,7 +7,7 @@
 #SBATCH -N 1                    		#number of nodes
 #SBATCH -J nvr_elm_llm-vlm:label-coyo	#job name
 #SBATCH --dependency singleton
-#SBATCH --array=0-511
+#SBATCH --array=0-511%16
 
 WORKDIR=$(pwd)
 # TIME=$(date +"%m-%d_%H:%M")

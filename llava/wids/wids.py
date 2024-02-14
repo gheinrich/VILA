@@ -115,6 +115,9 @@ def group_by_key(names):
         if "." not in fname:
             print(f"Warning: Ignoring file {fname} (no '.')")
             continue
+        if fname == ".":
+            print(f"Warning: Ignoring the '.' file.")
+            continue
         key, ext = splitname(fname)
         if key not in kmaps:
             kmaps[key] = []

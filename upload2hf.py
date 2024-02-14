@@ -7,7 +7,8 @@ from termcolor import colored
 from huggingface_hub import HfApi
 from huggingface_hub.hf_api import CommitOperationAdd
 
-max_upload_size_per_commit = 16 * 1024 * 1024 * 1024  # 16 GiB
+MAX_UPLOAD_FILES_PER_COMMIT = 64
+MAX_UPLOAD_SIZE_PER_COMMIT = 64 * 1024 * 1024 * 1024  # 64 GiB
 
 
 def compute_git_hash(filename):
@@ -129,7 +130,7 @@ if __name__ == "__main__":
             ops.append(operation)
             commit_size += operation.upload_info.size
             commit_description += f"Upload {rpath}\n"
-            if len(ops) <= 8 and commit_size <= max_upload_size_per_commit:
+            if len(ops) <= MAX_UPLOAD_FILES_PER_COMMIT and commit_size <= MAX_UPLOAD_SIZE_PER_COMMIT:
                 continue
 
             commit_message = "Upload files with huggingface_hub"

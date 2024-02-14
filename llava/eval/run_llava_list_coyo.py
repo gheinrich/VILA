@@ -351,7 +351,8 @@ def eval_model(args, idx, total):
     
     sampler = DistributedLocalSampler(subdataset, shuffle=False)
     sampler.set_epoch(0)
-    dloader = torch.utils.data.DataLoader(subdataset, shuffle=False, num_workers=12, 
+    dloader = torch.utils.data.DataLoader(subdataset, 
+        shuffle=False, num_workers=12, 
         sampler=sampler, 
         collate_fn=SimpleCoyoDataset.custom_collate
     )
@@ -374,7 +375,7 @@ def eval_model(args, idx, total):
     from collections import defaultdict
     info_all_files = defaultdict(dict)
     
-    def safely_merge_all_json(info):
+    def safely_merge_all_json(info_all_files):
         out_folder = (
             f"captioner/{dataset}-{osp.basename(model_name)}"
         )
@@ -383,6 +384,7 @@ def eval_model(args, idx, total):
             out_fpath = osp.join(out_folder, osp.basename(k) + ".json")
             v_new = safely_merge_info(out_fpath, v)
             info_all_files[k] = v_new
+        return info_all_files
             
     
     for _idx, data in enumerate(dloader):
@@ -394,11 +396,13 @@ def eval_model(args, idx, total):
         
         print(uuid)
         if _idx % 100 == 0:
-            safely_merge_all_json(info_all_files)
+            info_all_files = safely_merge_all_json(info_all_files)
         
-        if shardID in info_all_files and uuid in info_all_files[shardID]:
-            print("already labeled, skipped.")
-            continue
+        if shardID in info_all_files:
+            print("[DEBUG]: shardID in info_all_files", shardID)
+            if uuid in info_all_files[shardID]:
+                print("[DEBUG]: already labeled, skipped.", uuid)
+                continue
         
         query = "<image> Can you briefly describe the content in the image?"
         output = execute_llava(
@@ -434,7 +438,7 @@ def eval_model(args, idx, total):
         # if _idx % 200 == 0:
         #     safely_merge_info(out_fpath, info_json)
     # safely_merge_info(out_fpath, info_json)
-    safely_merge_all_json(info_all_files)
+    info_all_files = safely_merge_all_json(info_all_files)
     
 
 
