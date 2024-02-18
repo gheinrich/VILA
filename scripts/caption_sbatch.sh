@@ -22,7 +22,7 @@ ERRFILE="${RESULTS}/slurm-$SLURM_ARRAY_TASK_ID-of-$SLURM_ARRAY_TASK_COUNT.err"
 # MAX_JOBS=4
 # num_nodes=20
 
-srun --label -J nvr_elm_llm-vlm:label-coyo-$SLURM_ARRAY_TASK_ID-$SLURM_ARRAY_TASK_COUNT \
+srun --label -A nvr_elm_llm -J nvr_elm_llm-vlm:label-coyo-$SLURM_ARRAY_TASK_ID-$SLURM_ARRAY_TASK_COUNT \
     -o $OUTFILE -e $ERRFILE \
     torchrun  --nproc_per_node=8  llava/eval/run_llava_list_coyo.py \
         --model-name ~/downloads/vicuna-13b-clip336-mmc4sub+coyo-finetune-captioner-e4 \
