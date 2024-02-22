@@ -80,3 +80,5 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_bias: str = "none"
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
+    total_time_limit: int = field(default=-1, metadata={"help": "Timeout limit for this job (in minutes)."})
+    pre_terminate_time: int = field(default=10, metadata={"help": "Time to terminate the task inadvance (minutes), saveing checkpoints needs time."})
