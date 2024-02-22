@@ -1,3 +1,5 @@
+# This file is originated from the official MMMU codebase:
+# https://github.com/MMMU-Benchmark/MMMU
 """Response Parsing and Evaluation for various models"""
 from typing import Dict
 

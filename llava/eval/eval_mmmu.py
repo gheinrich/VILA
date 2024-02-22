@@ -1,112 +1,99 @@
-import torch
+# This file is originated from the official MMMU codebase:
+# https://github.com/MMMU-Benchmark/MMMU
+"""Parse and Evalate"""
 import os
-import random
+import json
 
-import numpy as np
-from tqdm import tqdm
-
-from datasets import load_dataset, concatenate_datasets
-from llava.utils import disable_torch_init
-from llava.eval.utils import build_model, preprocess_image
-
+import pdb
 from argparse import ArgumentParser
 
-from llava.eval.mmmu_utils.data_utils import load_yaml, construct_prompt, save_json, process_single_sample, CAT_SHORT2LONG
-from llava.eval.mmmu_utils.model_utils import call_llava_engine_df, llava_image_processor
-from llava.eval.mmmu_utils.eval_utils import parse_multi_choice_response, parse_open_response
-
-
-def run_model(args, samples, model, call_model_engine_fn=None, tokenizer=None, processor=None, image_token_len=None, conv_version=None):
-    out_samples = dict()
-    with torch.no_grad():
-        for sample in tqdm(samples):
-            response = call_model_engine_fn(args, sample, model, image_token_len, tokenizer, processor, conv_version)
-
-            if sample['question_type'] == 'multiple-choice':
-                pred_ans = parse_multi_choice_response(response, sample['all_choices'], sample['index2ans'])
-            else:  # open question
-                pred_ans = response
-            out_samples[sample['id']] = pred_ans
-    return out_samples
-
-def set_seed(seed_value):
-    """
-    Set the seed for PyTorch (both CPU and CUDA), Python, and NumPy for reproducible results.
-
-    :param seed_value: An integer value to be used as the seed.
-    """
-    torch.manual_seed(seed_value)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed_value)
-        torch.cuda.manual_seed_all(seed_value)  # For multi-GPU setups
-    random.seed(seed_value)
-    np.random.seed(seed_value)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--output_path', type=str, default='llava1.5_13b_val.json',
-                        help='name of saved json')
-    parser.add_argument('--config_path', type=str, default="configs/llava1.5.yaml")
-    parser.add_argument('--data_path', type=str, default="MMMU/MMMU") # hf dataset path.
-    parser.add_argument('--model_name', type=str, default="liuhaotian/llava-v1.5-13b")
-    parser.add_argument('--split', type=str, default='validation')
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument("--conv-mode", type=str, default="vicuna_v1_1")
-
-    args = parser.parse_args()
-    device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
-    set_seed(args.seed)
-
-    print('vila_initializing...')
-    processor = None
-    call_model_engine = call_llava_engine_df
-    vis_process_func = llava_image_processor
-
-    # Model
-    disable_torch_init()
-    (
-        model,
-        tokenizer,
-        image_processor,
-        conv_template,
-        image_tokens,
-        image_token_len,
-    ) = build_model(args.model_name, args.conv_mode)
-
-    # load config and process to one value
-    args.config = load_yaml(args.config_path)
-    for key, value in args.config.items():
-        if key != 'eval_params' and type(value) == list:
-            assert len(value) == 1, 'key {} has more than one value'.format(key)
-            args.config[key] = value[0]
-
-    # run for each subject
-    sub_dataset_list = []
-    for subject in CAT_SHORT2LONG.values():
-        sub_dataset = load_dataset(args.data_path, subject, split=args.split)
-        sub_dataset_list.append(sub_dataset)
-
-    # merge all dataset
-    dataset = concatenate_datasets(sub_dataset_list)
-
-    samples = []
-    for sample in dataset:
-        sample = process_single_sample(sample)
-
-        sample = construct_prompt(sample, args.config)
-        if sample['image']:
-            sample['image'] = vis_process_func(sample['image'], image_processor).to(device)
-        samples.append(sample)
-
-    # run ex
-    out_samples = run_model(args, samples, model, call_model_engine, tokenizer, processor, image_token_len, conv_version=args.conv_mode)
-
-    save_json(args.output_path, out_samples)
-    # metric_dict.update({"num_example": len(out_samples)})
-    # save_json(save_result_path, metric_dict)
+from llava.eval.mmmu_utils.data_utils import save_json, CAT_SHORT2LONG, DOMAIN_CAT2SUB_CAT
+from llava.eval.mmmu_utils.eval_utils import evaluate, parse_multi_choice_response, parse_open_response, calculate_ins_level_acc
 
 
 if __name__ == '__main__':
-    main()
+
+    parser = ArgumentParser()
+    parser.add_argument('--output_path', type=str, default="./example_outputs/qwen_vl/total_val_output.json", help="The path to model output file.")
+    parser.add_argument('--answer_path', type=str, default="./answer_dict_val.json", help="Answer file path.")
+    args = parser.parse_args()
+
+    output_dict = json.load(open(args.output_path))
+    answer_dict = json.load(open(args.answer_path))
+
+    # group by category
+    output_dict_w_cat = {}
+    for data_id, parsed_pred in output_dict.items():
+        category = "_".join(data_id.split("_")[1:-1])
+        if category not in output_dict_w_cat:
+            output_dict_w_cat.update({category: {}})
+        output_dict_w_cat[category].update({data_id: parsed_pred})
+
+    # group by category
+    answer_dict_w_cat = {}
+    for data_id, parsed_pred in answer_dict.items():
+        category = "_".join(data_id.split("_")[1:-1])
+        if category not in answer_dict_w_cat:
+            answer_dict_w_cat.update({category: {}})
+        answer_dict_w_cat[category].update({data_id: parsed_pred})
+
+    evaluation_result = {}
+
+    for category in CAT_SHORT2LONG.values():
+        print("Evaluating: {}".format(category))
+        # get cat_outputs and cat_answers
+        try:
+            cat_outputs = output_dict_w_cat[category]
+            cat_answers = answer_dict_w_cat[category]
+        except KeyError:
+            print("Skipping {} for not found".format(category))
+            continue
+        
+        exampels_to_eval = []
+        for data_id, parsed_pred in cat_outputs.items():
+            question_type = cat_answers[data_id]['question_type']
+            if question_type != 'multiple-choice':
+                parsed_pred = parse_open_response(parsed_pred) # mainly for type consistency (make it number, etc.)
+            else:
+                parsed_pred = parsed_pred
+
+            exampels_to_eval.append({
+                "id": data_id,
+                "question_type": question_type,
+                "answer": cat_answers[data_id]['ground_truth'],
+                "parsed_pred": parsed_pred
+            })
+
+        judge_dict, metric_dict = evaluate(exampels_to_eval)
+        metric_dict.update({"num_example": len(exampels_to_eval)})
+
+        evaluation_result[category] = metric_dict
+
+    printable_results = {}
+    # pdb.set_trace()
+    # add domain Subject
+    for domain, in_domain_cats in DOMAIN_CAT2SUB_CAT.items():
+        in_domain_cat_results = {}
+        for cat_name in in_domain_cats: # use the order in DOMAIN_CAT2SUB_CAT
+            if cat_name in evaluation_result.keys():
+                in_domain_cat_results[cat_name] = evaluation_result[cat_name]
+            else:
+                pass
+        in_domain_ins_acc = calculate_ins_level_acc(in_domain_cat_results)
+        in_domain_data_num = sum([cat_results['num_example'] for cat_results in in_domain_cat_results.values()])
+        printable_results['Overall-' + domain] = {"num": int(in_domain_data_num),
+                                                  "acc": round(in_domain_ins_acc, 3)
+                                                  }
+        # add sub category
+        for cat_name, cat_results in in_domain_cat_results.items():
+            printable_results[cat_name] = {"num": int(cat_results['num_example']),
+                                           "acc": round(cat_results['acc'], 3)
+                                           }
+        
+    # table.append(["-----------------------------", "-----", "----"])
+    all_ins_acc = calculate_ins_level_acc(evaluation_result)
+    printable_results['Overall'] = {"num": sum([cat_results['num_example'] for cat_results in evaluation_result.values()]),
+                                    "acc": round(all_ins_acc, 3)
+                                    }
+
+    print(printable_results)

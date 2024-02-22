@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 """
 A controller manages distributed workers.
 It sends worker addresses to clients.

@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 """Generate json file for webpage."""
 import json
 import os

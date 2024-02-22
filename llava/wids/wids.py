@@ -96,6 +96,8 @@ def splitname(fname):
     return basename, extension
 
 
+# NOTE(ligeng): change to ordered mapping to more flexbile dict
+# TODO(ligeng):  submit a PR to fix the mapping issue.
 def group_by_key(names):
     """Group the file names by key.
 
@@ -106,8 +108,6 @@ def group_by_key(names):
         A list of lists of indices, where each sublist contains indices of files
         with the same key.
     """
-    # NOTE(ligeng): change to ordered mapping to more flexbile dict
-    # TODO(ligeng):  submit a PR to fix the mapping issue.
     groups = []
     kmaps = {}
     for i, fname in enumerate(names):

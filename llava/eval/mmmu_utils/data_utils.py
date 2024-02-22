@@ -1,3 +1,5 @@
+# This file is originated from the official MMMU codebase:
+# https://github.com/MMMU-Benchmark/MMMU
 """Utils for data load, save, and process (e.g., prompt construction)"""
 
 import os

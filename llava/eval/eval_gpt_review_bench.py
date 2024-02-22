@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 import argparse
 import json
 import os
@@ -12,7 +14,7 @@ def get_eval(content: str, max_tokens: int):
     while True:
         try:
             response = openai.chat.completions.create(
-                model='gpt-4-0314',
+                model='gpt-4-0613',
                 messages=[{
                     'role': 'system',
                     'content': 'You are a helpful and precise assistant for checking the quality of the answer.'
