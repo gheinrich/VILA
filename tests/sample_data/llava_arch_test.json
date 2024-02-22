@@ -1,0 +1,137 @@
+[
+  {
+    "id": "4",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Which figure of speech is used in this text?\nSing, O goddess, the anger of Achilles son of Peleus, that brought countless ills upon the Achaeans.\n\u2014Homer, The Iliad\nA. chiasmus\nB. apostrophe"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "5",
+    "image": "5/image.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nContext: People can use the engineering-design process to develop solutions to problems. One step in the process is testing if a potential solution meets the requirements of the design.\nThe passage below describes how the engineering-design process was used to test a solution to a problem. Read the passage. Then answer the question below.\n\nGordon was an aerospace engineer who was developing a parachute for a spacecraft that would land on Mars. He needed to add a vent at the center of the parachute so the spacecraft would land smoothly. However, the spacecraft would have to travel at a high speed before landing. If the vent was too big or too small, the parachute might swing wildly at this speed. The movement could damage the spacecraft.\nSo, to help decide how big the vent should be, Gordon put a parachute with a 1 m vent in a wind tunnel. The wind tunnel made it seem like the parachute was moving at 200 km per hour. He observed the parachute to see how much it swung.\nFigure: a spacecraft's parachute in a wind tunnel.\nWhich of the following could Gordon's test show?\nA. if the spacecraft was damaged when using a parachute with a 1 m vent going 200 km per hour\nB. how steady a parachute with a 1 m vent was at 200 km per hour\nC. whether a parachute with a 1 m vent would swing too much at 400 km per hour"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "11",
+    "image": "11/image.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nWhat is the name of the colony shown?\nA. Maryland\nB. New Hampshire\nC. Rhode Island\nD. Vermont"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "15",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Would you find the word dozen on a dictionary page with the following guide words?\ndaddy - definition\nA. no\nB. yes"
+      },
+      {
+        "from": "gpt",
+        "value": "A"
+      }
+    ]
+  },
+  {
+    "id": "22",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Which word would you find on a dictionary page with the following guide words?\nshot - suit\nA. service\nB. stockade"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "23",
+    "image": "23/image.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nContext: Below is a food web from a tundra ecosystem in Nunavut, a territory in Northern Canada.\nA food web models how the matter eaten by organisms moves through an ecosystem. The arrows in a food web represent how matter moves between organisms in an ecosystem.\nWhich of these organisms contains matter that was once part of the lichen?\nA. bilberry\nB. mushroom"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "27",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Which figure of speech is used in this text?\nThe salesperson tried hard to convince Franklin that the jacket was a good buy; after all, it was made of genuine imitation leather.\nA. hyperbole\nB. oxymoron"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+  {
+    "id": "29",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "What do these two changes have in common?\ncompost rotting\na piece of apple turning brown\nA. Both are caused by cooling.\nB. Both are only physical changes.\nC. Both are caused by heating.\nD. Both are chemical changes."
+      },
+      {
+        "from": "gpt",
+        "value": "D"
+      }
+    ]
+  },
+  {
+    "id": "42",
+    "image": "42/image.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nContext: This passage describes the fleece type trait in sheep:\nThe fleece, or outer coat, of a sheep is often cut off and used to make yarn for fabrics and other textiles. Woolly fleeces, which have shorter hairs, are usually used for clothing and blankets. Hairy fleeces, which have longer hairs, are usually used for carpets.\nIn a group of sheep, some individuals have a hairy fleece and others have a woolly fleece. In this group, the gene for the fleece type trait has two alleles. The allele for a hairy fleece (F) is dominant over the allele for a woolly fleece (f).\nThis Punnett square shows a cross between two sheep.\nWhat is the expected ratio of offspring with a woolly fleece to offspring with a hairy fleece? Choose the most likely ratio.\nA. 0:4\nB. 4:0\nC. 2:2\nD. 1:3\nE. 3:1"
+      },
+      {
+        "from": "gpt",
+        "value": "B"
+      }
+    ]
+  },
+    {
+    "id": "46",
+    "image": "46/image.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nContext: Select the best answer.\nWhich property do these three objects have in common?\nA. shiny\nB. slippery\nC. opaque"
+      },
+      {
+        "from": "gpt",
+        "value": "C"
+      }
+    ]
+  }
+]
