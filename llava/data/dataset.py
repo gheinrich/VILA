@@ -538,7 +538,10 @@ class LazySupervisedDataset(Dataset):
     
     def load_video(self, video_path, num_video_frames):
         # decord.bridge.set_bridge("torch")
-        image_size = self.multimodal_cfg["image_size"]
+        if "shortest_edge" in self.data_args.image_processor.size:
+            image_size = self.data_args.image_processor.size["shortest_edge"]
+        else:
+            image_size = self.data_args.image_processor.size["height"]
         try:
             video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
             duration = float(video.duration)
@@ -577,10 +580,10 @@ class LazySupervisedDataset(Dataset):
                 video_file = sources[0]['video']
             else:
                 video_file = sources[0]['video_id'] + '.mp4'
-            video_folder = self.multimodal_cfg["image_folder"]
+            video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
             image_tensor = self.load_video(video_path, num_video_frames)
-            processor = self.multimodal_cfg["image_processor"]
+            processor = self.data_args.image_processor
             
             image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
             image_tensor = torch.stack(image_tensor)

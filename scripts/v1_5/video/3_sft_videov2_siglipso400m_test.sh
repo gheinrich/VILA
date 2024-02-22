@@ -20,9 +20,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vila-vicuna-7b-256gpus-mmc4-coyo \
+    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version v1 \
-    --data_mixture vflan_sharegpt4v_sft_video_chatgpt_nv_video_flan \
+    --data_mixture valley_test \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \
