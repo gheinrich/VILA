@@ -41,7 +41,7 @@ from llava.train.args import TrainingArguments, DataArguments
 
 from llava import conversation as conversation_lib
 from llava.model import *
-from llava.mm_utils import tokenizer_image_token
+from llava.mm_utils import tokenizer_image_token, is_gemma_tokenizer
 
 from torchvision.transforms import Resize
 from pytorchvideo.data.encoded_video import EncodedVideo
@@ -288,13 +288,13 @@ def preprocess_v1(
             if has_image:
                 round_len = len(tokenizer_image_token(rou, tokenizer))
                 instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 2
-                if i > 0:
+                if i > 0 and is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
-                if i > 0:
+                if i > 0 and is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
 
