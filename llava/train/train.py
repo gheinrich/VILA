@@ -13,7 +13,6 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-# This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import os
 import copy
@@ -253,6 +252,17 @@ def train():
                 cache_dir=training_args.cache_dir,
                 **bnb_model_from_pretrained_args
             )
+        elif 'gemma' in model_args.model_name_or_path.lower():
+            config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
+            config._attn_implementation = "flash_attention_2"
+            context_length_extension(config)
+            torch.set_default_dtype(torch.bfloat16)
+            model = LlavaGemmaForCausalLM.from_pretrained(
+                model_args.model_name_or_path,
+                config=config,
+                cache_dir=training_args.cache_dir,
+                **bnb_model_from_pretrained_args
+            )
         else:
             config = LlavaConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
@@ -397,21 +407,10 @@ def train():
     data_module = make_supervised_data_module(tokenizer=tokenizer,
                                               data_args=data_args,
                                               training_args=training_args,)
-    
-    callbacks = []
-    if training_args.total_time_limit > 10:
-        from llava.train.slurm_utils import TimeoutTerminateCallback
-        time_out_callback = TimeoutTerminateCallback(
-            args=training_args,
-            total_time_limit=training_args.total_time_limit,
-            pre_terminate_time=training_args.pre_terminate_time
-        )
-        callbacks = [time_out_callback, ]
-    
-    trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module, callbacks=callbacks
-    )
-
+    trainer = LLaVATrainer(model=model,
+                    tokenizer=tokenizer,
+                    args=training_args,
+                    **data_module)
     print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset))
     print("before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024)
 

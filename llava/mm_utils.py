@@ -1,5 +1,3 @@
-# This file is modified from https://github.com/haotian-liu/LLaVA/
-
 from PIL import Image
 from io import BytesIO
 import base64
@@ -50,6 +48,7 @@ def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX
 
     input_ids = []
     offset = 0
+    # kentang-mit@: this might cause number of image tokens to be larger than number of images?
     if len(prompt_chunks) > 0 and len(prompt_chunks[0]) > 0 and prompt_chunks[0][0] == tokenizer.bos_token_id:
         offset = 1
         input_ids.append(prompt_chunks[0][0])
@@ -62,6 +61,10 @@ def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX
             return torch.tensor(input_ids, dtype=torch.long)
         raise ValueError(f'Unsupported tensor type: {return_tensors}')
     return input_ids
+
+
+def is_gemma_tokenizer(tokenizer):
+    return "gemma" in tokenizer.__class__.__name__.lower()
 
 
 def get_model_name_from_path(model_path):
