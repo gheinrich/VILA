@@ -1,10 +1,13 @@
 from llava import conversation as conversation_lib
-from llava.train.token_config import (
-    DEFAULT_IMAGE_PATCH_TOKEN,
+# from llava.train.token_config import (
+#     DEFAULT_IMAGE_PATCH_TOKEN,
+# )
+from llava.constants import (
+    DEFAULT_IMAGE_PATCH_TOKEN
 )
-from llava.train import arguments
-from llava.train import datasets_mixture
-from llava.train.dataset import make_supervised_data_module
+from llava.train.args import DataArguments, TrainingArguments
+from llava.data import datasets_mixture
+from llava.data.dataset import make_supervised_data_module
 from transformers.models.siglip import (
     SiglipImageProcessor,
 )
@@ -26,22 +29,26 @@ def test_make_supervised_data_module():
         'google/siglip-so400m-patch14-384'
     )
 
-    data_args = arguments.DataArguments(
-        datasets_mixture_name='msrvttqa', # sharegpt4v_gpt4_100k_
+    data_args = DataArguments(
+        data_mixture='valley_test', # sharegpt4v_gpt4_100k_
         is_multimodal=True,
         lazy_preprocess=True,
     )
     data_args.image_processor=image_processor
-    conversation_lib.default_conversation = conversation_lib.conv_templates[
-        "vicuna_v1_1"
-    ]
+    conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
+    # conversation_lib.default_conversation = conversation_lib.conv_templates[
+    #     "vicuna_v1_1"
+    # ]
+    training_args = TrainingArguments(
+        output_dir='output',
+    )
+    # training_args["process_index"] = 0
+    # training_args.world_size = 1
 
-    data_module, extra_info = make_supervised_data_module(
+    data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         data_args=data_args,
-        patch_size=14,
-        image_size=384,
-        n_extra_patch=0,
+        training_args=training_args,
     )
 
     dataset = data_module['train_dataset']
@@ -61,8 +68,9 @@ def test_make_supervised_data_module():
     for batch in data_module['train_dataset']:
         if index % 100 == 0:
             print(f"index: {index}/{dataset_len}")
-        if batch['input_ids'].shape[0] > 4096:
-            print(batch['input_ids'].shape[0])
+        # if batch['input_ids'].shape[0] > 4096:
+        print(batch["image"].shape)
+        print(batch['input_ids'].shape[0])
         index += 1
             
         # print(batch['image'].shape, batch['input_ids'].shape)

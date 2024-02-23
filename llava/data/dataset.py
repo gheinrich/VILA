@@ -548,7 +548,9 @@ class LazySupervisedDataset(Dataset):
             assert duration >= 0.25
             video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
             assert video_outputs.size(1) > 8
-            indices = torch.linspace(0, video_outputs.size(1) - 1, 8).long()
+            num_frames = video_outputs.shape[1]
+            step = (num_frames - 1) // 8
+            indices = torch.floor(torch.arange(0, num_frames, step)).long()
             video_outputs = video_outputs[:, indices, :, :]
         except Exception as e:
             print(f'bad data path {video_path}')
