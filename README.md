@@ -60,7 +60,7 @@ pip install flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64
 pip install -e .
 pip install -e ".[train]"
 
-pip install git+https://github.com/huggingface/transformers@v4.36.2
+pip install git+https://github.com/huggingface/transformers@v4.38.1
 cp -r ./llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
 ```
 
