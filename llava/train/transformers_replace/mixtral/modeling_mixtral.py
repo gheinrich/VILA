@@ -1342,6 +1342,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         output_router_logits: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        seqlens_in_batch: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""
         Args:
@@ -1391,6 +1392,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
             output_hidden_states=output_hidden_states,
             output_router_logits=output_router_logits,
             return_dict=return_dict,
+            seqlens_in_batch=seqlens_in_batch,
         )
 
         hidden_states = outputs[0]

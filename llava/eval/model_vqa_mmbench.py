@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 import argparse
 import torch
 import os
@@ -6,21 +8,14 @@ import pandas as pd
 from tqdm import tqdm
 import shortuuid
 
+from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.conversation import conv_templates, SeparatorStyle
+from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
-from llava.eval.utils import build_model, preprocess_image
-
-from llava.eval.utils import build_model, preprocess_image
-from llava.train.dataset import tokenizer_image_token
-from llava.train.token_config import DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_IMAGE_PATCH_TOKEN
-
+from llava.mm_utils import tokenizer_image_token, process_images, load_image_from_base64, get_model_name_from_path
 
 from PIL import Image
 import math
-
-from PIL import Image
-from io import BytesIO
-import base64
 
 
 all_options = ['A', 'B', 'C', 'D']
@@ -58,22 +53,20 @@ def get_options(row, options):
     return parsed_options
 
 
-def load_image_from_base64(image):
-    return Image.open(BytesIO(base64.b64decode(image)))
-
-
 def eval_model(args):
     # Model
     disable_torch_init()
-    model, tokenizer, image_processor, conv_template, image_tokens, image_token_len = build_model(args.model_name, args.conv_mode)
-    
+    model_path = os.path.expanduser(args.model_path)
+    model_name = get_model_name_from_path(model_path)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name)
+
     questions = pd.read_table(os.path.expanduser(args.question_file))
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
 
-    if 'plain' in args.model_name and 'finetune' not in args.model_name.lower() and 'mmtag' not in args.conv_mode:
+    if 'plain' in model_name and 'finetune' not in model_name.lower() and 'mmtag' not in args.conv_mode:
         args.conv_mode = args.conv_mode + '_mmtag'
         print(f'It seems that this is a plain model, but it is not using a mmtag prompt, auto switching to {args.conv_mode}.')
 
@@ -112,9 +105,10 @@ def eval_model(args):
             conv.append_message(conv.roles[1], None)
             prompt = conv.get_prompt()
 
-            input_ids = tokenizer_image_token(prompt, tokenizer, n_image_tokens=image_token_len, image_token_index=32000, return_tensors="pt").unsqueeze(0).cuda()
-    
-            image_tensor = preprocess_image(image, image_processor, use_padding="pad" in args.model_name)[0]
+            input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
+
+            image_tensor = process_images([image], image_processor, model.config)[0]
+            # image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
 
             stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
 
@@ -128,8 +122,7 @@ def eval_model(args):
                     num_beams=args.num_beams,
                     # no_repeat_ngram_size=3,
                     max_new_tokens=1024,
-                    use_cache=True,
-                    pad_token_id=tokenizer.pad_token_id)
+                    use_cache=True)
 
             input_token_len = input_ids.shape[1]
             n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
@@ -149,7 +142,7 @@ def eval_model(args):
                                     "options": options,
                                     "option_char": cur_option_char,
                                     "answer_id": ans_id,
-                                    "model_id": args.model_name,
+                                    "model_id": model_name,
                                     "metadata": {}}) + "\n")
             ans_file.flush()
 
@@ -160,7 +153,7 @@ def eval_model(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-name", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--image-folder", type=str, default="")
     parser.add_argument("--question-file", type=str, default="tables/question.jsonl")

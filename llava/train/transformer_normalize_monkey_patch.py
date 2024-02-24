@@ -1,3 +1,19 @@
+# Copyright 2024 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import transformers
 from transformers.image_transforms import np, Union, Iterable, Optional, ChannelDimension, \
     infer_channel_dimension_format, get_channel_dimension_axis, to_channel_dimension_format
@@ -36,7 +52,6 @@ def patched_normalize(
             if num_channels == 1:
                 num_channels = 3
                 image = np.concatenate([image, image, image], axis=channel_axis)
-                print(f"image.shape {image.shape}")
             else:
                 raise ValueError(f"mean must have {num_channels} elements if it is an iterable, got {len(mean)}")
     else:

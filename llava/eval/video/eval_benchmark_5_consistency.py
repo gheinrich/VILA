@@ -1,3 +1,5 @@
+# This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
+
 import openai
 import os
 import argparse
@@ -195,4 +197,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

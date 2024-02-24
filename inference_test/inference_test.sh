@@ -6,6 +6,7 @@ which python
 
 cd ~/workspace/VILA
 
+# NOTE(ligeng): all testing scripts should use relative path.
 python ~/workspace/VILA/inference_test/inference_test.py \
     --model-name $1 \
     --test_json_path ~/workspace/VILA/inference_test/inference_test.json \

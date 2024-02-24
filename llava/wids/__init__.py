@@ -9,4 +9,5 @@ from .wids import (
     DistributedChunkedSampler,
     ShardedSampler,
     ShardListDataset,
+    DistributedLocalSampler,
 )

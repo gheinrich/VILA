@@ -1,171 +1,204 @@
-# VILA: Visual Language Model (NVIDIA Internal Repository)
-[[Paper](https://drive.google.com/file/d/1wyjEgVNZkU30PBP9sSMaw_ZIwJC9TVc-/view)][[Slides](https://drive.google.com/file/d/1InYfsXRY8q5QVVdo8VGgrDpSrPOg8b2G/view)]
+# 🌋 VILA: On Pre-training for Visual Language Models
+[arxiv](https://arxiv.org/abs/2312.07533) / [demo](https://vila-demo.hanlab.ai/) 
+
+## 💡 News
+- [2024/02] We release quantized VILA models! The quantization is done through AWQ (can be used w/ [TinyChat](https://github.com/mit-han-lab/llm-awq/tree/main/tinychat) and [TinyChatEngine](https://github.com/mit-han-lab/TinyChatEngine)) and TensorRT-LLM (also AWQ inside, compatible w/ TensorRT-LLM runtime, see [README](demo_trt_llm/README.md) for more details). TinyChatEngine can run quantized VILA model on different platforms, including x86 and Arm. It runs VILA-7B at **36 tokesn on the Jetson Orin** and **11 tokens/s on the Apple M1 MacBook Pro**.
+- [2024/02] VILA is released! We propose interlevaed pretraining to improve large visual language models. VILA comes with impressive in-context learning capabilities and demonstrates higher benchmarks. We re-wrote the entire codebase based on LLava1.5 and open source everything! (including training code, evaluation code, datasets, model ckpts, etc.) Compared to original LLava1.5 codebase, we support more flexible data mixing w/ different data format and high efficient training through example packing.
+- [2023/12] [Paper](https://arxiv.org/abs/2312.07533) is on Arxiv!
+
+## Performance
+
+| model | VQAv2 (server-dev) | GQA | VizWiz (server-dev) | SQA-I | VQA-T | POPE | MME | MMB (server) | MMB-CN (server) | SEED |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| vila-7b | 80.3 | 63.1 | 59.6 | 68 | 62.6 | 86.3 | 1489.38 | 69.8 | 61 | 61.7 |
+| vila-7b-INT4-AWQ | 80.1 | 63.0 | 57.8 | 68 | 61.9 | 85.3 | 1486.25 | 68.8 | 59 | 61.3 |
+| vila-13b | 80.5 | 63.6 | 63.1 | 70.5 | 64 | 86.3 | 1553.6 | 73.8 | 66.7 | 62.8 |
+| vila-13b-INT4-AWQ | 80.4 | 63.6 | 63.0 | 71.2 | 63.5 | 86.98 | 1552.9 | 73.6 | 66.3 | 62.2 |
+
+### Inference speed ( Token/sec )
+
+| model | backend | A100 | 4090 | Orin |
+| --- | --- | --- | --- | --- |
+| vila-7b | ||| 11.5 |
+| vila-7b-INT4-AWQ | TinyChat ||| 35.6 |
+| vila-7b-INT4-AWQ | TRT-LLM ||||
+| vila-13b | ||| 6.1 |
+| vila-13b-INT4-AWQ | TinyChat ||| 17.5 |
+| vila-13b-INT4-AWQ | TRT-LLM |||  |
 
 
-![VILA](demo_images/vila_teaser_git.png)
+## VILA Examples
 
-## News
-- [2023/11] We release the VILA-7B and VILA-13B model checkpoints and associated scripts.
+https://github.com/Efficient-Large-Model/VILA-OSS/assets/7783214/a3eed8da-af13-4eb9-8030-383b2a4562d6
 
+<details>
+<summary>More examples</summary>
 
-## Abstract
-**VILA** is a PaLM-E style **VI**sual **LA**nguage model that augments the LLM with visual token. VILA outperforms state-of-the-art model, LLaVA-1.5. We introduce three main findings: (1) unfreezing LLM during pre-training enables in-context learning capability; (2) interleaved pre-training data is beneficial whereas image-text pairs alone are not optimal; (3) re-blending text-only instruction data to image-text data during instruction fine-tuning not only remedies the degradation of text-only tasks, but also boosts VLM task accuracy. Multi-modal pre-training unveil appealing properties of VILA, including multi-image reasoning, enhanced in-context learning, and better world knowledge.
+https://github.com/Efficient-Large-Model/VILA-OSS/assets/7783214/ab84f190-00c6-404a-9d74-23936145f5e6
 
-<img src="demo_images/vila_flowchart.png" height="300">
+https://github.com/Efficient-Large-Model/VILA-OSS/assets/7783214/2c8f3d0d-b319-432e-ae95-b9e123c00789
+
+https://github.com/Efficient-Large-Model/VILA-OSS/assets/7783214/8d78a86f-417e-43d4-8b37-a54dec3ac0fa
+
+</details>
 
 ## Installation
 
-### Repository
 ```bash
-mkdir ~/workspace
-cd ~/workspace
-git clone ssh://git@gitlab-master.nvidia.com:12051/dler/multi-modality-research.git
-cd multi-modality-research/VILA
+./environment_setup.sh
 ```
 
-### Packages
-```bash
+or follow the instructions below in order.
+
+```
 conda create -n vila python=3.10 -y
 conda activate vila
 
 pip install --upgrade pip  # enable PEP 660 support
+wget https://github.com/Dao-AILab/flash-attention/releases/download/v2.4.2/flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+pip install flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 pip install -e .
+pip install -e ".[train]"
 
-conda install -c nvidia cuda-toolkit
-
-pip install pytorchvideo
-pip install decord
-pip install datasets
-pip install scikit-learn
-pip install openai
-pip install webdataset
-pip install openpyxl
-
-pip install ninja
-pip install flash-attn --no-build-isolation
-
-pip install git+https://github.com/huggingface/transformers@v4.36.2
-cp -rv ~/workspace/VILA/llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
+pip install git+https://github.com/huggingface/transformers@v4.38.1
+cp -r ./llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
 ```
 
-## Usage
+## Training 
 
-### Live Demo Interface.
+VILA training contains three steps
 
-We host an demo on [http://omniml-a4.nvidia.com:7860/](http://omniml-a4.nvidia.com:7860/). 
-Note this is currently under construction and may change in the future. 
+### Step-1: Alignment
+We utilize LLaVA-CC3M-Pretrain-595K dataset to align the textual and visual modalities.
 
-### Pretrained VILA-7B and VILA-13B weights.
- [Pretrained weights (root folder for 7B and 13B)](https://drive.google.com/file/d/1hFAW1LqC9TRHJt9kkjVeKOLhv1HuzhQi/view?usp=sharing)
-
- A more performant Vicuna-13B model is also available on `draco-oci-iad` at `/home/jasonlu/llava/checkpoints/vicuna-13b-clip336-mmc4sub+coyo-finetune-llava15+vflan+sharegpt4v-nosqa-linear-e2`
- The config of these models need to change a bit due to the latest change of the code. You can use `convert_ckpt.py`.
-
-Please download and unzip the file into a folder `multi-modality-research/VILA/checkpoints` as:
-
-On selene, the checkpoints are stored at 
-`/home/scratch.ligengz_gpu/ligeng/Downloads`
-
+The stage 1 script takes in two parameters and it can run on a single 8xA100 node. `BASE_MODEL_PATH` points to a online or local huggingface repository, such as lmsys/vicuna-7b-v1.5. `OUTPUT_NAME` points to a target directory under `checkpoints`, which will save the trained multimodal projector afterwards.
 
 ```bash
-  multi-modality-research
-  ├── VILA
-      ├── checkpoints
-          ├── vila-7B
-          ├── vila-13B
+bash scripts/v1_5/paper/1_mm_align.sh [BASE_MODEL_PATH] [OUTPUT_NAME]
 ```
 
-### Inference.
+| Hyperparameter | Global Batch Size | Learning rate | Epochs | Max length | Weight decay |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| VILA-7B | 256 | 2e-5 | 1 | 4096 | 0 |
+| VILA-13B | 256 | 2e-5 | 1 | 4096 | 0 |
+
+
+### Step-2: Pretraining
+use MMC4 and Coyo dataset to train vLLMs with interleaved image-text pairs.
+    
+```bash
+bash scripts/v1_5/paper/2_pretrain_mmc4_coyo.sh [CODE_PATH] [BASE_MODEL_PATH] [STAGE1_PATH] [OUTPUT_NAME]
+```
+
+The stage 2 script takes in four arguments. `CODE_PATH` is the absolute path to our VILA codebase, `BASE_MODEL_PATH` has similar meaning to what is presented in the stage 1 script. `STAGE1_PATH` points to the `OUTPUT_NAME` of stage 1 (i.e. where the stage 1 checkpoint is stored). `OUTPUT_NAME` is the desired folder name under `checkpoints` that saves the pretraining checkpoint. The script we provided for this stage is executed on slurm, and we expect it to execute on 16 nodes (128 GPUs). 
+
+| Hyperparameter | Global Batch Size | Learning rate | Epochs | Max length | Weight decay |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| VILA-7B | 1024 | 5e-5 | 1 | 4096 | 0 |
+| VILA-13B | 1024 | 5e-5 | 1 | 4096 | 0 |
+
+### Step-3: Supervised fine-tuning 
+This is the last stage of VILA training, in which we tune the model to follow multimodal instructions on a subset of M3IT, FLAN and ShareGPT4V. This stage runs on a 8xA100 node.
+
+```bash
+bash scripts/v1_5/paper/3_sft.sh [STAGE2_PATH] [OUTPUT_NAME]
+```
+The stage 3 script takes in two arguments. `STAGE2_PATH` points to the `OUTPUT_NAME` of the stage 2 script (i.e. where the stage 2 checkpoint is stored). `OUTPUT_NAME` is the desired folder name under `checkpoints` that stores the final checkpoint.
+
+| Hyperparameter | Global Batch Size | Learning rate | Epochs | Max length | Weight decay |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| VILA-7B | 128 | 2e-5 | 1 | 4096 | 0 |
+| VILA-13B | 128 | 2e-5 | 1 | 4096 | 0 |
+
+To train with fewer GPUs/nodes, you can reduce the `per_device_train_batch_size` and increase the `gradient_accumulation_steps` accordingly.  As long as the global batch size same (`per_device_train_batch_size` x `gradient_accumulation_steps` x `num_gpus`) are kept the same, the training precision will not be affected.
+
+Stage 1 completes within 3.5 (7B) - 5.5 (13B) hours on 8xA100, Stage 2 completes within 30 hours on 128xA100 for VILA-7b, and stage 3 completes in 25 (7B) - 40 (13B) hours on 8xA100.
+
+See [scripts/data_prep/README.md](scripts/data_prep/README.md) for more information about how to prepare datasets.
+
+## Evaluations
+
+You can follow [Llava1.5 eval](https://github.com/haotian-liu/LLaVA/blob/main/docs/Evaluation.md) to download all datasets. After downloading all datasets, please put them under `playground/data/eval`. 
+
+We provide a push-the-button script to perform evaluation on all 10 datasets that do not require GPT-assisted evaluation:
+
+```bash
+./scripts/v1_5/eval/eval_all.sh [CHECKPOINT_PATH] [MODEL_NAME]
+```
+
+This script takes in two parameters, `CHECKPOINT_PATH` points to the stage 3 model checkpoint, and `MODEL_NAME` will be the name of evaluation results. 
+
+
+[VQAv2](https://eval.ai/web/challenges/challenge-page/830/my-submission) and [Vizwiz](https://eval.ai/web/challenges/challenge-page/2185/my-submission) evaluations are hosted on eval.ai. You need to register an account and create a team to be able to submit eval.
+
+MMBench and MMBench_CN eval are hosted on another [evaluation server](https://opencompass.org.cn/leaderboard-multimodal). Make sure you change the name of the file before submitting, otherwise the server caches results and will always return wrong result to you.
+
+We provide a quick script to automatically organize the prediction files that need to be submitted to servers:
+
+```bash
+python scripts/v1_5/eval/copy_predictions.py [MODEL_NAME]
+```
+
+You will be able to find the predictions under `playground/data/predictions_upload/[MODEL_NAME]` after executing this script.
+
+## Inference
 
 We provide snippets for quick inference with user prompts and images.
 
 VILA-7B inference:
 ```bash
-cd multi-modality-research/VILA
+cd VILA-OSS
 python -W ignore llava/eval/run_llava.py \
---model-name checkpoints/vila-7B \
---conv-mode vicuna_v1_1 \
---query "<image>\n Please describe the traffic condition." \
---image-file "demo_images/av.png"
+    --model-name Efficient-Large-Model/VILA-7b \
+    --conv-mode vicuna_v1 \
+    --query "<image>\n Please describe the traffic condition." \
+    --image-file "demo_trt_llm/av.png"
 ```
 
 VILA-13B inference:
 ```bash
-cd multi-modality-research/VILA
+cd VILA-OSS
 python -W ignore llava/eval/run_llava.py \
---model-name checkpoints/vila-13B \
---conv-mode vicuna_v1_1 \
---query "<image>\n Please describe the traffic condition." \
---image-file "demo_images/av.png"
+    --model-name Efficient-Large-Model/VILA-13b \
+    --conv-mode vicuna_v1 \
+    --query "<image>\n Please describe the traffic condition." \
+    --image-file "demo_trt_llm/av.png"
 ```
 
-### Demo
+## 🔒 License
+- The code is released under the Apache 2.0 license as found in the [LICENSE](./LICENSE) file.
+- The pretrained weights are released under the [CC-BY-NC-SA-4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en).
+- The service is a research preview intended for non-commercial use only, and is subject to the following licenses and terms:
+    - [Model License](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) of LLaMA
+    - [Terms of Use](https://openai.com/policies/terms-of-use) of the data generated by OpenAI
+    - [Dataset Licenses](./data/LICENSE) for each one used during training.
 
-**Logic Reasoning**
+## Team
+| | | |  
+| --- | --- | ---| 
+[*Ji Lin](https://www.linji.me/): OpenAI (work done at Nvidia and MIT) |  [*Hongxu Yin](https://hongxu-yin.github.io/): Nvidia |  [*Yao Lu](https://scholar.google.com/citations?user=OI7zFmwAAAAJ&hl=en): Nvidia 
+[Huizi Mao](https://scholar.google.com/citations?user=r5WezOYAAAAJ&hl=zh-CN): Nvidia |  [Wei Ping](https://scholar.google.com/citations?user=6gKEYRgAAAAJ&hl=en): Nvidia |   [Pavlo Molchanov](https://www.pmolchanov.com/): Nvidia |  
+[Andrew Tao](https://scholar.google.com/citations?user=Wel9l1wAAAAJ&hl=en): Nvidia |  [Jan Kautz](https://scholar.google.com/citations?user=P9FclNEAAAAJ&hl=en): Nvidia  |   [Mohammad Shoeybi](https://scholar.google.com/citations?user=62ElavIAAAAJ&hl=en): Nvidia |  
+[Haotian Tang](http://kentang.net/): MIT |  [Shang Yang](https://ys-2020.github.io/): MIT |  [Ligeng Zhu](https://lzhu.me/): Nvidia, MIT | 
+[Wei-Chen Wang](https://scholar.google.com/citations?user=eYrx3KAAAAAJ&hl=en): MIT |  [Fuzhao Xue](https://xuefuzhao.github.io/): Nvidia, National University of Singapore |  [Yunhao Fang](https://seerkfang.github.io/): Nvidia, University of California, San Diego |  
+[Yukang Chen](https://yukangchen.com/): Nvidia, The Chinese University of Hong Kong |  [Yue Shen](https://www.linkedin.com/in/yue-james-shen/): Nvidia |  [Song Han](http://songhan.mit.edu/): Nvidia, MIT
 
-<img src="demo_images/menu_demo.png" height="250">
 
+## Citations
 
-```bash
-cd multi-modality-research/VILA
-python -W ignore llava/eval/run_llava.py \
---model-name checkpoints/vila-13B \
---conv-mode vicuna_v1_1 \
---query "Photo: <image>\n Menu: <image>\n How much shall I pay for all the beer on the table according to the price on the menu? Think step-by-step. " \
---image-file "demo_images/menu/menu1.png###demo_images/menu/menu2.png"
+```
+@misc{lin2023vila,
+      title={VILA: On Pre-training for Visual Language Models}, 
+      author={Ji Lin and Hongxu Yin and Wei Ping and Yao Lu and Pavlo Molchanov and Andrew Tao and Huizi Mao and Jan Kautz and Mohammad Shoeybi and Song Han},
+      year={2023},
+      eprint={2312.07533},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 ```
 
-**In-context Learning**
-
-<img src="demo_images/icl_logo.png" height="200">
-
-```bash
-cd multi-modality-research/VILA
-python -W ignore llava/eval/run_llava.py \
---model-name checkpoints/vila-13B \
---conv-mode vicuna_v1_1 \
---query "<image>\n###The company is famous for its search engine.###<image>\n###The company is famous for the operating system.###<image>\n###The company is famous for iPhone and Mac.###<image>\n " \
---image-file "demo_images/icl-logo/google.webp###demo_images/icl-logo/microsoft.jpg###demo_images/icl-logo/apple.jpg###demo_images/icl-logo/nvidia.png"
-```
-
-**Synthesized Image Analysis**
-
-<img src="demo_images/dalle_demo.png" height="250">
-
-```bash
-cd multi-modality-research/VILA
-python -W ignore llava/eval/run_llava.py \
---model-name checkpoints/vila-13B \
---conv-mode vicuna_v1_1 \
---query "<image>\n Describe this image in details. " \
---image-file "demo_images/dalle_potatoking.jpeg"
-```
-
-
-We will provide more demo snippets soon.
-
-## Training
-
-### Wandb
-Register a wandb.ai account.
-Run test script such as: scripts/llama2/336/pretrain_ccs_llama_test.sh
-it will ask you to login.
-
-### Step 0 - Train Projector
-See `scripts/paper/0_train_projector.sh`
-
-### Step 1 - Pretraining
-See `scripts/paper/1_train_mmc4_coyo.sh`
-
-### Step 2 - SFT
-See `scripts/paper/2_sft.sh`
-
-## Eval
-For image evals, you can follow [Llava1.5 eval](https://github.com/haotian-liu/LLaVA/blob/main/docs/Evaluation.md) or you can copy `/home/jasonlu/llava/playground/data/eval` to `./playground/data/eval` on draco and then see `scripts/eval/llava15` to run evaluations.
-
-For video evals, you can follow [video llava](https://github.com/PKU-YuanGroup/Video-LLaVA/blob/main/TRAIN_AND_VALIDATE.md) or you can copy `/home/jasonlu/workspace/multi-modality-research/VILA/eval/GPT_Zero_Shot_QA` to `./eval/GPT_Zero_Shot_QA` on draco and then see `scripts/eval/video_chatgpt/` to run evaluations.
-
-### Evaluation Server
-[VQAv2](https://eval.ai/web/challenges/challenge-page/830/my-submission) and [Vizwiz](https://eval.ai/web/challenges/challenge-page/1911/my-submission) eval are hosted on eval.ai. You need to register an account and create a team to be able to submit eval.
-
-MMBench and MMBench_CN eval are also hosted on another [evaluation server](https://opencompass.org.cn/leaderboard-multimodal). Make sure you change the name of the file before submitting, otherwise the server caches results and will always return wrong result to you.
+# Acknowledgement
+- [LLaVA](https://github.com/haotian-liu/LLaVA): the codebase we built upon. Thanks for their wonderful work.
+- [Vicuna](https://github.com/lm-sys/FastChat): the amazing open-sourced large language model!
+- [Video-ChatGPT](https://github.com/mbzuai-oryx/Video-ChatGPT): we borrowed video evaluation script from this repository.
+- [MMC4](https://github.com/allenai/mmc4), [COYO-700M](https://github.com/kakaobrain/coyo-dataset), [M3IT](https://huggingface.co/datasets/MMInstruction/M3IT), [OpenORCA/FLAN](https://huggingface.co/datasets/Open-Orca/FLAN), [ShareGPT4V](https://github.com/InternLM/InternLM-XComposer/tree/main/projects/ShareGPT4V) for providing datasets used in this research.

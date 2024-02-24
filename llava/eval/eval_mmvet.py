@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 import openai
 import json
 import os
@@ -33,7 +35,8 @@ Can you explain this meme? | This meme is poking fun at the fact that the names 
 
 # load metadata
 # Download mm-vet.zip and `unzip mm-vet.zip` and change the path below
-mmvet_path = "/tmp/mmvet/mm-vet" 
+# mmvet_path = "/tmp/mmvet/mm-vet" 
+mmvet_path = "playground/data/eval/mm-vet"
 use_sub_set = False
 decimal_places = 1 # number of decimal places to round to
 
@@ -100,17 +103,18 @@ df2 = pd.DataFrame(columns=columns2)
 
 
 ###### change your model name ######
-model = "llava_llama2_13b_chat"
+# model = "llava_llama2_13b_chat"
 num_run = 1 # we set it as 5 in the paper
 model_results_file = args.results_file
+model = args.results_file.split("/")[-1].replace(".json", "")
 
 # grade results for each sample to svae
-grade_file = args.results_file.replace(".jsonl", "-grade.json")
+grade_file = args.results_file.replace(".json", "-grade.json")
 
 # score results regarding capabilities/capability integration to save
-cap_score_file = args.results_file.replace(".jsonl", f"-cap-score-{num_run}runs.csv")
+cap_score_file = args.results_file.replace(".json", f"-cap-score-{num_run}runs.csv")
 cap_int_score_file = f'{model}_{sub_set_name}{gpt_model}-cap-int-score-{num_run}runs.csv'
-cap_int_score_file = args.results_file.replace(".jsonl", f"-cap-int-score-{num_run}runs.csv")
+cap_int_score_file = args.results_file.replace(".json", f"-cap-int-score-{num_run}runs.csv")
 
 
 with open(model_results_file) as f:

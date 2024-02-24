@@ -1,3 +1,5 @@
+# This file is modified from https://github.com/haotian-liu/LLaVA/
+
 """Generate answers with GPT-3.5"""
 # Note: you need to be using OpenAI Python v0.27.0 for the code below to work
 import argparse

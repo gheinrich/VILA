@@ -2,7 +2,7 @@ import base64
 import gzip
 import hashlib
 import io
-import os
+import os, os.path as osp
 import random
 import re
 import sqlite3
@@ -96,6 +96,8 @@ def splitname(fname):
     return basename, extension
 
 
+# NOTE(ligeng): change to ordered mapping to more flexbile dict
+# TODO(ligeng):  submit a PR to fix the mapping issue.
 def group_by_key(names):
     """Group the file names by key.
 
@@ -107,22 +109,21 @@ def group_by_key(names):
         with the same key.
     """
     groups = []
-    last_key = None
-    current = []
+    kmaps = {}
     for i, fname in enumerate(names):
         # Ignore files that are not in a subdirectory.
         if "." not in fname:
             print(f"Warning: Ignoring file {fname} (no '.')")
             continue
+        if fname == ".":
+            print(f"Warning: Ignoring the '.' file.")
+            continue
         key, ext = splitname(fname)
-        if key != last_key:
-            if current:
-                groups.append(current)
-            current = []
-            last_key = key
-        current.append(i)
-    if current:
-        groups.append(current)
+        if key not in kmaps:
+            kmaps[key] = []
+        kmaps[key].append(i)
+    for k, v in kmaps.items():
+        groups.append(v)
     return groups
 
 
@@ -233,6 +234,11 @@ class IndexedTarSamples:
             stream.seek(0)
 
         # use either the mmap or the stream based implementation
+        # NOTE(ligeng): https://stackoverflow.com/questions/11072705/twitter-trends-api-unicodedecodeerror-utf8-codec-cant-decode-byte-0x8b-in-po
+        # import gzip
+        # print("convert to gzip IO stream")
+        # stream = gzip.GzipFile(fileobj=stream)
+        
         if use_mmap:
             self.reader = MMIndexedTar(stream)
         else:
@@ -243,6 +249,8 @@ class IndexedTarSamples:
 
         # Group files by key into samples
         self.samples = group_by_key(all_files)
+        # print("DEBUG:", list(all_files)[:20])
+        # print("DEBUG:", self.samples[:20])
 
         # check that the number of samples is correct
         if expected_size is not None:
@@ -470,12 +478,14 @@ class ShardListDataset(Dataset[T]):
         # to map indices to shards and indices within shards.
         if isinstance(shards, (str, io.IOBase)):
             if base is None and isinstance(shards, str):
+                shards = osp.expanduser(shards)
                 base = urldir(shards)
             self.base = base
             self.spec = load_dsdesc_and_resolve(shards, options=options, base=base)
             self.shards = self.spec.get("shardlist", [])
             self.dataset_name = self.spec.get("name") or hash_dataset_name(str(shards))
         else:
+            raise NotImplementedError("Only support taking path/url to JSON descriptor file.")
             self.base = None
             self.spec = options
             self.shards = shards
@@ -496,7 +506,6 @@ class ShardListDataset(Dataset[T]):
             self.localname = localname
         else:
             import getpass
-            import os, os.path as osp
             # when no cache dir or localname are given, use the cache from the environment
             self.cache_dir = os.environ.get("WIDS_CACHE", f"~/.cache/_wids_cache")
             self.cache_dir = osp.expanduser(self.cache_dir)
@@ -507,7 +516,7 @@ class ShardListDataset(Dataset[T]):
             nsamples = sum(shard["nsamples"] for shard in self.shards)
             print(
                 "[WebShardedList]",
-                str(shards)[:50],
+                str(shards),
                 "base:",
                 self.base,
                 "name:",
@@ -570,7 +579,22 @@ class ShardListDataset(Dataset[T]):
         # Get the shard and return the corresponding element.
         desc = self.shards[shard_idx]
         url = desc["url"]
-        shard = self.cache.get_shard(url)
+        if url.startswith(("https://", "http://", "gs://", "/", "~")):
+            # absolute path or url path
+            url = url 
+        else:
+            # concat relative path
+            if self.base is None and "base_path" not in self.spec: 
+                raise FileNotFoundError("passing a relative path in shardlist but no base found.")
+            base_path = self.spec["base_path"] if "base_path" in self.spec else self.base
+            url = osp.abspath(osp.join(osp.expanduser(base_path), url))
+            
+        desc["url"] = url
+        try:
+            shard = self.cache.get_shard(url)
+        except UnicodeDecodeError as e:
+            print("UnicodeDecodeError:", desc)
+            raise e
         return shard, inner_idx, desc
 
     def __getitem__(self, index):
@@ -687,7 +711,7 @@ class ChunkedSampler(Sampler):
         num_samples=None,
         chunksize=2000,
         seed=0,
-        shuffle=True,
+        shuffle=False,
         shufflefirst=False,
     ):
         if isinstance(num_samples, int):
@@ -764,3 +788,40 @@ def DistributedChunkedSampler(
         shuffle=shuffle,
         shufflefirst=shufflefirst,
     )
+
+
+import torch, math
+from torch.utils.data.distributed import DistributedSampler
+
+class DistributedLocalSampler(DistributedSampler):
+    def __iter__(self):
+        if self.shuffle:
+            # deterministically shuffle based on epoch and seed
+            g = torch.Generator()
+            g.manual_seed(self.seed + self.epoch)
+            indices = torch.randperm(len(self.dataset), generator=g).tolist()  # type: ignore[arg-type]
+        else:
+            indices = list(range(len(self.dataset)))  # type: ignore[arg-type]
+
+        if not self.drop_last:
+            # add extra samples to make it evenly divisible
+            padding_size = self.total_size - len(indices)
+            if padding_size <= len(indices):
+                indices += indices[:padding_size]
+            else:
+                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
+        else:
+            # remove tail of data to make it evenly divisible.
+            indices = indices[:self.total_size]
+        assert len(indices) == self.total_size
+
+        # subsample
+        # indices = indices[self.rank:self.total_size:self.num_replicas]
+        chunk_size = self.total_size // self.num_replicas
+        begin_idx = chunk_size * self.rank
+        stop_idx = chunk_size * (self.rank + 1)
+        indices = indices[begin_idx:stop_idx]
+        
+        # print("[SamplerIndices: ]", indices)
+        assert len(indices) == self.num_samples
+        return iter(indices)
