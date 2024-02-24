@@ -64,6 +64,11 @@ pip install git+https://github.com/huggingface/transformers@v4.38.1
 cp -r ./llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
 ```
 
+Please modify line 2401 of `~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/trainer.py` to:
+```python
+logs["grad_norm"] = grad_norm if isinstance(grad_norm, float) else grad_norm.item()
+```
+
 ## Training 
 
 VILA training contains three steps

@@ -288,13 +288,13 @@ def preprocess_v1(
             if has_image:
                 round_len = len(tokenizer_image_token(rou, tokenizer))
                 instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 2
-                if i > 0 and is_gemma_tokenizer(tokenizer):
+                if i > 0 and not is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
-                if i > 0 and is_gemma_tokenizer(tokenizer):
+                if i > 0 and not is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
 
