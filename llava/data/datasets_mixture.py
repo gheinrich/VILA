@@ -112,6 +112,14 @@ def register_datasets_mixtures():
     )
     add_dataset(mmc4core_test)
     
+    ccs_recap_wds = Dataset(
+        dataset_name='ccs_recap_wds',
+        dataset_type='ccs-wds',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ccs_recaptioned',
+        description='TODO dannyy'
+    )
+    add_dataset(ccs_recap_wds)
+    
     ccs_recaptioned = Dataset(
         dataset_name='ccs_recaptioned',
         dataset_type='wds',
@@ -119,6 +127,7 @@ def register_datasets_mixtures():
         description='TODO dannyy'
     )
     add_dataset(ccs_recaptioned)
+    
     ccs_recaptioned_test = Dataset(
         dataset_name='ccs_recaptioned_test',
         dataset_type='wds',
@@ -126,6 +135,7 @@ def register_datasets_mixtures():
         description='See ccs_recaptioned, A subset of ccs_recaptioned (16 shards) that could be used for test purposes.'
     )
     add_dataset(ccs_recaptioned_test)
+    
     vflan = Dataset(
         dataset_name='vflan',
         dataset_type='vflan',

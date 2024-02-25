@@ -90,7 +90,6 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
     # TODO(ligeng): speedup the generation
     #   1. parallelize the meta file generation 
     #   2. add options for meta file 
-    
     meta_path_of_tar_abs = osp.join(
         osp.expanduser(cache_dir),
         data_path.replace("/", "--")
@@ -148,11 +147,9 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
         tar_meta["url"] = tar_path
         meta["shardlist"].append(tar_meta)
     
-    
     # sorted by tar names
     meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
     save_json(meta, meta_path_of_tar_rel)
-    
 
 
 class SimpleCoyoDataset(torch.utils.data.Dataset):
