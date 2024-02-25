@@ -49,15 +49,20 @@ class LlavaConfig(LlamaConfig):
 class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
     config_class = LlavaConfig
 
-    def __init__(self, config: LlamaConfig, model_args) -> None:
+    def __init__(self, config: LlamaConfig) -> None:
         super(LlavaMetaModel, self).__init__(config)
         super(LlavaLlamaModel, self).__init__(config)
 
         self.vision_tower = build_vision_tower(config)
         self.vision_projector = build_vision_projector(config)
 
-        self.config["vision_tower_config"] = self.vision_tower.config
-        self.config["vision_projector_config"] = self.vision_projector.config
+        ## TODO handle config and self.config
+        if getattr(self.config, "vision_config", None):
+            self.config.vision_config = self.vision_tower.config
+            self.config.vision_projector_config = self.vision_projector.config
+
+        ## set multimodal configurations
+        self.config.vision_hidden_size = self.vision_tower.hidden_size
 
     def get_vision_tower(self):
         vision_tower = getattr(self, "vision_tower", None)
@@ -66,13 +71,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
         return vision_tower
 
     def initialize_vision_modules(self, model_args, fsdp=None):
-        vision_tower = model_args.vision_tower
-        mm_vision_select_layer = model_args.mm_vision_select_layer
-        mm_vision_select_feature = model_args.mm_vision_select_feature
-        pretrain_mm_mlp_adapter = model_args.pretrain_mm_mlp_adapter
-
-        self.config.mm_vision_tower = vision_tower
-
         if self.get_vision_tower() is None:
             vision_tower = build_vision_tower(model_args)
 
@@ -87,23 +85,9 @@ class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
                 vision_tower = self.vision_tower
             vision_tower.load_model()
 
-        self.config.use_mm_proj = True
-        self.config.mm_projector_type = getattr(
-            model_args, "mm_projector_type", "linear"
-        )
-        self.config.mm_hidden_size = vision_tower.hidden_size
-        self.config.mm_vision_select_layer = mm_vision_select_layer
-        self.config.mm_vision_select_feature = mm_vision_select_feature
-
-        if getattr(self, "mm_projector", None) is None:
-            self.mm_projector = build_vision_projector(self.config)
-        else:
-            # In case it is frozen by LoRA
-            for p in self.mm_projector.parameters():
-                p.requires_grad = True
-
+        ## TODO make projector classes
         if pretrain_mm_mlp_adapter is not None:
-            mm_projector_weights = torch.load(
+            vision_projector_weights = torch.load(
                 pretrain_mm_mlp_adapter, map_location="cpu"
             )
 
@@ -115,12 +99,12 @@ class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
                 }
 
             try:
-                self.mm_projector.load_state_dict(
-                    get_w(mm_projector_weights, "mm_projector")
+                self.vision_projector.load_state_dict(
+                    get_w(vision_projector_weights, "vision_projector")
                 )
             except:
                 # Haotian: workaround
-                # The shape of mm_projector's weights can be all [0]s
+                # The shape of vision_projector's weights can be all [0]s
                 pass
 
 

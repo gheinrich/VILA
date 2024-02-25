@@ -56,7 +56,9 @@ class AltLlamaDecoderLayer(nn.Module):
             hidden_act=config.hidden_act,
         )
         self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
-        self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.post_attention_layernorm = LlamaRMSNorm(
+            config.hidden_size, eps=config.rms_norm_eps
+        )
 
     def forward(
         self,
@@ -66,7 +68,9 @@ class AltLlamaDecoderLayer(nn.Module):
         past_key_value: Optional[Tuple[torch.Tensor]] = None,
         output_attentions: Optional[bool] = False,
         use_cache: Optional[bool] = False,
-    ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+    ) -> Tuple[
+        torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]
+    ]:
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
@@ -142,7 +146,7 @@ class LlavaLlamaModel(LlamaModel):
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
                 if (
-                    config.mm_projector_type == "dsresampler"
+                    config.vision_projector_type == "dsresampler"
                 ):  # remove the original resampler
                     vision_tower.proj = nn.Parameter(
                         torch.eye(vision_tower.ln_pre.bias.numel())
@@ -184,11 +188,11 @@ class LlavaLlamaModel(LlamaModel):
                 ]
 
         if hasattr(config, "use_mm_proj"):
-            self.mm_projector = self._get_mm_projector(
-                config.mm_projector_type
-                if hasattr(config, "mm_projector_type")
+            self.vision_projector = self._get_vision_projector(
+                config.vision_projector_type
+                if hasattr(config, "vision_projector_type")
                 else "linear",
-                config.mm_hidden_size,
+                config.vision_hidden_size,
                 config.hidden_size,
             )
 
@@ -213,8 +217,8 @@ class LlavaLlamaModel(LlamaModel):
     def initialize_vision_modules(
         self,
         vision_tower,
-        mm_vision_select_layer,
-        mm_projector_type,
+        vision_select_layer,
+        vision_projector_type,
         pretrain_mm_mlp_adapter=None,
         fsdp=None,
     ):
@@ -240,7 +244,9 @@ class LlavaLlamaModel(LlamaModel):
                 )
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
-                if mm_projector_type == "dsresampler":  # remove the original resampler
+                if (
+                    vision_projector_type == "dsresampler"
+                ):  # remove the original resampler
                     vision_tower.proj = nn.Parameter(
                         torch.eye(vision_tower.ln_pre.bias.numel())
                         .to(vision_tower.proj.device)
@@ -311,21 +317,32 @@ class LlavaLlamaModel(LlamaModel):
 
         # register the configs here...
         self.config.use_mm_proj = True
-        self.config.mm_hidden_size = vision_config.hidden_size
-        self.config.mm_vision_select_layer = mm_vision_select_layer
-        self.config.mm_projector_type = mm_projector_type
+        self.config.vision_hidden_size = vision_config.hidden_size
+        self.config.vision_select_layer = vision_select_layer
+        self.config.vision_projector_type = vision_projector_type
 
-        if not hasattr(self, "mm_projector"):
-            self.mm_projector = self._get_mm_projector(
-                mm_projector_type, vision_config.hidden_size, self.config.hidden_size
+        if not hasattr(self, "vision_projector"):
+            self.vision_projector = self._get_vision_projector(
+                vision_projector_type,
+                vision_config.hidden_size,
+                self.config.hidden_size,
             )
 
         if pretrain_mm_mlp_adapter is not None:
-            mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location='cpu')
-            def get_w(weights, keyword):
-                return {k.split(keyword + '.')[1]: v for k, v in weights.items() if keyword in k}
+            vision_projector_weights = torch.load(
+                pretrain_mm_mlp_adapter, map_location="cpu"
+            )
 
-            self.mm_projector.load_state_dict(get_w(mm_projector_weights, 'mm_projector'))
+            def get_w(weights, keyword):
+                return {
+                    k.split(keyword + ".")[1]: v
+                    for k, v in weights.items()
+                    if keyword in k
+                }
+
+            self.vision_projector.load_state_dict(
+                get_w(vision_projector_weights, "vision_projector")
+            )
 
         return dict(
             image_processor=image_processor,
@@ -333,7 +350,9 @@ class LlavaLlamaModel(LlamaModel):
             vision_config=vision_config,
         )
 
-    def _get_mm_projector(self, projector_type, vision_hidden_size, llm_hidden_size):
+    def _get_vision_projector(
+        self, projector_type, vision_hidden_size, llm_hidden_size
+    ):
         class TransformerN(nn.Module):
             def __init__(
                 self, config, n_transformer, n_prompt_token=0, input_embeddings_avg=None
@@ -862,7 +881,7 @@ class LlavaLlamaModel(LlamaModel):
                         images.to(dtype), output_hidden_states=True
                     )
                     select_hidden_state_layer = getattr(
-                        self.config, "mm_vision_select_layer", -1
+                        self.config, "vision_select_layer", -1
                     )
                     if abs(select_hidden_state_layer) > 100:  # TOOD: find a better impl
                         # -212 -> 12,
@@ -883,7 +902,7 @@ class LlavaLlamaModel(LlamaModel):
                         ]
                 if isinstance(vision_tower, CLIPVisionModel):  # clip case, not for sam
                     image_features = image_features[:, 1:].to(images.dtype)  # (B, N, D)
-            image_features = self.mm_projector(image_features)
+            image_features = self.vision_projector(image_features)
 
             if hasattr(self.config, "neftune_alpha") and self.config.neftune_alpha > 0:
                 # print("using neftune tuning with alpha", self.config.neftune_alpha)
@@ -893,19 +912,19 @@ class LlavaLlamaModel(LlamaModel):
                     image_features
                 ).uniform_(-mag_norm, mag_norm)
 
-            if self.config.mm_projector_type == "dsresampler":
+            if self.config.vision_projector_type == "dsresampler":
                 dummy_feat_shape = (1, 1024, 1664)
-            elif self.config.mm_projector_type == "linear2":
-                dummy_feat_shape = (1, 256, self.config.mm_hidden_size * 2)
+            elif self.config.vision_projector_type == "linear2":
+                dummy_feat_shape = (1, 256, self.config.vision_hidden_size * 2)
             else:
-                dummy_feat_shape = (1, 256, self.config.mm_hidden_size)
+                dummy_feat_shape = (1, 256, self.config.vision_hidden_size)
 
             dummy_image_features = torch.zeros(
                 *dummy_feat_shape,
                 device=inputs_embeds.device,
                 dtype=inputs_embeds.dtype,
             )
-            dummy_image_features = self.mm_projector(dummy_image_features)[
+            dummy_image_features = self.vision_projector(dummy_image_features)[
                 0
             ]  # (1, N, D)
 
@@ -924,7 +943,7 @@ class LlavaLlamaModel(LlamaModel):
                         cur_input_embeds + (0.0 * dummy_image_features).sum()
                     )
                     new_input_embeds.append(cur_input_embeds)
-                    #cur_image_idx += 1
+                    # cur_image_idx += 1
                     continue
                 if vision_tower.config.use_im_start_end:
                     cur_image_features = image_features[cur_image_idx]
@@ -1064,7 +1083,10 @@ class LlavaLlamaModel(LlamaModel):
             inputs_embeds = torch.stack(new_input_embeds, dim=0)
             if self.training:
                 if not cur_image_idx == len(image_features):
-                    print("%" * 20, f"ERROR! cur_image_idx {cur_image_idx} != len(image_feautres) {len(image_features)} ...")
+                    print(
+                        "%" * 20,
+                        f"ERROR! cur_image_idx {cur_image_idx} != len(image_feautres) {len(image_features)} ...",
+                    )
             else:
                 assert cur_image_idx == len(image_features), (
                     cur_image_idx,
@@ -1282,10 +1304,12 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
                     p.requires_grad = False
 
             if pretrain_mm_mlp_adapter:
-                mm_projector_weights = torch.load(
+                vision_projector_weights = torch.load(
                     pretrain_mm_mlp_adapter, map_location="cpu"
                 )
-                embed_tokens_weight = mm_projector_weights["model.embed_tokens.weight"]
+                embed_tokens_weight = vision_projector_weights[
+                    "model.embed_tokens.weight"
+                ]
                 assert num_new_tokens == 2
                 if input_embeddings.shape == embed_tokens_weight.shape:
                     input_embeddings[-num_new_tokens:] = embed_tokens_weight[

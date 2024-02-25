@@ -23,8 +23,8 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version v1 \
     --datasets_mixture_name vflan+sharegpt4v_sft \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --mm_projector_type linear \
-    --mm_vision_select_layer -2 \
+    --vision_projector_type linear \
+    --vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
     --output_dir ./checkpoints/mistral-7b-clip336-mmc4sub+coyo+sharegpt4v-finetune-llava15+vflan+sharegpt4v-nosqa-linear-e1 \
