@@ -37,4 +37,4 @@ done
 # done
 # checkpoints/vila-7B
 # /home/jasonlu/workspace/multi-modality-research/VILA/checkpoints/vicuna-13b-clip336-mmc4sub+coyo-finetune-captioner-e4
-# rsync -chazvPL draco-oci-login-01.draco-oci-iad.nvidia.com:~/datasets /lustre/fs2/portfolios/nvr/users/ligengz
+# rsync -chazvPL draco-oci-login-01.draco-oci-iad.nvidia.com:~/datasets /lustre/fsw/portfolios/nvr/users/ligengz

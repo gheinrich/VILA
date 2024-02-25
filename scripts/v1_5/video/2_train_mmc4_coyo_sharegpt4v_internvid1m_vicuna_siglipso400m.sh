@@ -24,7 +24,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version v1 \
-    --data_mixture coyo_25m_mmc4core_sharegpt4v_valley \
+    --data_mixture coyo_25m_mmc4core_sharegpt4v_internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
     --pretrain_mm_mlp_adapter /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
@@ -34,7 +34,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_valley-linear-e111 \
+    --output_dir /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_1300K-linear-e111 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

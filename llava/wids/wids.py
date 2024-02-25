@@ -9,6 +9,7 @@ import sqlite3
 import sys
 import uuid
 import warnings
+import tempfile
 from functools import partial
 from typing import Any, BinaryIO, Dict, Optional, TypeVar, Union
 from urllib.parse import quote, urlparse
@@ -192,6 +193,14 @@ def default_decoder(sample: Dict[str, Any], format: Optional[Union[bool, str]] =
             import pickle
 
             sample[key] = pickle.load(stream)
+        elif extension == "mp4":
+
+            # Write stream to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmpfile:
+                tmpfile.write(stream.read())
+                tmpfile_path = tmpfile.name
+
+            sample[key] = tmpfile_path
     return sample
 
 
