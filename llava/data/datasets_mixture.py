@@ -18,13 +18,17 @@ DATASETS_MIXTURES = {}
 DATASETS = {}
 
 def add_dataset(dataset):
+    if dataset.dataset_name in DATASETS:
+        # make sure the data_name is unique
+        raise KeyError(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
+    assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
 
 
 def register_datasets_mixtures():
     datacomp_webds = Dataset(
         dataset_name='datacomp_webds',
-        dataset_type='coyowebds',
+        dataset_type='coyo-wds',
         # data_path='/lustre/fsw/portfolios/llmservice/users/dannyy/dannyy_gpt4/data_filtering/dc1b_filtered',
         # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
         # TODO(ligeng) move to nvr_elm_llm workspace later.
@@ -35,7 +39,7 @@ def register_datasets_mixtures():
     
     coyo_webds_refilerted = Dataset(
         dataset_name='coyo_webds_refilerted',
-        dataset_type='coyowebds',
+        dataset_type='coyo-wds',
         # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata_fullmeta/stage2_filtered_v2',
         # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
         # TODO(ligeng) move to nvr_elm_llm workspace later.
@@ -51,7 +55,7 @@ def register_datasets_mixtures():
         # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
         # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
         # TODO(ligeng) move to nvr_elm_llm workspace later.
-        data_path="/home/ligengz/datasets/coyo-25m-vila",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
         description='See coyo. Relabel coyo w/ VILA captioner, long Image - Text pair.'
     )
     add_dataset(coyo_webds_vila_recaption)
@@ -63,7 +67,7 @@ def register_datasets_mixtures():
         # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
         # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
         # TODO(ligeng) move to nvr_elm_llm workspace later.
-        data_path="/home/ligengz/datasets/coyo-25m-vila",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
         description='See coyo. Convert coyo to webds format.'
     )
     add_dataset(coyo_webds_vila)
@@ -107,6 +111,7 @@ def register_datasets_mixtures():
         description='See mmc4core. A subset of mmc4core (16 shards) that could be used for test purposes.'
     )
     add_dataset(mmc4core_test)
+    
     ccs_recaptioned = Dataset(
         dataset_name='ccs_recaptioned',
         dataset_type='wds',
@@ -134,14 +139,22 @@ def register_datasets_mixtures():
         description='TODO dannyy'
     )
     add_dataset(laion)
+    
+    llava_1_5_mm_align = Dataset(
+        dataset_name='llava_1_5_mm_align',
+        dataset_type='torch',
+        data_path='./playground/data/LLaVA-Pretrain/LLaVA-CC3M-Pretrain-595K.json',
+        image_path='./playground/data/LLaVA-Pretrain/images'
+    )
+    add_dataset(llava_1_5_mm_align)
     llava_1_5_sft = Dataset(
         dataset_name='llava_1_5_sft',
         dataset_type='torch',
-        data_path='/home/jasonlu/datasets/llava-1.5/llava_v1_5_mix665k.json',
-        image_path='/home/jasonlu/vlm_datasets/ShareGPT4V/data',
-        description='Original data source: https://llava-vl.github.io/ 655K SFT data by LLava1.5.'
+        data_path='./playground/data/llava_v1_5_mix665k.json',
+        image_path='./playground/data'
     )
     add_dataset(llava_1_5_sft)
+
     sharegpt4v_sft = Dataset(
         dataset_name='sharegpt4v_sft',
         dataset_type='torch',
@@ -265,9 +278,8 @@ def register_datasets_mixtures():
     )
     add_dataset(internvid_1300K)
 
-    # TODO: 
-    #   datacomp
-    #   datacomp + mmc4core
+    # NOTE(ligeng): the following parts are deprecated. Do not use 
+    #       Now the dataset followsing <datasetA>+<datasetB>+<datasetC>
     DATASETS_MIXTURES.update({'datacomp_webds+coyo_webds_vila+mmc4core+sharegpt4v_pretrain': [datacomp_webds, coyo_webds_vila, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({'datacomp_webds+mmc4core+sharegpt4v_pretrain': [datacomp_webds, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({'coyo_25m_refilter+mmc4core+sharegpt4v_pretrain': [coyo_webds_refilerted, mmc4core, sharegpt4v_pretrain]})

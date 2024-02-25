@@ -17,6 +17,9 @@ import os, os.path as osp
 import base64
 import copy
 import llava.data.datasets_mixture as datasets_mixture
+
+import PIL
+from llava.data.datasets_mixture import DATASETS
 from dataclasses import dataclass, field
 import io
 import numpy as np
@@ -1517,46 +1520,26 @@ class LazyCoyoWebDataset(Dataset):
             text_list.append(
                 DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token
             )
+            
+            if isinstance(image_path, io.BytesIO):
+                image_path = Image.open(image_path).convert("RGB")
+                
+            if not isinstance(image_path, PIL.Image.Image):
+                print(image_path)
+                print(info.keys())
+                print(type(image_path))
+                raise NotImplementedError
+                
             image_list.append(image_path)            
             
-        # for sample in info_list:
-        #     caption_key = "text" if "text" in sample else "caption"# kentang-mit@: remove existing <image> tokens in the sentences
-        #     # kentang-mit@: remove existing <image> token.
-        #     # if this is an html tag, we still preserve its semantic meaning
-        #     sample[caption_key] = sample[caption_key].replace("<image>", "<IMAGE>")
-        #     text_list.append(
-        #         DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token
-        #     )
-        #     if "image" in sample:
-        #         image_base64 = sample["image"]
-        #         rawbytes = base64.b64decode(image_base64)
-        #     else:
-        #         rawbytes = sample["rawbytes"]
-        #     image = Image.open(io.BytesIO(rawbytes)).convert("RGB")
-        #     image_list.append(image)
-
         image_list = torch.stack(
             [
-                LazySupervisedDataset._process_image(image, self.data_args)
+                LazySupervisedDataset._process_image(image, self.data_args, image_folder=None)
                 for image in image_list
             ]
         )
 
-        # the same size for all images, so we concat
-        # cur_token_len = (
-        #     image_list[0].shape[-2] // self.multimodal_cfg["patch_size"]
-        # ) * (image_list[0].shape[-1] // self.multimodal_cfg["patch_size"])
-        # cur_token_len += self.multimodal_cfg["n_extra_patch"]
-
-        # replace_token = DEFAULT_IMAGE_TOKEN
-        # if self.multimodal_cfg["use_im_start_end"]:
-        #     replace_token = (
-        #         DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
-        #     )
-        # text_list = [
-        #     text.replace(DEFAULT_IMAGE_TOKEN, replace_token) for text in text_list
-        # ]
-
+     
         if CONCAT_SAMPLES:
             # into <image>cap<eos><image>cap<eos>...
             text_list = "".join(text_list)
@@ -1570,9 +1553,7 @@ class LazyCoyoWebDataset(Dataset):
             ).input_ids  # 4, seq_len
 
             input_ids = input_ids[0]
-
         else:
-            
             input_ids = [
                 tokenizer_image_token(
                     prompt,
@@ -1581,13 +1562,7 @@ class LazyCoyoWebDataset(Dataset):
                 )
                 for prompt in text_list
             ]
-            # print([x.shape[0] for x in input_ids], [len(x.split()) for x in text_list], [len(re.findall(r"<image[^>]*>", x)) for x in text_list])
-            
-            # input_ids = torch.nn.utils.rnn.pad_sequence(
-            #     input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-            # )
-        
-
+   
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
         # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
@@ -1929,11 +1904,16 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 training_args: TrainingArguments) -> Dict:
     """Make dataset and collator for supervised fine-tuning.
     This function is originally implemented by the LLaVA team and 
-    modified by Jason Lu and Haotian Tang."""
+    modified by Jason Lu, Haotian Tang and Ligeng Zhu"""
     all_datasets = []
     extra_info = []
     datasets_mixture.register_datasets_mixtures()
-    mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
+
+    from llava.data.datasets_mixture import DATASETS
+    # mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
+    mixture_names = data_args.data_mixture.strip().split("+")
+    mixture = (DATASETS[_] for _ in mixture_names)
+    print(mixture_names, mixture)
     image_folder = None
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1959,7 +1939,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
         elif dataset_type == "video-wds":
             dataset_cls = LazyVideoWebDataset
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"{dataset_type} is not supported.")
 
         train_dataset = dataset_cls(tokenizer=tokenizer,
                                 data_path=dataset.data_path,
