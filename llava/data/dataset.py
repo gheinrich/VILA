@@ -1039,8 +1039,7 @@ class LazyCoyoDataset(Dataset):
 
 class LazyWDSDataset(Dataset):
     """Dataset for supervised fine-tuning.
-    This class is implemented by Ligeng Zhu."""
-
+    This class is implemented by Ji Lin and Ligeng Zhu."""
     def __init__(
         self,
         data_path: str,
@@ -1434,7 +1433,6 @@ class LazyCCSWebDataset(Dataset):
         
 
         return data_dict
-
 
 
 class LazyCoyoWebDataset(Dataset):
