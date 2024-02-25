@@ -6,6 +6,7 @@ from .siglip_encoder import SiglipVisionTower
 
 
 def build_vision_tower(vision_tower_cfg, **kwargs):
+    ## TODO: vision_tower_cfg could be a string (model_name_or_path) or a dict saved by save_pretrained
     vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
     is_absolute_path_exists = os.path.exists(vision_tower)
     if is_absolute_path_exists or vision_tower.startswith("openai"):

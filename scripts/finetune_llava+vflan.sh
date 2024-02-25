@@ -79,9 +79,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --aug_llava True \
     --aug_llava_path /home/jil/datasets/llava-1.5/llava_v1_5_mix665k.json \
     --vision_tower openai/clip-vit-large-patch14 \
-    --mm_projector_type linear \
+    --vision_projector_type linear \
     --min_max_range_path /home/jil/models/llama-2-hf/llama-2-7b/emb_min_max.pt \
-    --mm_vision_select_layer -2 \
+    --vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \
     --output_dir ./checkpoints/llama2-7b-mmc4sub-finetune-llava15+vflan-nosqa-linear-e1-nose-run2-visexp-visattn \
