@@ -17,7 +17,7 @@ import torch
 def test_make_supervised_data_module():
     datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        '/lustre/fsw/portfolios/nvr/users/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5',
+        'lmsys/vicuna-7b-v1.5',
         cache_dir='',
         model_max_length=8192,
         padding_side="right",
