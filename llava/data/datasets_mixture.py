@@ -61,20 +61,18 @@ def register_datasets_mixtures():
     )
     add_dataset(coyo_webds_vila_recaption)
 
-    coyo_webds_vila = Dataset(
-        dataset_name="coyowebds",
-        dataset_type="coyowebds",
-        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
-        # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
-        # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.
-        # TODO(ligeng) move to nvr_elm_llm workspace later.
-        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+    # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
+    # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
+    coyo_25m_wds = Dataset(
+        dataset_name="coyo_25m_wds",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
         description="See coyo. Convert coyo to webds format.",
     )
-    add_dataset(coyo_webds_vila)
+    add_dataset(coyo_25m_wds)
     coyo_webds_full = Dataset(
         dataset_name="coyowebds_full",
-        dataset_type="coyowebds",
+        dataset_type="coyo-wds",
         data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata",
         description="Full coyo700M. Data source: https://github.com/kakaobrain/coyo-dataset, short Image - Text pair.",
     )
@@ -291,16 +289,16 @@ def register_datasets_mixtures():
 
     # NOTE(ligeng): the following parts are deprecated. Do not use
     #       Now the dataset followsing <datasetA>+<datasetB>+<datasetC>
-    DATASETS_MIXTURES.update(
-        {
-            "datacomp_webds+coyo_webds_vila+mmc4core+sharegpt4v_pretrain": [
-                datacomp_webds,
-                coyo_webds_vila,
-                mmc4core,
-                sharegpt4v_pretrain,
-            ]
-        }
-    )
+    # DATASETS_MIXTURES.update(
+    #     {
+    #         "datacomp_webds+coyo_webds_vila+mmc4core+sharegpt4v_pretrain": [
+    #             datacomp_webds,
+    #             coyo_webds_vila,
+    #             mmc4core,
+    #             sharegpt4v_pretrain,
+    #         ]
+    #     }
+    # )
     DATASETS_MIXTURES.update(
         {"datacomp_webds+mmc4core+sharegpt4v_pretrain": [datacomp_webds, mmc4core, sharegpt4v_pretrain]}
     )
@@ -310,18 +308,18 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update(
         {"coyo_25m_recap+mmc4core+sharegpt4v_pretrain": [coyo_webds_vila_recaption, mmc4core, sharegpt4v_pretrain]}
     )
-    DATASETS_MIXTURES.update(
-        {"coyo_webds_vila+mmc4core+sharegpt4v_pretrain": [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]}
-    )
-    DATASETS_MIXTURES.update(
-        {
-            "datacomp_webds+coyo_webds_vila+mmc4core": [
-                datacomp_webds,
-                coyo_webds_vila,
-                mmc4core,
-            ]
-        }
-    )
+    # DATASETS_MIXTURES.update(
+    #     {"coyo_webds_vila+mmc4core+sharegpt4v_pretrain": [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]}
+    # )
+    # DATASETS_MIXTURES.update(
+    #     {
+    #         "datacomp_webds+coyo_webds_vila+mmc4core": [
+    #             datacomp_webds,
+    #             coyo_webds_vila,
+    #             mmc4core,
+    #         ]
+    #     }
+    # )
     DATASETS_MIXTURES.update(
         {
             "datacomp_webds+mmc4core": [
@@ -342,14 +340,6 @@ def register_datasets_mixtures():
         {
             "coyo_25m_recap+mmc4core": [
                 coyo_webds_vila_recaption,
-                mmc4core,
-            ]
-        }
-    )
-    DATASETS_MIXTURES.update(
-        {
-            "coyo_webds_vila+mmc4core": [
-                coyo_webds_vila,
                 mmc4core,
             ]
         }
@@ -376,13 +366,7 @@ def register_datasets_mixtures():
             ]
         }
     )
-    DATASETS_MIXTURES.update(
-        {
-            "coyo_webds_vila": [
-                coyo_webds_vila,
-            ]
-        }
-    )
+    
     DATASETS_MIXTURES.update(
         {
             "coyo_webds_full": [
@@ -410,9 +394,7 @@ def register_datasets_mixtures():
     )
     # original VILA step-1
     DATASETS_MIXTURES.update({"coyo_25m_mmc4core": [coyo_25m, mmc4core]})
-
-    DATASETS_MIXTURES.update({"coyo_webds_vila_mmc4core_sharegpt4v": [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]})
-
+    # DATASETS_MIXTURES.update({"coyo_webds_vila_mmc4core_sharegpt4v": [coyo_webds_vila, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({"coyo_25m_mmc4core_sharegpt4v": [coyo_25m, mmc4core, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({"coyo_25m_mmc4core_sharegpt4v_test": [coyo_25m_test, mmc4core_test, sharegpt4v_pretrain]})
     DATASETS_MIXTURES.update({"coyo_25m_mmc4core_sharegpt4v_valley": [coyo_25m, mmc4core, sharegpt4v_pretrain, valley]})
@@ -428,7 +410,7 @@ def register_datasets_mixtures():
             ]
         }
     )
-    DATASETS_MIXTURES.update({"coyo_25m_mmc4core_test": [coyo_webds_vila, mmc4core_test]})
+    
     DATASETS_MIXTURES.update({"vflan_sharegpt4v_sft": [vflan, sharegpt4v_sft]})
     DATASETS_MIXTURES.update({"vflan_llava_1_5_sft": [vflan, llava_1_5_sft]})
     DATASETS_MIXTURES.update({"vflan_captioner": [vflan, sharegpt4v_gpt4_100k]})
