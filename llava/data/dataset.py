@@ -463,9 +463,9 @@ class LazySupervisedDataset(Dataset):
     """
 
     def __init__(self, data_path: str,
+                 image_folder: str,
                  tokenizer: transformers.PreTrainedTokenizer,
                  data_args: DataArguments,
-                 image_folder: str,
                  training_args: TrainingArguments):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
@@ -535,13 +535,14 @@ class LazySupervisedDataset(Dataset):
         else:
             image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         return image
-    
-    def load_video(self, video_path, num_video_frames):
+
+    @staticmethod
+    def _load_video(video_path, num_video_frames, data_args):
         # decord.bridge.set_bridge("torch")
-        if "shortest_edge" in self.data_args.image_processor.size:
-            image_size = self.data_args.image_processor.size["shortest_edge"]
+        if "shortest_edge" in data_args.image_processor.size:
+            image_size = data_args.image_processor.size["shortest_edge"]
         else:
-            image_size = self.data_args.image_processor.size["height"]
+            image_size = data_args.image_processor.size["height"]
         try:
             video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
             duration = float(video.duration)
@@ -549,7 +550,9 @@ class LazySupervisedDataset(Dataset):
             video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
             assert video_outputs.size(1) > 8
             num_frames = video_outputs.shape[1]
-            step = (num_frames - 1) // 8
+            # step = (num_frames - 1) // 8 + 1
+            step = num_frames // 8
+            num_frames = num_frames - (num_frames % 8)
             indices = torch.floor(torch.arange(0, num_frames, step)).long()
             video_outputs = video_outputs[:, indices, :, :]
         except Exception as e:
@@ -584,7 +587,7 @@ class LazySupervisedDataset(Dataset):
                 video_file = sources[0]['video_id'] + '.mp4'
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
-            image_tensor = self.load_video(video_path, num_video_frames)
+            image_tensor = self._load_video(video_path, num_video_frames, self.data_args)
             processor = self.data_args.image_processor
             
             image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
@@ -647,7 +650,7 @@ class LazyMMC4Dataset(Dataset):
     def __init__(
         self,
         data_path: str,
-        image_folfer: str,
+        image_folder: str,
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
@@ -703,7 +706,7 @@ class LazyMMC4Dataset(Dataset):
 
         self.tokenizer = tokenizer
         self.data_args = data_args
-        self.image_folfer = image_folfer
+        self.image_folder = image_folder
 
         self.image_following_text_only = image_following_text_only
         self.text_only = text_only
@@ -780,7 +783,7 @@ class LazyMMC4Dataset(Dataset):
         if len(images) > 0:
             images = torch.stack(
                 [
-                    LazySupervisedDataset._process_image(image, self.data_args, self.image_folfer)
+                    LazySupervisedDataset._process_image(image, self.data_args, self.image_folder)
                     for image in images
                 ]
             )
@@ -858,7 +861,7 @@ class LazyCoyoDataset(Dataset):
     def __init__(
         self,
         data_path: str,
-        image_folfer: str,
+        image_folder: str,
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
@@ -929,7 +932,7 @@ class LazyCoyoDataset(Dataset):
 
         self.tokenizer = tokenizer
         self.data_args = data_args
-        self.image_folfer = image_folfer
+        self.image_folder = image_folder
 
     def __len__(self):
         # return len(self.data_list)
@@ -971,7 +974,7 @@ class LazyCoyoDataset(Dataset):
 
         image_list = torch.stack(
             [
-                LazySupervisedDataset._process_image(image, self.data_args, self.image_folfer)
+                LazySupervisedDataset._process_image(image, self.data_args, self.image_folder)
                 for image in image_list
             ]
         )
@@ -1344,6 +1347,7 @@ class LazyCCSWebDataset(Dataset):
     def __init__(
         self,
         data_path: str,
+        image_folder: str,
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
@@ -1438,6 +1442,7 @@ class LazyCoyoWebDataset(Dataset):
     def __init__(
         self,
         data_path: str,
+        image_folder: str,
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
@@ -1592,6 +1597,253 @@ class LazyCoyoWebDataset(Dataset):
         return dict(input_ids=input_ids, labels=targets, image=image_list)
     
 
+class LazyVideoWebDataset(Dataset):
+    """Dataset for supervised fine-tuning."""
+    def __init__(
+        self,
+        data_path: str,
+        image_folder: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        data_args: DataArguments,
+        training_args: TrainingArguments,
+        # cache_path: str,
+        # n_samples_per_idx=4,
+    ):
+        super().__init__()
+        
+        from llava.data.simple_video_dataset import SimpleVideoDataset
+        
+        self.dataset = SimpleVideoDataset(
+            data_path = osp.abspath(data_path),
+            cache_dir = f"{osp.abspath(data_path)}-webds-meta",
+            # cache_dir=cache_path,
+        )
+
+        # None: use original caption
+        # Folder path: use original caption
+        self.caption_chocie = None
+        self.data_path = data_path
+        
+        print("total samples", len(self.dataset))
+        # InternVid: TODO
+        rank = int(os.environ["RANK"]) if "RANK" in os.environ else 0
+        world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
+
+        self.tokenizer = tokenizer
+        self.data_args = data_args
+
+    def __len__(self):
+        return len(self.dataset)
+
+    @property
+    def modality_lengths(self):
+        # Estimate the number of tokens after tokenization, used for length-grouped sampling
+        length_list = []
+        for samples in self.data_list:
+            cur_len = sum([len(conv['text' if 'text' in conv else 'caption'].split()) for conv in samples])
+            # The unit of cur_len is "words". We assume 1 word = 2 tokens.
+            cur_len = cur_len + len(samples) * self.num_image_tokens // 2
+            length_list.append(cur_len)
+        return length_list
+
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        ADD_TEXT_PROMPT = False
+        num_video_frames = 8
+
+        info = self.dataset[i]
+        
+        if ".mp4" in info:
+            caption, video_path = info[".txt"], info[".mp4"]
+            # video_path = BytesIO(video_bytesio)
+        else:
+            video_path = None
+            caption = "Empty video."
+        
+        # if self.caption_chocie is not None:
+        #     # load new captions 
+        #     shard = info["__shard__"]
+        #     url = info[".json"]["url"]
+        #     tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
+        #     # tar_name = osp.dirname(shard)
+        #     shard_json_path = osp.join(self.caption_chocie, tar_name + ".json")
+        #     shard_json = lru_json_load(shard_json_path)
+        #     # print("DEBUG:", shard, self.data_path, tar_name)
+        #     try:
+        #         caption = shard_json[url]["output"]
+        #     except KeyError:
+        #         print(f"{url} not in caption. fallback to original caption temporarially")
+            
+            
+        prompt = "<image>\n" * num_video_frames + caption
+        # caption = caption.replace("<image>", "<IMAGE>")
+        # caption = DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token
+
+        # if "shortest_edge" in self.data_args.image_processor.size:
+        #     image_size = self.data_args.image_processor.size["shortest_edge"]
+        # else:
+        #     image_size = self.data_args.image_processor.size["height"]
+        # try:
+        #     video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+        #     duration = float(video.duration)
+        #     assert duration >= 0.25
+        #     video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+        #     assert video_outputs.size(1) > 8
+        #     num_frames = video_outputs.shape[1]
+        #     step = (num_frames - 1) // 8 + 1
+        #     indices = torch.floor(torch.arange(0, num_frames, step)).long()
+        #     video_outputs = video_outputs[:, indices, :, :]
+        # except Exception as e:
+        #     print(f'bad data path {video_path}')
+        #     print(f"Error processing {video_path}: {e}")
+        #     video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+
+        # c, b, h, w = video_outputs.size()
+        # image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
+        # video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
+        # video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
+        # image_tensor[:, :, :, :] = video_frames
+
+        image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+        # print(image_tensor.shape)
+
+        processor = self.data_args.image_processor
+        image_tensor = [
+            processor.preprocess(image, return_tensors='pt')['pixel_values'][0] for image in torch.unbind(image_tensor)]
+        image_tensor = torch.stack(image_tensor)
+
+	
+        # input_ids = [
+            
+        #     # for prompt in text_list
+        # ]
+        input_ids = tokenizer_image_token(
+                prompt,
+                self.tokenizer,
+                return_tensors="pt",
+            )
+        targets = copy.deepcopy(input_ids)
+
+        data_dict = dict(
+            input_ids=input_ids, 
+            labels=targets, 
+            image=image_tensor
+        )
+        
+        # # the same size for all images, so we concat
+        # cur_token_len = (image_tensor.shape[-2] // self.multimodal_cfg["patch_size"]) * (
+        #     image_tensor.shape[-1] // self.multimodal_cfg["patch_size"]
+        # )
+        # cur_token_len += self.multimodal_cfg["n_extra_patch"]
+        # sources = replace_image_patch_tokens(
+        #     [e["conversations"] for e in sources], self.multimodal_cfg,
+        # )
+
+
+        # sources = [
+        #     {
+        #         "video_path": video_path,
+        #         "conversations": [
+        #             {"from": "human", "value": rand_prompt},
+        #             {"from": "gpt", "value": caption},
+        #         ],
+        #     }
+        # ]
+
+        # if "video_path" in sources[0]:
+
+        #     image_size = self.multimodal_cfg["image_size"]
+        #     try:
+        #         video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+        #         duration = float(video.duration)
+        #         assert duration >= 0.25
+        #         video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+        #         assert video_outputs.size(1) > 8
+        #         num_frames = video_outputs.shape[1]
+        #         step = (num_frames - 1) // 8
+        #         indices = torch.floor(torch.arange(0, num_frames, step)).long()
+        #         video_outputs = video_outputs[:, indices, :, :]
+        #     except Exception as e:
+        #         print(f'bad data path {video_path}')
+        #         print(f"Error processing {video_path}: {e}")
+        #         video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+
+        #     c, b, h, w = video_outputs.size()
+        #     image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
+        #     video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
+        #     video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
+        #     image_tensor[:, :, :, :] = video_frames
+        #     # try:
+        #     #     idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
+        #     #     video_outputs = sources[0]["video_reader"].get_batch(idx)
+        #     # except:
+        #     #     print(f'bad video reader. convert caption as empty.')
+        #     #     video_outputs = torch.zeros(8, 336, 336, 3, dtype=torch.uint8)
+        #     #     sources[0]["conversations"][1]["value"] = "Empty video."
+
+        #     # b, h, w, c = video_outputs.size()
+        #     # image_tensor = torch.zeros(b, c, 336, 336, dtype=torch.uint8)
+        #     # video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
+        #     # video_frames = Resize(size=[336, 336], antialias=True)(video_frames)
+        #     # image_tensor[:, :, :, :] = video_frames
+
+        #     processor = self.multimodal_cfg["image_processor"]
+
+        #     image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
+        #     image_tensor = torch.stack(image_tensor)
+            
+        #     # the same size for all images, so we concat
+        #     cur_token_len = (image_tensor.shape[-2] // self.multimodal_cfg["patch_size"]) * (
+        #         image_tensor.shape[-1] // self.multimodal_cfg["patch_size"]
+        #     )
+        #     cur_token_len += self.multimodal_cfg["n_extra_patch"]
+        #     sources = replace_image_patch_tokens(
+        #         [e["conversations"] for e in sources], self.multimodal_cfg,
+        #     )
+        # else:
+        #     raise NotImplementedError
+
+        # if not ADD_TEXT_PROMPT:
+        #     assert len(sources) == 1
+        #     # tokenize conversations
+        #     data_dict = preprocess(
+        #         sources,
+        #         self.tokenizer,
+        #         n_image_tokens=cur_token_len,
+        #         has_image=cur_token_len is not None,
+        #     )
+        #     if isinstance(i, int):
+        #         data_dict = dict(
+        #             input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
+        #         )
+        #     # image exist in the data
+        #     if ("video_reader" in sources[0]):
+        #         data_dict["image"] = image_tensor
+        #     elif self.multimodal_cfg["is_multimodal"]:
+        #         data_dict["image"] = None
+        #     else:
+        #         raise NotImplementedError
+
+        #     # text_tokens = self.tokenizer(
+        #     #     [sources[0][1]["value"] + "</s>"],
+        #     #     return_tensors="pt",
+        #     #     max_length=self.tokenizer.model_max_length,
+        #     #     truncation=True,
+        #     # ).input_ids
+        #     # input_ids = torch.cat([image_tokens, text_tokens[:, 1:]], dim=-1)
+        #     # targets = input_ids.clone()
+
+        #     # targets[:, : image_tokens.shape[-1]] = IGNORE_INDEX
+        #     # data_dict = dict(input_ids=input_ids, labels=targets)
+
+        # else:
+        #     data_dict = preprocess(
+        #         sources, self.tokenizer, n_image_tokens=cur_token_len
+        #     )
+        #     print("WARNING: ADD_TEXT_PROMPT==True is not supported for current video dataset type")
+
+
+        return data_dict
+
 @dataclass
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning.
@@ -1704,8 +1956,11 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":
             dataset_cls = LazyVFlanDataset
+        elif dataset_type == "video-wds":
+            dataset_cls = LazyVideoWebDataset
         else:
             raise NotImplementedError
+
         train_dataset = dataset_cls(tokenizer=tokenizer,
                                 data_path=dataset.data_path,
                                 image_folder=image_folder,

@@ -12,10 +12,10 @@ import signal
 
 decord.bridge.set_bridge("torch")
 
-video_json_path = '/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered.json'
-cache_video_jsonl_path = '/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.jsonl'
-video_path_out = '/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered.json'
-video_dir = '/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped'
+video_json_path = '/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered.json'
+cache_video_jsonl_path = '/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.jsonl'
+video_path_out = '/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered.json'
+video_dir = '/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped'
 
 
 SKIP_ID = [
@@ -26,16 +26,16 @@ SKIP_ID = [
     # "v_988656", "v_983727", "v_954159"
     ]
 VIDEO_LIST = [
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/kI4W37Ipwds_000085_000095.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/xcxcGeFv0i0_000136_000146.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/CaXa9TDy4S8_000044_000054.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/MK_qkoBBo38_000010_000020.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/KpDUUFBYs6U_000093_000103.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/FOoHKpr1xs8_000002_000012.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/FRei3a5Gqio_000003_000013.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/q7jhDND8xjA_000155_000165.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/bfrdgr9G8-g_000032_000042.mp4",
-"/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/PmLHRVo4dP0_000050_000060.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/kI4W37Ipwds_000085_000095.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/xcxcGeFv0i0_000136_000146.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/CaXa9TDy4S8_000044_000054.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/MK_qkoBBo38_000010_000020.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/KpDUUFBYs6U_000093_000103.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/FOoHKpr1xs8_000002_000012.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/FRei3a5Gqio_000003_000013.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/q7jhDND8xjA_000155_000165.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/bfrdgr9G8-g_000032_000042.mp4",
+"/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/PmLHRVo4dP0_000050_000060.mp4",
 ]
 
 
@@ -58,7 +58,7 @@ def load_video(video_path, num_video_frames):
 
     # idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
     try:
-        # video_path = "/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped/FtHLUsOntqI_5.mp4"
+        # video_path = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped/FtHLUsOntqI_5.mp4"
         video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
         duration = float(video.duration)
         assert duration >= 0.5
@@ -111,7 +111,7 @@ def test_valid_video():
 
 for vid_path in VIDEO_LIST:
     video_data = load_video(vid_path, 8)
-# load_video('/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/fa1WrHOTjxY_000512_000522.mp4', 8)
+# load_video('/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped/fa1WrHOTjxY_000512_000522.mp4', 8)
 # test_valid_video()
 
 # # Write cache to json file

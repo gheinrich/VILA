@@ -93,7 +93,7 @@ def register_datasets_mixtures():
     
     mmc4core = Dataset(
         dataset_name='mmc4core',
-        dataset_type='mmc4sub',
+        dataset_type='mmc4',
         # data_path='/home/jasonlu/datasets/mmc4-core/pkl-core',
         data_path='/home/jasonlu/datasets/mmc4-core/pkl-core',
         description='Original data source: https://github.com/allenai/mmc4 mmc4-core that contains 29.9M images, interleaved Image - Text data.',
@@ -102,7 +102,7 @@ def register_datasets_mixtures():
     
     mmc4core_test = Dataset(
         dataset_name='mmc4core_test',
-        dataset_type='mmc4sub',
+        dataset_type='mmc4',
         data_path='/home/jasonlu/vlm_datasets/debug/mmc4-core/pkl-core',
         description='See mmc4core. A subset of mmc4core (16 shards) that could be used for test purposes.'
     )
@@ -193,60 +193,77 @@ def register_datasets_mixtures():
     jukinmedia = Dataset(
         dataset_name='jukinmedia',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-processed-long-filtered.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-processed-long-filtered.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos',
         description='A high quailty video caption dataset with 71003 detailed captions (16 words at least).'
     )
     add_dataset(jukinmedia)
     youcook2 = Dataset(
         dataset_name='youcook2',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped',
         description='YouCook2 (http://youcook2.eecs.umich.edu/): A large-scale video dataset with 11680 short but precise human written captions.'
     )
     add_dataset(youcook2)
     vatex = Dataset(
         dataset_name='vatex',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped',
         description='VATEX dataset (https://eric-xw.github.io/vatex-website/about.html), 22703 video clips, 227030 precise short captions (human annotated). Note: all clips are 10s.'
     )
     add_dataset(vatex)
     activitynet_qa = Dataset(
         dataset_name='activitynet_qa',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/activitynet-qa/train-processed-filtered-v2.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Video_ChatGPT/activitynet_videos',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/activitynet-qa/train-processed-filtered-v2.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets/Video_ChatGPT/activitynet_videos',
         description='28250 human-annotated QA pairs on 2825 videos derived from the popular ActivityNet dataset.'
     )
     add_dataset(activitynet_qa)
     ivqa = Dataset(
         dataset_name='ivqa',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/ivqa/train-processed-filtered.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/ivqa/video_data_clipped',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/ivqa/train-processed-filtered.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/ivqa/video_data_clipped',
         description='iVQA dataset, 5378 videos with 5378 QA pairs. The 5378 QA pairs are from various domains.'
     )
     add_dataset(ivqa)
     nextqa = Dataset(
         dataset_name='nextqa',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/train-processed.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/NExTVideo',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/train-processed.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/NExTVideo',
         description='NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.'
     )
     add_dataset(nextqa)
     msrvttqa = Dataset(
         dataset_name='msrvttqa',
         dataset_type='torch',
-        data_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/msr_vtt/train-processed-qa-v2.json',
-        image_path='/lustre/fs2/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/msr_vtt/train_val_videos/TrainValVideo',
+        data_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/msr_vtt/train-processed-qa-v2.json',
+        image_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/msr_vtt/train_val_videos/TrainValVideo',
         description='6321 videos with 6321 rewritten QA-pairs based on the rewritten captions. (The typos in captions have been fixed by GPT-3.5-turbo)'
     )
     add_dataset(msrvttqa)
 
+    # Video Pretraining Datasets added by Fuzhao
+    internvid_test = Dataset(
+        dataset_name='internvid_test',
+        dataset_type='video-wds',
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-8K-flt",
+        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-8K-flt-webds-meta',
+        description='A tiny debug set of internvid with only 8K samples.'
+    )
+    add_dataset(internvid_test)
+    internvid_1300K = Dataset(
+        dataset_name='internvid_1300K',
+        dataset_type='video-wds',
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt",
+        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta',
+        description='1M (not 1300K after cleaning) video-caption pairs from InternVid. We select the top-relevant 1M samples from the Intern-Vid-10M set.'
+    )
+    add_dataset(internvid_1300K)
 
     # TODO: 
     #   datacomp
@@ -274,6 +291,7 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update({'ccs_recaptioned_test': [ccs_recaptioned_test]})
     
     DATASETS_MIXTURES.update({'mmc4core': [mmc4core, ]})
+    DATASETS_MIXTURES.update({'mmc4core_test': [mmc4core_test, ]})
     # original VILA step-1
     DATASETS_MIXTURES.update({'coyo_25m_mmc4core': [coyo_25m, mmc4core]})
 
@@ -294,8 +312,14 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_valley': [vflan, sharegpt4v_sft, valley]})
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_valley_video_chatgpt': [vflan, sharegpt4v_sft, valley, video_chatgpt]})
 
+    # Video Pretraining Dataset Mixture
+    DATASETS_MIXTURES.update({'internvid_test': [internvid_test]})
+    DATASETS_MIXTURES.update({'internvid_1300K': [internvid_1300K]})
+    DATASETS_MIXTURES.update({'coyo_25m_mmc4core_sharegpt4v_internvid_1300K': [coyo_25m, mmc4core, sharegpt4v_pretrain, internvid_1300K]})
+
     # Video Multi-task tuning (v2) Dataset Mixture
     # DATASETS_MIXTURES.update({'jukinmedia': [jukinmedia]}) # Deleted
+    DATASETS_MIXTURES.update({'valley': [valley]})
     DATASETS_MIXTURES.update({'youcook2': [youcook2]})
     DATASETS_MIXTURES.update({'vatex': [vatex]}) # Partial-verfied
     DATASETS_MIXTURES.update({'activitynet_qa': [activitynet_qa]}) # Verifying
@@ -308,6 +332,5 @@ def register_datasets_mixtures():
     DATASETS_MIXTURES.update({'nv_video_flan': [youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa]})
     DATASETS_MIXTURES.update({'sharegpt4v_gpt4_100k_nv_video_flan': [sharegpt4v_gpt4_100k, youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa]})
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_nv_video_flan': [vflan, sharegpt4v_sft, youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa]})
-    DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_valley_video_chatgpt_nv_video_flan': [vflan, sharegpt4v_sft, youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa, valley, video_chatgpt]})
     DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_video_chatgpt_nv_video_flan': [vflan, sharegpt4v_sft, youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa, video_chatgpt]})
-    
+    DATASETS_MIXTURES.update({'vflan_sharegpt4v_sft_valley_video_chatgpt_nv_video_flan': [vflan, sharegpt4v_sft, youcook2, vatex, activitynet_qa, ivqa, nextqa, msrvttqa, valley, video_chatgpt]})    

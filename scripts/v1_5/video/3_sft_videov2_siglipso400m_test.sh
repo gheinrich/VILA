@@ -1,10 +1,11 @@
 #!/bin/bash
-
+source /lustre/fsw/portfolios/nvr/users/${USER}/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA
+cd /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -31,7 +32,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-vicuna-7b-256gpus-mmc4-coyo-vflan-sharegpt4v-test \
+    --output_dir /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vila-vicuna-7b-256gpus-mmc4-coyo-vflan-sharegpt4v-e2-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

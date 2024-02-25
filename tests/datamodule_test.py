@@ -24,13 +24,15 @@ def test_make_supervised_data_module():
         use_fast=False,
         legacy=False,
     )
-    tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
+    tokenizer.pad_token = tokenizer.unk_token
+
+    # tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
     image_processor = SiglipImageProcessor.from_pretrained(
         'google/siglip-so400m-patch14-384'
     )
 
     data_args = DataArguments(
-        data_mixture='valley_test', # sharegpt4v_gpt4_100k_
+        data_mixture='internvid_test',# 'internvid_test', # sharegpt4v_gpt4_100k_
         is_multimodal=True,
         lazy_preprocess=True,
     )
