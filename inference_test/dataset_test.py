@@ -1,4 +1,4 @@
-from llava.train.simple_coyo_dataset import SimpleCoyoDataset, COYO_25M_VILA, DATACOMP
+from llava.train.SimpleCoyoDataset import SimpleCoyoDataset, COYO_25M_VILA, DATACOMP
 
 for dpath in (COYO_25M_VILA, DATACOMP):
     dst = SimpleCoyoDataset(
