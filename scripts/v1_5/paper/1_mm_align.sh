@@ -24,7 +24,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path NousResearch/Llama-2-7b-hf \
     --version plain \
-    --data_mixture ccs_pretrained \
+    --data_mixture ccs_recap_wds \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp2x_gelu \
     --tune_mm_mlp_adapter True \
