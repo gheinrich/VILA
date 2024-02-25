@@ -52,22 +52,20 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
         print(f"    Generating meta: {tar_abs_metapath}")
         try:
             tar = load_tarfile(tar_abspath)
-            uuids = list(
-                set([".".join(_.split(".")[:-1]) for _ in tar.getnames()])
-            )
+            uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
         except tarfile.ReadError as e:
             print(f"Skipping {tar_abspath}")
             print(e)
             return None
         nsamples = len(uuids)
-        
+
         tar_meta = {
             "url": osp.abspath(tar_abspath),
             "nsamples": nsamples,
             "filesize": osp.getsize(tar_abspath),
         }
         save_json(tar_meta, tar_abs_metapath)
-        
+
         tar_meta = {
             "url": osp.realpath(tar_abspath),
             "nsamples": nsamples,
@@ -88,18 +86,17 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
 
 def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-meta", overwrite=False):
     # TODO(ligeng): speedup the generation
-    #   1. parallelize the meta file generation 
-    #   2. add options for meta file 
+    #   1. parallelize the meta file generation
+    #   2. add options for meta file
     meta_path_of_tar_abs = osp.join(
         osp.expanduser(cache_dir),
-        data_path.replace("/", "--")
-        + ".wdsmeta.json",
+        data_path.replace("/", "--") + ".wdsmeta.json",
     )
-    
+
     meta_path_of_tar_rel = osp.join(osp.expanduser(data_path), "wids-meta.json")
     if osp.exists(meta_path_of_tar_rel) and osp.exists(meta_path_of_tar_abs) and not overwrite:
-        return 
-    
+        return
+
     tar_list = []
     for root, dirs, files in os.walk(data_path):
         for file in files:
@@ -127,11 +124,11 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
         # tar_meta["url"] = tar_path
         tar_meta["url"] = osp.abspath(osp.join(data_path, tar_path))
         meta["shardlist"].append(tar_meta)
-    
+
     # sorted by tar names
     meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
     save_json(meta, meta_path_of_tar_abs)
-    
+
     ####################################################################################
     meta = {
         "name": "coyo-dev",
@@ -146,7 +143,7 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
             continue
         tar_meta["url"] = tar_path
         meta["shardlist"].append(tar_meta)
-    
+
     # sorted by tar names
     meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
     save_json(meta, meta_path_of_tar_rel)
@@ -168,16 +165,16 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
         if meta_path is None and osp.exists(_local_meta_path):
             print(f"loading from {_local_meta_path}")
             self.meta_path = meta_path = _local_meta_path
-            
+
         if meta_path is None:
             self.meta_path = osp.join(
                 osp.expanduser(cache_dir),
-                data_path.replace("/", "--")
-                + f".max_shards:{max_shards_to_load}"
-                + ".wdsmeta.json",
+                data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
             )
 
-        assert osp.exists(self.meta_path), f"meta path not found in {self.meta_path} {_local_meta_path}:{osp.exists(_local_meta_path)}"
+        assert osp.exists(
+            self.meta_path
+        ), f"meta path not found in {self.meta_path} {_local_meta_path}:{osp.exists(_local_meta_path)}"
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
@@ -186,9 +183,7 @@ class SimpleCoyoDataset(torch.utils.data.Dataset):
         uuid = hashlib.sha256(self.meta_path.encode()).hexdigest()[:8]
         self.dataset = ShardListDataset(
             self.meta_path,
-            cache_dir=osp.expanduser(
-                f"~/.cache/_wids_cache/{getpass.getuser()}-{uuid}"
-            ),
+            cache_dir=osp.expanduser(f"~/.cache/_wids_cache/{getpass.getuser()}-{uuid}"),
         )
 
     def __getitem__(self, idx):
@@ -254,14 +249,14 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--max-shards", type=int, default=None)
     parser.add_argument("-o", "--overwrite", action="store_true")
     args = parser.parse_args()
-    
+
     prepare_wids_meta(args.data_path)
 
     train_dataset = SimpleCoyoDataset(
         data_path=args.data_path,
         max_shards_to_load=args.max_shards,
     )
-    
+
     print(train_dataset[0])
     exit(0)
     print("overwrite:", args.overwrite)
