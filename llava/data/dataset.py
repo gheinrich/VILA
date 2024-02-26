@@ -1380,6 +1380,13 @@ class LazyCCSWebDataset(Dataset):
         return data_dict
 
 
+from functools import lru_cache
+
+@lru_cache(maxsize=16)
+def lru_json_load(fpath):
+    return json.load(open(fpath, "r"))
+    
+
 class LazyCoyoWebDataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is implemented by Ligeng Zhu."""
@@ -1407,7 +1414,7 @@ class LazyCoyoWebDataset(Dataset):
 
         # None: use original caption
         # Folder path: use original caption
-        self.caption_chocie = None
+        self.caption_choice = None
         self.data_path = data_path
 
         print("total samples", len(self.dataset))
@@ -1459,7 +1466,22 @@ class LazyCoyoWebDataset(Dataset):
                 print(info.keys())
                 print(info)
                 raise KeyError
-
+            
+            if self.caption_choice is not None:
+                # load new captions
+                shard = info["__shard__"]
+                url = info[".json"]["url"]
+                tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
+                # tar_name = osp.dirname(shard)
+                shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
+                shard_json = lru_json_load(shard_json_path)
+                # print("DEBUG:", shard, self.data_path, tar_name)
+                try:
+                    caption = shard_json[url]["output"]
+                except KeyError:
+                    print(f"{url} not in caption. fallback to original caption temporarially")
+                    
+                    
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -1473,6 +1495,7 @@ class LazyCoyoWebDataset(Dataset):
                 raise NotImplementedError
 
             image_list.append(image_path)
+
 
         image_list = torch.stack(
             [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
