@@ -1,4 +1,4 @@
-from llava.train import datasets_mixture
+from llava.data import datasets_mixture
 import pprint
 
 datasets_mixture.register_datasets_mixtures()
