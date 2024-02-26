@@ -12,16 +12,19 @@ echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
 bs=$((128 / n_node))
+
+bs=2
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
-    --model_name_or_path /home/jasonlu/models/llama-2-hf/llama-2-7b/ \
+    --model_name_or_path NousResearch/Llama-2-7b-hf \
     --version plain \
-    --data_mixture ccs_pretrained \
+    --data_mixture ccs_recap_wds \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp2x_gelu \
     --tune_mm_mlp_adapter True \
@@ -46,6 +49,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --tf32 True \
     --model_max_length 4096 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --report_to wandb

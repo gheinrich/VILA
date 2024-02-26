@@ -8,5 +8,6 @@ pip install -e .
 pip install -e ".[train]"
 
 pip install git+https://github.com/huggingface/transformers@v4.36.2
-cp -r ./llava/train/transformers_replace/* ~/anaconda3/envs/vila/lib/python3.10/site-packages/transformers/models/
+site_pkg_path=$(python -c "import site; print(site.getsitepackages()[0])")
+cp -rv ./llava/train/transformers_replace/* $site_pkg_path/transformers/models/
 

@@ -411,8 +411,8 @@ def train():
                     tokenizer=tokenizer,
                     args=training_args,
                     **data_module)
-    print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset))
-    print("before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024)
+    print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset), flush=True)
+    print("[GPU memory] before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024, flush=True)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
