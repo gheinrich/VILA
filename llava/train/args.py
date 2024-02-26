@@ -36,15 +36,12 @@ class DataArguments:
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
-    version: Optional[str] = field(default="v0")
-    freeze_backbone: bool = field(default=False)
-    tune_mm_mlp_adapter: bool = field(default=False)
     vision_tower: Optional[str] = field(default=None)
-    vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
-    pretrain_mm_mlp_adapter: Optional[str] = field(default=None)
+    version: Optional[str] = field(default="v0")
     vision_projector: Optional[str] = field(default="linear")
     mm_use_im_start_end: bool = field(default=False)
     mm_use_im_patch_token: bool = field(default=True)
+    vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
     vision_select_feature: Optional[str] = field(default="patch")
 
 
@@ -53,8 +50,10 @@ class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
     optim: str = field(default="adamw_torch")
     remove_unused_columns: bool = field(default=False)
-    freeze_mm_mlp_adapter: bool = field(default=False)
     mpt_attn_impl: Optional[str] = field(default="triton")
+    tune_vision_tower: bool = field(default=False)
+    tune_language_model: bool = field(default=False)
+    tune_vision_projector: bool = field(default=False)
     model_max_length: int = field(
         default=512,
         metadata={

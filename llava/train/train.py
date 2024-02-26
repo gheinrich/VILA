@@ -26,13 +26,8 @@ import torch
 import transformers
 
 from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
-from llava.constants import (
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-)
+from transformers.modeling_utils import unwrap_model
+
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
@@ -41,7 +36,7 @@ from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module, DataCollatorForSupervisedDataset
 from llava.model import *
 from llava.mm_utils import tokenizer_image_token
-from llava.train.utils import get_checkpoint_path, prepare_vision_config
+from llava.train.utils import get_checkpoint_path, prepare_vision_tower_config
 
 import math
 from peft import PeftModel
@@ -140,36 +135,6 @@ def find_all_linear_names(model):
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
     """Collects the state dict and dump to disk."""
-
-    if getattr(trainer.args, "tune_mm_mlp_adapter", False):
-        # Only save Adapter
-        keys_to_match = ["vision_projector"]
-        if getattr(trainer.args, "use_im_start_end", False):
-            keys_to_match.extend(["embed_tokens", "embed_in"])
-
-        weight_to_save = get_mm_adapter_state_maybe_zero_3(
-            trainer.model.named_parameters(), keys_to_match
-        )
-        trainer.model.config.save_pretrained(output_dir)
-
-        current_folder = output_dir.split("/")[-1]
-        parent_folder = os.path.dirname(output_dir)
-        if trainer.args.local_rank == 0 or trainer.args.local_rank == -1:
-            if current_folder.startswith("checkpoint-"):
-                vision_projector_folder = os.path.join(
-                    parent_folder, "vision_projector"
-                )
-                os.makedirs(vision_projector_folder, exist_ok=True)
-                torch.save(
-                    weight_to_save,
-                    os.path.join(vision_projector_folder, f"{current_folder}.bin"),
-                )
-            else:
-                torch.save(
-                    weight_to_save, os.path.join(output_dir, f"vision_projector.bin")
-                )
-        return
-
     if trainer.deepspeed:
         torch.cuda.synchronize()
         trainer.save_model(output_dir)
@@ -251,7 +216,7 @@ def train():
                 math.ceil(training_args.model_max_length / orig_ctx_len)
             )
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
-
+    
     resume_path = get_checkpoint_path(training_args.output_dir)
     if resume_path:
         resume_from_checkpoint = True
@@ -259,7 +224,8 @@ def train():
         config = AutoConfig.from_pretrained(
             model_args.model_name_or_path, trust_remote_code=True
         )
-        model_cls = config["architectures"][0]
+        config.resume_path = resume_path
+        model_cls = eval(config.architectures[0])
         torch.set_default_dtype(torch.bfloat16)
     else:
         ## first time training
@@ -295,11 +261,10 @@ def train():
             ## language model
             else:
                 model_cls = LlamaForCausalLM
+    ## TODO maybe move later to support increasing resolution
+    prepare_vision_tower_config(config, model_args)
 
-    prepare_vision_config(config, model_args)
-
-    ## config should be like: config[language_model_config, vision_config, vision_projector_config]
-
+    ## config should be like: config[vision_config, vision_projector_config]
     model = model_cls.from_pretrained(
         model_args.model_name_or_path,
         config=config,
@@ -311,14 +276,14 @@ def train():
 
     model.config.use_cache = False
     ## set tunnable parameters
-    if not model_args.tune_language_model:
-        model.model.requires_grad_(False)
-            
-    if not model_args.tune_mm_mlp_adapter:
-        model.vision_projector.requires_grad_(False)
+    if not training_args.tune_language_model:
+        model.get_model().requires_grad_(False)
+
+    if not training_args.tune_vision_projector:
+        model.get_model().get_vision_projector().requires_grad_(False)
 
     if not training_args.tune_vision_tower:
-        model.vision_tower.requires_grad_(False)
+        model.get_model().get_vision_tower().requires_grad_(False)
     ## quantize training
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
@@ -414,16 +379,8 @@ def train():
     if training_args.lora_enable:
         model.base_model.model.pad_token_id = tokenizer.pad_token_id
 
-    if model_args.vision_tower is not None:
-        model.get_model().initialize_vision_modules(
-            model_args=model_args, fsdp=training_args.fsdp
-        )
-
-        vision_tower = model.get_vision_tower()
-        vision_tower.to(
-            dtype=torch.bfloat16 if training_args.bf16 else torch.float16,
-            device=training_args.device,
-        )
+    vision_tower = model.get_vision_tower()
+    if vision_tower is not None:
 
         data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
@@ -431,20 +388,7 @@ def train():
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.tokenizer_padding_side = tokenizer.padding_side
         model.config.tokenizer_model_max_length = tokenizer.model_max_length
-
-        model.config.tune_mm_mlp_adapter = (
-            training_args.tune_mm_mlp_adapter
-        ) = model_args.tune_mm_mlp_adapter
-        if model_args.tune_mm_mlp_adapter:
-            model.requires_grad_(False)
-            for p in model.get_model().vision_projector.parameters():
-                p.requires_grad = True
-
-        model.config.freeze_mm_mlp_adapter = training_args.freeze_mm_mlp_adapter
-        if training_args.freeze_mm_mlp_adapter:
-            for p in model.get_model().vision_projector.parameters():
-                p.requires_grad = False
-
+        ## yunhao: do we need to keep this?
         if training_args.bits in [4, 8]:
             model.get_model().vision_projector.to(
                 dtype=compute_dtype, device=training_args.device

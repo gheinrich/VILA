@@ -146,7 +146,7 @@ class LlavaLlamaModel(LlamaModel):
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
                 if (
-                    config.vision_projector_type == "dsresampler"
+                    config.vision_projector == "dsresampler"
                 ):  # remove the original resampler
                     vision_tower.proj = nn.Parameter(
                         torch.eye(vision_tower.ln_pre.bias.numel())
@@ -189,8 +189,8 @@ class LlavaLlamaModel(LlamaModel):
 
         if hasattr(config, "use_mm_proj"):
             self.vision_projector = self._get_vision_projector(
-                config.vision_projector_type
-                if hasattr(config, "vision_projector_type")
+                config.vision_projector
+                if hasattr(config, "vision_projector")
                 else "linear",
                 config.vision_hidden_size,
                 config.hidden_size,
@@ -218,7 +218,7 @@ class LlavaLlamaModel(LlamaModel):
         self,
         vision_tower,
         vision_select_layer,
-        vision_projector_type,
+        vision_projector,
         pretrain_mm_mlp_adapter=None,
         fsdp=None,
     ):
@@ -244,9 +244,7 @@ class LlavaLlamaModel(LlamaModel):
                 )
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
-                if (
-                    vision_projector_type == "dsresampler"
-                ):  # remove the original resampler
+                if vision_projector == "dsresampler":  # remove the original resampler
                     vision_tower.proj = nn.Parameter(
                         torch.eye(vision_tower.ln_pre.bias.numel())
                         .to(vision_tower.proj.device)
@@ -319,11 +317,11 @@ class LlavaLlamaModel(LlamaModel):
         self.config.use_mm_proj = True
         self.config.vision_hidden_size = vision_config.hidden_size
         self.config.vision_select_layer = vision_select_layer
-        self.config.vision_projector_type = vision_projector_type
+        self.config.vision_projector = vision_projector
 
         if not hasattr(self, "vision_projector"):
             self.vision_projector = self._get_vision_projector(
-                vision_projector_type,
+                vision_projector,
                 vision_config.hidden_size,
                 self.config.hidden_size,
             )
@@ -351,7 +349,7 @@ class LlavaLlamaModel(LlamaModel):
         )
 
     def _get_vision_projector(
-        self, projector_type, vision_hidden_size, llm_hidden_size
+        self, vision_projector, vision_hidden_size, llm_hidden_size
     ):
         class TransformerN(nn.Module):
             def __init__(
@@ -570,20 +568,20 @@ class LlavaLlamaModel(LlamaModel):
         else:
             min_max_range = None
 
-        if projector_type == "linear":
+        if vision_projector == "linear":
             return nn.Linear(vision_hidden_size, llm_hidden_size)
-        elif projector_type == "linear2":
+        elif vision_projector == "linear2":
             return nn.Linear(vision_hidden_size * 2, llm_hidden_size)
-        elif projector_type == "linearproj":
+        elif vision_projector == "linearproj":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 TextualProjector(textual_centers),
             )
-        elif projector_type == "tf1":
+        elif vision_projector == "tf1":
             return TransformerN(self.config, 1)
-        elif projector_type == "tf3":
+        elif vision_projector == "tf3":
             return TransformerN(self.config, 3)
-        elif projector_type == "tf1p32":
+        elif vision_projector == "tf1p32":
             input_embeddings = self.get_input_embeddings().weight.data
             input_embeddings_avg = input_embeddings.mean(dim=0, keepdim=True).detach()
             return TransformerN(
@@ -592,7 +590,7 @@ class LlavaLlamaModel(LlamaModel):
                 n_prompt_token=32,
                 input_embeddings_avg=input_embeddings_avg,
             )
-        elif projector_type == "tf1p32clip":
+        elif vision_projector == "tf1p32clip":
             assert min_max_range is not None
 
             input_embeddings = self.get_input_embeddings().weight.data
@@ -607,7 +605,7 @@ class LlavaLlamaModel(LlamaModel):
                 ),
                 RangeClip(*min_max_range),
             )
-        elif projector_type == "tf1p32proj":
+        elif vision_projector == "tf1p32proj":
             assert min_max_range is not None
 
             input_embeddings = self.get_input_embeddings().weight.data
@@ -623,20 +621,20 @@ class LlavaLlamaModel(LlamaModel):
                 nn.Linear(llm_hidden_size, 32000),
                 TextualProjector(_embed.detach()),
             )
-        elif projector_type == "downsample":
+        elif vision_projector == "downsample":
             return Downsampler(vision_hidden_size, llm_hidden_size)
-        elif projector_type == "downsampleproj":
+        elif vision_projector == "downsampleproj":
             return Downsampler(
                 vision_hidden_size, llm_hidden_size, textual_centers=textual_centers
             )
-        elif projector_type == "mlpse":
+        elif vision_projector == "mlpse":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
                 nn.Linear(llm_hidden_size, llm_hidden_size),
                 StartEndAdder(_embed.device, _embed.dtype),
             )
-        elif projector_type == "mlpprojse":
+        elif vision_projector == "mlpprojse":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
@@ -644,14 +642,14 @@ class LlavaLlamaModel(LlamaModel):
                 StartEndAdder(_embed.device, _embed.dtype),
                 TextualProjector(textual_centers),
             )
-        elif projector_type == "mlpemb":
+        elif vision_projector == "mlpemb":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
                 nn.Linear(llm_hidden_size, min(32000, _embed.shape[0])),
                 TextualProjector(_embed.detach()[:32000]),
             )
-        elif projector_type == "downsampleprojse":
+        elif vision_projector == "downsampleprojse":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
@@ -659,7 +657,7 @@ class LlavaLlamaModel(LlamaModel):
                 StartEndAdder(_embed.device, _embed.dtype),
                 TextualProjector(textual_centers),
             )
-        elif projector_type == "dst1se":
+        elif vision_projector == "dst1se":
             return nn.Sequential(
                 DownsampleConv(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
@@ -667,7 +665,7 @@ class LlavaLlamaModel(LlamaModel):
                 StartEndAdder(_embed.device, _embed.dtype),
                 TextualProjector(textual_centers),
             )
-        elif projector_type == "dsprojse71":
+        elif vision_projector == "dsprojse71":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
@@ -675,19 +673,19 @@ class LlavaLlamaModel(LlamaModel):
                 StartEndAdder(_embed.device, _embed.dtype, n_start=7, n_end=1),
                 TextualProjector(textual_centers),
             )
-        elif projector_type == "linearsig":
+        elif vision_projector == "linearsig":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 TextualProjector(textual_centers, act="sigmoid"),
             )
-        elif projector_type == "linearclip":
+        elif vision_projector == "linearclip":
             # load min, max range
             assert min_max_range is not None
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 RangeClip(*min_max_range),
             )
-        elif projector_type == "linearmap":
+        elif vision_projector == "linearmap":
             # load min, max range
             assert min_max_range is not None
             return nn.Sequential(
@@ -695,7 +693,7 @@ class LlavaLlamaModel(LlamaModel):
                 RangeMap(*min_max_range),
             )
 
-        elif projector_type == "linearrepeat":
+        elif vision_projector == "linearrepeat":
 
             class Ch2Tok(nn.Module):
                 def forward(self, x):
@@ -706,24 +704,24 @@ class LlavaLlamaModel(LlamaModel):
                 nn.Linear(vision_hidden_size, llm_hidden_size * 2), Ch2Tok()
             )
 
-        elif projector_type == "dslinear":
+        elif vision_projector == "dslinear":
             return nn.Sequential(
                 FlatNeighbor4(),
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size),
             )
-        elif projector_type == "dssqlinear":
+        elif vision_projector == "dssqlinear":
             return nn.Sequential(
                 FlatSquare4(),
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size),
             )
-        elif projector_type == "dssqmlp":
+        elif vision_projector == "dssqmlp":
             return nn.Sequential(
                 FlatSquare4(),
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size * 2),
                 nn.SiLU(),
                 nn.Linear(llm_hidden_size * 2, llm_hidden_size),
             )
-        elif projector_type == "dssqmlpmap":
+        elif vision_projector == "dssqmlpmap":
             return nn.Sequential(
                 FlatSquare4(),
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size * 2),
@@ -731,7 +729,7 @@ class LlavaLlamaModel(LlamaModel):
                 nn.Linear(llm_hidden_size * 2, llm_hidden_size),
                 RangeMap(*min_max_range),
             )
-        elif projector_type == "dssqlinearrepeat":
+        elif vision_projector == "dssqlinearrepeat":
 
             class Repeat(nn.Module):
                 def forward(self, x):
@@ -743,7 +741,7 @@ class LlavaLlamaModel(LlamaModel):
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size),
                 Repeat(),
             )
-        elif projector_type == "dssqlinearrepeat2":
+        elif vision_projector == "dssqlinearrepeat2":
 
             class RepeatProj(nn.Module):
                 def __init__(self) -> None:
@@ -760,13 +758,13 @@ class LlavaLlamaModel(LlamaModel):
 
             return RepeatProj()
 
-        elif projector_type == "dssqlinearclip":
+        elif vision_projector == "dssqlinearclip":
             return nn.Sequential(
                 FlatSquare4(),
                 nn.Linear(vision_hidden_size * 4, llm_hidden_size),
                 RangeClip(*min_max_range),
             )
-        elif projector_type == "dssqlinearp32":
+        elif vision_projector == "dssqlinearp32":
             input_embeddings_avg = _embed.mean(dim=0, keepdim=True).detach()
             return nn.Sequential(
                 FlatSquare4(),
@@ -775,7 +773,7 @@ class LlavaLlamaModel(LlamaModel):
                 # RangeClip(*min_max_range),
             )
 
-        elif projector_type == "dssqlinearp32clip":
+        elif vision_projector == "dssqlinearp32clip":
             input_embeddings_avg = _embed.mean(dim=0, keepdim=True).detach()
             return nn.Sequential(
                 FlatSquare4(),
@@ -784,7 +782,7 @@ class LlavaLlamaModel(LlamaModel):
                 RangeClip(*min_max_range),
             )
 
-        elif projector_type == "dsds":
+        elif vision_projector == "dsds":
             # class ProjDebugger(nn.Module):
             #     def forward(self, x):
             #         print(x.shape)
@@ -810,19 +808,19 @@ class LlavaLlamaModel(LlamaModel):
                 nn.Linear(llm_hidden_size, llm_hidden_size),
             )
 
-        elif projector_type == "dsresampler":
+        elif vision_projector == "dsresampler":
             from llava.model.resampler import DSResampler
 
             return nn.Sequential(
                 DSResampler(),
                 nn.Linear(4096, llm_hidden_size),
             )
-        elif projector_type == "dsresampler144":
+        elif vision_projector == "dsresampler144":
             from llava.model.resampler import Resampler
 
             return Resampler()
 
-        elif projector_type == "mlp2x_gelu":
+        elif vision_projector == "mlp2x_gelu":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
                 nn.GELU(),
@@ -912,9 +910,9 @@ class LlavaLlamaModel(LlamaModel):
                     image_features
                 ).uniform_(-mag_norm, mag_norm)
 
-            if self.config.vision_projector_type == "dsresampler":
+            if self.config.vision_projector == "dsresampler":
                 dummy_feat_shape = (1, 1024, 1664)
-            elif self.config.vision_projector_type == "linear2":
+            elif self.config.vision_projector == "linear2":
                 dummy_feat_shape = (1, 256, self.config.vision_hidden_size * 2)
             else:
                 dummy_feat_shape = (1, 256, self.config.vision_hidden_size)

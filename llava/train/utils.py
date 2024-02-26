@@ -1,6 +1,7 @@
 import os
 import pathlib
-
+from dataclasses import dataclass
+from transformers import PretrainedConfig
 
 def rprint(*args, **kwargs):
     rank = int(os.environ.get("RANK", 0))
@@ -39,14 +40,12 @@ def get_checkpoint_path(output_dir: str) -> str | None:
         except:
             return None
 
-def prepare_vision_config(config, model_args):
-    if getattr(config, "vision_config", None) and model_args.vision_tower:
+def prepare_vision_tower_config(config: PretrainedConfig, model_args: dataclass) -> None:
+    config.vision_select_layer = model_args.vision_select_layer
+    config.vision_select_feature = model_args.vision_select_feature
+    
+    if getattr(config, "vision_tower_config", None) is None and model_args.vision_tower:
         ## set vision configurations
         config.vision_tower = model_args.vision_tower
-        config.vision_select_layer = model_args.vision_select_layer
-        config.vision_select_feature = model_args.vision_select_feature
-        
-        try:
-            config.vision_projector = model_args.vision_projector
-        except:
-            raise ValueError("vision_projector is not defined in model_args")
+        ## set vision projector configurations
+        config.vision_projector = model_args.vision_projector
