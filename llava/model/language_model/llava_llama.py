@@ -42,71 +42,21 @@ from ..multimodal_projector.builder import build_vision_projector
 
 class LlavaConfig(LlamaConfig):
     model_type = "llava_llama"
+    vision_hidden_size = None
     vision_tower_config = None
     vision_projector_config = None
 
 
-class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
+class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
     config_class = LlavaConfig
 
-    def __init__(self, config: LlamaConfig) -> None:
-        super(LlavaMetaModel, self).__init__(config)
+    def __init__(self, config: LlavaConfig) -> None:
         super(LlavaLlamaModel, self).__init__(config)
-
+        ## TODO add arguments to support high resolution
         self.vision_tower = build_vision_tower(config)
+        config.vision_hidden_size = self.vision_tower.config.hidden_size
         self.vision_projector = build_vision_projector(config)
-
-        ## TODO handle config and self.config
-        if getattr(self.config, "vision_config", None):
-            self.config.vision_config = self.vision_tower.config
-            self.config.vision_projector_config = self.vision_projector.config
-
-        ## set multimodal configurations
-        self.config.vision_hidden_size = self.vision_tower.hidden_size
-
-    def get_vision_tower(self):
-        vision_tower = getattr(self, "vision_tower", None)
-        if type(vision_tower) is list:
-            vision_tower = vision_tower[0]
-        return vision_tower
-
-    def initialize_vision_modules(self, model_args, fsdp=None):
-        if self.get_vision_tower() is None:
-            vision_tower = build_vision_tower(model_args)
-
-            if fsdp is not None and len(fsdp) > 0:
-                self.vision_tower = [vision_tower]
-            else:
-                self.vision_tower = vision_tower
-        else:
-            if fsdp is not None and len(fsdp) > 0:
-                vision_tower = self.vision_tower[0]
-            else:
-                vision_tower = self.vision_tower
-            vision_tower.load_model()
-
-        ## TODO make projector classes
-        if pretrain_mm_mlp_adapter is not None:
-            vision_projector_weights = torch.load(
-                pretrain_mm_mlp_adapter, map_location="cpu"
-            )
-
-            def get_w(weights, keyword):
-                return {
-                    k.split(keyword + ".")[1]: v
-                    for k, v in weights.items()
-                    if keyword in k
-                }
-
-            try:
-                self.vision_projector.load_state_dict(
-                    get_w(vision_projector_weights, "vision_projector")
-                )
-            except:
-                # Haotian: workaround
-                # The shape of vision_projector's weights can be all [0]s
-                pass
-
+        self._post_init()
 
 class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     """This class is originally implemented by the LLaVA team and
@@ -127,6 +77,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
     def get_model(self):
         return self.model
+    
 
     def forward(
         self,

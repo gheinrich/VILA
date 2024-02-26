@@ -30,6 +30,24 @@ from llava.constants import (
     DEFAULT_IM_END_TOKEN,
 )
 
+class LlavaMetaModel(ABC):
+    def get_vision_tower(self):
+        vision_tower = getattr(self, "vision_tower", None)
+        if type(vision_tower) is list:
+            vision_tower = vision_tower[0]
+        return vision_tower
+
+    def get_vision_projector(self):
+        vision_projector = getattr(self, "vision_projector", None)
+        if type(vision_projector) is list:
+            vision_projector = vision_projector[0]
+        return vision_projector
+    
+    def _post_init(self):
+        if self.config.vision_tower_config is None:
+            self.config.vision_tower_config = self.vision_tower.config
+            ## TODO make vision_projector class
+            # self.config.vision_projector_config = self.vision_projector.config
 
 class LlavaMetaForCausalLM(ABC):
     """This class is originally implemented by the LLaVA team and
@@ -443,7 +461,7 @@ class LlavaMetaForCausalLM(ABC):
                     p.requires_grad = True
                 for p in self.get_output_embeddings().parameters():
                     p.requires_grad = False
-
+            ## TODO modify the logic here
             if model_args.pretrain_mm_mlp_adapter:
                 vision_projector_weights = torch.load(
                     model_args.pretrain_mm_mlp_adapter, map_location="cpu"

@@ -21,7 +21,7 @@ import torch
 
 from torch.utils.data import ConcatDataset, DistributedSampler, RandomSampler, Sampler
 
-from transformers import Trainer
+from transformers import Trainer, PreTrainedModel
 from transformers.trainer import (
     is_sagemaker_mp_enabled,
     get_parameter_names,
@@ -30,6 +30,9 @@ from transformers.trainer import (
     # ShardedDDPOption,
     logger,
 )
+from transformers.modeling_utils import unwrap_model
+
+
 from typing import List, Optional
 
 
@@ -487,37 +490,17 @@ class LLaVATrainer(Trainer):
                     logger.info(f"skipped: {skipped/2**20}M params")
 
         return self.optimizer
-
-    def _save_checkpoint(self, model, trial, metrics=None):
-        if getattr(self.args, "tune_mm_mlp_adapter", False):
-            from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
-
-            checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
-
-            run_dir = self._get_output_dir(trial=trial)
-            output_dir = os.path.join(run_dir, checkpoint_folder)
-
-            # Only save Adapter
-            keys_to_match = ["vision_projector", "vision_resampler"]
-            if getattr(self.args, "use_im_start_end", False):
-                keys_to_match.extend(["embed_tokens", "embed_in"])
-
-            weight_to_save = get_mm_adapter_state_maybe_zero_3(
-                self.model.named_parameters(), keys_to_match
-            )
-
-            if self.args.local_rank == 0 or self.args.local_rank == -1:
-                self.model.config.save_pretrained(output_dir)
-                torch.save(
-                    weight_to_save, os.path.join(output_dir, f"vision_projector.bin")
-                )
-        else:
-            super(LLaVATrainer, self)._save_checkpoint(model, trial, metrics)
-
-    def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        if getattr(self.args, "tune_mm_mlp_adapter", False):
-            pass
-        else:
-            super(LLaVATrainer, self)._save(output_dir, state_dict)
     
-    ## TODO modify save_checkpoints to save all configs
+    ## Image Processor is always the same, but keep a method for potential saving need
+    def save_extra(self, model: PreTrainedModel, output_dir: Optional[str] = None):
+        unwrapped_model = unwrap_model(model)
+        if getattr(unwrapped_model.config,"vision_tower_config", None) is not None:
+            try:
+                unwrapped_model.model.vision_tower.image_processor.save_pretrained(output_dir)
+            except:
+                raise ValueError("Failed to save image processor")
+    
+    def _save(self, output_dir: Optional[str] = None, state_dict=None):
+        self.save_extra(self.model, output_dir)
+        super(LLaVATrainer, self)._save(output_dir, state_dict)
+    
