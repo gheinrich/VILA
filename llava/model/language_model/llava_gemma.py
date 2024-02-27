@@ -19,8 +19,8 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from transformers import AutoConfig, AutoModelForCausalLM, \
-                         GemmaConfig, GemmaModel, GemmaForCausalLM
+from transformers import AutoConfig, AutoModelForCausalLM
+from transformers.models.gemma import GemmaConfig, GemmaModel, GemmaForCausalLM
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from llava.constants import IGNORE_INDEX
@@ -64,13 +64,12 @@ class LlavaGemmaForCausalLM(GemmaForCausalLM, LlavaMetaForCausalLM):
         inputs_embeds: Optional[torch.FloatTensor] = None,
         labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
+        cache_position: Optional[torch.LongTensor] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         images: Optional[torch.FloatTensor] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-        # kentang-mit@: input preprocessing is relatively fast.
-        # st = time.time()
         if inputs_embeds is None:
             (
                 input_ids,
@@ -108,6 +107,7 @@ class LlavaGemmaForCausalLM(GemmaForCausalLM, LlavaMetaForCausalLM):
             )
             new_input_ids = None
             past_key_values = None
+            new_cache_position = None
         else:
             new_attention_mask = attention_mask
             new_position_ids = position_ids
@@ -118,10 +118,17 @@ class LlavaGemmaForCausalLM(GemmaForCausalLM, LlavaMetaForCausalLM):
             else:
                 sorted_seqlens_in_batch = None
             new_input_ids = input_ids
-        # ed = time.time()
-        # print(inputs_embeds.device, "preparation time:", ed - st, "s.")
+            # kentang-mit@: This only works for batch=1 currently
+            # model.generate of gemma does not correctly handle decoding stage currently
+            # need to manually adjust decoding stage input = 1 token
+            if past_key_values is not None:
+                if new_inputs_embeds is not None:
+                    new_inputs_embeds = new_inputs_embeds[:, [-1]]
+                # kentang-mit@: seems to be a problem unique to gemma
+                if new_position_ids is not None:
+                    new_position_ids = new_position_ids[:, [-1]]
+            new_cache_position = new_position_ids[0]
 
-        #st = time.time()
         outputs = super().forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,
@@ -130,13 +137,12 @@ class LlavaGemmaForCausalLM(GemmaForCausalLM, LlavaMetaForCausalLM):
             inputs_embeds=new_inputs_embeds,
             labels=new_labels,
             use_cache=use_cache,
+            cache_position=new_cache_position,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             seqlens_in_batch=sorted_seqlens_in_batch,
         )
-        #ed = time.time()
-        #print(inputs_embeds.device, "model time:", ed - st, "s.")
         return outputs
 
     def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):

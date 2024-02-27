@@ -110,6 +110,11 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
                 # config._attn_implementation = "flash_attention_2"
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
                 model = LlavaMistralForCausalLM.from_pretrained(model_path, config=config, low_cpu_mem_usage=True, **kwargs)
+            elif 'gemma' in model_name.lower():
+                config = AutoConfig.from_pretrained(model_path)
+                # config._attn_implementation = "flash_attention_2"
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
+                model = LlavaGemmaForCausalLM.from_pretrained(model_path, config=config, low_cpu_mem_usage=True, **kwargs)
             else:
                 # kentang-mit@: llama-2 model
                 config = LlamaConfig.from_pretrained(model_path)
