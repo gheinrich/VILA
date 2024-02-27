@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path ./checkpoints/vila-vicuna-7b-coyo-mmc4 \
     --version v1 \
-    --data_mixture vflan_sharegpt4v_sft \
+    --data_mixture vflan+sharegpt4v_sft \
     --vision_tower radio:432:/lustre/fs6/portfolios/llmservice/users/mranzinger/output/evfm/ohem/2-8-24_vit-h-16_baseline/checkpoints/checkpoint-46.pth.tar \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \

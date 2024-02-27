@@ -3,7 +3,7 @@ conda activate vila
 which python
 
 
-cd ~/workspace/multi-modality-research/VILA/
+cd ~/workspace/VILA-Internal
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -21,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     llava/train/train_mem.py \
     --model_name_or_path ./checkpoints/mistral-7b-clip336-finetune-mmc4sub+coyo+sharegpt4v-linear-e1 \
     --version v1 \
-    --datasets_mixture_name vflan_sharegpt4v_sft \
+    --datasets_mixture_name vflan+sharegpt4v_sft \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type linear \
     --mm_vision_select_layer -2 \

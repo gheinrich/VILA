@@ -5,7 +5,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
+cd ~/workspace/VILA-Internal
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export DECORD_DUPLICATE_WARNING_THRESHOLD=1.0
