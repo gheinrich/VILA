@@ -319,14 +319,14 @@ class LlavaMetaForCausalLM(ABC):
         new_position_ids = torch.nn.utils.rnn.pad_sequence(
             new_position_ids,
             batch_first=True,
-            padding_value=IGNORE_INDEX)
+            padding_value=-1)
         
         new_labels = torch.nn.utils.rnn.pad_sequence(
             new_labels,
             batch_first=True,
             padding_value=IGNORE_INDEX)
-        
-        new_attention_mask = new_position_ids.ne(IGNORE_INDEX)
+        ## yunhao: it's currently a workaround to avoid errors for seq_len < 100
+        new_attention_mask = new_position_ids.ne(-1)
         # sanity check
         assert new_attention_mask.sum() == attention_mask.sum()
         # print(new_inputs_embeds.shape, (new_attention_mask.sum(1)))
