@@ -2,6 +2,7 @@
 # https://github.com/MMMU-Benchmark/MMMU
 from random import random
 import torch
+from llava.mm_utils import is_gemma_tokenizer, KeywordsStoppingCriteria
 
 def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
     from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
@@ -44,6 +45,9 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
     prompt = conv.get_prompt()
     input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
     image = sample['image']
+    stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+    keywords = [stop_str]
+    stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None
     if image is not None:
         output_ids = model.generate(
             input_ids,
@@ -53,7 +57,8 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
             top_p=None,
             num_beams=5,
             max_new_tokens=128,
-            use_cache=True)
+            use_cache=True,
+            stopping_criteria=stopping_criteria,)
 
         input_token_len = input_ids.shape[1]
         n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()

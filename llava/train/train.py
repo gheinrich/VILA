@@ -285,6 +285,17 @@ def train():
     model.config.use_cache = False
     if model_args.freeze_backbone:
         model.model.requires_grad_(False)
+    
+    def need_to_modify_do_sample(generation_config):
+        if generation_config.do_sample is False:
+            if generation_config.temperature is not None and generation_config.temperature != 1.0:
+                return True
+            if generation_config.top_p is not None and generation_config.top_p != 1.0:
+                return True
+        return False
+    
+    if need_to_modify_do_sample(model.generation_config):
+        model.generation_config.do_sample = True
 
     if training_args.bits in [4, 8]:
         from peft import prepare_model_for_kbit_training
@@ -411,8 +422,8 @@ def train():
                     tokenizer=tokenizer,
                     args=training_args,
                     **data_module)
-    print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset))
-    print("before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024)
+    print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset), flush=True)
+    print("[GPU memory] before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024, flush=True)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)

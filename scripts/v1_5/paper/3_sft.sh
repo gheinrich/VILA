@@ -4,7 +4,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA
+cd ~/workspace/VILA-Internal
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path ./checkpoints/vila-llama2-7b-256gpus-mmc4-coyo \
     --version v1 \
-    --data_mixture vflan_sharegpt4v_sft \
+    --data_mixture vflan+sharegpt4v_sft \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \

@@ -4,7 +4,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA
+cd ~/workspace/VILA-Internal
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -21,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version plain \
-    --data_mixture ccs_pretrained \
+    --data_mixture ccs_recaptioned \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector_type mlp2x_gelu \
     --tune_mm_mlp_adapter True \

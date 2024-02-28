@@ -17,6 +17,9 @@ import os, os.path as osp
 import base64
 import copy
 import llava.data.datasets_mixture as datasets_mixture
+
+import PIL
+from llava.data.datasets_mixture import DATASETS
 from dataclasses import dataclass, field
 import io
 import numpy as np
@@ -30,11 +33,18 @@ from typing import Dict, Optional, Sequence, List
 import re
 
 import torch
-#torch.backends.cudnn.enabled = False
+
+# torch.backends.cudnn.enabled = False
 
 import transformers
 
-from llava.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from llava.constants import (
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+    DEFAULT_IMAGE_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IM_END_TOKEN,
+)
 from torch.utils.data import ConcatDataset, Dataset
 from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, DataArguments
@@ -55,9 +65,7 @@ from PIL import Image
 #         print(*args)
 
 
-
-def _tokenize_fn(strings: Sequence[str],
-                 tokenizer: transformers.PreTrainedTokenizer) -> Dict:
+def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedTokenizer) -> Dict:
     """Tokenize a list of strings."""
     tokenized_list = [
         tokenizer(
@@ -66,14 +74,12 @@ def _tokenize_fn(strings: Sequence[str],
             padding="longest",
             max_length=tokenizer.model_max_length,
             truncation=True,
-        ) for text in strings
+        )
+        for text in strings
     ]
-    input_ids = labels = [
-        tokenized.input_ids[0] for tokenized in tokenized_list
-    ]
+    input_ids = labels = [tokenized.input_ids[0] for tokenized in tokenized_list]
     input_ids_lens = labels_lens = [
-        tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item()
-        for tokenized in tokenized_list
+        tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item() for tokenized in tokenized_list
     ]
     return dict(
         input_ids=input_ids,
@@ -90,7 +96,7 @@ def _mask_targets(target, tokenized_lens, speakers):
     target[:cur_idx] = IGNORE_INDEX
     for tokenized_len, speaker in zip(tokenized_lens, speakers):
         if speaker == "human":
-            target[cur_idx+2:cur_idx + tokenized_len] = IGNORE_INDEX
+            target[cur_idx + 2 : cur_idx + tokenized_len] = IGNORE_INDEX
         cur_idx += tokenized_len
 
 
@@ -106,31 +112,29 @@ def _add_speaker_and_signal(header, source, get_conversation=True):
         elif from_str.lower() == "gpt":
             from_str = conversation_lib.default_conversation.roles[1]
         else:
-            from_str = 'unknown'
-        sentence["value"] = (BEGIN_SIGNAL + from_str + ": " +
-                             sentence["value"] + END_SIGNAL)
+            from_str = "unknown"
+        sentence["value"] = BEGIN_SIGNAL + from_str + ": " + sentence["value"] + END_SIGNAL
         if get_conversation:
             conversation += sentence["value"]
     conversation += BEGIN_SIGNAL
     return conversation
 
 
-def preprocess_multimodal(
-    sources: Sequence[str],
-    data_args: DataArguments
-) -> Dict:
+def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> Dict:
     is_multimodal = data_args.is_multimodal
     if not is_multimodal:
         return sources
 
     for source in sources:
         for sentence in source:
-            if DEFAULT_IMAGE_TOKEN in sentence['value']:
-                sentence['value'] = sentence['value'].replace(DEFAULT_IMAGE_TOKEN, '').strip()
-                sentence['value'] = DEFAULT_IMAGE_TOKEN + '\n' + sentence['value']
-                sentence['value'] = sentence['value'].strip()
+            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, "").strip()
+                sentence["value"] = DEFAULT_IMAGE_TOKEN + "\n" + sentence["value"]
+                sentence["value"] = sentence["value"].strip()
                 if "mmtag" in conversation_lib.default_conversation.version:
-                    sentence['value'] = sentence['value'].replace(DEFAULT_IMAGE_TOKEN, '<Image>' + DEFAULT_IMAGE_TOKEN + '</Image>')
+                    sentence["value"] = sentence["value"].replace(
+                        DEFAULT_IMAGE_TOKEN, "<Image>" + DEFAULT_IMAGE_TOKEN + "</Image>"
+                    )
             replace_token = DEFAULT_IMAGE_TOKEN
             if data_args.mm_use_im_start_end:
                 replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
@@ -166,7 +170,9 @@ def preprocess_llama_2(
     # print(f"{conversations[0]}")
 
     if has_image:
-        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations], dim=0)
+        input_ids = torch.stack(
+            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+        )
     else:
         input_ids = tokenizer(
             conversations,
@@ -178,7 +184,10 @@ def preprocess_llama_2(
 
     targets = input_ids.clone()
 
-    assert conv.sep_style == conversation_lib.SeparatorStyle.LLAMA_2 or conv.sep_style == conversation_lib.SeparatorStyle.MISTRAL
+    assert (
+        conv.sep_style == conversation_lib.SeparatorStyle.LLAMA_2
+        or conv.sep_style == conversation_lib.SeparatorStyle.MISTRAL
+    )
 
     # Mask targets
     if is_mistral:
@@ -215,10 +224,7 @@ def preprocess_llama_2(
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}." f" (ignored)")
 
     return dict(
         input_ids=input_ids,
@@ -254,7 +260,9 @@ def preprocess_v1(
     # Tokenize conversations
 
     if has_image:
-        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations], dim=0)
+        input_ids = torch.stack(
+            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+        )
     else:
         input_ids = tokenizer(
             conversations,
@@ -288,13 +296,13 @@ def preprocess_v1(
             if has_image:
                 round_len = len(tokenizer_image_token(rou, tokenizer))
                 instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 2
-                if i > 0 and is_gemma_tokenizer(tokenizer):
+                if i > 0 and not is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
-                if i > 0 and is_gemma_tokenizer(tokenizer):
+                if i > 0 and not is_gemma_tokenizer(tokenizer):
                     round_len = round_len - 1
                     instruction_len = instruction_len - 1
 
@@ -306,10 +314,7 @@ def preprocess_v1(
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}." f" (ignored)")
 
     return dict(
         input_ids=input_ids,
@@ -339,7 +344,9 @@ def preprocess_mpt(
         conversations.append(conv.get_prompt())
 
     # Tokenize conversations
-    input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations], dim=0)
+    input_ids = torch.stack(
+        [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+    )
     targets = input_ids.clone()
     assert conv.sep_style == conversation_lib.SeparatorStyle.MPT
 
@@ -349,9 +356,9 @@ def preprocess_mpt(
         total_len = int(target.ne(tokenizer.pad_token_id).sum())
 
         rounds = conversation.split(conv.sep)
-        re_rounds = [conv.sep.join(rounds[:3])] # system + user + gpt
+        re_rounds = [conv.sep.join(rounds[:3])]  # system + user + gpt
         for conv_idx in range(3, len(rounds), 2):
-            re_rounds.append(conv.sep.join(rounds[conv_idx:conv_idx+2]))    # user + gpt
+            re_rounds.append(conv.sep.join(rounds[conv_idx : conv_idx + 2]))  # user + gpt
         cur_len = 0
         target[:cur_len] = IGNORE_INDEX
         for i, rou in enumerate(re_rounds):
@@ -372,10 +379,7 @@ def preprocess_mpt(
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}." f" (ignored)")
 
     return dict(
         input_ids=input_ids,
@@ -391,15 +395,15 @@ def preprocess_plain(
     conversations = []
     for source in sources:
         assert len(source) == 2
-        assert DEFAULT_IMAGE_TOKEN in source[0]['value']
-        source[0]['value'] = DEFAULT_IMAGE_TOKEN
-        conversation = source[0]['value'] + source[1]['value'] + conversation_lib.default_conversation.sep
+        assert DEFAULT_IMAGE_TOKEN in source[0]["value"]
+        source[0]["value"] = DEFAULT_IMAGE_TOKEN
+        conversation = source[0]["value"] + source[1]["value"] + conversation_lib.default_conversation.sep
         conversations.append(conversation)
     # tokenize conversations
-    input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations]
+    input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations]
     targets = copy.deepcopy(input_ids)
     for target, source in zip(targets, sources):
-        tokenized_len = len(tokenizer_image_token(source[0]['value'], tokenizer))
+        tokenized_len = len(tokenizer_image_token(source[0]["value"], tokenizer))
         target[:tokenized_len] = IGNORE_INDEX
 
     return dict(input_ids=input_ids, labels=targets)
@@ -409,7 +413,7 @@ def preprocess(
     sources: Sequence[str],
     tokenizer: transformers.PreTrainedTokenizer,
     has_image: bool = False,
-    no_system_prompt: bool = False, # only work for v1
+    no_system_prompt: bool = False,  # only work for v1
 ) -> Dict:
     """
     Given a list of sources, each is a conversation list. This transform:
@@ -434,12 +438,13 @@ def preprocess(
         header = f"{conversation_lib.default_conversation.system}\n\n"
         conversation = _add_speaker_and_signal(header, source)
         conversations.append(conversation)
+
     # tokenize conversations
     def get_tokenize_len(prompts):
         return [len(tokenizer_image_token(prompt, tokenizer)) for prompt in prompts]
 
     if has_image:
-        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations]
+        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations]
     else:
         conversations_tokenized = _tokenize_fn(conversations, tokenizer)
         input_ids = conversations_tokenized["input_ids"]
@@ -462,11 +467,14 @@ class LazySupervisedDataset(Dataset):
     Ji Lin and Haotian Tang.
     """
 
-    def __init__(self, data_path: str,
-                 image_folder: str,
-                 tokenizer: transformers.PreTrainedTokenizer,
-                 data_args: DataArguments,
-                 training_args: TrainingArguments):
+    def __init__(
+        self,
+        data_path: str,
+        image_folder: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        data_args: DataArguments,
+        training_args: TrainingArguments,
+    ):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
 
@@ -484,27 +492,27 @@ class LazySupervisedDataset(Dataset):
     def lengths(self):
         length_list = []
         for sample in self.list_data_dict:
-            img_tokens = 128 if 'image' in sample else 0
-            length_list.append(sum(len(conv['value'].split()) for conv in sample['conversations']) + img_tokens)
+            img_tokens = 128 if "image" in sample else 0
+            length_list.append(sum(len(conv["value"].split()) for conv in sample["conversations"]) + img_tokens)
         return length_list
 
     @property
     def modality_lengths(self):
         length_list = []
         for sample in self.list_data_dict:
-            cur_len = sum(len(conv['value'].split()) for conv in sample['conversations'])
-            cur_len = cur_len if 'image' in sample else -cur_len
+            cur_len = sum(len(conv["value"].split()) for conv in sample["conversations"])
+            cur_len = cur_len if "image" in sample else -cur_len
             length_list.append(cur_len)
         return length_list
-    
+
     @staticmethod
     def _process_image(image_file, data_args, image_folder, resize=False):
         processor = data_args.image_processor
         if isinstance(image_file, str):
             if image_folder is not None:
-                image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+                image = Image.open(os.path.join(image_folder, image_file)).convert("RGB")
             else:
-                image = Image.open(image_file).convert('RGB')
+                image = Image.open(image_file).convert("RGB")
         else:
             # image is stored in bytearray
             image = image_file
@@ -516,8 +524,9 @@ class LazySupervisedDataset(Dataset):
                 # SIGLIP vision tower
                 assert hasattr(data_args.image_processor, "size")
                 crop_size = data_args.image_processor.size
-            image = image.resize((crop_size['height'], crop_size['width']))
-        if data_args.image_aspect_ratio == 'pad':
+            image = image.resize((crop_size["height"], crop_size["width"]))
+        if data_args.image_aspect_ratio == "pad":
+
             def expand2square(pil_img, background_color):
                 width, height = pil_img.size
                 if width == height:
@@ -530,10 +539,11 @@ class LazySupervisedDataset(Dataset):
                     result = Image.new(pil_img.mode, (height, height), background_color)
                     result.paste(pil_img, ((height - width) // 2, 0))
                     return result
-            image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
-            image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+
+            image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+            image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         else:
-            image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+            image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         return image
 
     @staticmethod
@@ -556,7 +566,7 @@ class LazySupervisedDataset(Dataset):
             indices = torch.floor(torch.arange(0, num_frames, step)).long()
             video_outputs = video_outputs[:, indices, :, :]
         except Exception as e:
-            print(f'bad data path {video_path}')
+            print(f"bad data path {video_path}")
             print(f"Error processing {video_path}: {e}")
             video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
 
@@ -567,49 +577,42 @@ class LazySupervisedDataset(Dataset):
         image_tensor[:, :, :, :] = video_frames
 
         return image_tensor
-    
+
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
-        if 'image' in sources[0]:
-            image_file = self.list_data_dict[i]['image']
+        if "image" in sources[0]:
+            image_file = self.list_data_dict[i]["image"]
             image = self._process_image(image_file, self.data_args, self.image_folder)
-            sources = preprocess_multimodal(
-                copy.deepcopy([e["conversations"] for e in sources]),
-                self.data_args)
+            sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         elif ("video" in sources[0]) or ("video_id" in sources[0]):
             num_video_frames = 8
             if "video" in sources[0]:
-                video_file = sources[0]['video']
+                video_file = sources[0]["video"]
             else:
-                video_file = sources[0]['video_id'] + '.mp4'
+                video_file = sources[0]["video_id"] + ".mp4"
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
             image_tensor = self._load_video(video_path, num_video_frames, self.data_args)
             processor = self.data_args.image_processor
-            
-            image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
+
+            image_tensor = [
+                processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+                for image in torch.unbind(image_tensor)
+            ]
             image_tensor = torch.stack(image_tensor)
 
             if "video" in sources[0]:
-                question = sources[0]['conversations'][0]["value"].rstrip()
-                answer = sources[0]['conversations'][1]["value"].rstrip()
+                question = sources[0]["conversations"][0]["value"].rstrip()
+                answer = sources[0]["conversations"][1]["value"].rstrip()
             else:
-                question = sources[0]['q']
-                answer = sources[0]['a']
+                question = sources[0]["q"]
+                answer = sources[0]["a"]
 
-            question = (
-                question.replace("<image>\n", "")
-                .replace("\n<image>", "")
-                .replace("<image>", "")
-            )
-            question = (
-                question.replace("<video>\n", "")
-                .replace("\n<video>", "")
-                .replace("<video>", "")
-            )
+            question = question.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
+            question = question.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
             question = "<image>\n" * num_video_frames + question
             conversation = [
                 {"from": "human", "value": question},
@@ -619,17 +622,13 @@ class LazySupervisedDataset(Dataset):
             sources = [conversation]
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
-        data_dict = preprocess(
-            sources,
-            self.tokenizer,
-            has_image=('image' in self.list_data_dict[i]))
+        data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
         if isinstance(i, int):
-            data_dict = dict(input_ids=data_dict["input_ids"][0],
-                             labels=data_dict["labels"][0])
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 
         # image exist in the data
-        if 'image' in self.list_data_dict[i]:
-            data_dict['image'] = image.unsqueeze(0)
+        if "image" in self.list_data_dict[i]:
+            data_dict["image"] = image.unsqueeze(0)
         elif ("video" in self.list_data_dict[i]) or ("video_id" in self.list_data_dict[i]):
             data_dict["image"] = image_tensor
         else:
@@ -638,13 +637,14 @@ class LazySupervisedDataset(Dataset):
             # crop_size = self.data_args.image_processor.crop_size
             # data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
             # vila way
-            data_dict['image'] = None
+            data_dict["image"] = None
         return data_dict
 
 
 class LazyMMC4Dataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is implemented by Ji Lin and Haotian Tang."""
+
     num_image_tokens = 576
 
     def __init__(
@@ -665,24 +665,16 @@ class LazyMMC4Dataset(Dataset):
         # actually shards and stats info
         n_shards = len(os.listdir(data_path)) // 2
         # n_shards = 100
-        count_info_list = sorted(
-            [f for f in os.listdir(data_path) if f.endswith(".count")]
-        )[:n_shards]
-        n_samples = [
-            int(open(os.path.join(data_path, f), "r").read().strip())
-            for f in count_info_list
-        ]
+        count_info_list = sorted([f for f in os.listdir(data_path) if f.endswith(".count")])[:n_shards]
+        n_samples = [int(open(os.path.join(data_path, f), "r").read().strip()) for f in count_info_list]
 
         print("total MMC4 samples", sum(n_samples))  # 10,881,869
 
-        rank = training_args.process_index # int(os.environ["RANK"])
-        world_size = training_args.world_size # int(os.environ["WORLD_SIZE"])
+        rank = training_args.process_index  # int(os.environ["RANK"])
+        world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
 
-        gpu_samples = [
-            sum(n_samples[i * shared_size : (i + 1) * shared_size])
-            for i in range(world_size)
-        ]
+        gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) for i in range(world_size)]
         self.n_samples = min(gpu_samples) * world_size  # total size
         self.idx_offset = rank * min(gpu_samples)
         shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
@@ -714,7 +706,7 @@ class LazyMMC4Dataset(Dataset):
     def __len__(self):
         # return len(self.data_list)
         return self.n_samples
-    
+
     @property
     def modality_lengths(self):
         # Estimate the number of tokens after tokenization, used for length-grouped sampling
@@ -722,7 +714,7 @@ class LazyMMC4Dataset(Dataset):
         for info in self.data_list:
             num_images = min(6, len(info["image_info"]))
             sentences = [info["text_list"][x["matched_text_index"]] for x in info["image_info"][:num_images]]
-            # The unit of cur_len is "words". We assume 1 word = 2 tokens. 
+            # The unit of cur_len is "words". We assume 1 word = 2 tokens.
             cur_len = num_images * self.num_image_tokens // 2 + sum([len(x) for x in sentences])
             length_list.append(cur_len)
         return length_list
@@ -782,10 +774,7 @@ class LazyMMC4Dataset(Dataset):
 
         if len(images) > 0:
             images = torch.stack(
-                [
-                    LazySupervisedDataset._process_image(image, self.data_args, self.image_folder)
-                    for image in images
-                ]
+                [LazySupervisedDataset._process_image(image, self.data_args, self.image_folder) for image in images]
             )
 
             # the same size for all images, so we concat
@@ -812,11 +801,10 @@ class LazyMMC4Dataset(Dataset):
         if input_ids[-1] == IMAGE_TOKEN_INDEX:  # need to remove one last image
             last_non_im_patch_indices = torch.where(input_ids != IMAGE_TOKEN_INDEX)[0][-1] + 1
             input_ids = input_ids[:last_non_im_patch_indices]
-        
 
         n_im_patch = (input_ids == IMAGE_TOKEN_INDEX).sum().item()
 
-        images = images[: n_im_patch]
+        images = images[:n_im_patch]
         assert len(images) == n_im_patch, print(text, input_ids)
 
         targets = input_ids.clone()
@@ -824,23 +812,16 @@ class LazyMMC4Dataset(Dataset):
         if self.image_following_text_only:  # keep only text after leading image token
             # remove loss for any token before the first <image> token
             label_idx = 0
-            while (
-                label_idx < targets.shape[-1] and targets[label_idx] != IMAGE_TOKEN_INDEX
-            ):
+            while label_idx < targets.shape[-1] and targets[label_idx] != IMAGE_TOKEN_INDEX:
                 targets[label_idx] = IGNORE_INDEX
                 label_idx += 1
 
-            pad_token = self.tokenizer.convert_tokens_to_ids(
-                [self.tokenizer.pad_token]
-            )[0]
+            pad_token = self.tokenizer.convert_tokens_to_ids([self.tokenizer.pad_token])[0]
 
             pad_token_idxs = torch.where(targets == pad_token)[0]
             for pad_token_idx in pad_token_idxs:
                 token_idx = pad_token_idx + 1
-                while (
-                    token_idx < targets.shape[-1]
-                    and targets[token_idx] != IMAGE_TOKEN_INDEX
-                ):
+                while token_idx < targets.shape[-1] and targets[token_idx] != IMAGE_TOKEN_INDEX:
                     targets[token_idx] = IGNORE_INDEX
                     token_idx += 1
             # do not train on padding tokens
@@ -856,6 +837,7 @@ class LazyMMC4Dataset(Dataset):
 class LazyCoyoDataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is implemented by Ji Lin and Haotian Tang."""
+
     num_image_tokens = 576
 
     def __init__(
@@ -876,27 +858,20 @@ class LazyCoyoDataset(Dataset):
         # actually shards and stats info
         n_shards = len(os.listdir(data_path)) // 2
         # n_shards = 100
-        count_info_list = sorted(
-            [f for f in os.listdir(data_path) if f.endswith(".count")]
-        )[:n_shards]
-        n_samples = [
-            int(open(os.path.join(data_path, f), "r").read().strip())
-            for f in count_info_list
-        ]
+        count_info_list = sorted([f for f in os.listdir(data_path) if f.endswith(".count")])[:n_shards]
+        n_samples = [int(open(os.path.join(data_path, f), "r").read().strip()) for f in count_info_list]
 
         print("total COYO samples", sum(n_samples))
 
-        rank = training_args.process_index # int(os.environ["RANK"])
-        world_size = training_args.world_size # int(os.environ["WORLD_SIZE"])
+        rank = training_args.process_index  # int(os.environ["RANK"])
+        world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
 
         gpu_samples = [
-            sum(n_samples[i * shared_size : (i + 1) * shared_size]) // n_samples_per_idx
-            for i in range(world_size)
+            sum(n_samples[i * shared_size : (i + 1) * shared_size]) // n_samples_per_idx for i in range(world_size)
         ]
         self.n_samples = min(gpu_samples) * world_size  # total size
         self.idx_offset = rank * min(gpu_samples)
-        
 
         shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
         print(f" * loading data from shard {shard_start}-{shard_end}")
@@ -920,8 +895,7 @@ class LazyCoyoDataset(Dataset):
         # now pack the samples into groups
         n_groups = len(full_data_list) // n_samples_per_idx
         full_data_list = [
-            full_data_list[i : i + n_samples_per_idx]
-            for i in range(0, len(full_data_list), n_samples_per_idx)
+            full_data_list[i : i + n_samples_per_idx] for i in range(0, len(full_data_list), n_samples_per_idx)
         ]
         if len(full_data_list[-1]) < n_samples_per_idx:
             full_data_list = full_data_list[:-1]
@@ -943,8 +917,8 @@ class LazyCoyoDataset(Dataset):
         # Estimate the number of tokens after tokenization, used for length-grouped sampling
         length_list = []
         for samples in self.data_list:
-            cur_len = sum([len(conv['text' if 'text' in conv else 'caption'].split()) for conv in samples])
-            # The unit of cur_len is "words". We assume 1 word = 2 tokens. 
+            cur_len = sum([len(conv["text" if "text" in conv else "caption"].split()) for conv in samples])
+            # The unit of cur_len is "words". We assume 1 word = 2 tokens.
             cur_len = cur_len + len(samples) * self.num_image_tokens // 2
             length_list.append(cur_len)
         return length_list
@@ -957,13 +931,13 @@ class LazyCoyoDataset(Dataset):
         image_list = []
 
         for sample in info_list:
-            caption_key = "text" if "text" in sample else "caption"# kentang-mit@: remove existing <image> tokens in the sentences
+            caption_key = (
+                "text" if "text" in sample else "caption"
+            )  # kentang-mit@: remove existing <image> tokens in the sentences
             # kentang-mit@: remove existing <image> token.
             # if this is an html tag, we still preserve its semantic meaning
             sample[caption_key] = sample[caption_key].replace("<image>", "<IMAGE>")
-            text_list.append(
-                DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token
-            )
+            text_list.append(DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token)
             if "image" in sample:
                 image_base64 = sample["image"]
                 rawbytes = base64.b64decode(image_base64)
@@ -973,10 +947,7 @@ class LazyCoyoDataset(Dataset):
             image_list.append(image)
 
         image_list = torch.stack(
-            [
-                LazySupervisedDataset._process_image(image, self.data_args, self.image_folder)
-                for image in image_list
-            ]
+            [LazySupervisedDataset._process_image(image, self.data_args, self.image_folder) for image in image_list]
         )
 
         # the same size for all images, so we concat
@@ -1009,7 +980,6 @@ class LazyCoyoDataset(Dataset):
             input_ids = input_ids[0]
 
         else:
-            
             input_ids = [
                 tokenizer_image_token(
                     prompt,
@@ -1019,11 +989,10 @@ class LazyCoyoDataset(Dataset):
                 for prompt in text_list
             ]
             # print([x.shape[0] for x in input_ids], [len(x.split()) for x in text_list], [len(re.findall(r"<image[^>]*>", x)) for x in text_list])
-            
+
             # input_ids = torch.nn.utils.rnn.pad_sequence(
             #     input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
             # )
-        
 
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
@@ -1036,7 +1005,7 @@ class LazyCoyoDataset(Dataset):
 
 class LazyWDSDataset(Dataset):
     """Dataset for supervised fine-tuning.
-    This class is implemented by Ligeng Zhu."""
+    This class is implemented by Ji Lin and Ligeng Zhu."""
 
     def __init__(
         self,
@@ -1056,22 +1025,17 @@ class LazyWDSDataset(Dataset):
 
         print(f"[DEBUG] {data_path} total samples", sum(n_samples))  # 10,881,869
 
-        rank = training_args.process_index # int(os.environ["RANK"])
-        world_size = training_args.world_size # int(os.environ["WORLD_SIZE"])
+        rank = training_args.process_index  # int(os.environ["RANK"])
+        world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
 
-        gpu_samples = [
-            sum(n_samples[i * shared_size : (i + 1) * shared_size])
-            for i in range(world_size)
-        ]
+        gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) for i in range(world_size)]
         self.n_samples = min(gpu_samples) * world_size  # total size
         self.idx_offset = rank * min(gpu_samples)
         shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
         print(f" * loading data from shard {shard_start}-{shard_end}")
 
-        tar_list = [
-            f"{shard_idx:05d}.tar" for shard_idx in range(shard_start, shard_end)
-        ]
+        tar_list = [f"{shard_idx:05d}.tar" for shard_idx in range(shard_start, shard_end)]
 
         self.data_list = []
         t1 = time.time()
@@ -1116,9 +1080,7 @@ class LazyWDSDataset(Dataset):
         # one example of sources
         # [{'id': 'GCC_train_001738742', 'image': 'GCC_train_001738742.jpg', 'conversations': [{'from': 'human', 'value': 'Provide a brief description of the given image.\n<image>'}, {'from': 'gpt', 'value': 'a sketch of an ostrich'}]}]
         if "image" in sources[0]:
-            image = LazySupervisedDataset._process_image(
-                sources[0]["image"], self.data_args, self.image_folder
-            )
+            image = LazySupervisedDataset._process_image(sources[0]["image"], self.data_args, self.image_folder)
             image = torch.unsqueeze(image, dim=0)
             # now random pick some context samples for training
             if hasattr(self.data_args, "num_shots"):
@@ -1130,16 +1092,13 @@ class LazyWDSDataset(Dataset):
         data_dict = preprocess([sources[0]["conversations"]], self.tokenizer, has_image=True)
 
         if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
-            )
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 
         # image exist in the data
         if image is not None:
             data_dict["image"] = image
         else:
             raise NotImplementedError
-        
 
         return data_dict
 
@@ -1163,7 +1122,7 @@ class LazyVFlanDataset(Dataset):
 
         logging.warning("Loading data...")
         pkl_list = os.listdir(data_path)
-        
+
         self.sharded = False
         # The original unsharded implementation loads the entire vflan dataset
         # on each GPU. So 80x8=640G host memory per device.
@@ -1185,24 +1144,16 @@ class LazyVFlanDataset(Dataset):
             n_samples = []
             # actually shards and stats info
             n_shards = len(os.listdir(data_path)) // 2
-            count_info_list = sorted(
-                [f for f in os.listdir(data_path) if f.endswith(".count")]
-            )[:n_shards]
-            n_samples = [
-                int(open(os.path.join(data_path, f), "r").read().strip())
-                for f in count_info_list
-            ]
+            count_info_list = sorted([f for f in os.listdir(data_path) if f.endswith(".count")])[:n_shards]
+            n_samples = [int(open(os.path.join(data_path, f), "r").read().strip()) for f in count_info_list]
             self.n_samples = sum(n_samples)
             print("total VFlan samples", sum(n_samples))  # 10,881,869
 
-            rank = training_args.process_index # int(os.environ["RANK"])
-            world_size = training_args.world_size # int(os.environ["WORLD_SIZE"])
+            rank = training_args.process_index  # int(os.environ["RANK"])
+            world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
             shared_size = n_shards // world_size
 
-            gpu_samples = [
-                sum(n_samples[i * shared_size : (i + 1) * shared_size])
-                for i in range(world_size)
-            ]
+            gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) for i in range(world_size)]
             self.n_samples = min(gpu_samples) * world_size  # total size
             self.idx_offset = rank * min(gpu_samples)
             shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
@@ -1269,9 +1220,7 @@ class LazyVFlanDataset(Dataset):
         #     raise NotImplementedError  # do not support multi-shot for FLAN
 
         # let's make sure there is no <image> in the question...
-        if (
-            "Image Descriptions" in question
-        ):  # NOTE: specicial handlement for generation_visual-dialog_train.pkl
+        if "Image Descriptions" in question:  # NOTE: specicial handlement for generation_visual-dialog_train.pkl
             question_split = question.split("\nQuestion: ")[1:]
             qa_pairs = []
             for qa in question_split:
@@ -1286,11 +1235,7 @@ class LazyVFlanDataset(Dataset):
                 conversation.append({"from": "human", "value": q})
                 conversation.append({"from": "gpt", "value": a})
         else:
-            question = (
-                question.replace("<image>\n", "")
-                .replace("\n<image>", "")
-                .replace("<image>", "")
-            )
+            question = question.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
             question = "<image>\n" * n_images + question
             conversation = [
                 {"from": "human", "value": question},
@@ -1300,7 +1245,7 @@ class LazyVFlanDataset(Dataset):
         # the same size for all images, so we concat
         if len(images) == 0:
             assert not "<image>" in question
-        
+
         # sources = replace_image_patch_tokens([conversation], self.multimodal_cfg)
         sources = [conversation]
 
@@ -1323,9 +1268,7 @@ class LazyVFlanDataset(Dataset):
         )
 
         if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
-            )
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 
         if len(images) > 0:
             data_dict["image"] = torch.stack(images)
@@ -1335,7 +1278,7 @@ class LazyVFlanDataset(Dataset):
             # data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
             # data_dict['image'] = data_dict['image'].unsqueeze(0)
             # vila way of handling text-only data
-            data_dict['image'] = None
+            data_dict["image"] = None
 
         return data_dict
 
@@ -1354,14 +1297,14 @@ class LazyCCSWebDataset(Dataset):
     ):
         super().__init__()
         t1 = time.time()
-        
+
         from llava.data.simple_coyo_dataset import SimpleCoyoDataset
-        
+
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = SimpleCoyoDataset(
-            data_path = osp.abspath(data_path),
+            data_path=osp.abspath(data_path),
         )
-        
+
         t2 = time.time()
         print("Loading done. Total time: {:.2f} seconds".format(t2 - t1))
 
@@ -1389,7 +1332,16 @@ class LazyCCSWebDataset(Dataset):
             print(info.keys())
             print(info)
             raise KeyError
-        
+
+        caption = caption.replace("<image>", "<IMAGE>")
+        if isinstance(image_path, io.BytesIO):
+            image_path = Image.open(image_path).convert("RGB")
+
+        if not isinstance(image_path, PIL.Image.Image):
+            print(image_path)
+            print(info.keys())
+            print(type(image_path))
+            raise NotImplementedError
 
         rand_prompt = "<image>\n"
         sources = [
@@ -1405,9 +1357,7 @@ class LazyCCSWebDataset(Dataset):
         # one example of sources
         # [{'id': 'GCC_train_001738742', 'image': 'GCC_train_001738742.jpg', 'conversations': [{'from': 'human', 'value': 'Provide a brief description of the given image.\n<image>'}, {'from': 'gpt', 'value': 'a sketch of an ostrich'}]}]
         if "image" in sources[0]:
-            image = LazySupervisedDataset._process_image(
-                sources[0]["image"], self.data_args
-            )
+            image = LazySupervisedDataset._process_image(sources[0]["image"], self.data_args, image_folder=None)
             image = torch.unsqueeze(image, dim=0)
             # now random pick some context samples for training
             if hasattr(self.data_args, "num_shots"):
@@ -1419,24 +1369,21 @@ class LazyCCSWebDataset(Dataset):
         data_dict = preprocess([sources[0]["conversations"]], self.tokenizer, has_image=True)
 
         if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0]
-            )
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 
         # image exist in the data
         if image is not None:
             data_dict["image"] = image
         else:
             raise NotImplementedError
-        
 
         return data_dict
-
 
 
 class LazyCoyoWebDataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is implemented by Ligeng Zhu."""
+
     num_image_tokens = 576
 
     def __init__(
@@ -1452,17 +1399,17 @@ class LazyCoyoWebDataset(Dataset):
         super().__init__()
 
         from llava.data.simple_coyo_dataset import SimpleCoyoDataset
-        
+
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = SimpleCoyoDataset(
-            data_path = osp.abspath(data_path),
+            data_path=osp.abspath(data_path),
         )
 
         # None: use original caption
         # Folder path: use original caption
         self.caption_chocie = None
         self.data_path = data_path
-        
+
         print("total samples", len(self.dataset))
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
@@ -1480,8 +1427,8 @@ class LazyCoyoWebDataset(Dataset):
         # Estimate the number of tokens after tokenization, used for length-grouped sampling
         length_list = []
         for samples in self.data_list:
-            cur_len = sum([len(conv['text' if 'text' in conv else 'caption'].split()) for conv in samples])
-            # The unit of cur_len is "words". We assume 1 word = 2 tokens. 
+            cur_len = sum([len(conv["text" if "text" in conv else "caption"].split()) for conv in samples])
+            # The unit of cur_len is "words". We assume 1 word = 2 tokens.
             cur_len = cur_len + len(samples) * self.num_image_tokens // 2
             length_list.append(cur_len)
         return length_list
@@ -1489,13 +1436,13 @@ class LazyCoyoWebDataset(Dataset):
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         CONCAT_SAMPLES = False
         # info_list = self.dataset[i - self.idx_offset]
-        
+
         begin_idx, end_idx = i * self.n_samples_per_idx, (i + 1) * self.n_samples_per_idx
         end_idx = min(end_idx, len(self.dataset))
 
         text_list = []
         image_list = []
-        
+
         for idx in range(begin_idx, end_idx):
             info = self.dataset[idx]
             if ".jpg" in info:
@@ -1512,50 +1459,24 @@ class LazyCoyoWebDataset(Dataset):
                 print(info.keys())
                 print(info)
                 raise KeyError
-            
+
             caption = caption.replace("<image>", "<IMAGE>")
-            text_list.append(
-                DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token
-            )
-            image_list.append(image_path)            
-            
-        # for sample in info_list:
-        #     caption_key = "text" if "text" in sample else "caption"# kentang-mit@: remove existing <image> tokens in the sentences
-        #     # kentang-mit@: remove existing <image> token.
-        #     # if this is an html tag, we still preserve its semantic meaning
-        #     sample[caption_key] = sample[caption_key].replace("<image>", "<IMAGE>")
-        #     text_list.append(
-        #         DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token
-        #     )
-        #     if "image" in sample:
-        #         image_base64 = sample["image"]
-        #         rawbytes = base64.b64decode(image_base64)
-        #     else:
-        #         rawbytes = sample["rawbytes"]
-        #     image = Image.open(io.BytesIO(rawbytes)).convert("RGB")
-        #     image_list.append(image)
+            text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
+
+            if isinstance(image_path, io.BytesIO):
+                image_path = Image.open(image_path).convert("RGB")
+
+            if not isinstance(image_path, PIL.Image.Image):
+                print(image_path)
+                print(info.keys())
+                print(type(image_path))
+                raise NotImplementedError
+
+            image_list.append(image_path)
 
         image_list = torch.stack(
-            [
-                LazySupervisedDataset._process_image(image, self.data_args)
-                for image in image_list
-            ]
+            [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
         )
-
-        # the same size for all images, so we concat
-        # cur_token_len = (
-        #     image_list[0].shape[-2] // self.multimodal_cfg["patch_size"]
-        # ) * (image_list[0].shape[-1] // self.multimodal_cfg["patch_size"])
-        # cur_token_len += self.multimodal_cfg["n_extra_patch"]
-
-        # replace_token = DEFAULT_IMAGE_TOKEN
-        # if self.multimodal_cfg["use_im_start_end"]:
-        #     replace_token = (
-        #         DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
-        #     )
-        # text_list = [
-        #     text.replace(DEFAULT_IMAGE_TOKEN, replace_token) for text in text_list
-        # ]
 
         if CONCAT_SAMPLES:
             # into <image>cap<eos><image>cap<eos>...
@@ -1570,9 +1491,7 @@ class LazyCoyoWebDataset(Dataset):
             ).input_ids  # 4, seq_len
 
             input_ids = input_ids[0]
-
         else:
-            
             input_ids = [
                 tokenizer_image_token(
                     prompt,
@@ -1581,12 +1500,6 @@ class LazyCoyoWebDataset(Dataset):
                 )
                 for prompt in text_list
             ]
-            # print([x.shape[0] for x in input_ids], [len(x.split()) for x in text_list], [len(re.findall(r"<image[^>]*>", x)) for x in text_list])
-            
-            # input_ids = torch.nn.utils.rnn.pad_sequence(
-            #     input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-            # )
-        
 
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
@@ -1595,10 +1508,11 @@ class LazyCoyoWebDataset(Dataset):
             targets[i][targets[i] == self.tokenizer.pad_token_id] = IGNORE_INDEX
 
         return dict(input_ids=input_ids, labels=targets, image=image_list)
-    
+
 
 class LazyVideoWebDataset(Dataset):
     """Dataset for supervised fine-tuning."""
+
     def __init__(
         self,
         data_path: str,
@@ -1610,12 +1524,12 @@ class LazyVideoWebDataset(Dataset):
         # n_samples_per_idx=4,
     ):
         super().__init__()
-        
+
         from llava.data.simple_video_dataset import SimpleVideoDataset
-        
+
         self.dataset = SimpleVideoDataset(
-            data_path = osp.abspath(data_path),
-            cache_dir = f"{osp.abspath(data_path)}-webds-meta",
+            data_path=osp.abspath(data_path),
+            cache_dir=f"{osp.abspath(data_path)}-webds-meta",
             # cache_dir=cache_path,
         )
 
@@ -1623,7 +1537,7 @@ class LazyVideoWebDataset(Dataset):
         # Folder path: use original caption
         self.caption_chocie = None
         self.data_path = data_path
-        
+
         print("total samples", len(self.dataset))
         # InternVid: TODO
         rank = int(os.environ["RANK"]) if "RANK" in os.environ else 0
@@ -1640,7 +1554,7 @@ class LazyVideoWebDataset(Dataset):
         # Estimate the number of tokens after tokenization, used for length-grouped sampling
         length_list = []
         for samples in self.data_list:
-            cur_len = sum([len(conv['text' if 'text' in conv else 'caption'].split()) for conv in samples])
+            cur_len = sum([len(conv["text" if "text" in conv else "caption"].split()) for conv in samples])
             # The unit of cur_len is "words". We assume 1 word = 2 tokens.
             cur_len = cur_len + len(samples) * self.num_image_tokens // 2
             length_list.append(cur_len)
@@ -1651,16 +1565,16 @@ class LazyVideoWebDataset(Dataset):
         num_video_frames = 8
 
         info = self.dataset[i]
-        
+
         if ".mp4" in info:
             caption, video_path = info[".txt"], info[".mp4"]
             # video_path = BytesIO(video_bytesio)
         else:
             video_path = None
             caption = "Empty video."
-        
+
         # if self.caption_chocie is not None:
-        #     # load new captions 
+        #     # load new captions
         #     shard = info["__shard__"]
         #     url = info[".json"]["url"]
         #     tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
@@ -1672,8 +1586,7 @@ class LazyVideoWebDataset(Dataset):
         #         caption = shard_json[url]["output"]
         #     except KeyError:
         #         print(f"{url} not in caption. fallback to original caption temporarially")
-            
-            
+
         prompt = "<image>\n" * num_video_frames + caption
         # caption = caption.replace("<image>", "<IMAGE>")
         # caption = DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token
@@ -1708,27 +1621,23 @@ class LazyVideoWebDataset(Dataset):
 
         processor = self.data_args.image_processor
         image_tensor = [
-            processor.preprocess(image, return_tensors='pt')['pixel_values'][0] for image in torch.unbind(image_tensor)]
+            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
+        ]
         image_tensor = torch.stack(image_tensor)
 
-	
         # input_ids = [
-            
+
         #     # for prompt in text_list
         # ]
         input_ids = tokenizer_image_token(
-                prompt,
-                self.tokenizer,
-                return_tensors="pt",
-            )
+            prompt,
+            self.tokenizer,
+            return_tensors="pt",
+        )
         targets = copy.deepcopy(input_ids)
 
-        data_dict = dict(
-            input_ids=input_ids, 
-            labels=targets, 
-            image=image_tensor
-        )
-        
+        data_dict = dict(input_ids=input_ids, labels=targets, image=image_tensor)
+
         # # the same size for all images, so we concat
         # cur_token_len = (image_tensor.shape[-2] // self.multimodal_cfg["patch_size"]) * (
         #     image_tensor.shape[-1] // self.multimodal_cfg["patch_size"]
@@ -1737,7 +1646,6 @@ class LazyVideoWebDataset(Dataset):
         # sources = replace_image_patch_tokens(
         #     [e["conversations"] for e in sources], self.multimodal_cfg,
         # )
-
 
         # sources = [
         #     {
@@ -1790,7 +1698,7 @@ class LazyVideoWebDataset(Dataset):
 
         #     image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)]
         #     image_tensor = torch.stack(image_tensor)
-            
+
         #     # the same size for all images, so we concat
         #     cur_token_len = (image_tensor.shape[-2] // self.multimodal_cfg["patch_size"]) * (
         #         image_tensor.shape[-1] // self.multimodal_cfg["patch_size"]
@@ -1841,8 +1749,8 @@ class LazyVideoWebDataset(Dataset):
         #     )
         #     print("WARNING: ADD_TEXT_PROMPT==True is not supported for current video dataset type")
 
-
         return data_dict
+
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):
@@ -1866,8 +1774,8 @@ class DataCollatorForSupervisedDataset(object):
                 labels.append(instance["labels"])
             else:
                 labels += instance["labels"]
-            # Note (kentang-mit@: we do not directly push tensors to 
-            # images, but list of tensors. 
+            # Note (kentang-mit@: we do not directly push tensors to
+            # images, but list of tensors.
             if instance["image"] is not None:
                 cur_image = instance["image"]
                 assert len(cur_image.shape) == 4
@@ -1886,14 +1794,11 @@ class DataCollatorForSupervisedDataset(object):
         assert len(images) == len(input_ids)
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
-            input_ids,
-            batch_first=True,
-            padding_value=self.tokenizer.pad_token_id)
-        labels = torch.nn.utils.rnn.pad_sequence(labels,
-                                                 batch_first=True,
-                                                 padding_value=IGNORE_INDEX)
-        input_ids = input_ids[:, :self.tokenizer.model_max_length]
-        labels = labels[:, :self.tokenizer.model_max_length]
+            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
+        input_ids = input_ids[:, : self.tokenizer.model_max_length]
+        labels = labels[:, : self.tokenizer.model_max_length]
         batch = dict(
             input_ids=input_ids,
             labels=labels,
@@ -1924,16 +1829,22 @@ class DataCollatorForSupervisedDataset(object):
         return batch
 
 
-def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
-                                data_args: DataArguments,
-                                training_args: TrainingArguments) -> Dict:
+def make_supervised_data_module(
+    tokenizer: transformers.PreTrainedTokenizer, data_args: DataArguments, training_args: TrainingArguments
+) -> Dict:
     """Make dataset and collator for supervised fine-tuning.
-    This function is originally implemented by the LLaVA team and 
-    modified by Jason Lu and Haotian Tang."""
+    This function is originally implemented by the LLaVA team and
+    modified by Jason Lu, Haotian Tang and Ligeng Zhu"""
     all_datasets = []
     extra_info = []
     datasets_mixture.register_datasets_mixtures()
-    mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
+
+    from llava.data.datasets_mixture import DATASETS
+
+    # mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
+    mixture_names = data_args.data_mixture.strip().split("+")
+    mixture = (DATASETS[_] for _ in mixture_names)
+    print(f"[INFO-log]: Loading from {mixture_names}")
     image_folder = None
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1959,20 +1870,20 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
         elif dataset_type == "video-wds":
             dataset_cls = LazyVideoWebDataset
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"{dataset_type} is not supported.")
 
-        train_dataset = dataset_cls(tokenizer=tokenizer,
-                                data_path=dataset.data_path,
-                                image_folder=image_folder,
-                                data_args=data_args,
-                                training_args=training_args,)
+        train_dataset = dataset_cls(
+            tokenizer=tokenizer,
+            data_path=dataset.data_path,
+            image_folder=image_folder,
+            data_args=data_args,
+            training_args=training_args,
+        )
         all_datasets.append(train_dataset)
         extra_info.append(len(train_dataset))
-    
+
     all_datasets = ConcatDataset(all_datasets)
     training_args.sample_lens = extra_info
 
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
-    return dict(train_dataset=all_datasets,
-                eval_dataset=None,
-                data_collator=data_collator)
+    return dict(train_dataset=all_datasets, eval_dataset=None, data_collator=data_collator)

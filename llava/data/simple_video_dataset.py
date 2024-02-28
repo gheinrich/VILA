@@ -27,7 +27,7 @@ def load_tarfile(tar_path):
 
 # INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video"
 INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt"
-CACHEDIR = '/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta'
+CACHEDIR = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta"
 
 
 class SimpleVideoDataset(torch.utils.data.Dataset):
@@ -47,9 +47,7 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
         if meta_path is None:
             self.meta_path = osp.join(
                 cache_dir,
-                data_path.replace("/", "--")
-                + f".max_shards:{max_shards_to_load}"
-                + ".wdsmeta.json",
+                data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
             )
             self.max_shards_to_load = max_shards_to_load
 
@@ -78,7 +76,7 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
             else:
                 print(f"Unknown dataset: {data_path}. Please include the dataset name in the data path")
                 meta_name = "unknown"
-                raise NotImplementedError            
+                raise NotImplementedError
 
             meta = {
                 "name": meta_name,
@@ -103,17 +101,13 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
                     tar_realpath.replace("/", "--") + ".wdsmeta.json",
                 )
 
-                print(
-                    f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}"
-                )
+                print(f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}")
 
                 if not osp.exists(tar_meta_path) and not osp.exists(tar_real_meta_path):
                     print(f"    Generating meta: {tar_meta_path}")
                     try:
                         tar = load_tarfile(tar_abspath)
-                        uuids = list(
-                            set([".".join(_.split(".")[:-1]) for _ in tar.getnames()])
-                        )
+                        uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
                     except tarfile.ReadError as e:
                         print(f"Skipping {tar_abspath}")
                         print(e)
@@ -142,18 +136,13 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
                 json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
                 if tar_meta_path != tar_real_meta_path and not osp.exists(tar_real_meta_path):
                     # tar_meta["url"] = osp.realpath(tar_abspath)
-                    print(
-                        f"    [abs2real] Copying {tar_meta_path} => {tar_real_meta_path}"
-                    )
+                    print(f"    [abs2real] Copying {tar_meta_path} => {tar_real_meta_path}")
                     os.makedirs(osp.dirname(tar_real_meta_path), exist_ok=True)
                     json.dump(tar_meta, open(tar_real_meta_path, "w+"), indent=2)
 
                 # input()
                 meta["shardlist"].append(tar_meta)
-                if (
-                    self.max_shards_to_load is not None
-                    and idx > self.max_shards_to_load
-                ):
+                if self.max_shards_to_load is not None and idx > self.max_shards_to_load:
                     break
             # sorted by tar names
             meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
