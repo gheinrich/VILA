@@ -7,9 +7,9 @@
 #SBATCH --partition=grizzly,polar,grizzly2,polar2
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
-#SBATCH --output=pretraining-valley.out
+#SBATCH --output=pretraining-valley-sft.out
 
 
-srun --label bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/v1_5/video/2_train_mmc4_coyo_sharegpt4v_vicuna_siglipso400m.sh
+srun --label bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/v1_5/video/3_sft_videov2_siglipso400m_2.sh
 
 
