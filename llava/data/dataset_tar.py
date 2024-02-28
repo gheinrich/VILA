@@ -38,8 +38,7 @@ class TarDataset(Dataset):
         self,
         archive,
         transform=None,
-        is_valid_file=lambda m: m.isfile()
-        and m.name.lower().endswith((".png", ".jpg", ".jpeg")),
+        is_valid_file=lambda m: m.isfile() and m.name.lower().endswith((".png", ".jpg", ".jpeg")),
         ignore_unexpected_eof=False,
         cache_dir="~/.cache/tardataset",
     ):
@@ -69,9 +68,7 @@ class TarDataset(Dataset):
         fpath = osp.join(osp.expanduser(cache_dir), tar_info)
         if not osp.exists(fpath):
             self.tar_obj = {
-                worker: tarfile.open(archive)
-                if ignore_unexpected_eof is False
-                else UnexpectedEOFTarFile.open(archive)
+                worker: tarfile.open(archive) if ignore_unexpected_eof is False else UnexpectedEOFTarFile.open(archive)
             }
             print(f"{osp.basename(archive)} preparing tar.getnames() ...")
             self.all_members = self.tar_obj[worker].getmembers()
@@ -170,8 +167,7 @@ class TarImageFolder(Dataset):
         root,
         transform=None,
         max_loads=None,
-        is_valid_file=lambda m: m.isfile()
-        and m.name.lower().endswith((".png", ".jpg", ".jpeg")),
+        is_valid_file=lambda m: m.isfile() and m.name.lower().endswith((".png", ".jpg", ".jpeg")),
         pool_size=16,
     ):
         # load the archive meta information, and filter the samples
@@ -243,9 +239,8 @@ if __name__ == "__main__":
         max_loads=16,
     )
     print("init finish, try to fetch images")
-    
+
     for idx, (image, label) in enumerate(dst):
         print(image, label)
         if idx > 100:
             break
-    
