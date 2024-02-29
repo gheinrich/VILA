@@ -133,7 +133,9 @@ class LazySAMWebDataset(Dataset):
             assert self.caption_choice is not None
             # load new captions
             shard = info["__shard__"]
-            url = info[".json"]["url"]
+            shard_key = info["__key__"].replace("./", "")
+            url = osp.join(shard, shard_key)
+            
             tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
             # tar_name = osp.dirname(shard)
             shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
@@ -144,7 +146,7 @@ class LazySAMWebDataset(Dataset):
             except KeyError:
                 print(f"{url} not in caption. fallback to original caption temporarially")
                 
-                    
+            
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -204,3 +206,4 @@ if __name__ == "__main__":
     )
     print(dst[0])
     print(dst[0].keys())
+    print(dst[0][".json"].keys())
