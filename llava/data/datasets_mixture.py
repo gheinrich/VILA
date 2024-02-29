@@ -18,11 +18,11 @@ class Dataset:
 DATASETS_MIXTURES = {}
 DATASETS = {}
 
-
+import warnings 
 def add_dataset(dataset):
     if dataset.dataset_name in DATASETS:
         # make sure the data_name is unique
-        raise KeyError(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
+        warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
 
