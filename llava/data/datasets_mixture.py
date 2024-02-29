@@ -17,16 +17,24 @@ class Dataset:
 
 DATASETS = {}
 
-
+import warnings 
 def add_dataset(dataset):
     if dataset.dataset_name in DATASETS:
         # make sure the data_name is unique
-        raise KeyError(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
+        warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
 
 
 def register_datasets_mixtures():
+    sam_recap = Dataset(
+        dataset_name="sam_recap",
+        dataset_type="sam-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat",
+        description="",
+    )
+    add_dataset(sam_recap)
+    
     datacomp_webds = Dataset(
         dataset_name="datacomp_webds",
         dataset_type="coyo-wds",
