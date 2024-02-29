@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Prerequisite: Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
+# Prerequisite: 1. "pip install openpyxl"; 2.Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
 
 # Make sure partitions according to different clusters.
 PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
