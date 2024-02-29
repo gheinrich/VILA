@@ -77,7 +77,7 @@ class LazySAMWebDataset(Dataset):
         # None: use original caption
         # Folder path: use original caption
         # Efficient-Large-Model/sam-recap-VILA-13b
-        self.caption_choice = None
+        self.caption_choice = "/home/ligengz/workspace/sam-recap-VILA-13b"
         self.data_path = data_path
 
         print("total samples", len(self.dataset))
