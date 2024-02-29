@@ -19,8 +19,6 @@ import re
 
 import torch
 
-# torch.backends.cudnn.enabled = False
-
 import transformers
 
 from llava.constants import (
@@ -43,13 +41,14 @@ from pytorchvideo.data.encoded_video import EncodedVideo
 
 from PIL import Image
 from functools import lru_cache
+from llava.data.simple_vila_webdataset import VILAWebDataset
+from llava.data.dataset import LazySupervisedDataset
+
 
 @lru_cache(maxsize=16)
 def lru_json_load(fpath):
     return json.load(open(fpath, "r"))
 
-from llava.data.simple_vila_webdataset import VILAWebDataset
-from llava.data.dataset import LazySupervisedDataset
 
 
 class LazySAMWebDataset(Dataset):
