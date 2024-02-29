@@ -28,6 +28,14 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    sam_recap = Dataset(
+        dataset_name="sam_recap",
+        dataset_type="sam-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat",
+        description="",
+    )
+    add_dataset(sam_recap)
+    
     datacomp_webds = Dataset(
         dataset_name="datacomp_webds",
         dataset_type="coyo-wds",

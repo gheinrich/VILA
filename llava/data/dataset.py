@@ -1298,10 +1298,10 @@ class LazyCCSWebDataset(Dataset):
         super().__init__()
         t1 = time.time()
 
-        from llava.data.simple_coyo_dataset import SimpleCoyoDataset
+        from llava.data.simple_vila_webdataset import VILAWebDataset
 
         print("[DEBUG] ", osp.abspath(data_path))
-        self.dataset = SimpleCoyoDataset(
+        self.dataset = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
 
@@ -1405,10 +1405,10 @@ class LazyCoyoWebDataset(Dataset):
     ):
         super().__init__()
 
-        from llava.data.simple_coyo_dataset import SimpleCoyoDataset
+        from llava.data.simple_vila_webdataset import VILAWebDataset
 
         print("[DEBUG] ", osp.abspath(data_path))
-        self.dataset = SimpleCoyoDataset(
+        self.dataset = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
 
@@ -1882,11 +1882,13 @@ def make_supervised_data_module(
             dataset_cls = LazyMMC4Dataset
         elif dataset_type == "coyo":
             dataset_cls = LazyCoyoDataset
+        elif dataset_type == "sam-wds":
+            print("dataset.py: Loading SAM class")
+            from llava.data.dataset_impl.sam import LazySAMWebDataset
+            dataset_cls = LazySAMWebDataset
         elif dataset_type == "coyo-wds":
-            print("dataset.py: Loading LazyCoyoWebDataset class")
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "ccs-wds":
-            print("dataset.py: Loading LazyCCSWebDataset class")
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":
             dataset_cls = LazyVFlanDataset
