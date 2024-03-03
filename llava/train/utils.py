@@ -47,5 +47,7 @@ def prepare_vision_tower_config(config: PretrainedConfig, model_args: dataclass)
     if getattr(config, "vision_tower_config", None) is None and model_args.vision_tower:
         ## set vision configurations
         config.vision_tower = model_args.vision_tower
+        config.vision_resolution = model_args.vision_resolution
+        config.interpolate_mode = model_args.interpolate_mode
         ## set vision projector configurations
         config.vision_projector = model_args.vision_projector

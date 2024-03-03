@@ -216,7 +216,7 @@ def train():
                 math.ceil(training_args.model_max_length / orig_ctx_len)
             )
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
-    
+
     resume_path = get_checkpoint_path(training_args.output_dir)
     if resume_path:
         resume_from_checkpoint = True
@@ -261,10 +261,8 @@ def train():
             ## language model
             else:
                 model_cls = LlamaForCausalLM
-    ## TODO maybe move later to support increasing resolution
-    prepare_vision_tower_config(config, model_args)
 
-    ## config should be like: config[vision_config, vision_projector_config]
+    prepare_vision_tower_config(config, model_args)
     model = model_cls.from_pretrained(
         model_args.model_name_or_path,
         config=config,
@@ -276,23 +274,27 @@ def train():
 
     model.config.use_cache = False
     ## set tunnable parameters
-    if not training_args.tune_language_model:
-        model.get_model().requires_grad_(False)
+    model.get_model().requires_grad_(training_args.tune_language_model)
+    model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+    model.get_model().get_vision_projector().requires_grad_(training_args.tune_vision_projector)
+    for name, param in model.named_parameters():
+        print(name, param.requires_grad)
+    print(
+        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n vision projector {training_args.tune_vision_projector}"
+    )
 
-    if not training_args.tune_vision_projector:
-        model.get_model().get_vision_projector().requires_grad_(False)
-
-    if not training_args.tune_vision_tower:
-        model.get_model().get_vision_tower().requires_grad_(False)
     ## quantize training
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
-            if generation_config.temperature is not None and generation_config.temperature != 1.0:
+            if (
+                generation_config.temperature is not None
+                and generation_config.temperature != 1.0
+            ):
                 return True
             if generation_config.top_p is not None and generation_config.top_p != 1.0:
                 return True
         return False
-    
+
     if need_to_modify_do_sample(model.generation_config):
         model.generation_config.do_sample = True
 
@@ -381,7 +383,6 @@ def train():
 
     vision_tower = model.get_vision_tower()
     if vision_tower is not None:
-
         data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
 
@@ -416,15 +417,25 @@ def train():
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
-    data_module = make_supervised_data_module(tokenizer=tokenizer,
-                                              data_args=data_args,
-                                              training_args=training_args,)
-    trainer = LLaVATrainer(model=model,
-                    tokenizer=tokenizer,
-                    args=training_args,
-                    **data_module)
-    print("length of dataloader:", len(trainer.get_train_dataloader()), len(trainer.train_dataset), flush=True)
-    print("[GPU memory] before trainer", torch.cuda.memory_allocated() / 1024 / 1024 / 1024, flush=True)
+    data_module = make_supervised_data_module(
+        tokenizer=tokenizer,
+        data_args=data_args,
+        training_args=training_args,
+    )
+    trainer = LLaVATrainer(
+        model=model, tokenizer=tokenizer, args=training_args, **data_module
+    )
+    print(
+        "length of dataloader:",
+        len(trainer.get_train_dataloader()),
+        len(trainer.train_dataset),
+        flush=True,
+    )
+    print(
+        "[GPU memory] before trainer",
+        torch.cuda.memory_allocated() / 1024 / 1024 / 1024,
+        flush=True,
+    )
 
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()

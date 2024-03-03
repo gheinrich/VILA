@@ -30,6 +30,7 @@ from llava.constants import (
     DEFAULT_IM_END_TOKEN,
 )
 
+
 class LlavaMetaModel(ABC):
     def get_vision_tower(self):
         vision_tower = getattr(self, "vision_tower", None)
@@ -42,12 +43,13 @@ class LlavaMetaModel(ABC):
         if type(vision_projector) is list:
             vision_projector = vision_projector[0]
         return vision_projector
-    
+
     def _post_init(self):
         if self.config.vision_tower_config is None:
             self.config.vision_tower_config = self.vision_tower.config
             ## TODO make vision_projector class
             # self.config.vision_projector_config = self.vision_projector.config
+
 
 class LlavaMetaForCausalLM(ABC):
     """This class is originally implemented by the LLaVA team and
@@ -112,7 +114,7 @@ class LlavaMetaForCausalLM(ABC):
             image_features = self.encode_images(images).to(self.device)
 
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
-        if getattr(self.config, "tune_mm_mlp_adapter", False) and getattr(
+        if getattr(self.config, "turn_vision_projector", False) and getattr(
             self.config, "mm_use_im_start_end", False
         ):
             raise NotImplementedError
@@ -405,14 +407,12 @@ class LlavaMetaForCausalLM(ABC):
         )
 
         new_position_ids = torch.nn.utils.rnn.pad_sequence(
-            new_position_ids,
-            batch_first=True,
-            padding_value=-1)
-        
+            new_position_ids, batch_first=True, padding_value=-1
+        )
+
         new_labels = torch.nn.utils.rnn.pad_sequence(
-            new_labels,
-            batch_first=True,
-            padding_value=IGNORE_INDEX)
+            new_labels, batch_first=True, padding_value=IGNORE_INDEX
+        )
         ## yunhao: it's currently a workaround to avoid errors for seq_len < 100
         new_attention_mask = new_position_ids.ne(-1)
         # sanity check
@@ -455,13 +455,7 @@ class LlavaMetaForCausalLM(ABC):
 
                 input_embeddings[-num_new_tokens:] = input_embeddings_avg
                 output_embeddings[-num_new_tokens:] = output_embeddings_avg
-
-            if model_args.tune_mm_mlp_adapter:
-                for p in self.get_input_embeddings().parameters():
-                    p.requires_grad = True
-                for p in self.get_output_embeddings().parameters():
-                    p.requires_grad = False
-            ## TODO modify the logic here
+            ## TODO yunhao: handle cases for <im_st> <im_end>
             if model_args.pretrain_mm_mlp_adapter:
                 vision_projector_weights = torch.load(
                     model_args.pretrain_mm_mlp_adapter, map_location="cpu"
@@ -481,7 +475,7 @@ class LlavaMetaForCausalLM(ABC):
                         f"Unexpected embed_tokens_weight shape. Pretrained: {embed_tokens_weight.shape}. Current: {input_embeddings.shape}. Numer of new tokens: {num_new_tokens}."
                     )
         elif model_args.mm_use_im_patch_token:
-            if model_args.tune_mm_mlp_adapter:
+            if model_args.tune_vision_projector:
                 for p in self.get_input_embeddings().parameters():
                     p.requires_grad = False
                 for p in self.get_output_embeddings().parameters():

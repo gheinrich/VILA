@@ -1,7 +1,12 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
-from transformers import PretrainedConfig
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
-from transformers import CLIPVisionModel, CLIPImageProcessor, CLIPVisionConfig
+from llava.model.utils import maybe_resize_pos_embeds
+from transformers import (
+    PretrainedConfig,
+    CLIPVisionModel,
+    CLIPImageProcessor,
+    CLIPVisionConfig,
+)
 
 
 class CLIPVisionTower(VisionTower):
@@ -11,9 +16,17 @@ class CLIPVisionTower(VisionTower):
         if isinstance(vision_tower_cfg, str):
             self.image_processor = CLIPImageProcessor.from_pretrained(vision_tower_cfg)
             self.vision_tower = CLIPVisionModel.from_pretrained(vision_tower_cfg)
+            maybe_resize_pos_embeds(
+                self.image_processor,
+                self.vision_tower,
+                config.vision_resolution,
+                config.interpolate_mode,
+            )
         ## build from saved checkpoint
         elif isinstance(vision_tower_cfg, dict):
-            assert getattr(config, "resume_path", None) is not None, "You are loading from a checkpoint, but resume_path is None!"
+            assert (
+                getattr(config, "resume_path", None) is not None
+            ), "You are loading from a checkpoint, but resume_path is None!"
             self.image_processor = CLIPImageProcessor.from_pretrained(
                 config.resume_path
             )

@@ -1258,7 +1258,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
         mm_use_im_start_end,
         tokenizer,
         device,
-        tune_mm_mlp_adapter=False,
+        tune_vision_projector=False,
         pretrain_mm_mlp_adapter=None,
     ):
         vision_config = self.get_vision_tower().config
@@ -1292,7 +1292,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
                 input_embeddings[-num_new_tokens:] = input_embeddings_avg
                 output_embeddings[-num_new_tokens:] = output_embeddings_avg
 
-            if tune_mm_mlp_adapter:
+            if tune_vision_projector:
                 self.get_model().orig_embeds_params = [
                     self.get_input_embeddings().weight.data.clone().to(device=device)
                 ]

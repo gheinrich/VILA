@@ -43,6 +43,8 @@ class ModelArguments:
     mm_use_im_patch_token: bool = field(default=True)
     vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
     vision_select_feature: Optional[str] = field(default="patch")
+    vision_resolution: Optional[int] = field(default=-1)
+    interpolate_mode: Optional[str] = field(default="linear")
 
 
 @dataclass
