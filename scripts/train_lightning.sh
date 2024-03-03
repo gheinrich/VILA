@@ -10,7 +10,7 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --data_path /path/to/blip_laion_cc_sbu_558k.json \
     --image_folder /path/to/blip_laion_cc_sbu_558k \
     --vision_tower openai/clip-vit-large-patch14 \
-    --tune_mm_mlp_adapter True \
+    --tune_vision_projector True \
     --vision_select_layer -2 \
     --mm_use_im_start_end \
     --bf16 True \

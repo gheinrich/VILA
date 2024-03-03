@@ -22,7 +22,6 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from dataclasses import dataclass
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -52,7 +51,6 @@ class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
 
     def __init__(self, config: LlavaConfig) -> None:
         super(LlavaLlamaModel, self).__init__(config)
-        ## TODO add arguments to support high resolution
         self.vision_tower = build_vision_tower(config)
         config.vision_hidden_size = self.vision_tower.config.hidden_size
         self.vision_projector = build_vision_projector(config)
