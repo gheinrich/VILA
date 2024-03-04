@@ -34,16 +34,15 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 from llava.constants import IGNORE_INDEX
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 from ..multimodal_encoder.builder import build_vision_tower
-from ..multimodal_projector.builder import build_vision_projector
+from ..multimodal_projector.builder import build_mm_projector
 
 # import time
 
 
 class LlavaConfig(LlamaConfig):
     model_type = "llava_llama"
-    vision_hidden_size = None
+    mm_hidden_size = None
     vision_tower_config = None
-    vision_projector_config = None
 
 
 class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
@@ -52,9 +51,10 @@ class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
     def __init__(self, config: LlavaConfig) -> None:
         super(LlavaLlamaModel, self).__init__(config)
         self.vision_tower = build_vision_tower(config)
-        config.vision_hidden_size = self.vision_tower.config.hidden_size
-        self.vision_projector = build_vision_projector(config)
+        config.mm_hidden_size = self.vision_tower.config.hidden_size
+        self.mm_projector = build_mm_projector(config)
         self._post_init()
+
 
 class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     """This class is originally implemented by the LLaVA team and
@@ -75,7 +75,6 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
     def get_model(self):
         return self.model
-    
 
     def forward(
         self,

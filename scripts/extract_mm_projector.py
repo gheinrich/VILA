@@ -16,7 +16,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    keys_to_match = ["vision_projector", "embed_tokens", "transformer.wte"]
+    keys_to_match = ["mm_projector", "embed_tokens", "transformer.wte"]
     ckpt_to_key = defaultdict(list)
     try:
         model_indices = json.load(

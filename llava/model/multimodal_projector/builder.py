@@ -14,7 +14,7 @@ class IdentityMap(nn.Module):
 
     @property
     def config(self):
-        return {"vision_projector": "identity"}
+        return {"mm_projector_type": "identity"}
 
 
 class SimpleResBlock(nn.Module):
@@ -31,22 +31,22 @@ class SimpleResBlock(nn.Module):
         return x + self.proj(x)
 
 
-def build_vision_projector(config):
-    vision_projector = getattr(config, "vision_projector", "linear")
+def build_mm_projector(config):
+    mm_projector_type = getattr(config, "mm_projector_type", "linear")
 
-    if vision_projector == "linear":
-        return nn.Linear(config.vision_hidden_size, config.hidden_size)
+    if mm_projector_type == "linear":
+        return nn.Linear(config.mm_hidden_size, config.hidden_size)
 
-    mlp_gelu_match = re.match(r"^mlp(\d+)x_gelu$", vision_projector)
+    mlp_gelu_match = re.match(r"^mlp(\d+)x_gelu$", mm_projector_type)
     if mlp_gelu_match:
         mlp_depth = int(mlp_gelu_match.group(1))
-        modules = [nn.Linear(config.vision_hidden_size, config.hidden_size)]
+        modules = [nn.Linear(config.mm_hidden_size, config.hidden_size)]
         for _ in range(1, mlp_depth):
             modules.append(nn.GELU())
             modules.append(nn.Linear(config.hidden_size, config.hidden_size))
         return nn.Sequential(*modules)
 
-    if vision_projector == "identity":
+    if mm_projector_type == "identity":
         return IdentityMap()
 
-    raise ValueError(f"Unknown projector type: {vision_projector}")
+    raise ValueError(f"Unknown projector type: {mm_projector_type}")

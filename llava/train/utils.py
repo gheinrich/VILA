@@ -3,6 +3,7 @@ import pathlib
 from dataclasses import dataclass
 from transformers import PretrainedConfig
 
+
 def rprint(*args, **kwargs):
     rank = int(os.environ.get("RANK", 0))
     world_size = int(os.environ.get("WORLD_SIZE", 1))
@@ -40,14 +41,17 @@ def get_checkpoint_path(output_dir: str) -> str | None:
         except:
             return None
 
-def prepare_vision_tower_config(config: PretrainedConfig, model_args: dataclass) -> None:
-    config.vision_select_layer = model_args.vision_select_layer
-    config.vision_select_feature = model_args.vision_select_feature
-    
+
+def prepare_vision_tower_config(
+    config: PretrainedConfig, model_args: dataclass
+) -> None:
+    config.mm_vision_select_layer = model_args.mm_vision_select_layer
+    config.mm_vision_select_feature = model_args.mm_vision_select_feature
+
     if getattr(config, "vision_tower_config", None) is None and model_args.vision_tower:
         ## set vision configurations
         config.vision_tower = model_args.vision_tower
         config.vision_resolution = model_args.vision_resolution
         config.interpolate_mode = model_args.interpolate_mode
         ## set vision projector configurations
-        config.vision_projector = model_args.vision_projector
+        config.mm_projector_type = model_args.mm_projector_type

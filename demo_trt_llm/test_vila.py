@@ -257,7 +257,10 @@ def image_processing(images, args):
 
     with open(args.hf_model_dir + "/config.json", "r") as jsonfile:
         config = json.load(jsonfile)
-    vision_tower = CLIPVisionModel.from_pretrained(config["mm_vision_tower"]).to(
+    vision_tower_name = getattr(
+        config, "vision_tower", getattr(config, "mm_vision_tower", None)
+    )
+    vision_tower = CLIPVisionModel.from_pretrained(vision_tower_name).to(
         device="cuda", dtype=torch.float16
     )
     with torch.no_grad():
@@ -270,8 +273,8 @@ def image_processing(images, args):
         dtype = next(vision_tower.parameters()).dtype
 
         image_forward_outs = vision_tower(images.to(dtype), output_hidden_states=True)
-        if "vision_select_layer" in config:
-            select_hidden_state_layer = config["vision_select_layer"]
+        if "mm_vision_select_layer" in config:
+            select_hidden_state_layer = config["mm_vision_select_layer"]
         else:
             select_hidden_state_layer = -1
         if abs(select_hidden_state_layer) > 100:  # TOOD: find a better impl
@@ -298,9 +301,9 @@ def image_processing(images, args):
         torch_dtype=torch.float16,
         use_cache=True,
     )
-    vision_projector = model.model.vision_projector
-    vision_projector.cuda()
-    image_features = vision_projector(image_features)
+    mm_projector = model.model.mm_projector
+    mm_projector.cuda()
+    image_features = mm_projector(image_features)
     image_atts = torch.ones(image_features.size()[:-1], dtype=torch.long).to("cuda")
 
     return image_features, image_atts

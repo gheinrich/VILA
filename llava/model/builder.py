@@ -152,14 +152,6 @@ def load_pretrained_model(
                 model = LlavaLlamaForCausalLM.from_pretrained(
                     model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs
                 )
-
-            vision_projector_weights = torch.load(
-                os.path.join(model_path, "vision_projector.bin"), map_location="cpu"
-            )
-            vision_projector_weights = {
-                k: v.to(torch.float16) for k, v in vision_projector_weights.items()
-            }
-            model.load_state_dict(vision_projector_weights, strict=False)
         else:
             if "mpt" in model_name.lower():
                 config = AutoConfig.from_pretrained(model_path)

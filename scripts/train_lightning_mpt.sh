@@ -8,8 +8,8 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --data_path /path/to/blip_laion_cc_sbu_558k.json \
     --image_folder /path/to/blip_laion_cc_sbu_558k \
     --vision_tower openai/clip-vit-large-patch14 \
-    --tune_vision_projector True \
-    --vision_select_layer -2 \
+    --tune_mm_projector True \
+    --mm_vision_select_layer -2 \
     --mm_use_im_start_end \
     --bf16 True \
     --output_dir ./checkpoints/llava-lightning-mpt-7b-pretrain \
@@ -34,9 +34,9 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --report_to wandb
 
 # Extract projector features
-python scripts/extract_vision_projector.py \
+python scripts/extract_mm_projector.py \
   --model_name_or_path ./checkpoints/llava-lightning-mpt-7b-pretrain \
-  --output ./checkpoints/vision_projector/llava-lightning-mpt-7b-pretrain.bin
+  --output ./checkpoints/mm_projector/llava-lightning-mpt-7b-pretrain.bin
 
 # Visual instruction tuning (1 hour)
 torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
@@ -46,8 +46,8 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --data_path /path/to/llava_instruct_80k.json \
     --image_folder /Data/haotian/coco/train2014 \
     --vision_tower openai/clip-vit-large-patch14 \
-    --pretrain_mm_mlp_adapter ./checkpoints/vision_projector/llava-lightning-mpt-7b-pretrain.bin \
-    --vision_select_layer -2 \
+    --pretrain_mm_mlp_adapter ./checkpoints/mm_projector/llava-lightning-mpt-7b-pretrain.bin \
+    --mm_vision_select_layer -2 \
     --mm_use_im_start_end True \
     --bf16 True \
     --output_dir ./checkpoints \

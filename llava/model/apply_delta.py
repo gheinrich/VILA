@@ -28,8 +28,8 @@ def apply_delta(base_model_path, target_model_path, delta_path):
     for name, param in tqdm(delta.state_dict().items(), desc="Applying delta"):
         if name not in base.state_dict():
             assert name in [
-                "model.vision_projector.weight",
-                "model.vision_projector.bias",
+                "model.mm_projector.weight",
+                "model.mm_projector.bias",
             ], f"{name} not in base model"
             continue
         if param.data.shape == base.state_dict()[name].shape:
