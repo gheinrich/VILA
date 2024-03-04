@@ -35,14 +35,14 @@ class DataArguments:
 
 @dataclass
 class ModelArguments:
+    version: Optional[str] = field(default="v0")
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
     vision_tower: Optional[str] = field(default=None)
-    version: Optional[str] = field(default="v0")
-    vision_projector: Optional[str] = field(default="linear")
+    mm_projector_type: Optional[str] = field(default="linear")
     mm_use_im_start_end: bool = field(default=False)
     mm_use_im_patch_token: bool = field(default=True)
-    vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
-    vision_select_feature: Optional[str] = field(default="patch")
+    mm_vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
+    mm_vision_select_feature: Optional[str] = field(default="patch")
     vision_resolution: Optional[int] = field(default=-1)
     interpolate_mode: Optional[str] = field(default="linear")
 
@@ -55,7 +55,7 @@ class TrainingArguments(transformers.TrainingArguments):
     mpt_attn_impl: Optional[str] = field(default="triton")
     tune_vision_tower: bool = field(default=False)
     tune_language_model: bool = field(default=False)
-    tune_vision_projector: bool = field(default=False)
+    tune_mm_projector: bool = field(default=False)
     model_max_length: int = field(
         default=512,
         metadata={
@@ -81,7 +81,7 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_dropout: float = 0.05
     lora_weight_path: str = ""
     lora_bias: str = "none"
-    vision_projector_lr: Optional[float] = None
+    mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
     total_time_limit: int = field(
         default=-1, metadata={"help": "Timeout limit for this job (in minutes)."}

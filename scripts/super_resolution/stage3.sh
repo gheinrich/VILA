@@ -34,12 +34,12 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25000 \
     --data_mixture vflan+sharegpt4v_sft \
     --vision_tower google/siglip-large-patch16-384 \
     --vision_resolution 576 \
-    --vision_projector mlp2x_gelu \
-    --vision_select_layer -2 \
+    --mm_projector_typemlp2x_gelu \
+    --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
-    --tune_vision_projector True \
+    --tune_mm_projector True \
     --tune_vision_tower True \
     --group_by_modality_length True \
     --bf16 True \

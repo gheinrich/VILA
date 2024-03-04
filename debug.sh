@@ -9,11 +9,11 @@ torchrun --nproc_per_node=1 --master_port=25000 \
     --data_mixture llava_1_5_mm_align \
     --vision_tower google/siglip-large-patch16-384 \
     --vision_resolution 576 \
-    --vision_projector mlp2x_gelu \
+    --mm_projector_type mlp2x_gelu \
     --tune_language_model True \
-    --tune_vision_projector True \
-    --vision_select_layer -2 \
-    --vision_select_feature patch \
+    --tune_mm_projector True \
+    --mm_vision_select_layer -2 \
+    --mm_vision_select_feature patch \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \

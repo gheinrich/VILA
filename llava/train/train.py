@@ -120,7 +120,7 @@ def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
 def find_all_linear_names(model):
     cls = torch.nn.Linear
     lora_module_names = set()
-    multimodal_keywords = ["vision_projector", "vision_tower", "vision_resampler"]
+    multimodal_keywords = ["mm_projector", "vision_tower", "vision_resampler"]
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
@@ -199,7 +199,7 @@ def train():
                 quantization_config=BitsAndBytesConfig(
                     load_in_4bit=training_args.bits == 4,
                     load_in_8bit=training_args.bits == 8,
-                    llm_int8_skip_modules=["vision_projector"],
+                    llm_int8_skip_modules=["mm_projector"],
                     llm_int8_threshold=6.0,
                     llm_int8_has_fp16_weight=False,
                     bnb_4bit_compute_dtype=compute_dtype,
@@ -276,11 +276,11 @@ def train():
     ## set tunnable parameters
     model.get_model().requires_grad_(training_args.tune_language_model)
     model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-    model.get_model().get_vision_projector().requires_grad_(training_args.tune_vision_projector)
-    for name, param in model.named_parameters():
-        print(name, param.requires_grad)
+    model.get_model().get_mm_projector().requires_grad_(
+        training_args.tune_mm_projector
+    )
     print(
-        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n vision projector {training_args.tune_vision_projector}"
+        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n vision projector {training_args.tune_mm_projector}"
     )
 
     ## quantize training
@@ -391,14 +391,14 @@ def train():
         model.config.tokenizer_model_max_length = tokenizer.model_max_length
         ## yunhao: do we need to keep this?
         if training_args.bits in [4, 8]:
-            model.get_model().vision_projector.to(
+            model.get_model().get_mm_projector().to(
                 dtype=compute_dtype, device=training_args.device
             )
 
         model.config.mm_use_im_start_end = (
             data_args.mm_use_im_start_end
         ) = model_args.mm_use_im_start_end
-        model.config.vision_projector_lr = training_args.vision_projector_lr
+        model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)

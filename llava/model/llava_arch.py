@@ -20,7 +20,7 @@ import torch.nn as nn
 
 import warnings
 from .multimodal_encoder.builder import build_vision_tower
-from .multimodal_projector.builder import build_vision_projector
+from .multimodal_projector.builder import build_mm_projector
 
 from llava.constants import (
     IGNORE_INDEX,
@@ -38,17 +38,15 @@ class LlavaMetaModel(ABC):
             vision_tower = vision_tower[0]
         return vision_tower
 
-    def get_vision_projector(self):
-        vision_projector = getattr(self, "vision_projector", None)
-        if type(vision_projector) is list:
-            vision_projector = vision_projector[0]
-        return vision_projector
+    def get_mm_projector(self):
+        mm_projector = getattr(self, "mm_projector", None)
+        if type(mm_projector) is list:
+            mm_projector = mm_projector[0]
+        return mm_projector
 
     def _post_init(self):
         if self.config.vision_tower_config is None:
             self.config.vision_tower_config = self.vision_tower.config
-            ## TODO make vision_projector class
-            # self.config.vision_projector_config = self.vision_projector.config
 
 
 class LlavaMetaForCausalLM(ABC):
@@ -65,7 +63,7 @@ class LlavaMetaForCausalLM(ABC):
 
     def encode_images(self, images):
         image_features = self.get_model().get_vision_tower()(images)
-        image_features = self.get_model().vision_projector(image_features)
+        image_features = self.get_model().get_mm_projector()(image_features)
         return image_features
 
     def prepare_inputs_labels_for_multimodal(
@@ -114,7 +112,7 @@ class LlavaMetaForCausalLM(ABC):
             image_features = self.encode_images(images).to(self.device)
 
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
-        if getattr(self.config, "turn_vision_projector", False) and getattr(
+        if getattr(self.config, "turn_mm_projector", False) and getattr(
             self.config, "mm_use_im_start_end", False
         ):
             raise NotImplementedError
@@ -457,10 +455,10 @@ class LlavaMetaForCausalLM(ABC):
                 output_embeddings[-num_new_tokens:] = output_embeddings_avg
             ## TODO yunhao: handle cases for <im_st> <im_end>
             if model_args.pretrain_mm_mlp_adapter:
-                vision_projector_weights = torch.load(
+                mm_projector_weights = torch.load(
                     model_args.pretrain_mm_mlp_adapter, map_location="cpu"
                 )
-                embed_tokens_weight = vision_projector_weights[
+                embed_tokens_weight = mm_projector_weights[
                     "model.embed_tokens.weight"
                 ]
                 assert num_new_tokens == 2
@@ -475,7 +473,7 @@ class LlavaMetaForCausalLM(ABC):
                         f"Unexpected embed_tokens_weight shape. Pretrained: {embed_tokens_weight.shape}. Current: {input_embeddings.shape}. Numer of new tokens: {num_new_tokens}."
                     )
         elif model_args.mm_use_im_patch_token:
-            if model_args.tune_vision_projector:
+            if model_args.tune_mm_projector:
                 for p in self.get_input_embeddings().parameters():
                     p.requires_grad = False
                 for p in self.get_output_embeddings().parameters():
