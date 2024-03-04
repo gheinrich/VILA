@@ -1888,6 +1888,10 @@ def make_supervised_data_module(
             dataset_cls = LazySAMWebDataset
         elif dataset_type == "coyo-wds":
             dataset_cls = LazyCoyoWebDataset
+        elif dataset_type == "coyo-wds-recap":
+            print("dataset.py: Loading coyo-wds-recap class")
+            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
+            dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":

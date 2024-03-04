@@ -41,10 +41,12 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument("--model-name", type=str, default=None)
-    parser.add_argument("--fast-check", action="store_true")
-    parser.add_argument("--sleep-on-error", action="store_true")
+
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
+    
+    parser.add_argument("--fast-check", action="store_true")
+    parser.add_argument("--sleep-on-error", action="store_true")
 
     args = parser.parse_args()
 
@@ -55,7 +57,8 @@ if __name__ == "__main__":
     if local_folder[-1] == "/":
         local_folder = local_folder[:-1]
 
-    model_name = osp.basename(local_folder).replace("+", "-")
+    if args.model_name is None:
+        model_name = osp.basename(local_folder).replace("+", "-")
     repo = osp.join(args.repo_org, model_name)
 
     local_folder = os.path.expanduser(local_folder)
@@ -65,6 +68,7 @@ if __name__ == "__main__":
             private=True,
             repo_type=repo_type,
         )
+        
     BASE_URL = "https://hf.co"
     if args.repo_type == "dataset":
         BASE_URL = "https://hf.co/datasets"
