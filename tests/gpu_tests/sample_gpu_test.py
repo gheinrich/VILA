@@ -38,9 +38,5 @@ class TestStringMethods(unittest.TestCase):
         print(a + b)
         
         
-    
-        
-    
-    
 if __name__ == '__main__':
     unittest.main()
