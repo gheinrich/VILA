@@ -79,4 +79,16 @@ def test_make_supervised_data_module():
 
     # print(data_module)
 
-test_make_supervised_data_module()
+import unittest
+
+from llava.unit_test_utils import requires_lustre, requires_gpu
+
+class TestStringMethods(unittest.TestCase):
+    @requires_lustre()
+    def test_data_module(self):
+        test_make_supervised_data_module()
+        
+if __name__ == '__main__':
+    unittest.main()
+
+        
