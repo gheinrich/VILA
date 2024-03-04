@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  UnitTests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
@@ -34,9 +34,9 @@ jobs:
           pip install scikit-learn
           pip install openai
 
-          pip install git+https://github.com/huggingface/transformers@v4.36.2
+          pip install git+https://github.com/huggingface/transformers@v4.38.1
           export PPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
-          cp -rv ./llava/train/transformers_replace/* $PPATH/transformers/models/
+          cp -rv ./llava/train/transformers_replace/* $PPATH/transformers/
 
       - name: Run tests
         run: |
@@ -44,3 +44,4 @@ jobs:
           for f in tests/*.py; do
               python $f
           done
+

@@ -4,12 +4,12 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA
+cd ~/workspace/VILA-Internal
 
 # NOTE(ligeng): all testing scripts should use relative path.
-python ~/workspace/VILA/inference_test/inference_test.py \
+python ~/workspace/VILA-Internal/inference_test/inference_test.py \
     --model-name $1 \
-    --test_json_path ~/workspace/VILA/inference_test/inference_test.json \
-    --test_image_path ~/workspace/VILA/inference_test/test_data \
-    --conv-mode vicuna_v1_1
+    --test_json_path ~/workspace/VILA-Internal/inference_test/inference_test.json \
+    --test_image_path ~/workspace/VILA-Internal/inference_test/test_data \
+    --conv-mode vicuna_v1
 

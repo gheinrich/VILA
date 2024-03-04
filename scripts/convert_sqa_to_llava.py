@@ -5,7 +5,7 @@ import re
 from convert_sqa_to_llava_base_prompt import build_prompt_chatbot
 
 
-def convert_to_llava(base_dir, split, prompt_format="QCM-LEPA"):
+def convert_to_llava(base_dir, split, prompt_format="QCM-LEA"):
     split_indices = json.load(open(os.path.join(base_dir, "pid_splits.json")))[split]
     problems = json.load(open(os.path.join(base_dir, "problems.json")))
 
@@ -33,7 +33,7 @@ def convert_to_llava(base_dir, split, prompt_format="QCM-LEPA"):
         else:
             target_format.append({
                 "id": prob_id,
-                "image": os.path.join('scienceqa/train', prob_id, raw_prob_data['image']),
+                "image": os.path.join(prob_id, raw_prob_data['image']),
                 "conversations": [
                     {'from': 'human', 'value': f"{input}\n<image>"},
                     {'from': 'gpt', 'value': f"{output}"},
@@ -72,7 +72,7 @@ def convert_to_jsonl(base_dir, split, prompt_format="QCM-LEPA"):
         else:
             data = {
                 "id": prob_id,
-                "image": os.path.join('scienceqa/train', prob_id, raw_prob_data['image']),
+                "image": os.path.join(prob_id, raw_prob_data['image']),
                 "instruction": f"{input}\n<image>",
                 "output": f"{output}",
             }

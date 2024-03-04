@@ -4,7 +4,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA
+cd ~/workspace/VILA-Internal
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/models/Mixtral-8x7B-v0.1 \
     --version v1 \
-    --data_mixture coyo_25m_mmc4core_sharegpt4v \
+    --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain \
     --vision_tower google/siglip-so400m-patch14-384 \
     --pretrain_mm_mlp_adapter ./checkpoints/vila-mixtral-7b-align/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
