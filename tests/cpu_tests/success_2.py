@@ -13,6 +13,7 @@ class TestInputPacking(unittest.TestCase):
     def test_gpu(self):
         print("hello world")
 
+    @unittest.expectedFailure
     def test_should_fail(self):
         a = {}
         print(a["123"])
