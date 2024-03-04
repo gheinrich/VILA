@@ -1,3 +1,4 @@
+dev/
 config.json
 eval-result/
 *_dev.sh
@@ -42,3 +43,4 @@ ckpts*
 *.pt
 
 playground
+

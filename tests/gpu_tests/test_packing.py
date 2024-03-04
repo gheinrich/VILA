@@ -48,7 +48,7 @@ class TestInputPacking(unittest.TestCase):
         self.model = self.model.to(torch.bfloat16).to(device)
 
         print("Initializing data...")
-        data = torch.load("../sample_data/test_packing.pth")
+        data = torch.load("tests/sample_data/test_packing.pth")
         # necessary for model forward
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.data = data

@@ -53,9 +53,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default="/industrial/models/llava-v1.5-7b")
-    parser.add_argument("--question_file", type=str, default="../tests/sample_data/llava_arch_test.json")
-    parser.add_argument("--image_folder", type=str, default="../tests/sample_data/llava_arch_test_images")
+    parser.add_argument("--model_path", type=str, default="Efficient-Large-Model/VILA-7b")
+    parser.add_argument("--question_file", type=str, default="tests/sample_data/llava_arch_test.json")
+    parser.add_argument("--image_folder", type=str, default="tests/sample_data/llava_arch_test_images")
     parser.add_argument("--device", type=str, default="cuda:0")
     args = parser.parse_args()
 
