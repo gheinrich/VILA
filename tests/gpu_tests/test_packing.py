@@ -5,6 +5,7 @@ from transformers import AutoTokenizer, CLIPImageProcessor
 from llava.model.builder import load_pretrained_model
 from llava.model import LlavaLlamaForCausalLM, LlavaConfig
 from llava.train.args import ModelArguments
+from llava.unit_test_utils import requires_gpu, requires_lustre
 import torch
 import unittest
 
@@ -53,6 +54,8 @@ class TestInputPacking(unittest.TestCase):
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
+    
+    @requires_gpu()
     def test_loss_close(self):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)

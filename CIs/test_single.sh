@@ -3,9 +3,9 @@ report_file=${2:-dev/tmp.md}
 
 python $pyfile; 
 if [ $? -eq 0 ]; then
-    msg="[CIs] $pyfile succeeded"
+    msg="[succeeded] $pyfile "
 else
-    msg="[CIs] $pyfile failed"
+    msg="[failed] $pyfile "
 fi
 
 echo "$msg"
