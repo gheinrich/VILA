@@ -1,5 +1,4 @@
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
-from llava.model.utils import maybe_resize_pos_embeds
 
 from transformers import PretrainedConfig
 from transformers.models.siglip import (
@@ -19,7 +18,7 @@ class SiglipVisionTower(VisionTower):
             )
             self.vision_tower = SiglipVisionModel.from_pretrained(vision_tower_cfg)
             ## resize position embedding of the vision encoder
-            maybe_resize_pos_embeds(
+            self._maybe_resize_pos_embeds(
                 self.image_processor,
                 self.vision_tower,
                 config.vision_resolution,
