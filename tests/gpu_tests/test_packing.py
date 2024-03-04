@@ -30,7 +30,7 @@ class TestInputPacking(unittest.TestCase):
             version="v1",
             vision_tower="openai/clip-vit-large-patch14-336",
             mm_vision_select_layer=-2,
-            mm_use_im_patch_token=False
+            mm_use_im_patch_token=False,
         )
         self.config = LlavaConfig.from_pretrained(model_name_or_path)
         print("Initializing tokenizer...")
@@ -54,7 +54,6 @@ class TestInputPacking(unittest.TestCase):
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
-    
     @requires_gpu()
     def test_loss_close(self):
         print("Preprocessing inputs...")
@@ -124,5 +123,6 @@ class TestInputPacking(unittest.TestCase):
             print("loss =", loss, "loss_ref =", loss_ref)
             self.assertAlmostEqual(loss.item(), loss_ref.item(), places=2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

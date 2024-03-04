@@ -1,4 +1,4 @@
-'''
+"""
 A inference test on llava_arch.py
 This test can be simply run by
 python llava_arch_unit_test.py \
@@ -6,7 +6,7 @@ python llava_arch_unit_test.py \
             --question_file path_to_question_file \
             --image_folder image_directory \
             --device "cuda:0"
-'''
+"""
 
 import os
 import json
@@ -16,12 +16,12 @@ import torch.nn as nn
 from tqdm import tqdm
 from PIL import Image
 
-from transformers import AutoConfig, AutoModelForCausalLM, \
-                         LlamaConfig, LlamaModel, LlamaForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, LlamaConfig, LlamaModel, LlamaForCausalLM, AutoTokenizer
 
 from llava.model.llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
 from llava.mm_utils import tokenizer_image_token
+
 
 class LlavaConfig(LlamaConfig):
     model_type = "llava_llama"
@@ -51,7 +51,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         return self.model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, default="Efficient-Large-Model/VILA-7b")
     parser.add_argument("--question_file", type=str, default="tests/sample_data/llava_arch_test.json")
@@ -75,24 +75,26 @@ if __name__ == '__main__':
 
     for i, line in enumerate(tqdm(questions)):
         idx = line["id"]
-        question = line['conversations'][0]
-        qs = question['value'].replace('<image>', '').strip()
+        question = line["conversations"][0]
+        qs = question["value"].replace("<image>", "").strip()
         cur_prompt = qs
 
-        print("Checking Question: %s"%qs.split("\n")[0])
-        if 'image' in line:
+        print("Checking Question: %s" % qs.split("\n")[0])
+        if "image" in line:
             image_file = line["image"]
-            print("Image file: %s"%image_file)
+            print("Image file: %s" % image_file)
             image = Image.open(os.path.join(args.image_folder, image_file))
-            image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+            image_tensor = image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
             images = image_tensor.unsqueeze(0).half().cuda()
 
-            qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
-            cur_prompt = '<image>' + '\n' + cur_prompt
+            qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
+            cur_prompt = "<image>" + "\n" + cur_prompt
         else:
             images = None
 
-        input_ids = tokenizer_image_token(cur_prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
+        input_ids = (
+            tokenizer_image_token(cur_prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
+        )
 
         attention_mask = torch.ones(input_ids.shape, device=device, dtype=torch.int64)
         position_ids = torch.arange(input_ids.shape[-1], device=device)
@@ -101,18 +103,34 @@ if __name__ == '__main__':
             input_ids_after,
             position_ids_after,
             attention_mask_after,
-            _, inputs_embeds, _
+            _,
+            inputs_embeds,
+            _,
         ) = model.prepare_inputs_labels_for_multimodal(input_ids, position_ids, attention_mask, None, None, images)
 
         if images is None:
-            assert (position_ids_after - position_ids).abs().sum() == 0, "positions_ids should not be changed, without images"
-            assert (attention_mask_after - attention_mask).abs().sum() == 0, "attention_mask should not be changed, without images"
-            assert (input_ids_after - input_ids).abs().sum()==0, "input_ids should not be changed without images"
+            assert (
+                position_ids_after - position_ids
+            ).abs().sum() == 0, "positions_ids should not be changed, without images"
+            assert (
+                attention_mask_after - attention_mask
+            ).abs().sum() == 0, "attention_mask should not be changed, without images"
+            assert (input_ids_after - input_ids).abs().sum() == 0, "input_ids should not be changed without images"
             assert inputs_embeds is None, "inputs_embeds should be None without images"
         else:
-            assert position_ids_after.shape == (input_ids.shape[0], input_ids.shape[1] + 255), "positions_ids should not be changed, without images"
-            assert attention_mask_after.shape == (input_ids.shape[0], input_ids.shape[1] + 255), "attention_mask should not be changed, without images"
+            assert position_ids_after.shape == (
+                input_ids.shape[0],
+                input_ids.shape[1] + 255,
+            ), "positions_ids should not be changed, without images"
+            assert attention_mask_after.shape == (
+                input_ids.shape[0],
+                input_ids.shape[1] + 255,
+            ), "attention_mask should not be changed, without images"
             assert input_ids_after is None, "input_ids should not be changed without images"
-            assert inputs_embeds.shape == (input_ids.shape[0], input_ids.shape[1] + 255, 4096), "inputs_embeds should have shape (batch size, num_tokens, hidden_dim)"
+            assert inputs_embeds.shape == (
+                input_ids.shape[0],
+                input_ids.shape[1] + 255,
+                4096,
+            ), "inputs_embeds should have shape (batch size, num_tokens, hidden_dim)"
 
         print("Checking passed.")
