@@ -149,7 +149,7 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
     save_json(meta, meta_path_of_tar_rel)
 
 
-class SimpleCoyoDataset(torch.utils.data.Dataset):
+class VILAWebDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         data_path=COYO_25M_VILA,
@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     prepare_wids_meta(args.data_path)
 
-    train_dataset = SimpleCoyoDataset(
+    train_dataset = VILAWebDataset(
         data_path=args.data_path,
         max_shards_to_load=args.max_shards,
     )
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     print(train_dataset[0])
     exit(0)
     print("overwrite:", args.overwrite)
-    train_dataset = SimpleCoyoDataset(
+    train_dataset = VILAWebDataset(
         data_path=args.data_path,
         max_shards_to_load=args.max_shards,
         # cache_dir="~/.cache/simplecoyo",
@@ -277,7 +277,7 @@ if __name__ == "__main__":
         shuffle=False,
         sampler=sampler,
         batch_size=1,
-        collate_fn=SimpleCoyoDataset.custom_collate,
+        collate_fn=VILAWebDataset.custom_collate,
         # num_workers=8,
     )
     # sampler.set_epoch(0)

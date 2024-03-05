@@ -1,3 +1,3 @@
 from .dataset import *
 from .datasets_mixture import *
-from .simple_coyo_dataset import SimpleCoyoDataset
+from .simple_vila_webdataset import VILAWebDataset

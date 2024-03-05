@@ -16,14 +16,15 @@ import sys
 from pytorchvideo.data.encoded_video import EncodedVideo
 
 
-video_path = '/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/VideoInstruct100K.json'
-video_path_out = '/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json'
+video_path = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/VideoInstruct100K.json"
+video_path_out = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json"
+
 
 def test_valid_video():
     video_json = json.load(open(video_path, "r"))
     video_json_output = []
     for video in video_json:
-        path = '/home/jasonlu/video_datasets/Video_ChatGPT/activitynet_videos/' + video['video_id'] + '.mp4'
+        path = "/home/jasonlu/video_datasets/Video_ChatGPT/activitynet_videos/" + video["video_id"] + ".mp4"
         try:
             video_data = EncodedVideo.from_path(path, decoder="decord", decode_audio=False)
             del video_data
@@ -31,10 +32,11 @@ def test_valid_video():
             print(path)
             continue
         video_json_output.append(video)
-    out_file = open(video_path_out, "w") 
+    out_file = open(video_path_out, "w")
     json.dump(video_json_output, out_file)
     video_path.close()
     video_json_output.close()
+
 
 test_valid_video()
 
@@ -119,7 +121,7 @@ test_valid_video()
 #             ]
 
 #         item = dataset.LazySupervisedDataset(data_path=test_dataset.data_path,
-#                                             tokenizer=tokenizer, 
+#                                             tokenizer=tokenizer,
 #                                             multimodal_cfg=multimodal_cfg)
 
 #         print(item.__getitem__(73))
@@ -143,11 +145,10 @@ test_valid_video()
 #         ),
 #         patch_size=14,
 #         n_extra_patch=0,
-#     ) 
+#     )
 #     pp = pprint.PrettyPrinter(indent=2)
 #     pp.pprint(data_module)
 #     pp.pprint(extra_info)
-
 
 
 # def test_DataCollatorForSupervisedDataset():

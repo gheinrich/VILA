@@ -5,6 +5,7 @@ from transformers import AutoTokenizer, CLIPImageProcessor
 from llava.model.builder import load_pretrained_model
 from llava.model import LlavaLlamaForCausalLM, LlavaConfig
 from llava.train.args import ModelArguments
+from llava.unit_test_utils import requires_gpu, requires_lustre
 import torch
 import unittest
 
@@ -29,7 +30,7 @@ class TestInputPacking(unittest.TestCase):
             version="v1",
             vision_tower="openai/clip-vit-large-patch14-336",
             mm_vision_select_layer=-2,
-            mm_use_im_patch_token=False
+            mm_use_im_patch_token=False,
         )
         self.config = LlavaConfig.from_pretrained(model_name_or_path)
         print("Initializing tokenizer...")
@@ -48,11 +49,12 @@ class TestInputPacking(unittest.TestCase):
         self.model = self.model.to(torch.bfloat16).to(device)
 
         print("Initializing data...")
-        data = torch.load("../sample_data/test_packing.pth")
+        data = torch.load("tests/sample_data/test_packing.pth")
         # necessary for model forward
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
+    @requires_gpu()
     def test_loss_close(self):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)
@@ -121,5 +123,6 @@ class TestInputPacking(unittest.TestCase):
             print("loss =", loss, "loss_ref =", loss_ref)
             self.assertAlmostEqual(loss.item(), loss_ref.item(), places=2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
