@@ -25,7 +25,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain \
     --vision_tower google/siglip-so400m-patch14-384 \
     --pretrain_mm_mlp_adapter ./checkpoints/vila-mistral-7b-align/mm_projector.bin \
-    --mm_projector_typemlp2x_gelu \
+    --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

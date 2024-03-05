@@ -23,7 +23,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version plain \
     --data_mixture ccs_recaptioned_test \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector_typemlp2x_gelu \
+    --mm_projector_type mlp2x_gelu \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
