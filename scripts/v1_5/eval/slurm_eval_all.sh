@@ -33,3 +33,5 @@ srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mmv
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_pope --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.pope.txt ./scripts/v1_5/eval/pope.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_seed --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.seed.txt ./scripts/v1_5/eval/seed.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_gqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.gqa.txt ./scripts/v1_5/eval/gqa.sh $checkpoint_path $model_name &
+srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_chartqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.chartqa.txt ./scripts/v1_5/eval/chartqa.sh $checkpoint_path $model_name &
+srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_ai2d --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.ai2d.txt ./scripts/v1_5/eval/ai2d.sh $checkpoint_path $model_name &
