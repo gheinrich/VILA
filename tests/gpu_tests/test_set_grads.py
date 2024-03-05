@@ -1,12 +1,10 @@
-import shutil
-import os
-import shortuuid
-from llava.model import LlavaLlamaForCausalLM, LlavaConfig, AutoConfig
-from llava.train.args import ModelArguments, TrainingArguments
-from llava.model.utils import get_checkpoint_path, prepare_vision_tower_config
-
-import torch, torch.nn as nn
+import torch
 import unittest
+
+from llava.model import LlavaLlamaForCausalLM, LlavaConfig
+from llava.unit_test_utils import requires_gpu
+from llava.train.args import ModelArguments, TrainingArguments
+from llava.train.utils import prepare_vision_tower_config
 
 
 torch.manual_seed(1)
@@ -32,7 +30,10 @@ class TestSetGrads(unittest.TestCase):
         )
 
         self.training_args = TrainingArguments(
-            tune_language_model=False, tune_vision_tower=False, tune_mm_projector=False
+            tune_language_model=False,
+            tune_vision_tower=False,
+            tune_mm_projector=False,
+            output_dir=None,
         )
 
     def build_vila_model(self):
@@ -48,6 +49,7 @@ class TestSetGrads(unittest.TestCase):
             config=config,
         )
         model.get_model().requires_grad_(self.training_args.tune_language_model)
+        print(self.training_args.tune_language_model)
         model.get_model().get_vision_tower().requires_grad_(
             self.training_args.tune_vision_tower
         )
@@ -56,47 +58,79 @@ class TestSetGrads(unittest.TestCase):
         )
         return model
 
+    def verify_grads_state(
+        self, model, tune_language_model, tune_vision_tower, tune_mm_projector
+    ):
+        for param_name, param in model.get_model().named_parameters():
+            if "vision_tower" not in param_name and "mm_projector" not in param_name:
+                self.assertEqual(param.requires_grad, tune_language_model)
+        for _, param in model.get_model().get_vision_tower().named_parameters():
+            self.assertEqual(param.requires_grad, tune_vision_tower)
+        for _, param in model.get_model().get_mm_projector().named_parameters():
+            self.assertEqual(param.requires_grad, tune_mm_projector)
+
+    ## Actually can write a loop to iterate through combinations
+    @requires_gpu
     def test_tune_projector_and_language_model(self):
+        print("Testing tune projector and language model ...")
         self.training_args.tune_mm_projector = True
         self.training_args.tune_language_model = True
         model = self.build_vila_model()
-        for _, param in model.get_model().named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
-        for _, param in model.get_model().get_vision_tower().named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
-        for _, param in model.get_model().get_mm_projector.named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
+        self.verify_grads_state(
+            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
 
+    @requires_gpu
     def test_tune_projector_and_vision_tower(self):
+        print("Testing tune projector and vision tower ...")
         self.training_args.tune_mm_projector = True
         self.training_args.tune_vision_tower = True
         model = self.build_vila_model()
-        for _, param in model.get_model().named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
-        for _, param in model.get_model().get_vision_tower().named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
-        for _, param in model.get_model().get_mm_projector.named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
+        self.verify_grads_state(
+            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
 
+    @requires_gpu
     def test_tune_projector(self):
+        print("Testing tune projector ...")
         self.training_args.tune_mm_projector = True
         model = self.build_vila_model()
-        for _, param in model.get_model().named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
-        for _, param in model.get_model().get_vision_tower().named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
-        for _, param in model.get_model().get_mm_projector.named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
+        self.verify_grads_state(
+            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
 
+    @requires_gpu
     def test_tune_vision_tower(self):
+        print("Testing tune vision tower ...")
         self.training_args.tune_mm_projector = True
         model = self.build_vila_model()
-        for _, param in model.get_model().named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
-        for _, param in model.get_model().get_vision_tower().named_parameters():
-            self.assertEqual(param.weight.requries_grad, True)
-        for _, param in model.get_model().get_mm_projector.named_parameters():
-            self.assertEqual(param.weight.requries_grad, False)
+        self.verify_grads_state(
+            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+
+    @requires_gpu
+    def test_tune_language_model(self):
+        print("Testing tune language model ...")
+        self.training_args.tune_language_model = True
+        model = self.build_vila_model()
+        self.verify_grads_state(
+            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
 
 
 if __name__ == "__main__":
