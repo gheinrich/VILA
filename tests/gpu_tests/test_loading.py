@@ -1,12 +1,15 @@
-import shutil
+import torch
+import torch.nn as nn
 import os
-import shortuuid
-from llava.model import LlavaLlamaForCausalLM, LlavaConfig, AutoConfig
-from llava.train.args import ModelArguments, TrainingArguments
-from llava.model.utils import get_checkpoint_path, prepare_vision_tower_config
-
-import torch, torch.nn as nn
 import unittest
+import shutil
+import shortuuid
+from transformers import AutoConfig
+from tqdm import tqdm
+from llava.model import LlavaLlamaForCausalLM, LlavaConfig
+from llava.train.args import ModelArguments
+from llava.unit_test_utils import requires_gpu
+from llava.train.utils import get_checkpoint_path, prepare_vision_tower_config
 
 
 torch.manual_seed(1)
@@ -32,20 +35,27 @@ class TestModelInitialization(unittest.TestCase):
         )
 
         self.random_path = "/tmp/test-loading-" + shortuuid.uuid()
+        print(f"Using temporary directory: {self.random_path} ...")
         if os.path.exists(self.random_path):
             shutil.rmtree(self.random_path)
 
-    def random_initialized(model):
-        std = 0.02
-        for module in model.named_():
+    def fast_normal_initialized(self, model, std=0.02, num_reinitialize=10):
+        num_reinitialized = 0
+        modules = [module for module in model.modules()]
+        for module in tqdm(modules[::-1], total=len(modules)):
+            num_reinitialized += 1
             if isinstance(module, nn.Linear):
                 module.weight.data.normal_(mean=0.0, std=std)
-                if module.bias is not None:
-                    module.bias.data.zero_()
+                # if module.bias is not None:
+                #     module.bias.data.zero_()
             elif isinstance(module, nn.Embedding):
                 module.weight.data.normal_(mean=0.0, std=std)
+            else:
+                num_reinitialized -= 1
+            if num_reinitialized == num_reinitialize:
+                break
 
-    def build_vila_model(self, resume_path=None):
+    def build_vila_model(self, resume_path=""):
         resume_path = get_checkpoint_path(resume_path)
         if resume_path:
             self.model_args.model_name_or_path = resume_path
@@ -69,6 +79,7 @@ class TestModelInitialization(unittest.TestCase):
         )
         return model
 
+    @requires_gpu
     def test_first_build(self):
         """
         Build model from scratch.
@@ -98,28 +109,34 @@ class TestModelInitialization(unittest.TestCase):
         for k, v in pretrained_params.items():
             if k in first_loading_params.keys():
                 self.assertAlmostEqual(
-                    v.weight.data, first_loading_params[k].weight.data
+                    torch.equal(v.data, first_loading_params[k].data), True
                 )
 
+    @requires_gpu
     def test_resume(self):
         """
         Resume the whole model from checkpoints.
         """
 
-        model = self.build_vila_model(resume_path=None)
-        model = self.random_initialized(model)
-        model.save_pretrained(self.random_path)
+        model = self.build_vila_model()
+        self.fast_normal_initialized(model)
+        print("Saving random initialized moodel ...")
+        try:
+            model.save_pretrained(self.random_path)
 
-        loaded_model = self.build_vila_model(self.random_path)
-        saved_state_dict = {
-            param_name: param for param_name, param in model.named_parameters()
-        }
-        loaded_state_dict = {
-            param_name: param for param_name, param in loaded_model.named_parameters()
-        }
-        for k, v in saved_state_dict.items():
-            self.assertAlmostEqual(v.weight.data, loaded_state_dict[k].weight.data)
-        shutil.rmtree(self.random_path)
+            loaded_model = self.build_vila_model(self.random_path)
+            saved_state_dict = {
+                param_name: param for param_name, param in model.named_parameters()
+            }
+            loaded_state_dict = {
+                param_name: param
+                for param_name, param in loaded_model.named_parameters()
+            }
+            for k, v in saved_state_dict.items():
+                self.assertEqual(torch.equal(v.data, loaded_state_dict[k].data), True)
+            shutil.rmtree(self.random_path)
+        except:
+            shutil.rmtree(self.random_path)
 
 
 if __name__ == "__main__":

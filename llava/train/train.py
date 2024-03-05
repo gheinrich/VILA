@@ -274,13 +274,14 @@ def train():
 
     model.config.use_cache = False
     ## set tunnable parameters
+    logging.warning(
+        "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
+    )
     model.get_model().requires_grad_(training_args.tune_language_model)
     model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-    model.get_model().get_mm_projector().requires_grad_(
-        training_args.tune_mm_projector
-    )
+    model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)
     print(
-        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n vision projector {training_args.tune_mm_projector}"
+        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n mm projector {training_args.tune_mm_projector}"
     )
 
     ## quantize training
@@ -389,7 +390,6 @@ def train():
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.tokenizer_padding_side = tokenizer.padding_side
         model.config.tokenizer_model_max_length = tokenizer.model_max_length
-        ## yunhao: do we need to keep this?
         if training_args.bits in [4, 8]:
             model.get_model().get_mm_projector().to(
                 dtype=compute_dtype, device=training_args.device

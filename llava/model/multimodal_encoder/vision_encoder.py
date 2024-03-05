@@ -42,7 +42,7 @@ class VisionTower(nn.Module):
         if resolution in [model.config.image_size, -1]:
             return
         print(
-            "You are resizing vision model's position embeddings to increase vision resolution..."
+            "Resizing vision model's position embeddings to increase vision resolution..."
         )
         embeddings = model.vision_model.embeddings
         patch_size = embeddings.patch_size
@@ -51,6 +51,8 @@ class VisionTower(nn.Module):
         old_embeddings = embeddings.position_embedding
         match interpolate_mode:
             case "linear":
+                ## Step 1: Calculate the corresponding patch ID (pid) in the current resolution (M patches) based on the target resolution (N patches). Formula: pid = pid / N * M
+                ## Step 2:  Obtain new embeddings by interpolating between the embeddings of the two nearest calculated patch IDs. Formula: new_embeds = (pid - floor(pid)) * embeds[ceil(pid)] + (ceil(pid) - pid) * embeds[floor(pid)]
                 import torch, torch.nn as nn
 
                 if is_deepspeed_zero3_enabled():
@@ -68,7 +70,6 @@ class VisionTower(nn.Module):
                     dtype=old_embeddings.weight.dtype,
                     device=old_embeddings.weight.device,
                 )
-                ## Interpolate position embeddings
                 mapped_indices = (
                     torch.arange(num_new_tokens).to(old_embeddings.weight.device)
                     / (num_new_tokens - 1)
@@ -85,22 +86,22 @@ class VisionTower(nn.Module):
                     with deepspeed.zero.GatheredParameters(params, modifier_rank=0):
                         interpolated_embeds = (mapped_indices - floor_indices)[
                             :, None
-                        ] * old_embeddings.weight.data[floor_indices, :] + (
+                        ] * old_embeddings.weight.data[ceil_indices, :] + (
                             ceil_indices - mapped_indices
                         )[
                             :, None
                         ] * old_embeddings.weight.data[
-                            ceil_indices, :
+                            floor_indices, :
                         ]
                 else:
                     interpolated_embeds = (mapped_indices - floor_indices)[
                         :, None
-                    ] * old_embeddings.weight.data[floor_indices, :] + (
+                    ] * old_embeddings.weight.data[ceil_indices, :] + (
                         ceil_indices - mapped_indices
                     )[
                         :, None
                     ] * old_embeddings.weight.data[
-                        ceil_indices, :
+                        floor_indices, :
                     ]
                 new_embeddings.weight.data = interpolated_embeds
             case _:
