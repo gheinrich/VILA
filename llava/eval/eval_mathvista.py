@@ -4,7 +4,6 @@ import argparse
 import torch
 import os
 from tqdm import tqdm
-import shortuuid
 
 from llava.constants import (
     IMAGE_TOKEN_INDEX,
@@ -30,7 +29,7 @@ from typing import Dict, Tuple
 from transformers import PretrainedConfig, PreTrainedTokenizer
 from transformers.image_processing_utils import BaseImageProcessor
 from llava.conversation import Conversation
-from .mathvista_utils import extract_answer
+from .mathvista_utils.extract_answer import extract_answer
 
 
 def split_list(lst, n):
@@ -53,7 +52,7 @@ def process_data(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     ## preprocess image
     image = data["decoded_image"].convert("RGB")
-    image_tensor = process_images([image], image_processor, model_config)[0]
+    image_tensor = process_images([image], image_processor, model_config)
     ## preprocess text
     qs = data["query"]
     if model_config.mm_use_im_start_end:
@@ -73,7 +72,7 @@ def process_data(
     prompt = conv.get_prompt()
     input_ids = tokenizer_image_token(
         prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-    )
+    ).unsqueeze(0)
 
     return input_ids, image_tensor
 
@@ -87,7 +86,7 @@ def eval_model(args):
         model_path, args.model_base, model_name
     )
 
-    data = load_dataset(os.path.expanduser(args.data_file))
+    data = load_dataset(os.path.expanduser(args.data_file))[args.split]
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     answer_dict = {}
@@ -158,25 +157,25 @@ def eval_model(args):
     dump(answer_dict, answers_file, indent=4)
 
     if args.split == "testmini":
-        from mathvista_utils.calculate_score import simple_calculate_score
+        from .mathvista_utils.calculate_score import simple_calculate_score
 
         simple_calculate_score(
-            answer_dict, answers_file.split(".json")[0] + "_score.json"
+            answer_dict, answers_file.split(".json")[0] + "_scores.json"
         )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--data-file", type=str, default="AI4Math/MathVista")
     parser.add_argument("--split", type=str, default="testmini")
+    parser.add_argument("--answers-file", type=str, default="answers.json")
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
-    # parser.add_argument("--num-chunks", type=int, default=1)
-    # parser.add_argument("--chunk-idx", type=int, default=0)
-    # parser.add_argument("--temperature", type=float, default=0.2)
-    # parser.add_argument("--top_p", type=float, default=None)
-    # parser.add_argument("--num_beams", type=int, default=1)
-    # parser.add_argument("--max_new_tokens", type=int, default=128)
+    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--top_p", type=float, default=None)
+    parser.add_argument("--num_beams", type=int, default=1)
+    parser.add_argument("--max_new_tokens", type=int, default=128)
     args = parser.parse_args()
 
     eval_model(args)

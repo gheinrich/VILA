@@ -26,6 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 train = ["deepspeed==0.13.2", "ninja", "wandb"]
+eval = ["mmengine", "word2number", "Levenshtein"]
 
 [project.urls]
 "Homepage" = "https://hanlab.mit.edu/projects/vila"
