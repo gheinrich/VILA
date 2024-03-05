@@ -124,6 +124,7 @@ def main():
     num_tasks = args.num_tasks
 
     # While loop to ensure that all captions are processed.
+    num_incomplete_files_list = []
     while True:
         try:
             # Files that have not been processed yet.
@@ -132,7 +133,12 @@ def main():
 
             # Files that have not been processed yet.
             incomplete_files = [f for f in caption_files if f not in completed_files]
+
             print(f"incomplete_files: {len(incomplete_files)}")
+            num_incomplete_files_list.append(len(incomplete_files))
+
+            if len(num_incomplete_files_list) >= 10 and len(set(num_incomplete_files_list[-10:])) == 1:
+                break
 
             # Break the loop when there are no incomplete files
             if len(incomplete_files) == 0:

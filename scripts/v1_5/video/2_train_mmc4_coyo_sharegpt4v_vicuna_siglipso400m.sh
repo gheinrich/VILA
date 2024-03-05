@@ -41,7 +41,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 270 \
+    --save_steps 50 \
     --save_total_limit 1 \
     --learning_rate 5e-5 \
     --weight_decay 0. \

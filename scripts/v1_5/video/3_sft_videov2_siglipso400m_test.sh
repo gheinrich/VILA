@@ -5,7 +5,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd ~/workspace/VILA-Internal
+cd /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
 
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -21,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_valley-linear-e111 \
     --version v1 \
     --data_mixture valley_test \
     --vision_tower google/siglip-so400m-patch14-384 \
