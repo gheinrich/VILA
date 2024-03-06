@@ -28,7 +28,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --data_mixture ccs_recap_wds \
     --vision_tower radio:432:/lustre/fs6/portfolios/llmservice/users/mranzinger/output/evfm/ohem/2-8-24_vit-h-16_baseline/checkpoints/checkpoint-46.pth.tar \
     --mm_projector_type mlp2x_gelu \
-    --tune_mm_mlp_adapter True \
+    --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

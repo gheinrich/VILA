@@ -1,18 +1,31 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
-import os
+from transformers import PretrainedConfig
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
 
+## TODO re-design the vision tower registration
 
-def build_vision_tower(vision_tower_cfg, **kwargs):
-    vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
-    is_absolute_path_exists = os.path.exists(vision_tower)
-    if is_absolute_path_exists or vision_tower.startswith("openai"):
-        return CLIPVisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
-    elif is_absolute_path_exists or "siglip" in vision_tower:
-        return SiglipVisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
-    elif is_absolute_path_exists or "radio" in vision_tower:
+
+def build_vision_tower(config: PretrainedConfig):
+    if config.vision_tower_config is None:
+        vision_tower_cfg = getattr(config, "vision_tower", None)
+    else:
+        vision_tower_cfg = config.vision_tower_config
+    try:
+        vision_tower_name = (
+            vision_tower_cfg
+            if isinstance(vision_tower_cfg, str)
+            else vision_tower_cfg["_name_or_path"]
+        )
+    except:
+        vision_tower_name = None
+
+    if vision_tower_name.startswith("openai"):
+        return CLIPVisionTower(vision_tower_cfg, config)
+    elif "siglip" in vision_tower_name:
+        return SiglipVisionTower(vision_tower_cfg, config)
+    elif "radio" in vision_tower:
         from .radio.radio_encoder import RADIOEncoder
         from transformers import CLIPVisionConfig
 
@@ -32,4 +45,4 @@ def build_vision_tower(vision_tower_cfg, **kwargs):
         )
         return vision_tower
 
-    raise ValueError(f'Unknown vision tower: {vision_tower}')
+    raise ValueError(f"Unknown vision tower: {vision_tower_name}")

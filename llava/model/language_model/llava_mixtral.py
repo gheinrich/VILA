@@ -34,7 +34,7 @@ class LlavaMixtralConfig(MixtralConfig):
     pretraining_tp = 1
 
 
-class LlavaMixtralModel(LlavaMetaModel, MixtralModel):
+class LlavaMixtralModel(MixtralModel, LlavaMetaModel):
     config_class = LlavaMixtralConfig
 
     def __init__(self, config: MixtralConfig):
