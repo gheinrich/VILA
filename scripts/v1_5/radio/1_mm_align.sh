@@ -22,7 +22,7 @@ LOAD_CKPT=/home/yunhaof/workspace/ckpts/vicuna-7b-v1.5
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --deepspeed ./scripts/zero3.json \
+    --deepspeed ./scripts/zero2.json \
     --model_name_or_path $LOAD_CKPT \
     --version plain \
     --data_mixture llava_1_5_mm_align \

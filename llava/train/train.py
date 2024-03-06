@@ -283,11 +283,12 @@ def train():
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
     model.get_model().requires_grad_(training_args.tune_language_model)
-    model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-    model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)
-    print(
-        f"Tunable parameters:\n language model {training_args.tune_language_model}, \n vision tower {training_args.tune_vision_tower}, \n mm projector {training_args.tune_mm_projector}"
-    )
+    print(f"Tunable parameters:\n language model {training_args.tune_language_model}")
+    if model.get_model().get_vision_tower():
+        model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+        model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)
+        print(f"vision tower {training_args.tune_vision_tower}")
+        print(f"mm projector {training_args.tune_mm_projector}")
 
     ## quantize training
     def need_to_modify_do_sample(generation_config):
