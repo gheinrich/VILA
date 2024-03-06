@@ -34,8 +34,8 @@ class VisionTower(nn.Module):
 
     def _maybe_resize_pos_embeds(
         self,
-        image_processor: BaseImageProcessor,
         model: PreTrainedModel,
+        image_processor: BaseImageProcessor,
         resolution: int = -1,
         interpolate_mode: str = "linear",
     ):
