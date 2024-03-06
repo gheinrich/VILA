@@ -8,7 +8,7 @@ from .siglip_encoder import SiglipVisionTower
 
 
 def build_vision_tower(config: PretrainedConfig):
-    if config.vision_tower_config is None:
+    if getattr(config, "vision_tower_config", None) is None:
         vision_tower_cfg = getattr(config, "vision_tower", None)
     else:
         vision_tower_cfg = config.vision_tower_config
@@ -25,12 +25,11 @@ def build_vision_tower(config: PretrainedConfig):
         return CLIPVisionTower(vision_tower_cfg, config)
     elif "siglip" in vision_tower_name:
         return SiglipVisionTower(vision_tower_cfg, config)
-    elif "radio" in vision_tower:
+    elif "radio" in vision_tower_name:
         from .radio.radio_encoder import RADIOEncoder
         from transformers import CLIPVisionConfig
 
-        vision_tower_cfg.mm_vision_tower = vision_tower
-        vision_tower = RADIOEncoder(vision_tower_cfg)
+        vision_tower = RADIOEncoder(config)
 
         vision_tower.config = CLIPVisionConfig(
             **{
