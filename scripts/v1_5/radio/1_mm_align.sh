@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source ~/.bashrc
-conda activate vila-oss
+conda activate vila
 which python
 
 cd ~/workspace/VILA-Internal

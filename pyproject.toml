@@ -30,7 +30,7 @@ eval = ["mmengine", "word2number", "Levenshtein"]
 
 [project.urls]
 "Homepage" = "https://hanlab.mit.edu/projects/vila"
-"Bug Tracker" = "https://github.com/Efficient-Large-Model/VILA-OSS/issues"
+"Bug Tracker" = "https://github.com/Efficient-Large-Model/VILA-Internal/issues"
 
 [tool.setuptools.packages.find]
 exclude = ["assets*", "benchmark*", "docs", "dist*", "playground*", "scripts*", "tests*"]

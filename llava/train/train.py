@@ -290,7 +290,6 @@ def train():
         print(f"vision tower {training_args.tune_vision_tower}")
         print(f"mm projector {training_args.tune_mm_projector}")
 
-    ## quantize training
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
             if (
@@ -305,6 +304,7 @@ def train():
     if need_to_modify_do_sample(model.generation_config):
         model.generation_config.do_sample = True
 
+    ## quantize training
     if training_args.bits in [4, 8]:
         from peft import prepare_model_for_kbit_training
 
