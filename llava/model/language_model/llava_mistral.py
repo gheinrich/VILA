@@ -34,7 +34,7 @@ class LlavaMistralConfig(MistralConfig):
     pretraining_tp = 1
 
 
-class LlavaMistralModel(LlavaMetaModel, MistralModel):
+class LlavaMistralModel(MistralModel, LlavaMetaModel):
     config_class = LlavaMistralConfig
 
     def __init__(self, config: MistralConfig):

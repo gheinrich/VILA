@@ -19,11 +19,13 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
-    --model_name_or_path ./checkpoints/mistral-7b-clip336-finetune-mmc4sub+coyo+sharegpt4v-linear-e1 \
+    --model_name_or_path ./checkpoints/vila-mistral-7b-256gpus-mmc4-coyo \
     --version v1 \
     --datasets_mixture_name vflan+sharegpt4v_sft \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --mm_projector_type linear \
+    --mm_projector_type mlp2x_gelu \
+    --tune_mm_projector True \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --bf16 True \

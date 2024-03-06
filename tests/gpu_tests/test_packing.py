@@ -84,7 +84,12 @@ class TestInputPacking(unittest.TestCase):
             new_labels,
             sorted_seqlens_in_batch,
         ) = self.model.repack_multimodal_data(
-            input_ids, position_ids, attention_mask, past_key_values, inputs_embeds, labels
+            input_ids,
+            position_ids,
+            attention_mask,
+            past_key_values,
+            inputs_embeds,
+            labels,
         )
 
         print("Running models...")

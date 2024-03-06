@@ -18,13 +18,14 @@ echo "node rank:" $SLURM_PROCID
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path /home/jasonlu/models/Mixtral-8x7B-v0.1 \
     --version plain \
     --data_mixture ccs_pretrained \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector_type mlp2x_gelu \
-    --tune_mm_mlp_adapter True \
+    --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
