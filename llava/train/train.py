@@ -36,7 +36,11 @@ from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module, DataCollatorForSupervisedDataset
 from llava.model import *
 from llava.mm_utils import tokenizer_image_token
-from llava.train.utils import get_checkpoint_path, prepare_vision_tower_config
+from llava.train.utils import (
+    get_checkpoint_path,
+    prepare_vision_tower_config,
+    vision_resolution_elevation,
+)
 
 import math
 from peft import PeftModel
@@ -270,6 +274,7 @@ def train():
         **bnb_model_from_pretrained_args,
     )
     context_length_extension(config)
+    vision_resolution_elevation(model, config)
     print(model)
 
     model.config.use_cache = False

@@ -15,12 +15,6 @@ class CLIPVisionTower(VisionTower):
         if isinstance(vision_tower_cfg, str):
             self.image_processor = CLIPImageProcessor.from_pretrained(vision_tower_cfg)
             self.vision_tower = CLIPVisionModel.from_pretrained(vision_tower_cfg)
-            self._maybe_resize_pos_embeds(
-                self.image_processor,
-                self.vision_tower,
-                config.vision_resolution,
-                config.interpolate_mode,
-            )
         ## build from saved checkpoint
         elif isinstance(vision_tower_cfg, dict):
             assert (
