@@ -4,12 +4,9 @@ from transformers import PretrainedConfig
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
 
-## TODO re-design the vision tower registration
-
-## TODO re-design the vision tower registration
-
 
 def build_vision_tower(config: PretrainedConfig):
+    ## use saved vision tower config if resume from checkpoint
     if getattr(config, "vision_tower_config", None) is None:
         vision_tower_cfg = getattr(config, "vision_tower", None)
     else:
@@ -44,6 +41,7 @@ def build_vision_tower(config: PretrainedConfig):
                 "patch_size": vision_tower.patch_size,
             }
         )
+        vision_tower.config._name_or_path = vision_tower_name
         return vision_tower
 
     raise ValueError(f"Unknown vision tower: {vision_tower_name}")

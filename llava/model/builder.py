@@ -38,8 +38,8 @@ from llava.constants import (
 
 def load_pretrained_model(
     model_path,
-    model_base,
     model_name,
+    model_base=None,
     load_8bit=False,
     load_4bit=False,
     device_map="auto",

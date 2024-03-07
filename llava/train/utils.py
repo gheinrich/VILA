@@ -1,4 +1,5 @@
 import os
+import re
 import pathlib
 from dataclasses import dataclass
 from transformers import PretrainedConfig, PreTrainedModel
@@ -31,15 +32,27 @@ def is_local(model_name_or_path: str) -> bool:
     return os.path.isdir(model_name_or_path)
 
 
-def get_checkpoint_path(output_dir: str) -> str | None:
+def get_checkpoint_path(
+    output_dir: str, checkpoint_prefix: str = "checkpoint"
+) -> str | None:
     pathlib_dir = pathlib.Path(output_dir)
 
     if list(pathlib_dir.glob("config.json")):
         return output_dir
     else:
         try:
-            checkpoint_dirs = pathlib_dir.glob("checkpoint-*")
-            return str(max(checkpoint_dirs))
+            ordering_and_checkpoint_path = []
+            glob_checkpoints = [
+                str(x)
+                for x in pathlib.Path(output_dir).glob(f"{checkpoint_prefix}-*")
+                if os.path.isdir(x)
+            ]
+            for path in glob_checkpoints:
+                regex_match = re.match(f".*{checkpoint_prefix}-([0-9]+)", path)
+                if regex_match is not None and regex_match.groups() is not None:
+                    ordering_and_checkpoint_path.append((int(regex_match.groups()[0]), path))
+            checkpoints_sorted = sorted(ordering_and_checkpoint_path)
+            return checkpoints_sorted[-1][1]
         except:
             return None
 

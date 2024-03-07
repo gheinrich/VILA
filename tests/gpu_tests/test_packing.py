@@ -4,6 +4,7 @@ import transformers
 from transformers import AutoTokenizer, CLIPImageProcessor
 from llava.model.builder import load_pretrained_model
 from llava.model import LlavaLlamaForCausalLM, LlavaConfig
+from llava.train.utils import prepare_vision_tower_config
 from llava.train.args import ModelArguments
 from llava.unit_test_utils import requires_gpu, requires_lustre
 import torch
@@ -33,6 +34,7 @@ class TestInputPacking(unittest.TestCase):
             mm_use_im_patch_token=False,
         )
         self.config = LlavaConfig.from_pretrained(model_name_or_path)
+        prepare_vision_tower_config(self.config, self.model_args)
         print("Initializing tokenizer...")
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_name_or_path,
@@ -43,7 +45,6 @@ class TestInputPacking(unittest.TestCase):
         )
         print("Initializing LlavaLlamaForCausalLM...")
         self.model = LlavaLlamaForCausalLM(config=self.config)
-        self.model.get_model().initialize_vision_modules(self.model_args)
         self.model.model.vision_tower.to(dtype=torch.bfloat16)
         self.model.model.vision_tower = self.model.model.vision_tower.to(device)
         self.model = self.model.to(torch.bfloat16).to(device)

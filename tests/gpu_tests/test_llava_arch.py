@@ -21,6 +21,7 @@ from transformers import AutoConfig, AutoModelForCausalLM, LlamaConfig, LlamaMod
 from llava.model.llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
 from llava.mm_utils import tokenizer_image_token
+from llava.model.builder import load_pretrained_model
 
 
 class LlavaConfig(LlamaConfig):
@@ -61,15 +62,13 @@ if __name__ == "__main__":
 
     # model initialization
     device = args.device
-    dtype = torch.float16
-    model = LlavaLlamaForCausalLM.from_pretrained(args.model_path).to(device).to(dtype)
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=False)
-
+    torch.set_default_dtype(torch.float16)
+    
+    tokenizer, model, image_processor, _ = load_pretrained_model(args.model_path, model_name="vila", device=device)
     vision_tower = model.get_vision_tower()
-    if not vision_tower.is_loaded:
-        vision_tower.load_model()
-    vision_tower.to(device=device, dtype=dtype)
-    image_processor = vision_tower.image_processor
+    image_size = vision_tower.config.image_size
+    patch_size = vision_tower.config.patch_size
+    visual_tokens_per_image = (image_size // patch_size) ** 2
 
     questions = json.load(open(os.path.expanduser(args.question_file), "r"))
 
@@ -120,16 +119,16 @@ if __name__ == "__main__":
         else:
             assert position_ids_after.shape == (
                 input_ids.shape[0],
-                input_ids.shape[1] + 255,
+                input_ids.shape[1] + visual_tokens_per_image - 1,
             ), "positions_ids should not be changed, without images"
             assert attention_mask_after.shape == (
                 input_ids.shape[0],
-                input_ids.shape[1] + 255,
+                input_ids.shape[1] + visual_tokens_per_image - 1,
             ), "attention_mask should not be changed, without images"
             assert input_ids_after is None, "input_ids should not be changed without images"
             assert inputs_embeds.shape == (
                 input_ids.shape[0],
-                input_ids.shape[1] + 255,
+                input_ids.shape[1] + visual_tokens_per_image - 1,
                 4096,
             ), "inputs_embeds should have shape (batch size, num_tokens, hidden_dim)"
 
