@@ -14,9 +14,11 @@ bash CIs/continual_local.sh
 
 
 while true; do
-    if [ $SECONDS -gt 7200]; then
+    if [ "$SECONDS" -gt "7200"]; then
         SECONDS=0
         break
+    else
+        sleep 10
     fi 
 done
 
