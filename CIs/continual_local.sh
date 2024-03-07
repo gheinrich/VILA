@@ -1,5 +1,5 @@
-# partition=nvr_elm_llm
-partition=llmservice_nlp_fm
+partition=nvr_elm_llm
+# partition=llmservice_nlp_fm
 report_file=dev/tmp.md
 
 export VILA_CI_RECIPIENTS="ligengz@nvidia.com,jasonlu@nvidia.com"
@@ -16,10 +16,6 @@ for pyfile in tests/cpu_tests/*.py; do
         -e dev/$pylog.err -o dev/$pylog.out \
         bash CIs/test_single.sh $pyfile &
 done
-# wait
-# clear
-# cat $report_file
-# exit
 
 for pyfile in tests/gpu_tests/*.py; do 
     # bash CIs/test_single.sh $pyfile
