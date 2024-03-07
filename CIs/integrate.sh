@@ -1,6 +1,10 @@
-cd ~/workspace/VILA-internal
+SECONDS=0
+while true; do
+
+WORKDIR=~/workspace/VILA-internal
+cd $WORKDIR
 mkdir -p dev
-> ~/workspace/VILA-internal/dev/crontab.txt
+> $WORKDIR/dev/crontab.txt
 git pull
 
 source activate vila
@@ -9,10 +13,20 @@ which python
 bash CIs/continual_local.sh
 
 
+while true; do
+    if [ $SECONDS -gt 7200]; then
+        SECONDS=0
+        break
+    fi 
+done
+
+
+done 
+
 """
 # hourly
-5 * * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> /home/ligengz/workspace/VILA/dev/
+5 * * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
 
 # daily
-5 0 * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> /home/ligengz/workspace/VILA/dev/
+5 */4 * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
 """
