@@ -12,7 +12,7 @@ for pyfile in tests/cpu_tests/*.py; do
     > dev/$pylog.err 
     > dev/$pylog.out
     srun -A $partition \
-        -p cpu,cpu_1,cpu_long -t 4:00:00 -J vila-CI:$pyfile \
+        -p cpu,cpu_long -t 4:00:00 -J vila-CI:$pyfile \
         -e dev/$pylog.err -o dev/$pylog.out \
         bash CIs/test_single.sh $pyfile &
 done
