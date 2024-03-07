@@ -16,11 +16,8 @@
 from abc import ABC, abstractmethod
 
 import torch
-import torch.nn as nn
 
 import warnings
-from .multimodal_encoder.builder import build_vision_tower
-from .multimodal_projector.builder import build_mm_projector
 
 from llava.constants import (
     IGNORE_INDEX,

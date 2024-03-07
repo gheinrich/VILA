@@ -2,7 +2,7 @@
 partition=llmservice_nlp_fm
 report_file=dev/tmp.md
 
-export VILA_CI_RECIPIENTS="ligengz@nvidia.com"
+export VILA_CI_RECIPIENTS="ligengz@nvidia.com,jasonlu@nvidia.com"
 # a@nvidia.com,b@nvidia.com,c@nvidia.com
 
 > $report_file
@@ -37,4 +37,4 @@ wait
 
 clear
 cat $report_file
-# python CIs/send_email.py --text=dev/tmp.md
+python CIs/send_email.py --text=$report_file

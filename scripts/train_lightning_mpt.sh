@@ -33,20 +33,17 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --lazy_preprocess True \
     --report_to wandb
 
-# Extract projector features
-python scripts/extract_mm_projector.py \
-  --model_name_or_path ./checkpoints/llava-lightning-mpt-7b-pretrain \
-  --output ./checkpoints/mm_projector/llava-lightning-mpt-7b-pretrain.bin
-
 # Visual instruction tuning (1 hour)
+# Loading from pretraining checkpoint (output_dir)
 torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     llava/train/train_mem.py \
-    --model_name_or_path mosaicml/mpt-7b-chat \
+    --model_name_or_path ./checkpoints/llava-lightning-mpt-7b-pretrain \
     --version v1 \
     --data_path /path/to/llava_instruct_80k.json \
     --image_folder /Data/haotian/coco/train2014 \
     --vision_tower openai/clip-vit-large-patch14 \
-    --pretrain_mm_mlp_adapter ./checkpoints/mm_projector/llava-lightning-mpt-7b-pretrain.bin \
+    --tune_mm_projector True \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end True \
     --bf16 True \

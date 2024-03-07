@@ -18,6 +18,7 @@ echo "node rank:" $SLURM_PROCID
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path /home/jasonlu/models/Mistral-7B-v0.1 \
     --version plain \
