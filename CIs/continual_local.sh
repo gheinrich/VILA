@@ -23,7 +23,8 @@ for pyfile in tests/gpu_tests/*.py; do
     > dev/$pylog.err 
     > dev/$pylog.out
     srun -A $partition \
-        -p batch_block1,batch_block2,batch_block3,batch_block4,batch_singlenode -t 4:00:00 -J vila-CI:$pyfile \
+        -p interactive,polar,grizzly,polar2,grizzly2,batch_block1,batch_block2,batch_block3,batch_block4,batch_singlenode \
+        -t 4:00:00 -J vila-CI:$pyfile \
         --gpus-per-node 8 --exclusive \
         -e dev/$pylog.err -o dev/$pylog.out \
         bash CIs/test_single.sh $pyfile &
