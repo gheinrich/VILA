@@ -13,6 +13,6 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_mmmu \
     --output_path ./eval_output/$CKPT/MMMU/$SPLIT_answers.json \
     --split $SPLIT
 
-if [$SPLIT == "validation"]; then
+if ["$SPLIT" == "validation"]; then
     python llava/eval/eval_mmmu.py --output_path ./eval_output/$CKPT/MMMU/$SPLIT_answers.json --answer_path ./playground/data/eval/MMMU/answer_dict_val.json
 fi
