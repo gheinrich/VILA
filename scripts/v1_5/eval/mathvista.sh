@@ -8,6 +8,6 @@ mkdir -p ./playground/data/eval/MathVista/answers/$CKPT
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.eval_mathvista \
     --model-path $MODEL_PATH \
     --split $SPLIT \
-    --answers-file ./playground/data/eval/MathVista/answers/$CKPT/MathVista_$SPLIT.json \
+    --answers-file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json \
     --temperature 0 \
     --conv-mode vicuna_v1

@@ -14,7 +14,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --model-path $MODEL_PATH \
         --question-file ./playground/data/eval/vqav2/$SPLIT.jsonl \
         --image-folder ./playground/data/eval/vqav2/test2015 \
-        --answers-file ./playground/data/eval/vqav2/answers/$SPLIT/$CKPT/${CHUNKS}_${IDX}.jsonl \
+        --answers-file ./eval_output/$CKPT/vqav2/answers/$SPLIT/${CHUNKS}_${IDX}.jsonl \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
         --temperature 0 \
@@ -23,15 +23,15 @@ done
 
 wait
 
-output_file=./playground/data/eval/vqav2/answers/$SPLIT/$CKPT/merge.jsonl
+output_file=./eval_output/$CKPT/vqav2/answers/$SPLIT/merge.jsonl
 
 # Clear out the output file if it exists.
 > "$output_file"
 
 # Loop through the indices and concatenate each file.
 for IDX in $(seq 0 $((CHUNKS-1))); do
-    cat ./playground/data/eval/vqav2/answers/$SPLIT/$CKPT/${CHUNKS}_${IDX}.jsonl >> "$output_file"
+    cat ./eval_output/$CKPT/vqav2/answers/$SPLIT/${CHUNKS}_${IDX}.jsonl >> "$output_file"
 done
 
-python scripts/convert_vqav2_for_submission.py --split $SPLIT --ckpt $CKPT
+python scripts/convert_vqav2_for_submission.py --dir ./eval_output/$CKPT/vqav2 --split $SPLIT
 
