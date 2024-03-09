@@ -37,5 +37,5 @@ done
 python scripts/convert_seed_for_submission.py \
     --annotation-file ./playground/data/eval/seed_bench/SEED-Bench.json \
     --result-file $output_file \
-    --result-upload-file ./eval_output/$CKPT/seed_bench/answers_upload/results.jsonl
+    --result-upload-file ./eval_output/$CKPT/seed_bench/answers_upload.jsonl
 

@@ -11,15 +11,14 @@ GQADIR="./playground/data/eval/gqa"
 MODEL_PATH=$1
 CKPT=$2
 
-mkdir ./playground/data/eval/gqa/answers/$SPLIT
-mkdir ./playground/data/eval/gqa/answers/$SPLIT/$CKPT
+mkdir ./eval_output/$CKPT/gqa
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python -m llava.eval.model_vqa_loader \
         --model-path $MODEL_PATH \
         --question-file ./playground/data/eval/gqa/$SPLIT.jsonl \
         --image-folder ./playground/data/eval/gqa/images \
-        --answers-file ./playground/data/eval/gqa/answers/$SPLIT/$CKPT/${CHUNKS}_${IDX}.jsonl \
+        --answers-file ./eval_output/$CKPT/gqa/$SPLIT/answers/${CHUNKS}_${IDX}.jsonl \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
         --temperature 0 \
@@ -28,17 +27,16 @@ done
 
 wait
 
-output_file=./playground/data/eval/gqa/answers/$SPLIT/$CKPT/merge.jsonl
+output_file=./eval_output/$CKPT/gqa/$SPLIT/answers/merge.jsonl
 
 # Clear out the output file if it exists.
 > "$output_file"
 
 # Loop through the indices and concatenate each file.
 for IDX in $(seq 0 $((CHUNKS-1))); do
-    cat ./playground/data/eval/gqa/answers/$SPLIT/$CKPT/${CHUNKS}_${IDX}.jsonl >> "$output_file"
+    cat ./eval_output/$CKPT/gqa/$SPLIT/answers/${CHUNKS}_${IDX}.jsonl >> "$output_file"
 done
 
-python scripts/convert_gqa_for_eval.py --src $output_file --dst ./eval_output/$CKPT/$SPLIT/testdev_balanced_predictions.json
+python scripts/convert_gqa_for_eval.py --src $output_file --dst ./eval_output/$CKPT/gqa/$SPLIT/testdev_balanced_predictions.json
 
-cd $GQADIR
-python eval.py --tier testdev_balanced --predictions ./eval_output/$CKPT/$SPLIT//testdev_balanced_predictions.json
+python $GQADIR/eval.py --tier $GQADIR/testdev_balanced --predictions ./eval_output/$CKPT/gqa/$SPLIT/testdev_balanced_predictions.json

@@ -16,9 +16,9 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    src = os.path.join(args.dir, 'answers', args.split, 'merge.jsonl')
+    src = os.path.join(args.dir, args.split, 'answers', 'merge.jsonl')
     test_split = os.path.join(args.dir, 'llava_vqav2_mscoco_test2015.jsonl')
-    dst = os.path.join(args.dir, 'answers_upload', f'{args.split}_answers_upload.json')
+    dst = os.path.join(args.dir, args.split, f'{args.split}_answers_upload.json')
     os.makedirs(os.path.dirname(dst), exist_ok=True)
 
     results = []

@@ -13,4 +13,4 @@ python -m llava.eval.model_vqa_loader \
 python llava/eval/eval_pope.py \
     --annotation-dir ./playground/data/eval/pope/coco \
     --question-file ./playground/data/eval/pope/llava_pope_test.jsonl \
-    --result-file ./eval_output/$CKPT/mm-vet/results.jsonl
+    --result-file ./eval_output/$CKPT/mm-vet/answers.jsonl

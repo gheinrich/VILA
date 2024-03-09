@@ -12,4 +12,4 @@ python -m llava.eval.model_vqa_loader \
 
 python -m llava.eval.eval_textvqa \
     --annotation-file ./playground/data/eval/textvqa/TextVQA_0.5.1_val.json \
-    --result-file ./eval_output/$CKPT/textvqas/results.jsonl
+    --result-file ./eval_output/$CKPT/textvqa/answers.jsonl
