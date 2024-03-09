@@ -38,7 +38,7 @@ def process_caption(msg):
 
 
 class Cap2QADataset(Dataset):
-    def __init__(self, data_path="captioner/coyo25m-0-000000.tar.json") -> None:
+    def __init__(self, data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json") -> None:
         caption_json = json.load(open(data_path, "r"))
         self.captions = list(caption_json.items())
 
@@ -60,8 +60,8 @@ generation_config = {
 
 
 def main(
-    model_id="NousResearch/Llama-2-7b-chat-hf",
-    data_path="captioner/coyo25m-0-000000.tar.json",
+    model_id="mistralai/Mistral-7B-Instruct-v0.2",
+    data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json",
 ):
     dist.init_process_group()
 
