@@ -447,6 +447,7 @@ def train():
     trainer.save_state()
 
     model.config.use_cache = True
+    model.config.resume_path = model.config._name_or_path = training_args.output_dir
 
     if training_args.lora_enable:
         state_dict = get_peft_state_maybe_zero_3(
