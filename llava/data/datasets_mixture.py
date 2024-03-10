@@ -364,14 +364,14 @@ def register_datasets_mixtures():
         description="6321 videos with 6321 rewritten QA-pairs based on the rewritten captions. (The typos in captions have been fixed by GPT-3.5-turbo)",
     )
     add_dataset(msrvttqa)
-    shot2video_shotonly = Dataset(
-        dataset_name="shot2video_shotonly",
+    shot2story_shotonly = Dataset(
+        dataset_name="shot2story_shotonly",
         dataset_type="torch",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
-    add_dataset(shot2video_shotonly)
+    add_dataset(shot2story_shotonly)
 
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(

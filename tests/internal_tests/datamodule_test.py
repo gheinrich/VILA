@@ -30,7 +30,7 @@ def test_make_supervised_data_module():
     image_processor = SiglipImageProcessor.from_pretrained("google/siglip-so400m-patch14-384")
 
     data_args = DataArguments(
-        data_mixture='msrvttqa',# 'vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa
+        data_mixture='jukinmedia',# 'vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa
         is_multimodal=True,
         lazy_preprocess=True,
     )

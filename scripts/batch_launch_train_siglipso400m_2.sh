@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:8
 #SBATCH --time=4:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=grizzly,polar,grizzly2,polar2
+#SBATCH --partition=grizzly,polar,grizzly2,polar2,polar3
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
 #SBATCH --output=pretraining-internvid1m.out
