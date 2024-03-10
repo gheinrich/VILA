@@ -4,7 +4,7 @@ import unittest
 from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
-class TestInputPacking(unittest.TestCase):
+class TestSimpleCase(unittest.TestCase):
     def test_print(self):
         print("hello world")
 

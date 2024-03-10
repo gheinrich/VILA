@@ -16,7 +16,7 @@ echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
-LOAD_CKPT=~/workspace/ckpts/vicuna-7b-v1.5
+LOAD_CKPT=./checkpoints/vila-vicuna-7b-align
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
@@ -25,9 +25,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --model_name_or_path $LOAD_CKPT \
     --version v1 \
     --data_mixture coyo_25m+mmc4core \
-    --vision_tower radio:432:/lustre/fs6/portfolios/llmservice/users/mranzinger/output/evfm/ohem/2-8-24_vit-h-16_baseline/checkpoints/checkpoint-46.pth.tar \
-    --pretrain_mm_mlp_adapter ./checkpoints/vila-vicuna-7b-align/mm_projector.bin \
+    --vision_tower radio:432:/lustre/fsw/portfolios/llmservice/users/mranzinger/outputs/radio/radiov2/radio_v2_ep46_hires.pth.tar \
     --mm_projector_type mlp2x_gelu \
+    --tune_mm_projector True \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

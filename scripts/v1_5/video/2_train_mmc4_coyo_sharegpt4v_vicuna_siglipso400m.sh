@@ -17,7 +17,7 @@ bs=$((256 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
-
+## --pretrain_mm_mlp_adapter is deprecated now, make sure you pass the target checkpoint folder (most cases 'output_dir') to --model_name_or_path
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \

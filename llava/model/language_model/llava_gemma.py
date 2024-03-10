@@ -32,7 +32,7 @@ class LlavaGemmaConfig(GemmaConfig):
     model_type = "llava_gemma"
 
 
-class LlavaGemmaModel(LlavaMetaModel, GemmaModel):
+class LlavaGemmaModel(GemmaModel, LlavaMetaModel):
     config_class = LlavaGemmaConfig
 
     def __init__(self, config: GemmaConfig):

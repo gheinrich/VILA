@@ -56,8 +56,9 @@ from llava.mm_utils import tokenizer_image_token, is_gemma_tokenizer
 from torchvision.transforms import Resize
 from pytorchvideo.data.encoded_video import EncodedVideo
 
-from PIL import Image
+from PIL import Image, ImageFile
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 # local_rank = None
 
 # def rank0_print(*args):

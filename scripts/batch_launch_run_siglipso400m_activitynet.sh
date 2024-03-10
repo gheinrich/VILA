@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:8
 #SBATCH --time=4:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=grizzly
+#SBATCH --partition=interactive,grizzly,polar,grizzly2,polar2
 #SBATCH --exclusive
 #SBATCH --output=eval_activitynet.log
 

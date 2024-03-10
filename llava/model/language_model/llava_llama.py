@@ -22,30 +22,45 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from transformers import AutoConfig, AutoModelForCausalLM, \
-                         LlamaConfig, LlamaModel, LlamaForCausalLM
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    LlamaConfig,
+    LlamaModel,
+    LlamaForCausalLM,
+)
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from llava.constants import IGNORE_INDEX
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
+from ..multimodal_encoder.builder import build_vision_tower
+from ..multimodal_projector.builder import build_mm_projector
+
 # import time
 
 
 class LlavaConfig(LlamaConfig):
     model_type = "llava_llama"
+    mm_hidden_size = None
+    vision_tower_config = None
 
 
-class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
+class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
     config_class = LlavaConfig
 
-    def __init__(self, config: LlamaConfig):
+    def __init__(self, config: LlavaConfig) -> None:
         super(LlavaLlamaModel, self).__init__(config)
+        self.vision_tower = build_vision_tower(config)
+        config.mm_hidden_size = self.vision_tower.config.hidden_size
+        self.mm_projector = build_mm_projector(config)
+        self._post_init()
 
 
 class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     """This class is originally implemented by the LLaVA team and
     modified by Jason Lu and Haotian Tang based on Ji Lin's implementation
     to support flash attention with input packing."""
+
     config_class = LlavaConfig
 
     def __init__(self, config):
@@ -82,14 +97,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
                 attention_mask,
                 past_key_values,
                 inputs_embeds,
-                labels
-            ) = self.prepare_inputs_labels_for_multimodal(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
                 labels,
-                images
+            ) = self.prepare_inputs_labels_for_multimodal(
+                input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
         # Note (kentang-mit@): we have a unit test for this function.
         if self.training:
@@ -100,14 +110,14 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
                 _,
                 new_inputs_embeds,
                 new_labels,
-                sorted_seqlens_in_batch
+                sorted_seqlens_in_batch,
             ) = self.repack_multimodal_data(
                 input_ids,
                 position_ids,
                 attention_mask,
                 past_key_values,
                 inputs_embeds,
-                labels
+                labels,
             )
             new_input_ids = None
             past_key_values = None
@@ -121,7 +131,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         # ed = time.time()
         # print(inputs_embeds.device, "preparation time:", ed - st, "s.")
 
-        #st = time.time()
+        # st = time.time()
         outputs = super().forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,
@@ -137,14 +147,20 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         )
         return outputs
 
-    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):
+    def prepare_inputs_for_generation(
+        self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs
+    ):
         images = kwargs.pop("images", None)
         _inputs = super().prepare_inputs_for_generation(
-            input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs
+            input_ids,
+            past_key_values=past_key_values,
+            inputs_embeds=inputs_embeds,
+            **kwargs,
         )
         if images is not None:
-            _inputs['images'] = images
+            _inputs["images"] = images
         return _inputs
+
 
 AutoConfig.register("llava_llama", LlavaConfig)
 AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)

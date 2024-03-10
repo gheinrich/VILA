@@ -48,7 +48,7 @@ def send_email(subject, body, sender, recipients, password, files=None):
 def main(text=None):
 
     today = datetime.now().strftime("%m/%d/%Y %H:%M")
-    subject = f"[VILA] Conitnual Test Report {today}"
+    subject = f"[VILA] Continual Test Report {today}"
     body = f"""Testing"""
     
     failed_jobs = []
