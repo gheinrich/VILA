@@ -25,6 +25,8 @@ srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mmb
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mmmu_test --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.mmmu_test.txt ./scripts/v1_5/eval/mmmu.sh $checkpoint_path $model_name test &
 ## local evaluation benchmarks
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mmmu_val --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.mmmu_val.txt ./scripts/v1_5/eval/mmmu.sh $checkpoint_path $model_name validation &
+srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mathvista_testmini --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.mathvista_testmini.txt ./scripts/v1_5/eval/mathvista.sh $checkpoint_path $model_name testmini &
+srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_mathvista_test --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.mathvista_test.txt ./scripts/v1_5/eval/mathvista.sh $checkpoint_path $model_name test &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_llavabench --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.llavabench.txt ./scripts/v1_5/eval/llavabench.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_sqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.science.txt ./scripts/v1_5/eval/sqa.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm:evaluation_textvqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.textvqa.txt ./scripts/v1_5/eval/textvqa.sh $checkpoint_path $model_name &

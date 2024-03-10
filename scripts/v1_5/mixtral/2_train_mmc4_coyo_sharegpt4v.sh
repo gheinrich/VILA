@@ -20,12 +20,13 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/models/Mixtral-8x7B-v0.1 \
+    --model_name_or_path ./checkpoints/vila-mixtral-7b-align \
     --version v1 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --pretrain_mm_mlp_adapter ./checkpoints/vila-mixtral-7b-align/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
+    --tune_mm_projector True \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

@@ -122,8 +122,10 @@ class LlavaLlamaModel(LlamaModel):
 
     def __init__(self, config: LlamaConfig):
         super(LlavaLlamaModel, self).__init__(config)
-
-        if hasattr(config, "mm_vision_tower"):
+        
+        ## compatible with old version
+        config.vision_tower = getattr(config, "vision_tower", getattr(config, "mm_vision_tower", None))
+        if hasattr(config, "vision_tower"):
             if hasattr(config, "add_visual_expert") and config.add_visual_expert:
                 print("Adding visual expert...")
                 from llava.model.visual_attn_scale import add_visual_expert_to_llama
@@ -137,7 +139,7 @@ class LlavaLlamaModel(LlamaModel):
             # HACK: for FSDP
             if self.vision_tower_class == "qwen":
                 vision_tower = AutoModelForCausalLM.from_pretrained(
-                    config.mm_vision_tower, trust_remote_code=True
+                    config.vision_tower, trust_remote_code=True
                 )
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
@@ -180,7 +182,7 @@ class LlavaLlamaModel(LlamaModel):
                 )
             else:
                 self.vision_tower = [
-                    CLIPVisionModel.from_pretrained(config.mm_vision_tower)
+                    CLIPVisionModel.from_pretrained(config.vision_tower)
                 ]
 
         if hasattr(config, "use_mm_proj"):
@@ -200,11 +202,11 @@ class LlavaLlamaModel(LlamaModel):
 
     @property
     def vision_tower_class(self):
-        if "qwen" in self.config.mm_vision_tower.lower():
+        if "qwen" in self.config.vision_tower.lower():
             vision_tower_arch = "qwen"
-        elif "eva" in self.config.mm_vision_tower.lower():
+        elif "eva" in self.config.vision_tower.lower():
             vision_tower_arch = "eva"
-        elif "raw" in self.config.mm_vision_tower.lower():
+        elif "raw" in self.config.vision_tower.lower():
             vision_tower_arch = "raw"
         else:
             vision_tower_arch = "clip"
@@ -218,7 +220,7 @@ class LlavaLlamaModel(LlamaModel):
         pretrain_mm_mlp_adapter=None,
         fsdp=None,
     ):
-        self.config.mm_vision_tower = vision_tower
+        self.config.vision_tower = vision_tower
 
         # NOTE: should skip if we already have visual expert from pretrained weights
         if hasattr(self.config, "add_visual_expert") and self.config.add_visual_expert:

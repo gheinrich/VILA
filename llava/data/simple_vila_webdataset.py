@@ -84,7 +84,7 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
     return tar_meta
 
 
-def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-meta", overwrite=False):
+def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-meta-2", overwrite=False):
     # TODO(ligeng): speedup the generation
     #   1. parallelize the meta file generation
     #   2. add options for meta file
@@ -94,8 +94,8 @@ def prepare_wids_meta(data_path, cache_dir="/home/ligengz/datasets/vila-webds-me
     )
 
     meta_path_of_tar_rel = osp.join(osp.expanduser(data_path), "wids-meta.json")
-    if osp.exists(meta_path_of_tar_rel) and osp.exists(meta_path_of_tar_abs) and not overwrite:
-        return
+    # if osp.exists(meta_path_of_tar_rel) and osp.exists(meta_path_of_tar_abs) and not overwrite:
+    #     return
 
     tar_list = []
     for root, dirs, files in os.walk(data_path):
