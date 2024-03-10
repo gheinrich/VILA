@@ -14,13 +14,14 @@ def parse_args():
     parser.add_argument("--output_dir", default=r'', help="The path to save annotation json files.")
     parser.add_argument("--output_json", default=r'', help="The path to save annotation final combined json file.")
     parser.add_argument("--num_tasks", default=1, type=int, help="Number of splits.")
+    parser.add_argument("--gpt_model", default="gpt-4-0613", help="The path to save annotation final combined json file.")
     args = parser.parse_args()
     return args
 
 
 def annotate(prediction_set, caption_files, output_dir, args):
     """
-    Evaluates question and answer pairs using GPT-3
+    Evaluates question and answer pairs using GPT-3.5/GPT-4
     Returns a score for correctness.
     """
     # Set the OpenAI API key.
@@ -34,7 +35,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
         try:
             # Compute the correctness score
             completion = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=args.gpt_model,
                 messages=[
                     {
                         "role": "system",

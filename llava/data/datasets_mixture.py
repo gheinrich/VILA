@@ -288,9 +288,9 @@ def register_datasets_mixtures():
     jukinmedia = Dataset(
         dataset_name="jukinmedia",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-processed-long-filtered.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos",
-        description="A high quailty video caption dataset with 71003 detailed captions (16 words at least).",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-filtered-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos_decompress_v2",
+        description="A high quailty video caption dataset with 71018 detailed captions. See READMD.md file for the details (e.g. prompt template) of the dataset.",
     )
     add_dataset(jukinmedia)
     youcook2 = Dataset(
@@ -341,6 +341,14 @@ def register_datasets_mixtures():
         description="6321 videos with 6321 rewritten QA-pairs based on the rewritten captions. (The typos in captions have been fixed by GPT-3.5-turbo)",
     )
     add_dataset(msrvttqa)
+    shot2video_shotonly = Dataset(
+        dataset_name="shot2video_shotonly",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
+        description="48K high quality video clips with 48K short or long high-qualiy captions.",
+    )
+    add_dataset(shot2video_shotonly)
 
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
