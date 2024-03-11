@@ -111,7 +111,7 @@ def main(
             print(url, inp, out[0]["generated_text"])
             output_json[url] = {
                 "caption": inp,
-                "QA": out[0]["generated_text"],
+                "QA": out[0]["generated_text"].strip(),
             }
 
         if idx % 20 == 0:
