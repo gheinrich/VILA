@@ -28,7 +28,7 @@ global_bs=${BATCH_SIZE:-128}
 ACC_STEP=${ACC_STEP:-1}
 bs=$((global_bs / n_node / ACC_STEP))
 
-# bs=1 # for debug purpose
+bs=1 # for debug purpose
 
 export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)

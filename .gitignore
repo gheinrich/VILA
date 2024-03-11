@@ -1,3 +1,4 @@
+*.whl
 dev/
 config.json
 eval-result/
