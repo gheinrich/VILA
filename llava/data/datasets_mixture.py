@@ -263,10 +263,18 @@ def register_datasets_mixtures():
     grit_mixture = Dataset(
         dataset_name="grit_mixture",
         dataset_type="torch",
-        data_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/grit_merged_qas_1613k.json",
+        data_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/filtered_grit_merged_885k.json",
         image_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/webdataset_untar",
     )
     add_dataset(grit_mixture)
+    
+    grit_grounding = Dataset(
+        dataset_name="grit_grounding",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/single_grounding_qa_1177k.json",
+        image_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/webdataset_untar",
+    )
+    add_dataset(grit_grounding)
     
     sharegpt4v_pretrain = Dataset(
         dataset_name="sharegpt4v_pretrain",
