@@ -1,4 +1,4 @@
-JOBS_LIMIT=2  # Set your limit here
+JOBS_LIMIT=16  # Set your limit here
 model_id=NousResearch/Llama-2-13b-chat-hf
 model_id=NousResearch/Llama-2-70b-chat-hf
 for f in captioner/*.json; do
