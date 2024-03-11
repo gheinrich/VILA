@@ -1,22 +1,24 @@
 ########################################################
 # draco
-slurm_account=${slurm_account:-llmservice_nlp_fm}
-slurm_partition=${slurm_partition:-batch_block1,batch_block2,batch_block3}
+# slurm_account=${slurm_account:-llmservice_nlp_fm}
+# slurm_partition=${slurm_partition:-batch_block1,batch_block2,batch_block3}
 
 # cs
-slurm_account=${slurm_account:-nvr_elm_llm}
-slurm_partition=${slurm_partition:-polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3}
+slurm_account=${slurm_account:-"nvr_elm_llm"}
+slurm_partition=${slurm_partition:-"polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
 ########################################################
 # bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds
 # bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds_recap
-#
+
+echo "$slurm_account | $slurm_partition | $ALIGN_DATASET"
+
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
 export PT_DATASET=${2:-sharegpt4v_pretrain}
 # export DATASET=${DATASET:-vflan_llava_1_5_sft}
 
 export BATCH_SIZE=128
-export NNODES=8
-export ACC_STEP=4
+export NNODES=4
+export ACC_STEP=8
 # export PARTITION=${PARTITION:-llmservice_nlp_fm}
 # PARTITION=nvr_elm_llm
 export PARTITION=${PARTITION:-llmservice_nlp_fm}
@@ -34,8 +36,8 @@ LOGF=$LOGDIR/step2-$JNAME.out
 # -e $ERRF -o $LOGF \
 for i in $(seq 1 10); do 
 
-srun -p batch_block1,batch_block2,batch_block3 -N $NNODES -t 4:00:00 \
-    -A $PARTITION -J vila:$JNAME \
+srun -p $slurm_partition -N $NNODES -t 4:00:00 \
+    -A $slurm_account -J vila:$JNAME \
     --gpus-per-node 8 --exclusive \
     --dependency singleton \
     -e $ERRF -o $LOGF \

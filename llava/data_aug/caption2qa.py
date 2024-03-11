@@ -75,7 +75,7 @@ def main(
         model=model_id,
         model_kwargs={
             "torch_dtype": torch.float16,
-            "load_in_4bit": True,
+            "load_in_4bit": False,
             "device_map": f"cuda:{local_rank}",
         },  # "device_map": "auto"},
         return_full_text=False,

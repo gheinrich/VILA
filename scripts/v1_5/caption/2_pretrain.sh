@@ -35,7 +35,7 @@ MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
 OUTPUT_STEP2=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
 
-bs=1
+# bs=1
 
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"
@@ -47,7 +47,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path $BASE_MODEL_PATH \
+    --model_name_or_path ./checkpoints/$OUTPUT_STEP1 \
     --version v1 \
     --data_mixture $PT_DATASET \
     --tune_language_model True \

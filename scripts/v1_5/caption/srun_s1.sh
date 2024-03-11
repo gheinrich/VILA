@@ -10,7 +10,7 @@ slurm_partition=${slurm_partition:-"polar3,polar2,polar,batch_block1,grizzly,gri
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
 # export DATASET=${DATASET:-vflan_llava_1_5_sft}
 
-echo "$slurm_account | $slurm_partition"
+echo "$slurm_account | $slurm_partition | $ALIGN_DATASET"
 
 # export BATCH_SIZE=128
 export NNODES=4
