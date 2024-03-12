@@ -66,11 +66,15 @@ def eval_model(args):
         else:
             qs = re.sub(IMAGE_PLACEHOLDER, DEFAULT_IMAGE_TOKEN, qs)
     else:
-        if model.config.mm_use_im_start_end:
-            qs = image_token_se + "\n" + qs
-        else:
-            qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
-
+        if DEFAULT_IMAGE_TOKEN not in qs:
+            print("no <image> tag found in input. Automatically append one at the beginning of text.")
+            # do not repeatively append the prompt.
+            if model.config.mm_use_im_start_end:
+                qs = image_token_se + "\n" + qs
+            else:
+                qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
+    print("input: ", qs)
+    
     if "llama-2" in model_name.lower():
         conv_mode = "llava_llama_2"
     elif "v1" in model_name.lower():
@@ -112,10 +116,11 @@ def eval_model(args):
     keywords = [stop_str]
     stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
 
+    print(images_tensor.shape)
     with torch.inference_mode():
         output_ids = model.generate(
             input_ids,
-            images=images_tensor,
+            images=[images_tensor,],
             do_sample=True if args.temperature > 0 else False,
             temperature=args.temperature,
             top_p=args.top_p,

@@ -7,18 +7,20 @@
 slurm_account=${slurm_account:-"nvr_elm_llm"}
 slurm_partition=${slurm_partition:-"polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
 ########################################################
-# bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds
-# bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds_recap
+# bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds
+# bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds_recap
 
-echo "$slurm_account | $slurm_partition | $ALIGN_DATASET"
 
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
 export PT_DATASET=${2:-sharegpt4v_pretrain}
 # export DATASET=${DATASET:-vflan_llava_1_5_sft}
 
+echo "$slurm_account | $slurm_partition | $ALIGN_DATASET | $PT_DATASET"
+
+
 export BATCH_SIZE=128
-export NNODES=4
-export ACC_STEP=8
+export NNODES=8
+export ACC_STEP=4
 # export PARTITION=${PARTITION:-llmservice_nlp_fm}
 # PARTITION=nvr_elm_llm
 export PARTITION=${PARTITION:-llmservice_nlp_fm}
@@ -34,7 +36,7 @@ LOGF=$LOGDIR/step2-$JNAME.out
 
 # -pty
 # -e $ERRF -o $LOGF \
-for i in $(seq 1 10); do 
+for i in $(seq 1 8); do 
 
 srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     -A $slurm_account -J vila:$JNAME \
@@ -44,4 +46,4 @@ srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     bash scripts/v1_5/caption/2_pretrain.sh &
 
 done
-# bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain
+# bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain

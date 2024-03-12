@@ -1,9 +1,9 @@
 *.whl
+*_dev
 dev/
 config.json
 eval_output/
 eval-result/
-*_dev.sh
 hostfile
 core.*
 *.out
