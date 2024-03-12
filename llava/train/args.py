@@ -28,7 +28,8 @@ class DataArguments:
     is_multimodal: bool = False
     image_folder: Optional[str] = field(default=None)
     image_aspect_ratio: str = "square"
-    data_mixture: str = "coyo_25m_mmc4core"
+    train_data_mixture: str = "coyo_25m_mmc4core"
+    eval_data_mixture: str = None
     vflan_no_system_prompt: bool = False
     downsample_video: bool = False
 
