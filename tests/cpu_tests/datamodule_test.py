@@ -68,8 +68,8 @@ def test_make_supervised_data_module():
     index = 0
     dataset_len = len(data_module["train_dataset"])
     for batch in data_module["train_dataset"]:
-        if index % 100 == 0:
-            print(f"index: {index}/{dataset_len}")
+        if index > 10:
+            break
         # if batch['input_ids'].shape[0] > 4096:
         print(batch["image"].shape)
         print(batch["input_ids"].shape[0])
