@@ -1,5 +1,5 @@
 # huggingface-cli download Efficient-Large-Model/coyo-25m-recap --local-dir coyo-25m-recap --repo-type dataset --local-dir-use-symlinks False --resume-download 
-JOBS_LIMIT=64  # Set your limit here
+JOBS_LIMIT=8  # Set your limit here
 # model_id=NousResearch/Llama-2-13b-chat-hf
 model_id="mistralai/Mistral-7B-Instruct-v0.2"
 for f in captioner/coyo-25m-recap/*.json; do

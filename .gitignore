@@ -1,6 +1,7 @@
 *.whl
 dev/
 config.json
+eval_output/
 eval-result/
 *_dev.sh
 hostfile

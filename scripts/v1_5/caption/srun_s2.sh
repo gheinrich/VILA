@@ -41,7 +41,7 @@ srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     --gpus-per-node 8 --exclusive \
     --dependency singleton \
     -e $ERRF -o $LOGF \
-    bash scripts/v1_5/captioner/2_pretrain.sh &
+    bash scripts/v1_5/caption/2_pretrain.sh &
 
 done
 # bash scripts/v1_5/captioner/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain
