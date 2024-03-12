@@ -30,7 +30,10 @@ import pathlib
 import pickle
 import time
 from typing import Dict, Optional, Sequence, List
+from transformers import PreTrainedTokenizer
 import re
+from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, process_single_sample, construct_prompt, load_yaml
+from datasets import load_dataset, concatenate_datasets
 
 import torch
 
@@ -134,7 +137,8 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
                 sentence["value"] = sentence["value"].strip()
                 if "mmtag" in conversation_lib.default_conversation.version:
                     sentence["value"] = sentence["value"].replace(
-                        DEFAULT_IMAGE_TOKEN, "<Image>" + DEFAULT_IMAGE_TOKEN + "</Image>"
+                        DEFAULT_IMAGE_TOKEN,
+                        "<Image>" + DEFAULT_IMAGE_TOKEN + "</Image>",
                     )
             replace_token = DEFAULT_IMAGE_TOKEN
             if data_args.mm_use_im_start_end:
@@ -172,7 +176,8 @@ def preprocess_llama_2(
 
     if has_image:
         input_ids = torch.stack(
-            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations],
+            dim=0,
         )
     else:
         input_ids = tokenizer(
@@ -262,7 +267,8 @@ def preprocess_v1(
 
     if has_image:
         input_ids = torch.stack(
-            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+            [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations],
+            dim=0,
         )
     else:
         input_ids = tokenizer(
@@ -346,7 +352,8 @@ def preprocess_mpt(
 
     # Tokenize conversations
     input_ids = torch.stack(
-        [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations], dim=0
+        [tokenizer_image_token(prompt, tokenizer, return_tensors="pt") for prompt in conversations],
+        dim=0,
     )
     targets = input_ids.clone()
     assert conv.sep_style == conversation_lib.SeparatorStyle.MPT
@@ -1025,7 +1032,6 @@ class LazyWDSDataset(Dataset):
                 n_samples.append(info["successes"])
 
         print(f"[DEBUG] {data_path} total samples", sum(n_samples))  # 10,881,869
-
         rank = training_args.process_index  # int(os.environ["RANK"])
         world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
@@ -1383,10 +1389,55 @@ class LazyCCSWebDataset(Dataset):
 
 from functools import lru_cache
 
+
 @lru_cache(maxsize=16)
 def lru_json_load(fpath):
     return json.load(open(fpath, "r"))
-    
+
+
+class LazyEvaluateDataset(LazySupervisedDataset):
+    def __init__(
+        self,
+        data_path: str,
+        data_args: dict,
+        tokenizer: PreTrainedTokenizer,
+        config_path: str = "llava/eval/mmmu_utils/configs/llava1.5.yaml",
+        split="validation",
+        **kwargs,
+    ):
+        # run for each subject
+        sub_dataset_list = []
+        for subject in CAT_SHORT2LONG.values():
+            sub_dataset = load_dataset(data_path, subject, split=split)
+            sub_dataset_list.append(sub_dataset)
+
+        all_datasets = concatenate_datasets(sub_dataset_list)
+        self.tokenizer = tokenizer
+        self.data_args = data_args
+        self.image_folder = None
+        self.config = self.get_config(config_path)
+        self.list_data_dict = self.get_processed_prompt(all_datasets)
+
+    def get_config(self, config_path: str) -> str:
+        config = load_yaml(config_path)
+        for key, value in config.items():
+            if key != "eval_params" and type(value) == list:
+                assert len(value) == 1, "key {} has more than one value".format(key)
+                config[key] = value[0]
+        return config
+
+    def get_processed_prompt(self, dataset: list) -> list:
+        processed_dataset = []
+        for d in dataset:
+            sample = process_single_sample(d)
+            processed_dict = construct_prompt(sample, self.config)
+            sample["conversations"] = [
+                {"from": "human", "value": "<image>\n " + processed_dict["final_input_prompt"]},
+                {"from": "gpt", "value": processed_dict["gt_content"]},
+            ]
+            processed_dataset.append(sample)
+        return processed_dataset
+
 
 class LazyCoyoWebDataset(Dataset):
     """Dataset for supervised fine-tuning.
@@ -1445,7 +1496,10 @@ class LazyCoyoWebDataset(Dataset):
         CONCAT_SAMPLES = False
         # info_list = self.dataset[i - self.idx_offset]
 
-        begin_idx, end_idx = i * self.n_samples_per_idx, (i + 1) * self.n_samples_per_idx
+        begin_idx, end_idx = (
+            i * self.n_samples_per_idx,
+            (i + 1) * self.n_samples_per_idx,
+        )
         end_idx = min(end_idx, len(self.dataset))
 
         text_list = []
@@ -1467,7 +1521,7 @@ class LazyCoyoWebDataset(Dataset):
                 print(info.keys())
                 print(info)
                 raise KeyError
-            
+
             if self.caption_choice is not None:
                 # load new captions
                 shard = info["__shard__"]
@@ -1481,8 +1535,7 @@ class LazyCoyoWebDataset(Dataset):
                     caption = shard_json[url]["output"]
                 except KeyError:
                     print(f"{url} not in caption. fallback to original caption temporarially")
-                    
-                    
+
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -1496,7 +1549,6 @@ class LazyCoyoWebDataset(Dataset):
                 raise NotImplementedError
 
             image_list.append(image_path)
-
 
         image_list = torch.stack(
             [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
@@ -1694,19 +1746,41 @@ class DataCollatorForSupervisedDataset(object):
 
 
 def make_supervised_data_module(
-    tokenizer: transformers.PreTrainedTokenizer, data_args: DataArguments, training_args: TrainingArguments
+    tokenizer: PreTrainedTokenizer,
+    data_args: DataArguments,
+    training_args: TrainingArguments,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning.
     This function is originally implemented by the LLaVA team and
     modified by Jason Lu, Haotian Tang and Ligeng Zhu"""
+    datasets_mixture.register_datasets_mixtures()
+    train_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="train")
+    eval_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="eval")
+    data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
+    return dict(
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        data_collator=data_collator,
+    )
+
+
+def build_datasets(
+    data_args: DataArguments,
+    training_args: TrainingArguments,
+    tokenizer: PreTrainedTokenizer,
+    split: str = "train",
+) -> None:
     all_datasets = []
     extra_info = []
-    datasets_mixture.register_datasets_mixtures()
-
-    from llava.data.datasets_mixture import DATASETS
-
     # mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
-    mixture_names = data_args.data_mixture.strip().split("+")
+    try:
+        ## keep the name 'data_mixture' for development FIXME
+        # mixture_names = getattr(data_args, f"{split}_data_mixture").strip().split("+")
+        attr_name = "data_mixture" if split == "train" else "eval_data_mixture" 
+        mixture_names = getattr(data_args, attr_name).strip().split("+")
+    except:
+        logging.warning(f"Pay attention, split {split} is not built...")
+        return None
     mixture = (DATASETS[_] for _ in mixture_names)
     print(f"[INFO-log]: Loading from {mixture_names}")
     image_folder = None
@@ -1726,12 +1800,14 @@ def make_supervised_data_module(
         elif dataset_type == "sam-wds":
             print("dataset.py: Loading SAM class")
             from llava.data.dataset_impl.sam import LazySAMWebDataset
+
             dataset_cls = LazySAMWebDataset
         elif dataset_type == "coyo-wds":
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
             from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
+
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
@@ -1739,21 +1815,21 @@ def make_supervised_data_module(
             dataset_cls = LazyVFlanDataset
         elif dataset_type == "video-wds":
             dataset_cls = LazyVideoWebDataset
+        elif dataset_type == "evaluation":
+            dataset_cls = LazyEvaluateDataset
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
-
-        train_dataset = dataset_cls(
+        dataset = dataset_cls(
             tokenizer=tokenizer,
             data_path=dataset.data_path,
             image_folder=image_folder,
             data_args=data_args,
             training_args=training_args,
         )
-        all_datasets.append(train_dataset)
-        extra_info.append(len(train_dataset))
+        all_datasets.append(dataset)
+        extra_info.append(len(dataset))
 
     all_datasets = ConcatDataset(all_datasets)
-    training_args.sample_lens = extra_info
-
-    data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
-    return dict(train_dataset=all_datasets, eval_dataset=None, data_collator=data_collator)
+    if split == "train":
+        training_args.sample_lens = extra_info
+    return all_datasets
