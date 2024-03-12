@@ -18,8 +18,7 @@ import math
 import numpy as np
 
 from torchvision.transforms import Resize
-import decord
-from decord import VideoReader
+from pytorchvideo.data.encoded_video import EncodedVideo
 
 
 def split_list(lst, n):
@@ -34,24 +33,37 @@ def get_chunk(lst, n, k):
 
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
+
     num_video_frames = 8
-    decord.bridge.set_bridge("torch")
-    video_reader = VideoReader(uri=video_path)
 
-    idx = np.round(np.linspace(0, len(video_reader) - 1, num_video_frames)).astype(int)
-    video_outputs = video_reader.get_batch(idx)
+    if "shortest_edge" in image_processor.size:
+        image_size = image_processor.size["shortest_edge"]
+    else:
+        image_size = image_processor.size["height"]
 
-    b, h, w, c = video_outputs.size()
-    patch_size = model.get_model().vision_tower.config.patch_size
-    image_size = model.get_model().vision_tower.config.image_size
-    n_image_tokens = (image_size // patch_size) ** 2
+    try:
+        video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+        duration = float(video.duration)
+        assert duration >= 0.25
+        video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+        assert video_outputs.size(1) > 8
+        num_frames = video_outputs.shape[1]
+        # step = (num_frames - 1) // 8 + 1
+        step = num_frames // 8
+        num_frames = num_frames - (num_frames % 8)
+        indices = torch.floor(torch.arange(0, num_frames, step)).long()
+        video_outputs = video_outputs[:, indices, :, :]
+    except Exception as e:
+        print(f'bad data path {video_path}')
+        print(f"Error processing {video_path}: {e}")
+        video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+
+    c, b, h, w = video_outputs.size()
     image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-    video_frames = video_outputs.permute(0, 3, 1, 2).contiguous()
-    
+    video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
     video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
     image_tensor[:, :, :, :] = video_frames
 
-    # image_tensor = [utils.preprocess_image(image, image_processor, use_padding=False) for image in torch.unbind(image_tensor)]
     image_tensor = [
         image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0].unsqueeze(0)
         for image in torch.unbind(image_tensor)
