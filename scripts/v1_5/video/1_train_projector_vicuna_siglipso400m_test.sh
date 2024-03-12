@@ -1,5 +1,6 @@
 #!/bin/bash
-
+source /lustre/fsw/portfolios/nvr/users/${USER}/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
@@ -30,7 +31,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --bf16 True \
-    --output_dir /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1-test \
+    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e11111-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

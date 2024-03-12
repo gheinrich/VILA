@@ -6,7 +6,7 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
+cd ~/workspace/VILA-Internal
 
 GPT_Zero_Shot_QA="eval/GPT_Zero_Shot_QA"
 output_name=$1

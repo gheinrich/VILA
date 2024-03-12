@@ -5,11 +5,11 @@ source ~/.bashrc
 conda activate vila
 which python
 
-cd /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA
+cd ~/workspace/VILA-Internal
 
 model_path=$1
 CKPT_NAME=$2
-GPT_Zero_Shot_QA="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/eval/GPT_Zero_Shot_QA"
+GPT_Zero_Shot_QA="~/workspace/VILA-Internal/eval/GPT_Zero_Shot_QA"
 video_dir="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/mp4"
 gt_file_question="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/test_q.json"
 gt_file_answers="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/test_a.json"

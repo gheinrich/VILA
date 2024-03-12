@@ -10,5 +10,5 @@
 #SBATCH --output=pretraining-internvid1m.out
 
 
-srun --label bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/v1_5/video/3_sft_videov2_siglipso400m_2.sh
+srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/3_sft_videov2_siglipso400m_2.sh
 

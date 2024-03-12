@@ -26,15 +26,17 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version v1 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrained+valley \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --pretrain_mm_mlp_adapter /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1/mm_projector.bin \
+    --pretrain_mm_mlp_adapter ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
+    --tune_mm_projector True \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/ckpts/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_valley-linear-e111 \
+    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_valley-linear-e111 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

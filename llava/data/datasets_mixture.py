@@ -390,3 +390,11 @@ def register_datasets_mixtures():
         description="1M (not 1300K after cleaning) video-caption pairs from InternVid. We select the top-relevant 1M samples from the Intern-Vid-10M set.",
     )
     add_dataset(internvid_1300K)
+    internvid_1300K = Dataset(
+        dataset_name="internvid_10M",
+        dataset_type="video-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta',
+        description="10M (actually 8M) video-caption pairs from InternVid 10M dataset.",
+    )
+    add_dataset(internvid_1300K)
