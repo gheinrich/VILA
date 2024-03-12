@@ -1774,7 +1774,10 @@ def build_datasets(
     extra_info = []
     # mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
     try:
-        mixture_names = getattr(data_args, f"{split}_data_mixture").strip().split("+")
+        ## keep the name 'data_mixture' for development FIXME
+        # mixture_names = getattr(data_args, f"{split}_data_mixture").strip().split("+")
+        attr_name = "data_mixture" if split == "train" else "eval_data_mixture" 
+        mixture_names = getattr(data_args, attr_name).strip().split("+")
     except:
         logging.warning(f"Pay attention, split {split} is not built...")
         return None
