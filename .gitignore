@@ -5,9 +5,9 @@ eval-result/
 hostfile
 core.*
 *.out
-captioner_bk/
+./captioner_bk/
 slurm-logs/
-captioner/
+./captioner/
 hostfile
 *_dev.py
 *.ipynb
