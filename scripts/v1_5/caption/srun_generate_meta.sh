@@ -1,4 +1,4 @@
-partition=nvr_elm_llm
+partition=${SLURM_PARTITION:-nvr_elm_llm}
 data_path=${1:"~/nvr_elm_llm/dataset/coyo-25m-vila"}
 
 for idx in $(seq 0 9); do 

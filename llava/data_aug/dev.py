@@ -41,12 +41,12 @@ print(generation_config)
 while True:
     print("--" * 50)
     # input_msg = input("Please enter inputs:\n")
-    input_msg = '''Please reverse the order of words in the sentence. 
+    input_msg = """Please reverse the order of words in the sentence. 
 For example,
 “the more you buy, the more you save” will become “save you more the, buy you more the”
 “I love the Micro conference” will become “conference Micro the love I”
 Next, please reverse the sentence: “I love Boston and MIT”
-    '''
+    """
     result = pipe(input_msg + "\n", **generation_config)
     print("--" * 50)
     print(result[0]["generated_text"])

@@ -46,4 +46,6 @@ srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     bash scripts/v1_5/caption/2_pretrain.sh &
 
 done
+# slurm_account=llmservice_nlp_fm slurm_partition=batch_block1,batch_block2,batch_block3 bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds+mmc4core
 # bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain
+# bash scripts/v1_5/caption/srun_s2.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds+mmc4core

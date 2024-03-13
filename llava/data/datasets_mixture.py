@@ -101,6 +101,7 @@ def register_datasets_mixtures():
     )
     add_dataset(coyo_25m_test)
 
+    # TODO: switch mmc4 to wds impl as well.
     mmc4core = Dataset(
         dataset_name="mmc4core",
         dataset_type="mmc4",
