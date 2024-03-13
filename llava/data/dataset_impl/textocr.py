@@ -46,6 +46,20 @@ DEFAULT_TEXTOCR = osp.expanduser(DEFAULT_TEXTOCR)
 
 
 class GenericDataset:
+    """
+    A class representing a generic dataset.
+
+    This class provides methods for adding datasets and resizing images.
+
+    Attributes:
+        image_height (int): The desired height of the image.
+        patch_width (int): The width of the patch.
+
+    Methods:
+        add(dataset): Adds a dataset to the current dataset.
+        resize_image(image): Resizes the given image to the desired height and width.
+
+    """
     def add(self, dataset):
         return SummedDataset(self, dataset)
 
@@ -151,7 +165,7 @@ class TextOCRDataset(GenericDataset):
     def __getitem__(self, idx):
         img_id = self.image_ids[idx]
         metadata = self.img2text[img_id]
-        origin_image = Image.open(img_id)
+        origin_image = Image.open(img_id).convert("RGB")
 
         annotation = [_["transcription"] for _ in metadata]
         bboxes = [_["bbx"] for _ in metadata]
@@ -182,9 +196,22 @@ class TextOCRDataset(GenericDataset):
 
 
 class VILAOCRDataset(Dataset):
+    """
+    Dataset class for VILA OCR data.
+
+    Args:
+        data_path (str): The path to the data.
+        image_folder (str): The folder containing the images.
+        tokenizer (transformers.PreTrainedTokenizer): The tokenizer for text processing.
+        data_args (DataArguments): The data arguments.
+        training_args (TrainingArguments): The training arguments.
+        split (str, optional): The split of the dataset (default: "train").
+        min_area (float, optional): The minimum area of the text (default: 0.001).
+    """
     def __init__(
         self,
         data_path,
+        image_folder,
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
@@ -212,25 +239,14 @@ class VILAOCRDataset(Dataset):
 
         caption = f"Please read the text on image and type it below, each word separated by space.\n{text}"
 
-        # return {
-        #     "image": img,
-        #     "fpath": fpath,
-        #     "text": caption,
-        # }
-
         caption = (DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token).replace("<image>", "<IMAGE>")
         vila_img = LazySupervisedDataset._process_image(img, self.data_args, image_folder=None)
 
-        input_ids = [
-            tokenizer_image_token(
-                prompt,
-                self.tokenizer,
-                return_tensors="pt",
-            )
-            for prompt in [
-                caption,
-            ]
-        ]
+        input_ids = tokenizer_image_token(
+            caption,
+            self.tokenizer,
+            return_tensors="pt",
+        )
 
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
@@ -241,9 +257,7 @@ class VILAOCRDataset(Dataset):
         return dict(
             input_ids=input_ids,
             labels=targets,
-            image=[
-                vila_img,
-            ],
+            image=vila_img.unsqueeze(0),
         )
 
 

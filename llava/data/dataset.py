@@ -1893,6 +1893,10 @@ def make_supervised_data_module(
             print("dataset.py: Loading coyo-wds-recap class")
             from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
             dataset_cls = LazyCoyoWebRecapDataset
+        elif dataset_type == "textocr":
+            print("dataset.py: Loading textocr class")
+            from llava.data.dataset_impl.textocr import VILAOCRDataset
+            dataset_cls = VILAOCRDataset
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":

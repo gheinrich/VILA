@@ -27,6 +27,14 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    textocr = Dataset(
+        dataset_name="textocr",
+        dataset_type="textocr",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/TextOCR",
+        description="",
+    )
+    add_dataset(textocr)
+    
     sam_recap = Dataset(
         dataset_name="sam_recap",
         dataset_type="sam-wds",
