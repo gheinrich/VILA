@@ -62,6 +62,7 @@ generation_config = {
 def main(
     model_id="mistralai/Mistral-7B-Instruct-v0.2",
     data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json",
+    load_in_4bit=False,
 ):
     dist.init_process_group()
 
@@ -75,7 +76,7 @@ def main(
         model=model_id,
         model_kwargs={
             "torch_dtype": torch.float16,
-            "load_in_4bit": False,
+            "load_in_4bit": load_in_4bit,
             "device_map": f"cuda:{local_rank}",
         },  # "device_map": "auto"},
         return_full_text=False,
