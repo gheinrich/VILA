@@ -1,20 +1,16 @@
 # Test by RANK=0 WORLD_SIZE=8 python /lustre/fsw/portfolios/llmservice/users/jasonlu/workspace/multi-modality-research/VILA/llava/train/dataset_test.py
 
-from llava import conversation as conversation_lib
-from llava.train import arguments
-from llava.train import dataset
-from llava.train import datasets_mixture
-import transformers
-import torch
-import pprint
-from llava.train.token_config import (
-    DEFAULT_IMAGE_PATCH_TOKEN,
-)
 import json
 import pickle
+import pprint
 import sys
-from pytorchvideo.data.encoded_video import EncodedVideo
 
+import torch
+import transformers
+from llava import conversation as conversation_lib
+from llava.train import arguments, dataset, datasets_mixture
+from llava.train.token_config import DEFAULT_IMAGE_PATCH_TOKEN
+from pytorchvideo.data.encoded_video import EncodedVideo
 
 video_path = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/VideoInstruct100K.json"
 video_path_out = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json"
