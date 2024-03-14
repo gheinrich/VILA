@@ -56,18 +56,17 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          
-          git diff --exit-code --quiet
-          CHANGES=$?
 
-          # If there are changes (exit code is not 0), commit and push
-          if [ $CHANGES -ne 0 ]; then
-              git add .
-              git commit -m "Commit message for the changes"
-              git push origin main
+          # If there are changes  commit and push
+          if [[ -n $(git status -s) ]]; then
+              echo "Changed detected"
+              echo "Commiting $CHANGED_FILES"
+              git commit -m "[CI-Lint] Fix code style issues with black and isort" -a
+              git push 
           else
               echo "No changes to commit."
           fi
+
           # CHANGED_FILES=$(git diff --name-only | wc -l)
           # # avoid "nothing to commit" error.
           # echo "Prepare to commit $CHANGED_FILES"
