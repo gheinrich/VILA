@@ -39,7 +39,7 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
 
     prompt = sample['final_input_prompt']
     prompt = deal_with_prompt(prompt, model.config.mm_use_im_start_end)
-    conv = conv_templates['args.conv_mode'].copy()
+    conv = conv_templates[args.conv_mode].copy()
     conv.append_message(conv.roles[0], prompt)
     conv.append_message(conv.roles[1], None)
     prompt = conv.get_prompt()
