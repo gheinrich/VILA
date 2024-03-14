@@ -43,7 +43,7 @@ srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     --gpus-per-node 8 --exclusive \
     --dependency singleton \
     -e $ERRF -o $LOGF \
-    bash scripts/v1_5/caption/2_pretrain.sh &
+    bash scripts/v1_5/caption/3_sft_captioner.sh &
 
 done
 # slurm_account=llmservice_nlp_fm slurm_partition=batch_block1,batch_block2,batch_block3 bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds+mmc4core

@@ -35,7 +35,7 @@ srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_mathvista_testmi
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_mathvista_test --gpus-per-node 8 --exclusive -o eval_output/$model_name/mathvista_test.txt ./scripts/v1_5/eval/mathvista.sh $checkpoint_path $model_name test &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_llavabench --gpus-per-node 8 --exclusive -o eval_output/$model_name/llavabench.txt ./scripts/v1_5/eval/llavabench.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_sqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/science.txt ./scripts/v1_5/eval/sqa.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_textvqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/textvqa.txt ./scripts/v1_5/eval/textvqa.sh $checkpoint_path $model_name &
+srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_textvqa --gpus-per-node 8 --exclusive -o eval_output/$model_name/textvqa.txt t $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_mme --gpus-per-node 8 --exclusive -o eval_output/$model_name/mme.txt ./scripts/v1_5/eval/mme.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_mmvet --gpus-per-node 8 --exclusive -o eval_output/$model_name/mmvet.txt ./scripts/v1_5/eval/mmvet.sh $checkpoint_path $model_name &
 srun -p $PARTITIONS -A nvr_elm_llm -N 1 -t 4:00:00 -J vila:eval_pope --gpus-per-node 8 --exclusive -o eval_output/$model_name/pope.txt ./scripts/v1_5/eval/pope.sh $checkpoint_path $model_name &

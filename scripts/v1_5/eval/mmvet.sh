@@ -2,7 +2,7 @@
 MODEL_PATH=$1
 CKPT=$2
 
-python -m llava.eval.model_vqa \
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/mm-vet/llava-mm-vet.jsonl \
     --image-folder ./playground/data/eval/mm-vet/images \
