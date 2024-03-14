@@ -134,7 +134,7 @@ def main():
     # load model
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, vis_processors, _ = load_pretrained_model(
-        args.model_path, None, model_name
+        args.model_path, model_name, None
     )
 
     samples = []
