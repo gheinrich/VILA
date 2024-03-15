@@ -47,5 +47,8 @@ srun -p $slurm_partition -N $NNODES -t 4:00:00 \
 
 done
 # slurm_account=llmservice_nlp_fm slurm_partition=batch_block1,batch_block2,batch_block3 bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds+mmc4core
-# bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft
-# bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+textocr
+# bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+vflan
+# slurm_account=llmservice_nlp_fm slurm_partition=adlr-debug-batch_block4,batch_block1,batch_block2,batch_block3,batch_block4  bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+vflan
+
+# squeue --me -o "%.8i %.20P %.100j %.8u %.8T %.8M %.6D %.20S %R"
+# export SQUEUE_FORMAT="%.8i %.30P %.120j %.8u %.8T %.8M %.9l %.6D %S %R"

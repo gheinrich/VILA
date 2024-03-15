@@ -29,11 +29,13 @@ LOGF=$LOGDIR/step1-$JNAME.out
 srun -p $slurm_partition -N $NNODES -t 4:00:00 \
     -A $slurm_account -J vila:$JNAME \
     --gpus-per-node 8 --exclusive \
-    --exclude batch-block7-00105,batch-block7-00113,batch-block7-00123,batch-block7-00139 \
     --dependency singleton \
     -e $ERRF -o $LOGF \
     bash scripts/v1_5/caption/1_mm_align.sh &
 
-# bash scripts/v1_5/captioner/srun_s1.sh llava_1_5_mm_align
+# bash scripts/v1_5/captioner/srun_s1.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align
 # bash scripts/v1_5/captioner/srun_s1.sh ccs_recap_wds
 # bash scripts/v1_5/captioner/srun_s1.sh llava_1_5_mm_align+ccs_recap_wds
+# slurm_account=llmservice_nlp_fm slurm_partition=adlr-debug-batch_block4,batch_block1,batch_block2,batch_block3,batch_block4 \
+#     BASE_MODEL_PATH=NousResearch/Llama-2-13b-hf \
+#     bash scripts/v1_5/caption/srun_s1.sh llava_1_5_mm_align

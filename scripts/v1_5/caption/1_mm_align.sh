@@ -19,7 +19,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
 
 # GLOBAL bs: 128 * 8
-export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
+export ALIGN_DATASET=${2:-llava_1_5_mm_align}
 # export PT_DATASET=coyo_25m_wds+mmc4core+sharegpt4v_pretrain
 #           sharegpt4v_prewtrain+coyo_25m_wds
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
@@ -39,7 +39,7 @@ OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"
 echo "node rank:" $SLURM_PROCID
-echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET"
+echo "ALIGN: $ALIGN_DATASET "
 
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
