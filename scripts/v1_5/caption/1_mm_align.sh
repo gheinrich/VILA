@@ -19,7 +19,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
 
 # GLOBAL bs: 128 * 8
-export ALIGN_DATASET=${2:-llava_1_5_mm_align}
+export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 # export PT_DATASET=coyo_25m_wds+mmc4core+sharegpt4v_pretrain
 #           sharegpt4v_prewtrain+coyo_25m_wds
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
