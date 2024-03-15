@@ -165,28 +165,14 @@ class LazySAMWebDataset(Dataset):
             [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
         )
 
-        if CONCAT_SAMPLES:
-            # into <image>cap<eos><image>cap<eos>...
-            text_list = "".join(text_list)
-
-            input_ids = self.tokenizer(
-                text_list,
+        input_ids = [
+            tokenizer_image_token(
+                prompt,
+                self.tokenizer,
                 return_tensors="pt",
-                padding="longest",
-                max_length=self.tokenizer.model_max_length,
-                truncation=True,
-            ).input_ids  # 4, seq_len
-
-            input_ids = input_ids[0]
-        else:
-            input_ids = [
-                tokenizer_image_token(
-                    prompt,
-                    self.tokenizer,
-                    return_tensors="pt",
-                )
-                for prompt in text_list
-            ]
+            )
+            for prompt in text_list
+        ]
 
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
