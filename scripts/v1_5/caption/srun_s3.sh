@@ -5,7 +5,7 @@
 
 # cs
 slurm_account=${slurm_account:-"nvr_elm_llm"}
-slurm_partition=${slurm_partition:-"polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
+slurm_partition=${slurm_partition:-"polar4,polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
 ########################################################
 # bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds
 # bash scripts/v1_5/caption/srun_s3.sh llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds_recap

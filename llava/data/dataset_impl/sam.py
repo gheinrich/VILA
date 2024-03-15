@@ -52,7 +52,7 @@ def lru_json_load(fpath):
 
 
 class LazySAMWebDataset(Dataset):
-    """Dataset for supervised fine-tuning.
+    """Dataset for SAM high resolution data.
     This class is implemented by Ligeng Zhu."""
 
     num_image_tokens = 576
@@ -64,7 +64,7 @@ class LazySAMWebDataset(Dataset):
         tokenizer: transformers.PreTrainedTokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
-        n_samples_per_idx=4,
+        n_samples_per_idx=1,
     ):
         super().__init__()
 
