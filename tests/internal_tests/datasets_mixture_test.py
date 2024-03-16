@@ -1,5 +1,6 @@
-from llava.data import datasets_mixture
 import pprint
+
+from llava.data import datasets_mixture
 
 datasets_mixture.register_datasets_mixtures()
 pp = pprint.PrettyPrinter()

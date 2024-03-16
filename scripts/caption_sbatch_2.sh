@@ -2,7 +2,7 @@
 #SBATCH -A llmservice_nlp_fm                  #account
 #SBATCH --partition=cpu,cpu_1,cpu_long
 #SBATCH --exclusive
-#SBATCH -t 04:00:00             		#wall time limit, hr:min:sec
+#SBATCH -t 02:30:00             		#wall time limit, hr:min:sec
 #SBATCH -N 1                    		#number of nodes
 #SBATCH -J llmservice_nlp_fm-vlm:caption-sharding	#job name
 #SBATCH --dependency singleton

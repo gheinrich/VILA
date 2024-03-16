@@ -1,5 +1,6 @@
 #!/bin/bash
-
+source /lustre/fsw/portfolios/nvr/users/${USER}/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
@@ -18,6 +19,7 @@ echo "node rank:" $SLURM_PROCID
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
     --version plain \
@@ -29,14 +31,14 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --bf16 True \
-    --output_dir ./checkpoints/vila-vicuna2-7b-align-test \
+    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e11111-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 24000 \
+    --save_steps 50 \
     --save_total_limit 1 \
     --learning_rate 1e-3 \
     --weight_decay 0. \

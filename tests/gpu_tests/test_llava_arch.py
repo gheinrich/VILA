@@ -8,20 +8,20 @@ python llava_arch_unit_test.py \
             --device "cuda:0"
 """
 
-import os
-import json
-import torch
 import argparse
+import json
+import os
+
+import torch
 import torch.nn as nn
-from tqdm import tqdm
-from PIL import Image
-
-from transformers import AutoConfig, AutoModelForCausalLM, LlamaConfig, LlamaModel, LlamaForCausalLM, AutoTokenizer
-
-from llava.model.llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
-from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
+from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.mm_utils import tokenizer_image_token
 from llava.model.builder import load_pretrained_model
+from llava.model.llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
+from PIL import Image
+from tqdm import tqdm
+from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
+                          LlamaConfig, LlamaForCausalLM, LlamaModel)
 
 
 class LlavaConfig(LlamaConfig):
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # model initialization
     device = args.device
     torch.set_default_dtype(torch.float16)
-    
+
     tokenizer, model, image_processor, _ = load_pretrained_model(args.model_path, model_name="vila", device=device)
     vision_tower = model.get_vision_tower()
     image_size = vision_tower.config.image_size

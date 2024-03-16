@@ -1,14 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=nvr_lpr_aiagent-vlm:pretraining-siglipso400m-eval-msvd
+#SBATCH --job-name=internvid-pretraining:nvr_lpr_aiagent
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:8
 #SBATCH --time=4:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=grizzly
+#SBATCH --partition=interactive,grizzly,polar,grizzly2,polar2,polar3,polar4
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-msvd-inference.out
     
-srun --label bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/eval/video_chatgpt/run_qa_msvd.sh vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010
+CKPT_NAME=vicuna-7b-siglipso400m-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_1300K-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e11112
+model_path=./checkpoints/${CKPT_NAME}
+srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/eval/video_chatgpt/run_qa_msvd.sh ${model_path} ${CKPT_NAME}
 
 

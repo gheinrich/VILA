@@ -168,7 +168,7 @@ We provide snippets for quick inference with user prompts and images.
 VILA-7B inference:
 ```bash
 python -W ignore llava/eval/run_llava.py \
-    --model-name Efficient-Large-Model/VILA-7B \
+    --model-path Efficient-Large-Model/VILA-7B \
     --conv-mode vicuna_v1 \
     --query "<image>\n Please describe the traffic condition." \
     --image-file "av.png"
@@ -177,7 +177,7 @@ python -W ignore llava/eval/run_llava.py \
 VILA-13B inference:
 ```bash
 python -W ignore llava/eval/run_llava.py \
-    --model-name Efficient-Large-Model/VILA-13B \
+    --model-path Efficient-Large-Model/VILA-13B \
     --conv-mode vicuna_v1 \
     --query "<image>\n Please describe the traffic condition." \
     --image-file "av.png"

@@ -3,12 +3,12 @@
 # Generate Response
 srun --label -A nvr_lpr_aiagent -N 1 -t 4:00:00 -J nvr_lpr_aiagent-vlm:activitynet_inference \
     --gpus-per-node 8 --exclusive  --partition=grizzly \
-    bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/eval/video_chatgpt/run_qa_msvd.sh vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010
+    bash ~/workspace/VILA-Internal/scripts/eval/video_chatgpt/run_qa_msvd.sh vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010
 
 # Score the output
 srun --label -A nvr_lpr_aiagent -N 1 -t 2:00:00 -J nvr_lpr_aiagent-vlm:activitynet_inference \
     --gpus-per-node 1  --partition=grizzly  \
-    bash /lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/VILA/scripts/eval/video_chatgpt/eval_qa_msvd.sh vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010
+    bash ~/workspace/VILA-Internal/scripts/eval/video_chatgpt/eval_qa_msvd.sh vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010
 
 
 # vicuna-7b-siglipso400m-mmc4sub+coyo-finetune-nv_video_flan-linear-e1010

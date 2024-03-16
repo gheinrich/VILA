@@ -1,6 +1,6 @@
 import unittest
 
-from llava.unit_test_utils import requires_lustre, requires_gpu
+from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
 class TestStringMethods(unittest.TestCase):

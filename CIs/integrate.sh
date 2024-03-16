@@ -1,3 +1,4 @@
+# /bin/bash
 SECONDS=0
 while true; do
 
@@ -14,21 +15,18 @@ bash CIs/continual_local.sh
 
 
 while true; do
-    if [ "$SECONDS" -gt "14400"]; then
+    if [ "$SECONDS" -gt "14400" ]; then
         SECONDS=0
         break
     else
+        echo $SECONDS
         sleep 10
     fi 
 done
-
-
 done 
 
-"""
 # hourly
-5 * * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
+# 5 * * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
 
 # daily
-5 */4 * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
-"""
+# 5 */4 * * * bash ~/workspace/VILA-internal/CIs/integrate.sh >> ~/workspace/VILA-internal/dev/crontab.txt
