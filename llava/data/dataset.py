@@ -13,53 +13,47 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os, os.path as osp
 import base64
 import copy
-import llava.data.datasets_mixture as datasets_mixture
-
-import PIL
-from llava.data.datasets_mixture import DATASETS
-from dataclasses import dataclass, field
 import io
-import numpy as np
-import random
 import json
 import logging
+import os
+import os.path as osp
 import pathlib
 import pickle
-import time
-from typing import Dict, Optional, Sequence, List
-from transformers import PreTrainedTokenizer
+import random
 import re
-from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, process_single_sample, construct_prompt, load_yaml
-from datasets import load_dataset, concatenate_datasets
+import time
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Sequence
 
+import numpy as np
+import PIL
 import torch
+import transformers
+from datasets import concatenate_datasets, load_dataset
+from PIL import Image, ImageFile
+from pytorchvideo.data.encoded_video import EncodedVideo
+from torch.utils.data import ConcatDataset, Dataset
+from torchvision.transforms import Resize
+from transformers import PreTrainedTokenizer
+
+import llava.data.datasets_mixture as datasets_mixture
+from llava import conversation as conversation_lib
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
+from llava.data.datasets_mixture import DATASETS
+from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
+                                              load_yaml, process_single_sample)
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
+from llava.model import *
+from llava.train.args import DataArguments, TrainingArguments
+from llava.train.llava_trainer import LLaVATrainer
 
 # torch.backends.cudnn.enabled = False
 
-import transformers
-
-from llava.constants import (
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-)
-from torch.utils.data import ConcatDataset, Dataset
-from llava.train.llava_trainer import LLaVATrainer
-from llava.train.args import TrainingArguments, DataArguments
-
-from llava import conversation as conversation_lib
-from llava.model import *
-from llava.mm_utils import tokenizer_image_token, is_gemma_tokenizer
-
-from torchvision.transforms import Resize
-from pytorchvideo.data.encoded_video import EncodedVideo
-
-from PIL import Image, ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 # local_rank = None
@@ -1776,7 +1770,7 @@ def build_datasets(
     try:
         ## keep the name 'data_mixture' for development FIXME
         # mixture_names = getattr(data_args, f"{split}_data_mixture").strip().split("+")
-        attr_name = "data_mixture" if split == "train" else "eval_data_mixture" 
+        attr_name = "data_mixture" if split == "train" else "eval_data_mixture"
         mixture_names = getattr(data_args, attr_name).strip().split("+")
     except:
         logging.warning(f"Pay attention, split {split} is not built...")
@@ -1806,9 +1800,15 @@ def build_datasets(
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
+            from llava.data.dataset_impl.coyo_recap import \
+                LazyCoyoWebRecapDataset
 
             dataset_cls = LazyCoyoWebRecapDataset
+        elif dataset_type == "textocr":
+            print("dataset.py: Loading textocr class")
+            from llava.data.dataset_impl.textocr import VILAOCRDataset
+
+            dataset_cls = VILAOCRDataset
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":

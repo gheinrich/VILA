@@ -1,15 +1,18 @@
+*.whl
+*_dev
 dev/
 config.json
+eval_output/
 eval-result/
-*_dev.sh
 hostfile
 core.*
 *.out
-./captioner_bk/
+captioner_bk/
 slurm-logs/
-./captioner/
+captioner/
 hostfile
 *_dev.py
+*_dev.sh
 *.ipynb
 
 # Python

@@ -20,9 +20,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
-# export PT_DATASET=coyo_25m_wds+mmc4core+sharegpt4v_pretrain
-#           sharegpt4v_prewtrain+coyo_25m_wds
-export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
+
 
 global_bs=${BATCH_SIZE:-128}
 ACC_STEP=${ACC_STEP:-1}
@@ -30,16 +28,15 @@ bs=$((global_bs / n_node / ACC_STEP))
 
 # bs=1 # for debug purpose
 
-export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
+export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
-# OUTPUT_STEP2=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP1=${1:-"$MNAME-align-$ALIGN_DATASET"}
 
 
 echo "number of nodes:" $n_node
-echo "per device batch size: $bs | global batch size $global_bs"
+echo "per device batch size: $bs | global batch size $global_bs | base model: $BASE_MODEL_PATH"
 echo "node rank:" $SLURM_PROCID
-echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET"
+echo "ALIGN: $ALIGN_DATASET "
 
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \

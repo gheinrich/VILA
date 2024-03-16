@@ -39,11 +39,10 @@
 #     --output-result ./playground/data/eval/scienceqa/answers/$CKPT_result.json
 
 
-
 MODEL_PATH=$1
 CKPT=$2
 
-python -m llava.eval.model_vqa_science \
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_science \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/scienceqa/llava_test_CQM-A.json \
     --image-folder ./playground/data/eval/scienceqa/images/test \
@@ -52,7 +51,7 @@ python -m llava.eval.model_vqa_science \
     --temperature 0 \
     --conv-mode vicuna_v1
 
-python llava/eval/eval_science_qa.py \
+CUDA_VISIBLE_DEVICES=0 python llava/eval/eval_science_qa.py \
     --base-dir ./playground/data/eval/scienceqa \
     --result-file ./eval_output/$CKPT/scienceqa/answers.jsonl \
     --output-file ./eval_output/$CKPT/scienceqa/outputs.jsonl \

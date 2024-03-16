@@ -21,55 +21,56 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
-# export PT_DATASET=coyo_25m_wds+mmc4core+sharegpt4v_pretrain
-#           sharegpt4v_pretrain+coyo_25m_wds
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
+export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+textocr}
 
 global_bs=${BATCH_SIZE:-128}
 acc_step=${ACC_STEP:-1}
 bs=$((global_bs / n_node / acc_step))
+
+# bs=1
 
 export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 # export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
 OUTPUT_STEP2=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP3=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
 
 # bs=1
 
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"
-echo "node rank:" $SLURM_PROCID
-echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET"
-
+echo "node rank:" $CURRENT_RANK
+echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET | SFT: $SFT_DATASET"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/$OUTPUT_STEP1 \
+    --model_name_or_path ./checkpoints/$OUTPUT_STEP2 \
     --version v1 \
-    --data_mixture $PT_DATASET \
-    --tune_language_model True \
-    --tune_mm_projector True \
+    --data_mixture $SFT_DATASET \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp2x_gelu \
+    --tune_language_model True \
+    --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/$OUTPUT_STEP2 \
+    --output_dir ./checkpoints/$OUTPUT_STEP3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps $acc_step \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 270 \
+    --save_steps 210 \
     --save_total_limit 2 \
-    --learning_rate 5e-5 \
+    --learning_rate 1e-4 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
@@ -79,4 +80,5 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
+    --vflan_no_system_prompt True \
     --report_to wandb
