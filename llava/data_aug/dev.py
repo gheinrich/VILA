@@ -1,14 +1,15 @@
-import os, os.path as osp, sys
-from tqdm import tqdm
 import json
+import os
+import os.path as osp
+import shutil
+import sys
+
 import torch
 import torch.distributed as dist
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
-from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-
-from filelock import Timeout, FileLock
-import shutil
-
+from filelock import FileLock, Timeout
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 # model_id = "NousResearch/Llama-2-13b-chat-hf"
 # model_id = "NousResearch/Llama-2-7b-hf"

@@ -1,12 +1,12 @@
-import os, os.path as osp
-import time
 import argparse
+import os
+import os.path as osp
+import time
 from hashlib import sha1, sha256
-
-from termcolor import colored
 
 from huggingface_hub import HfApi
 from huggingface_hub.hf_api import CommitOperationAdd
+from termcolor import colored
 
 MAX_UPLOAD_FILES_PER_COMMIT = 64
 MAX_UPLOAD_SIZE_PER_COMMIT = 32 * 1024 * 1024 * 1024  # 64 GiB
@@ -109,11 +109,7 @@ if __name__ == "__main__":
                     )
                     continue
                 else:
-                    hf_meta = list(
-                        api.list_files_info(
-                            repo_id=repo, paths=rpath, repo_type=repo_type
-                        )
-                    )[0]
+                    hf_meta = list(api.list_files_info(repo_id=repo, paths=rpath, repo_type=repo_type))[0]
 
                     if hf_meta.lfs is not None:
                         hash_type = "lfs-sha256"
@@ -148,10 +144,7 @@ if __name__ == "__main__":
             ops.append(operation)
             commit_size += operation.upload_info.size
             commit_description += f"Upload {rpath}\n"
-            if (
-                len(ops) <= MAX_UPLOAD_FILES_PER_COMMIT
-                and commit_size <= MAX_UPLOAD_SIZE_PER_COMMIT
-            ):
+            if len(ops) <= MAX_UPLOAD_FILES_PER_COMMIT and commit_size <= MAX_UPLOAD_SIZE_PER_COMMIT:
                 continue
 
             commit_message = "Upload files with huggingface_hub"

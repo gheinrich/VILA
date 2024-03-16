@@ -1,22 +1,24 @@
-import shutil
-import os, os.path as osp, io
 import argparse
-import pprint
-import pickle
-from bisect import bisect
 import base64
-from PIL import Image
+import getpass
+import io
 import json
-from filelock import Timeout, FileLock
-from functools import lru_cache, reduce
+import os
+import os.path as osp
+import pickle
+import pprint
+import shutil
 import tarfile
+from bisect import bisect
+from functools import lru_cache, reduce
 from multiprocessing.pool import ThreadPool as Pool
 
 import torch
 import torch.distributed
-from torch.utils.data import Dataset, get_worker_info, ConcatDataset
+from filelock import FileLock, Timeout
+from PIL import Image
+from torch.utils.data import ConcatDataset, Dataset, get_worker_info
 
-import getpass
 from llava.wids import ShardListDataset
 
 
@@ -90,7 +92,7 @@ def generate_wids_meta(tar_list, data_path, cache_dir, idx=0, total=0):
         data_path.replace("/", "--") + ".wdsmeta.json",
     )
 
-    meta_path_of_tar_rel = osp.join(osp.expanduser(data_path),   "wids-meta.json")
+    meta_path_of_tar_rel = osp.join(osp.expanduser(data_path), "wids-meta.json")
     ####################################################################################
     meta = {
         "name": "coyo-dev",
@@ -149,7 +151,6 @@ def prepare_wids_meta(data_path, cache_dir="~/datasets/vila-webds-meta-2", idx=0
             # fpath = osp.abspath(osp.join(root, file))
             tar_list.append(fpath)
     tar_list = sorted(tar_list)
-    
 
     if total > 0:
         chunk = len(tar_list) // total
@@ -159,7 +160,7 @@ def prepare_wids_meta(data_path, cache_dir="~/datasets/vila-webds-meta-2", idx=0
             end_idx = len(tar_list)
         tar_list = tar_list[begin_idx:end_idx]
         print(f"{chunk}, {begin_idx} -> {end_idx}")
-        
+
     assert len(tar_list) > 0, f"no tar was found in the repository {data_path} !"
     print(f"generating meta for total {len(tar_list)} files.")
     cache_dir = osp.expanduser(cache_dir)
@@ -254,11 +255,11 @@ class VILAWebDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
+    import argparse
+
     import torch
     import torch.distributed as dist
     from torch.utils.data.distributed import DistributedSampler
-
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_path", nargs="?", type=str, default=COYO_25M_VILA)
@@ -283,9 +284,10 @@ if __name__ == "__main__":
     )
 
     sampler = None
+    from collections import defaultdict
+
     from PIL import Image
     from torch.utils.data import default_collate
-    from collections import defaultdict
 
     dloader = torch.utils.data.DataLoader(
         train_dataset,

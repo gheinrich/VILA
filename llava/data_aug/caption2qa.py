@@ -1,13 +1,15 @@
-import os, os.path as osp, sys
-from tqdm import tqdm
 import json
+import os
+import os.path as osp
+import shutil
+import sys
+
 import torch
 import torch.distributed as dist
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
-from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-
-from filelock import Timeout, FileLock
-import shutil
+from filelock import FileLock, Timeout
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 
 def safely_merge_info(out_fpath, info):
@@ -66,7 +68,8 @@ def main(
 ):
     dist.init_process_group()
 
-    from llava.train.slurm_utils import get_local_rank, get_rank, get_world_size
+    from llava.train.slurm_utils import (get_local_rank, get_rank,
+                                         get_world_size)
 
     local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
     print(local_rank, rank, world_size, flush=True)

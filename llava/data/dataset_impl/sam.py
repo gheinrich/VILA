@@ -1,54 +1,45 @@
-import os, os.path as osp
 import base64
 import copy
-import llava.data.datasets_mixture as datasets_mixture
-
-import PIL
-from llava.data.datasets_mixture import DATASETS
-from dataclasses import dataclass, field
 import io
-import numpy as np
-import random
 import json
 import logging
+import os
+import os.path as osp
 import pathlib
 import pickle
-import time
-from typing import Dict, Optional, Sequence, List
+import random
 import re
-
-import torch
-
-import transformers
-
-from llava.constants import (
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-)
-from torch.utils.data import ConcatDataset, Dataset
-from llava.train.llava_trainer import LLaVATrainer
-from llava.train.args import TrainingArguments, DataArguments
-
-from llava import conversation as conversation_lib
-from llava.model import *
-from llava.mm_utils import tokenizer_image_token, is_gemma_tokenizer
-
-from torchvision.transforms import Resize
-from pytorchvideo.data.encoded_video import EncodedVideo
-
-from PIL import Image
+import time
+from dataclasses import dataclass, field
 from functools import lru_cache
-from llava.data.simple_vila_webdataset import VILAWebDataset
+from typing import Dict, List, Optional, Sequence
+
+import numpy as np
+import PIL
+import torch
+import transformers
+from PIL import Image
+from pytorchvideo.data.encoded_video import EncodedVideo
+from torch.utils.data import ConcatDataset, Dataset
+from torchvision.transforms import Resize
+
+import llava.data.datasets_mixture as datasets_mixture
+from llava import conversation as conversation_lib
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 from llava.data.dataset import LazySupervisedDataset
+from llava.data.datasets_mixture import DATASETS
+from llava.data.simple_vila_webdataset import VILAWebDataset
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
+from llava.model import *
+from llava.train.args import DataArguments, TrainingArguments
+from llava.train.llava_trainer import LLaVATrainer
 
 
 @lru_cache(maxsize=16)
 def lru_json_load(fpath):
     return json.load(open(fpath, "r"))
-
 
 
 class LazySAMWebDataset(Dataset):
@@ -128,13 +119,13 @@ class LazySAMWebDataset(Dataset):
                 print(info.keys())
                 print(info)
                 raise KeyError
-            
+
             assert self.caption_choice is not None
             # load new captions
             shard = info["__shard__"]
             shard_key = info["__key__"].replace("./", "")
             url = osp.join(shard, shard_key)
-            
+
             tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
             # tar_name = osp.dirname(shard)
             shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
@@ -144,8 +135,7 @@ class LazySAMWebDataset(Dataset):
                 caption = shard_json[url]["output"]
             except KeyError:
                 print(f"{url} not in caption. fallback to original caption temporarially")
-                
-            
+
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -159,7 +149,6 @@ class LazySAMWebDataset(Dataset):
                 raise NotImplementedError
 
             image_list.append(image)
-
 
         image_list = torch.stack(
             [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
@@ -183,7 +172,6 @@ class LazySAMWebDataset(Dataset):
         return dict(input_ids=input_ids, labels=targets, image=image_list)
 
 
-
 if __name__ == "__main__":
     data_path = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat"
     dst = VILAWebDataset(
@@ -192,6 +180,3 @@ if __name__ == "__main__":
     # print(dst[0])
     for idx, data in enumerate(dst):
         print(idx, data.keys())
-        
-        
-        
