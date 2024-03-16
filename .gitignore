@@ -12,6 +12,7 @@ slurm-logs/
 captioner/
 hostfile
 *_dev.py
+*_dev.sh
 *.ipynb
 
 # Python
