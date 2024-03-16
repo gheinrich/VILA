@@ -55,10 +55,6 @@ from llava.train.llava_trainer import LLaVATrainer
 # torch.backends.cudnn.enabled = False
 
 
-
-
-
-
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 # local_rank = None
 
