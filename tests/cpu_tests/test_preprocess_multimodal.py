@@ -1,14 +1,11 @@
 import unittest
 
 import torch
-from llava.train.args import ModelArguments
-from llava.constants import (
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-)
-from llava.data.dataset import preprocess_multimodal
 
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN)
+from llava.data.dataset import preprocess_multimodal
+from llava.train.args import ModelArguments
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -37,9 +34,7 @@ class TestPreprocessMultimodal(unittest.TestCase):
             ]
         ]
         sources = preprocess_multimodal(sources, self.data_args)
-        self.assertEqual(
-            sources[0][0]["value"], f"Random nonsense question {DEFAULT_IMAGE_TOKEN}\n?"
-        )
+        self.assertEqual(sources[0][0]["value"], f"Random nonsense question {DEFAULT_IMAGE_TOKEN}\n?")
 
     def test_single_image_data_without_placeholder(self):
         print("Testing single image conversation without <image> placeholder ...")
@@ -50,14 +45,10 @@ class TestPreprocessMultimodal(unittest.TestCase):
             ]
         ]
         sources = preprocess_multimodal(sources, self.data_args)
-        self.assertEqual(
-            sources[0][0]["value"], f"{DEFAULT_IMAGE_TOKEN}\nRandom nonsense question?"
-        )
+        self.assertEqual(sources[0][0]["value"], f"{DEFAULT_IMAGE_TOKEN}\nRandom nonsense question?")
 
     def test_single_image_data_with_placeholder_with_im_start_end(self):
-        print(
-            "Testing single image conversation with <image> placeholder and mm_use_im_start_end=True ..."
-        )
+        print("Testing single image conversation with <image> placeholder and mm_use_im_start_end=True ...")
         sources = [
             [
                 {"from": "human", "value": "Random nonsense question <image>?"},
@@ -72,9 +63,7 @@ class TestPreprocessMultimodal(unittest.TestCase):
         )
 
     def test_single_image_data_without_placeholder_with_im_start_end(self):
-        print(
-            "Testing single image conversation without <image> placeholder and mm_use_im_start_end=True ..."
-        )
+        print("Testing single image conversation without <image> placeholder and mm_use_im_start_end=True ...")
         sources = [
             [
                 {"from": "human", "value": "Random nonsense question?"},
