@@ -19,6 +19,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
 
+export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 # export PT_DATASET=coyo_25m_wds+mmc4core+sharegpt4v_pretrain
@@ -32,8 +33,8 @@ bs=$((global_bs / n_node / acc_step))
 export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 # export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
+OUTPUT_STEP2=${2:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
 
 # bs=1
 
@@ -52,7 +53,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --data_mixture $PT_DATASET \
     --tune_language_model True \
     --tune_mm_projector True \
-    --vision_tower openai/clip-vit-large-patch14-336 \
+    --vision_tower $VISION_TOWER \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \

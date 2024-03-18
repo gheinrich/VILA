@@ -18,6 +18,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
 
+export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 
@@ -30,7 +31,7 @@ bs=$((global_bs / n_node / ACC_STEP))
 
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${1:-"$MNAME-align-$ALIGN_DATASET"}
+OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
 
 
 echo "number of nodes:" $n_node
@@ -46,7 +47,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --model_name_or_path $BASE_MODEL_PATH \
     --version plain \
     --data_mixture $ALIGN_DATASET \
-    --vision_tower openai/clip-vit-large-patch14-336 \
+    --vision_tower $VISION_TOWER \
     --mm_projector_type mlp2x_gelu \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \

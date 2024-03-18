@@ -18,6 +18,9 @@ n_node=${SLURM_JOB_NUM_NODES:-1}
 echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
+export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
+# google/siglip-large-patch16-384
+# openai/clip-vit-large-patch14-336 
 
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
@@ -33,9 +36,9 @@ bs=$((global_bs / n_node / acc_step))
 export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 # export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${2:-"$MNAME-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
-OUTPUT_STEP3=${3:-"$MNAME-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
+# OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
+OUTPUT_STEP2=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP3=${2:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
 
 # bs=1
 
@@ -51,7 +54,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --model_name_or_path ./checkpoints/$OUTPUT_STEP2 \
     --version v1 \
     --data_mixture $SFT_DATASET \
-    --vision_tower openai/clip-vit-large-patch14-336 \
+    --vision_tower $VISION_TOWER \
     --mm_projector_type mlp2x_gelu \
     --tune_language_model True \
     --tune_mm_projector True \
