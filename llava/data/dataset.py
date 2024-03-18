@@ -128,7 +128,7 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
             if "<image>" in sentence["value"]:
                 sentence_chunks = [chunk.strip() for chunk in sentence["value"].split("<image>")]
                 sentence["value"] = f"<image>\n".joint(sentence_chunks).strip()
-                
+
                 replace_token = "<image>"
                 if "mmtag" in conversation_lib.default_conversation.version:
                     replace_token = "<Image>" + replace_token + "</Image>"

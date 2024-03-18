@@ -2,11 +2,11 @@
 # https://github.com/MMMU-Benchmark/MMMU
 """Utils for data load, save, and process (e.g., prompt construction)"""
 
-import os
 import json
-import yaml
+import os
 import re
 
+import yaml
 
 DOMAIN_CAT2SUB_CAT = {
     "Art and Design": ["Art", "Art_Theory", "Design", "Music"],
@@ -125,7 +125,7 @@ def process_single_sample(data):
         image_keys += matched_patterns
         for pattern in matched_patterns:
             candidates[i] = candidates[i].replace(pattern, "<image>")
-            
+
     if len(image_keys) > 1:
         return {
             "id": data["id"],
@@ -201,9 +201,7 @@ def construct_prompt(sample, config):
         res_dict["all_choices"] = prediction_range
         res_dict["empty_prompt"] = empty_prompt
         if config["task_instructions"]:
-            res_dict["final_input_prompt"] = (
-                config["task_instructions"].strip() + "\n\n" + empty_prompt
-            )
+            res_dict["final_input_prompt"] = config["task_instructions"].strip() + "\n\n" + empty_prompt
         else:
             res_dict["final_input_prompt"] = empty_prompt
 
@@ -214,9 +212,7 @@ def construct_prompt(sample, config):
         res_dict = {}
         res_dict["empty_prompt"] = empty_prompt
         if config["task_instructions"]:
-            res_dict["final_input_prompt"] = (
-                config["task_instructions"].strip() + "\n\n" + empty_prompt
-            )
+            res_dict["final_input_prompt"] = config["task_instructions"].strip() + "\n\n" + empty_prompt
         else:
             res_dict["final_input_prompt"] = empty_prompt
         res_dict["gt_content"] = sample["answer"]
