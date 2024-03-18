@@ -125,8 +125,11 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
 
     for source in sources:
         for sid, sentence in enumerate(source):
+            if sid == 0 and DEFAULT_IMAGE_TOKEN not in sentence["value"]:
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
             if DEFAULT_IMAGE_TOKEN in sentence["value"]:
                 sentence_chunks = [chunk.strip() for chunk in sentence["value"].split(DEFAULT_IMAGE_TOKEN)]
+                sentence_chunks = [chunk + " " if not (chunk.endswith("\n")) else chunk for chunk in sentence_chunks[:-1]] + [sentence_chunks[-1]]
                 sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n".join(sentence_chunks).strip()
 
                 replace_token = DEFAULT_IMAGE_TOKEN
@@ -135,8 +138,6 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
                 if data_args.mm_use_im_start_end:
                     replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
                 sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
-            elif sid == 0:
-                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
 
     return sources
 
@@ -1701,7 +1702,8 @@ class DataCollatorForSupervisedDataset(object):
         # kentang-mit@: we need to make sure these two lists have
         # the same length. We will use input_ids to filter out images corresponding
         # to truncated <image> tokens later.
-        assert len(images) == len(input_ids)
+        for _images, _input_ids in zip(images, input_ids):
+            assert len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item(), "Number mismatch between images and placeholder image tokens!"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id

@@ -93,17 +93,12 @@ class LlavaMetaForCausalLM(ABC):
                 None,
                 labels,
             )
-        ## FIXME yunhao: current packing logic is not compatible with beam_search
-        if images.ndim == 5:
+        # handle different image dtypes for packing
+        if type(images) is list:
+            images = torch.cat(images, dim=0)
+        elif images.ndim == 5:  # batch_size x seq_len x image_channels
             images = images.flatten(0, 1)
-        if type(images) is list or images.ndim == 5:
-            concat_images = torch.cat([image for image in images], dim=0)
-            image_features = self.encode_images(concat_images)
-            split_sizes = [image.shape[0] for image in images]
-            image_features = torch.split(image_features, split_sizes, dim=0)
-            image_features = [x.flatten(0, 1).to(self.device) for x in image_features]
-        else:
-            image_features = self.encode_images(images).to(self.device)
+        image_features = self.encode_images(images).to(self.device)
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
         if getattr(self.config, "turn_mm_projector", False) and getattr(self.config, "mm_use_im_start_end", False):
             raise NotImplementedError
