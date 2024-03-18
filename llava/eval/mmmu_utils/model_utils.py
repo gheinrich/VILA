@@ -77,6 +77,7 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
         response = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
     else:  # multiple images actually
         raise ValueError("INVALID GENERATION FOR MULTIPLE IMAGE INPUTS")
+        # default behavior (random sample answer) from MMMU's offcials implementation
         if sample["question_type"] == "multiple-choice":
             all_choices = sample["all_choices"]
             response = random.choice(all_choices)

@@ -125,6 +125,7 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
 
     for source in sources:
         for sid, sentence in enumerate(source):
+            # In multimodal conversations, we automatically prepend '<image>' at the start of the first sentence if it doesn't already contain one. 
             if sid == 0 and DEFAULT_IMAGE_TOKEN not in sentence["value"]:
                 sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
             if DEFAULT_IMAGE_TOKEN in sentence["value"]:
@@ -1703,7 +1704,7 @@ class DataCollatorForSupervisedDataset(object):
         # the same length. We will use input_ids to filter out images corresponding
         # to truncated <image> tokens later.
         for _images, _input_ids in zip(images, input_ids):
-            assert len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item(), "Number mismatch between images and placeholder image tokens!"
+            assert len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item(), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'. Error input_ids: {_input_ids}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
