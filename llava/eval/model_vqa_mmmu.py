@@ -93,7 +93,8 @@ def main():
 
         sample = construct_prompt(sample, args.config)
         if sample['image']:
-            sample['image'] = vis_process_func(sample['image'], vis_processors).to(device)
+            sample['image'] = [vis_process_func(image_file, vis_processors).to(device) for image_file in sample['image']]
+            sample['image'] = torch.stack(sample['image'])
         samples.append(sample)
 
     # run ex

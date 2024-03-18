@@ -124,20 +124,19 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
         return sources
 
     for source in sources:
-        for sentence in source:
-            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
-                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, "").strip()
-                sentence["value"] = DEFAULT_IMAGE_TOKEN + "\n" + sentence["value"]
-                sentence["value"] = sentence["value"].strip()
+        for sid, sentence in enumerate(source):
+            if "<image>" in sentence["value"]:
+                sentence_chunks = [chunk.strip() for chunk in sentence["value"].split("<image>")]
+                sentence["value"] = f"<image>\n".joint(sentence_chunks).strip()
+                
+                replace_token = "<image>"
                 if "mmtag" in conversation_lib.default_conversation.version:
-                    sentence["value"] = sentence["value"].replace(
-                        DEFAULT_IMAGE_TOKEN,
-                        "<Image>" + DEFAULT_IMAGE_TOKEN + "</Image>",
-                    )
-            replace_token = DEFAULT_IMAGE_TOKEN
-            if data_args.mm_use_im_start_end:
-                replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
-            sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
+                    replace_token = "<Image>" + replace_token + "</Image>"
+                if data_args.mm_use_im_start_end:
+                    replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
+                sentence["value"] = sentence["value"].replace("<image>", replace_token)
+            elif sid == 0:
+                sentence["value"] = f"<image>\n" + sentence["value"]
 
     return sources
 
@@ -624,6 +623,7 @@ class LazySupervisedDataset(Dataset):
             sources = [conversation]
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
+
         data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
