@@ -4,6 +4,7 @@ import sys
 import unittest
 
 import torch
+from torch.utils.data import DataLoader
 from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
@@ -19,7 +20,8 @@ class TestDatasetLoading(unittest.TestCase):
         dst = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
-        for idx, data in enumerate(dst):
+        dl = DataLoader(dst, num_workers=16)
+        for idx, data in enumerate(dl):
             print(idx, data.keys())
         print("SAM loading finish")
 
@@ -31,7 +33,8 @@ class TestDatasetLoading(unittest.TestCase):
         dst = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
-        for idx, data in enumerate(dst):
+        dl = DataLoader(dst, num_workers=16)
+        for idx, data in enumerate(dl):
             print(idx, data.keys())
         print("Coyo-25M loading finish")
 
