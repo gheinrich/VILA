@@ -45,11 +45,15 @@ from functools import lru_cache
 from llava.data.simple_vila_webdataset import VILAWebDataset
 from llava.data.dataset import LazySupervisedDataset
 
+
 @lru_cache(maxsize=16)
 def lru_json_load(fpath):
     return json.load(open(fpath, "r"))
 
+
 from llava.data.dataset import LazyCoyoWebDataset
+
+
 class LazyCoyoWebRecapDataset(LazyCoyoWebDataset):
     """Dataset for supervised fine-tuning.
     This class is implemented by Ligeng Zhu."""
@@ -66,11 +70,11 @@ class LazyCoyoWebRecapDataset(LazyCoyoWebDataset):
         n_samples_per_idx=4,
     ):
         super().__init__(
-            data_path=data_path, 
+            data_path=data_path,
             image_folder=image_folder,
             tokenizer=tokenizer,
             data_args=data_args,
             training_args=training_args,
-            n_samples_per_idx=n_samples_per_idx
+            n_samples_per_idx=n_samples_per_idx,
         )
         self.caption_choice = "/home/ligengz/workspace/coyo-25m-recap"

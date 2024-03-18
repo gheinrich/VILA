@@ -20,8 +20,14 @@ from llava.model.builder import load_pretrained_model
 from llava.model.llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
 from PIL import Image
 from tqdm import tqdm
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          LlamaConfig, LlamaForCausalLM, LlamaModel)
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    LlamaConfig,
+    LlamaForCausalLM,
+    LlamaModel,
+)
 
 
 class LlavaConfig(LlamaConfig):

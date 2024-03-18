@@ -25,9 +25,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
@@ -87,7 +91,12 @@ class LazySAMWebDataset(Dataset):
         # Estimate the number of tokens after tokenization, used for length-grouped sampling
         length_list = []
         for samples in self.data_list:
-            cur_len = sum([len(conv["text" if "text" in conv else "caption"].split()) for conv in samples])
+            cur_len = sum(
+                [
+                    len(conv["text" if "text" in conv else "caption"].split())
+                    for conv in samples
+                ]
+            )
             # The unit of cur_len is "words". We assume 1 word = 2 tokens.
             cur_len = cur_len + len(samples) * self.num_image_tokens // 2
             length_list.append(cur_len)
@@ -97,7 +106,10 @@ class LazySAMWebDataset(Dataset):
         CONCAT_SAMPLES = False
         # info_list = self.dataset[i - self.idx_offset]
 
-        begin_idx, end_idx = i * self.n_samples_per_idx, (i + 1) * self.n_samples_per_idx
+        begin_idx, end_idx = (
+            i * self.n_samples_per_idx,
+            (i + 1) * self.n_samples_per_idx,
+        )
         end_idx = min(end_idx, len(self.dataset))
 
         text_list = []
@@ -134,7 +146,9 @@ class LazySAMWebDataset(Dataset):
             try:
                 caption = shard_json[url]["output"]
             except KeyError:
-                print(f"{url} not in caption. fallback to original caption temporarially")
+                print(
+                    f"{url} not in caption. fallback to original caption temporarially"
+                )
 
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
@@ -151,7 +165,12 @@ class LazySAMWebDataset(Dataset):
             image_list.append(image)
 
         image_list = torch.stack(
-            [LazySupervisedDataset._process_image(image, self.data_args, image_folder=None) for image in image_list]
+            [
+                LazySupervisedDataset._process_image(
+                    image, self.data_args, image_folder=None
+                )
+                for image in image_list
+            ]
         )
 
         input_ids = [

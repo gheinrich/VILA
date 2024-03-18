@@ -26,9 +26,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
@@ -69,7 +73,9 @@ class GenericDataset:
         scale = self.image_height / original_height
 
         resized_width = int(round(scale * original_width, 0))
-        new_width = resized_width + (self.patch_width - (resized_width % self.patch_width))  # Adjusted this line
+        new_width = resized_width + (
+            self.patch_width - (resized_width % self.patch_width)
+        )  # Adjusted this line
 
         return image.resize((new_width, self.image_height))
 
@@ -86,7 +92,6 @@ class SummedDataset(GenericDataset):
         return len(self.left) + len(self.right)
 
     def __getitem__(self, idx):
-
         if idx > (len(self.left) - 1):
             idx_corrected = idx % len(self.left)
             return self.right[idx_corrected]
@@ -111,13 +116,20 @@ class TextOCRDataset(GenericDataset):
         self.data = []
         self.img2text = {}
 
-        annotations = json.load(open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r"))
+        annotations = json.load(
+            open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r")
+        )
         valid_images = [
             {
-                "size": (annotations["imgs"][img]["width"], annotations["imgs"][img]["height"]),
+                "size": (
+                    annotations["imgs"][img]["width"],
+                    annotations["imgs"][img]["height"],
+                ),
                 "path": os.path.join(
                     base_folder,
-                    annotations["imgs"][img]["file_name"].replace("train/", "train_images/"),
+                    annotations["imgs"][img]["file_name"].replace(
+                        "train/", "train_images/"
+                    ),
                 ),
                 "annots": [str(i) for i in annotations["imgToAnns"][img]],
             }
@@ -180,7 +192,9 @@ class TextOCRDataset(GenericDataset):
         metadata = self.data[idx]
         origin_image = Image.open(metadata["image_path"])
         x, y, w, h = metadata["bbx"]
-        cropped_image = Image.open(metadata["image_path"]).crop((x, y, x + w, y + h)).convert("RGB")
+        cropped_image = (
+            Image.open(metadata["image_path"]).crop((x, y, x + w, y + h)).convert("RGB")
+        )
         return {
             "image_path": metadata["image_path"],
             "origin_image": origin_image,
@@ -235,10 +249,14 @@ class VILAOCRDataset(Dataset):
         fpath = meta["image_path"]
         text = " ".join(meta["annotation"])
 
-        caption = f"Please read the text on image and type it below, each word separated by space.\n{text}"
+        caption = f"Please read the texts on image and type it below, each word separated by space.\n{text}"
 
-        caption = (DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token).replace("<image>", "<IMAGE>")
-        vila_img = LazySupervisedDataset._process_image(img, self.data_args, image_folder=None)
+        caption = (DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token).replace(
+            "<image>", "<IMAGE>"
+        )
+        vila_img = LazySupervisedDataset._process_image(
+            img, self.data_args, image_folder=None
+        )
 
         input_ids = tokenizer_image_token(
             caption,

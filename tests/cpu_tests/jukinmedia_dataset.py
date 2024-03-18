@@ -1,6 +1,7 @@
 import torch
 import transformers
 from llava import conversation as conversation_lib
+
 # from llava.train.token_config import (
 #     DEFAULT_IMAGE_PATCH_TOKEN,
 # )
