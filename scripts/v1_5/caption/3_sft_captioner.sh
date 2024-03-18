@@ -14,7 +14,6 @@ export CURRENT_RANK=${SLURM_PROCID:-"0"}
 worker_list=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | tr '\n' ' ')
 n_node=${SLURM_JOB_NUM_NODES:-1}
 
-
 echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
@@ -37,8 +36,8 @@ export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 # export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 # OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
-OUTPUT_STEP3=${2:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
+OUTPUT_STEP2=${1:-"./checkpoints/$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP3=${2:-"./checkpoints/$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
 
 # bs=1
 
@@ -51,7 +50,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/$OUTPUT_STEP2 \
+    --model_name_or_path $OUTPUT_STEP2 \
     --version v1 \
     --data_mixture $SFT_DATASET \
     --vision_tower $VISION_TOWER \
@@ -64,7 +63,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/$OUTPUT_STEP3 \
+    --output_dir $OUTPUT_STEP3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
