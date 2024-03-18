@@ -116,34 +116,24 @@ def parse_img_path(text):
 
 def process_single_sample(data):
     question = data["question"]
-    options = data["options"]
+    options = eval(data["options"])
     image_keys = []
     candidates = [question] + options
     ## process image
     for i, c in enumerate(candidates):
         matched_patterns = re.findall(r"<image \d*>", c)
-        image_keys += matched_patterns
+        image_keys += [pattern.strip("<>").replace(" ", "_") for pattern in matched_patterns]
         for pattern in matched_patterns:
             candidates[i] = candidates[i].replace(pattern, "<image>")
 
-    if len(image_keys) > 1:
-        return {
-            "id": data["id"],
-            "question": question,
-            "options": data["options"],
-            "answer": data["answer"],
-            "image": None,
-            "question_type": data["question_type"],
-        }
-    else:
-        return {
-            "id": data["id"],
-            "question": question,
-            "options": data["options"],
-            "answer": data["answer"],
-            "image": [data[key] for key in image_keys],
-            "question_type": data["question_type"],
-        }
+    return {
+        "id": data["id"],
+        "question": candidates[0],
+        "options": str(candidates[1:]),
+        "answer": data["answer"],
+        "image": [data[key] for key in image_keys],
+        "question_type": data["question_type"],
+    }
 
 
 # DATA SAVING

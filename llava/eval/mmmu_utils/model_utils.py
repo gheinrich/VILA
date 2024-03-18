@@ -1,6 +1,6 @@
 # This file is originated from the official MMMU codebase:
 # https://github.com/MMMU-Benchmark/MMMU
-from random import random
+import random
 import torch
 from llava.mm_utils import is_gemma_tokenizer, KeywordsStoppingCriteria
 
@@ -31,10 +31,10 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
 
     def deal_with_prompt(input_text, mm_use_im_start_end):
         qs = input_text
-        if mm_use_im_start_end:
-            qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
-        else:
+        if DEFAULT_IMAGE_TOKEN not in qs:
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+        if mm_use_im_start_end:
+            qs.replace(DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN)
         return qs
 
     prompt = sample['final_input_prompt']
@@ -45,6 +45,7 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
     prompt = conv.get_prompt()
     input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
     image = sample['image']
+
     stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
     keywords = [stop_str]
     stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None

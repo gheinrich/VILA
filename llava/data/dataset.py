@@ -125,18 +125,18 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
 
     for source in sources:
         for sid, sentence in enumerate(source):
-            if "<image>" in sentence["value"]:
-                sentence_chunks = [chunk.strip() for chunk in sentence["value"].split("<image>")]
-                sentence["value"] = f"<image>\n".joint(sentence_chunks).strip()
+            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
+                sentence_chunks = [chunk.strip() for chunk in sentence["value"].split(DEFAULT_IMAGE_TOKEN)]
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n".join(sentence_chunks).strip()
 
-                replace_token = "<image>"
+                replace_token = DEFAULT_IMAGE_TOKEN
                 if "mmtag" in conversation_lib.default_conversation.version:
                     replace_token = "<Image>" + replace_token + "</Image>"
                 if data_args.mm_use_im_start_end:
                     replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
-                sentence["value"] = sentence["value"].replace("<image>", replace_token)
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
             elif sid == 0:
-                sentence["value"] = f"<image>\n" + sentence["value"]
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
 
     return sources
 

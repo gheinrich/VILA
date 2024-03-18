@@ -98,7 +98,9 @@ class LlavaMetaForCausalLM(ABC):
                 None,
                 labels,
             )
-
+        ## FIXME yunhao: current packing logic is not compatible with beam_search
+        if images.ndim == 5:
+            images = images.flatten(0, 1)
         if type(images) is list or images.ndim == 5:
             concat_images = torch.cat([image for image in images], dim=0)
             image_features = self.encode_images(concat_images)
@@ -107,7 +109,6 @@ class LlavaMetaForCausalLM(ABC):
             image_features = [x.flatten(0, 1).to(self.device) for x in image_features]
         else:
             image_features = self.encode_images(images).to(self.device)
-
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
         if getattr(self.config, "turn_mm_projector", False) and getattr(
             self.config, "mm_use_im_start_end", False
@@ -205,7 +206,6 @@ class LlavaMetaForCausalLM(ABC):
             # cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
             cur_new_input_embeds = []
             cur_new_labels = []
-
             for i in range(num_images + 1):
                 cur_new_input_embeds.append(cur_input_embeds_no_im[i])
                 cur_new_labels.append(cur_labels_noim[i])
