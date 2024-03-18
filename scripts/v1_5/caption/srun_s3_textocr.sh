@@ -51,4 +51,4 @@ done
 # 
 # /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
 # OUTPUT_STEP2="/home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2"
-# bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
+# SFT_DATASET=sharegpt4v_sft+hiertext bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2

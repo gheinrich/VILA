@@ -29,6 +29,14 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    hiertext = Dataset(
+        dataset_name="hiertext",
+        dataset_type="hiertext",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/hiertext",
+        description="",
+    )
+    add_dataset(hiertext)
+    
     textocr = Dataset(
         dataset_name="textocr",
         dataset_type="textocr",

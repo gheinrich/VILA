@@ -1776,7 +1776,7 @@ def build_datasets(
         logging.warning(f"Pay attention, split {split} is not built...")
         return None
     mixture = (DATASETS[_] for _ in mixture_names)
-    print(f"[INFO-log]: Loading from {mixture_names}")
+    print(f"[Dataset-INFO]: Loading from {mixture_names}")
     image_folder = None
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1800,15 +1800,19 @@ def build_datasets(
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import \
-                LazyCoyoWebRecapDataset
+            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
 
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
             print("dataset.py: Loading textocr class")
-            from llava.data.dataset_impl.textocr import VILAOCRDataset
-
-            dataset_cls = VILAOCRDataset
+            from llava.data.dataset_impl.textocr import VILATextOCR
+            
+            dataset_cls = VILATextOCR
+        elif dataset_type == "hiertext":
+            print("dataset.py: Loading hiertext class")
+            from llava.data.dataset_impl.hiertext import VILAHierText
+            
+            dataset_cls = VILAHierText
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":
