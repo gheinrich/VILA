@@ -13,8 +13,8 @@ class Dataset:
             "help": "Detailed desciption of where the data is from, how it is labelled, intended use case and the size of the dataset."
         },
     )
-    test_script : str = None,
-    maintainer : str = None,
+    test_script: str = (None,)
+    maintainer: str = (None,)
 
 
 DATASETS = {}
@@ -38,7 +38,7 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(panda70m)
-    
+
     hiertext = Dataset(
         dataset_name="hiertext",
         dataset_type="hiertext",
@@ -46,7 +46,7 @@ def register_datasets_mixtures():
         description="https://github.com/google-research-datasets/hiertext OCR dataset",
     )
     add_dataset(hiertext)
-    
+
     textocr = Dataset(
         dataset_name="textocr",
         dataset_type="textocr",

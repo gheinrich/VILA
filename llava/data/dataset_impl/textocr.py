@@ -69,9 +69,7 @@ class GenericDataset:
         scale = self.image_height / original_height
 
         resized_width = int(round(scale * original_width, 0))
-        new_width = resized_width + (
-            self.patch_width - (resized_width % self.patch_width)
-        )  # Adjusted this line
+        new_width = resized_width + (self.patch_width - (resized_width % self.patch_width))  # Adjusted this line
 
         return image.resize((new_width, self.image_height))
 
@@ -112,9 +110,7 @@ class TextOCRDataset(GenericDataset):
         self.data = []
         self.img2text = {}
 
-        annotations = json.load(
-            open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r")
-        )
+        annotations = json.load(open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r"))
         valid_images = [
             {
                 "size": (
@@ -123,9 +119,7 @@ class TextOCRDataset(GenericDataset):
                 ),
                 "path": os.path.join(
                     base_folder,
-                    annotations["imgs"][img]["file_name"].replace(
-                        "train/", "train_images/"
-                    ),
+                    annotations["imgs"][img]["file_name"].replace("train/", "train_images/"),
                 ),
                 "annots": [str(i) for i in annotations["imgToAnns"][img]],
             }
@@ -188,9 +182,7 @@ class TextOCRDataset(GenericDataset):
         metadata = self.data[idx]
         origin_image = Image.open(metadata["image_path"])
         x, y, w, h = metadata["bbx"]
-        cropped_image = (
-            Image.open(metadata["image_path"]).crop((x, y, x + w, y + h)).convert("RGB")
-        )
+        cropped_image = Image.open(metadata["image_path"]).crop((x, y, x + w, y + h)).convert("RGB")
         return {
             "image_path": metadata["image_path"],
             "origin_image": origin_image,
@@ -206,10 +198,8 @@ def preprocess_OCR(image, texts: list, data_args, tokenizer):
     text = " ".join(texts)
     caption = f"Please read the texts on image and type it below, each word separated by space.\n{text}"
 
-    caption = (DEFAULT_IMAGE_TOKEN + caption + tokenizer.eos_token)
-    vila_img = LazySupervisedDataset._process_image(
-        image, data_args, image_folder=None
-    )
+    caption = DEFAULT_IMAGE_TOKEN + caption + tokenizer.eos_token
+    vila_img = LazySupervisedDataset._process_image(image, data_args, image_folder=None)
 
     input_ids = tokenizer_image_token(
         caption,
@@ -222,14 +212,14 @@ def preprocess_OCR(image, texts: list, data_args, tokenizer):
     # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
     for i in range(len(targets)):
         targets[i][targets[i] == tokenizer.pad_token_id] = IGNORE_INDEX
-    
+
     return dict(
         input_ids=input_ids,
         labels=targets,
         image=vila_img.unsqueeze(0),
     )
 
-    
+
 class VILATextOCR(Dataset):
     """
     Dataset class for VILA OCR data.

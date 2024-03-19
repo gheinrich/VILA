@@ -5,7 +5,6 @@ import transformers
 from transformers.models.siglip import SiglipImageProcessor
 
 from llava import conversation as conversation_lib
-
 # from llava.train.token_config import (
 #     DEFAULT_IMAGE_PATCH_TOKEN,
 # )
@@ -53,8 +52,7 @@ def test_make_supervised_data_module(dataset_name, max_samples=100):
     dataset_len = len(data_module["train_dataset"])
     from torch.utils.data import DataLoader
 
-    dloader = DataLoader(dataset, batch_size=16, 
-                         collate_fn=data_module["data_collator"], num_workers=4)
+    dloader = DataLoader(dataset, batch_size=16, collate_fn=data_module["data_collator"], num_workers=4)
     dloader_len = len(dloader)
     for batch in dloader:
         # if index > min(max_samples, dloader_len):
@@ -71,7 +69,7 @@ class TestStringMethods(unittest.TestCase):
     @requires_lustre()
     def test_dataloader_panda70m(self):
         test_make_supervised_data_module(dataset_name="panda70m")
-        
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,3 @@
-
 # refernced from https://github.com/CVC-DAG/OCR_datasets/blob/master/src/datasets/ocr/hiertext.py
 import base64
 import copy
@@ -72,9 +71,7 @@ class HierTextDataset(GenericDataset):
                 "r",
             )
         )
-        images_path = os.path.join(
-            base_folder, "train" if split == "train" else "validation"
-        )
+        images_path = os.path.join(base_folder, "train" if split == "train" else "validation")
         self.base_images = images_path
 
         self.samples = []
@@ -91,11 +88,7 @@ class HierTextDataset(GenericDataset):
                         continue
                     if x2 - x < y2 - y:
                         continue  # TODO: Evaluation without vertical lines. Not fair.
-                    if (
-                        line["legible"] in legibility
-                        and line["handwritten"] in handwritten
-                        and not line["vertical"]
-                    ):
+                    if line["legible"] in legibility and line["handwritten"] in handwritten and not line["vertical"]:
                         if mode == "lines":
                             data = {
                                 "bbx": bbx_from_vertices_list(line["vertices"]),
@@ -127,17 +120,15 @@ class HierTextDataset(GenericDataset):
         # metadata = self.samples[idx]
         # img_path = os.path.join(self.base_images, metadata["image_path"])
         # image = Image.open(img_path).convert("RGB")
-        
+
         img_path = self.unique_fpath[idx]
         metadatas = self.unique_samples[img_path]
 
         annotations = []
         for metadata in metadatas:
-            annotations.append(
-                metadata["transcription"]
-            )
+            annotations.append(metadata["transcription"])
         image = Image.open(img_path).convert("RGB")
-            
+
         return {
             "image_path": img_path,
             "origin_image": image,
@@ -145,6 +136,7 @@ class HierTextDataset(GenericDataset):
             "dataset": self.name,
             "split": self.split,
         }
+
 
 class VILAHierText(Dataset):
     """

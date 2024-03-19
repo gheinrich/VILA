@@ -12,21 +12,20 @@ from typing import Dict, Sequence
 import numpy as np
 import torch
 import transformers
-from llava import conversation as conversation_lib
-from llava.train import datasets_mixture
-from llava.train.token_config import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_PATCH_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_VIDEO_TOKEN,
-    IGNORE_INDEX,
-)
 from PIL import Image
 from pytorchvideo.data.encoded_video import EncodedVideo
-from pytorchvideo.transforms import ApplyTransformToKey, UniformTemporalSubsample
+from pytorchvideo.transforms import (ApplyTransformToKey,
+                                     UniformTemporalSubsample)
 from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Compose, Resize
+
+from llava import conversation as conversation_lib
+from llava.train import datasets_mixture
+from llava.train.token_config import (DEFAULT_IM_END_TOKEN,
+                                      DEFAULT_IM_START_TOKEN,
+                                      DEFAULT_IMAGE_PATCH_TOKEN,
+                                      DEFAULT_IMAGE_TOKEN, DEFAULT_VIDEO_TOKEN,
+                                      IGNORE_INDEX)
 
 
 def dprint(*args, **kwargs):

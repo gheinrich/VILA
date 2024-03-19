@@ -1,49 +1,40 @@
-import os, os.path as osp
 import base64
 import copy
-import llava.data.datasets_mixture as datasets_mixture
-
-import PIL
-from llava.data.datasets_mixture import DATASETS
-from dataclasses import dataclass, field
 import io
-import numpy as np
-import random
 import json
 import logging
+import os
+import os.path as osp
 import pathlib
 import pickle
-import time
-from typing import Dict, Optional, Sequence, List
+import random
 import re
-
-import torch
-
-import transformers
-
-from llava.constants import (
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-    DEFAULT_IMAGE_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-)
-from torch.utils.data import ConcatDataset, Dataset
-from llava.train.llava_trainer import LLaVATrainer
-from llava.train.args import TrainingArguments, DataArguments
-
-from llava import conversation as conversation_lib
-from llava.model import *
-from llava.mm_utils import tokenizer_image_token, is_gemma_tokenizer
-
-from torchvision.transforms import Resize
-from pytorchvideo.data.encoded_video import EncodedVideo
-
-from PIL import Image
+import time
+from dataclasses import dataclass, field
 from functools import lru_cache
+from typing import Dict, List, Optional, Sequence
 
-from llava.data.simple_vila_webdataset import VILAWebDataset
+import numpy as np
+import PIL
+import torch
+import transformers
+from PIL import Image
+from pytorchvideo.data.encoded_video import EncodedVideo
+from torch.utils.data import ConcatDataset, Dataset
+from torchvision.transforms import Resize
+
+import llava.data.datasets_mixture as datasets_mixture
+from llava import conversation as conversation_lib
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 from llava.data.dataset import LazySupervisedDataset
+from llava.data.datasets_mixture import DATASETS
+from llava.data.simple_vila_webdataset import VILAWebDataset
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
+from llava.model import *
+from llava.train.args import DataArguments, TrainingArguments
+from llava.train.llava_trainer import LLaVATrainer
 
 
 @lru_cache(maxsize=16)

@@ -5,7 +5,6 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 import decord
-
 # from decord import VideoReader
 import numpy as np
 import torch
@@ -22,7 +21,7 @@ video_dir = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen
 
 SKIP_ID = [
     "7olz18uNTUI_000286_000296",
-    "Bk0i4M38dLk_000257_000267"
+    "Bk0i4M38dLk_000257_000267",
     # "tQ6-_e59Zrk_1"
     # "v_1296743-2", "v_909502", "v_977136", "v_985798", "v_954878", "v_985376",
     # "v_977995", "v_1409590", "v_985116", "v_959350-2", "v_981773", "v_1232351",

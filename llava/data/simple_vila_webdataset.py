@@ -262,7 +262,7 @@ if __name__ == "__main__":
     from torch.utils.data.distributed import DistributedSampler
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_path", nargs="?", type=str) #, default=COYO_25M_VILA)
+    parser.add_argument("data_path", nargs="?", type=str)  # , default=COYO_25M_VILA)
     parser.add_argument("-o", "--overwrite", action="store_true")
     parser.add_argument("--idx", type=int, default=0)
     parser.add_argument("--total", type=int, default=0)
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )
-    print("dataset size: " ,len(train_dataset))
+    print("dataset size: ", len(train_dataset))
     print(train_dataset[0])
     exit(0)
     print("overwrite:", args.overwrite)

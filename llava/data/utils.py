@@ -1,7 +1,10 @@
-import io, pathlib
+import io
+import pathlib
 from io import BytesIO
+
 from iopath.common.file_io import g_pathmgr
 from pytorchvideo.data.encoded_video import EncodedVideo, select_video_class
+
 
 class VILAEncodedVideo(EncodedVideo):
     @classmethod

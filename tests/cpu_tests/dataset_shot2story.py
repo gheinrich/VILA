@@ -5,7 +5,6 @@ import transformers
 from transformers.models.siglip import SiglipImageProcessor
 
 from llava import conversation as conversation_lib
-
 # from llava.train.token_config import (
 #     DEFAULT_IMAGE_PATCH_TOKEN,
 # )
@@ -70,7 +69,7 @@ class TestStringMethods(unittest.TestCase):
     @requires_lustre()
     def test_dataloader_panda70m(self):
         test_make_supervised_data_module(dataset_name="shot2story_shotonly")
-    
+
 
 if __name__ == "__main__":
     unittest.main()

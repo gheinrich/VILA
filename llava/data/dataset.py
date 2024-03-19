@@ -465,7 +465,9 @@ def preprocess(
 
     return dict(input_ids=input_ids, labels=targets)
 
+
 from llava.data.utils import VILAEncodedVideo
+
 
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning.
@@ -482,7 +484,7 @@ class LazySupervisedDataset(Dataset):
         training_args: TrainingArguments,
     ):
         super(LazySupervisedDataset, self).__init__()
-        
+
         with open(data_path, "r") as fp:
             list_data_dict = json.load(fp)
 
@@ -627,18 +629,20 @@ class LazySupervisedDataset(Dataset):
                 {"from": "human", "value": question},
                 {"from": "gpt", "value": answer},
             ]
-            
+
             sources = [conversation]
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
 
         # data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
-        data_dict = preprocess(sources, self.tokenizer, 
+        data_dict = preprocess(
+            sources,
+            self.tokenizer,
             has_image=(
-                "image" in self.list_data_dict[i] \
-                or "video" in self.list_data_dict[i] \
+                "image" in self.list_data_dict[i]
+                or "video" in self.list_data_dict[i]
                 or "video_id" in self.list_data_dict[i]
-            )
+            ),
         )
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
@@ -1820,23 +1824,24 @@ def build_datasets(
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
+            from llava.data.dataset_impl.coyo_recap import \
+                LazyCoyoWebRecapDataset
 
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
             print("dataset.py: Loading textocr class")
             from llava.data.dataset_impl.textocr import VILATextOCR
-            
+
             dataset_cls = VILATextOCR
         elif dataset_type == "hiertext":
             print("dataset.py: Loading hiertext class")
             from llava.data.dataset_impl.hiertext import VILAHierText
-            
+
             dataset_cls = VILAHierText
         elif dataset_type == "panda70m":
             print("dataset.py: Loading VILAPanda70m class")
             from llava.data.dataset_impl.panda70m import VILAPanda70m
-            
+
             dataset_cls = VILAPanda70m
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset

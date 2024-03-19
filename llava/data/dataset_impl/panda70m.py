@@ -37,16 +37,18 @@ from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
-from llava.train.args import DataArguments, TrainingArguments
 from llava.data.utils import VILAEncodedVideo
+from llava.train.args import DataArguments, TrainingArguments
 
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 SPLIT = "panda70m_testing"
+
 
 def str2time(s):
     t = datetime.strptime(s, "%H:%M:%S.%f")
     init = datetime.strptime("0:00:00.000", "%H:%M:%S.%f")
     return t, (t - init).total_seconds()
+
 
 def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
     # video_path = io.BytesIO(open(video_path, "rb").read())
@@ -81,8 +83,10 @@ def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
     # print(begin_s, end_s, caption)
     return image_tensor, caption, (begin_s, end_s)
 
+
 from llava.data.dataset import LazySupervisedDataset
 from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
+
 
 class VILAPanda70m(Dataset):
     def __init__(
@@ -112,17 +116,17 @@ class VILAPanda70m(Dataset):
 
     def __getitem__(self, index):
         data = self.dataset[index]
-        
+
         video_path = data[".mp4"]
         jinfo = data[".json"]
         if "shortest_edge" in self.data_args.image_processor.size:
             image_size = self.data_args.image_processor.size["shortest_edge"]
         else:
             image_size = self.data_args.image_processor.size["height"]
-        imgs, cap, secs = load_video(video_path, jfino=jinfo, image_size=image_size )
+        imgs, cap, secs = load_video(video_path, jfino=jinfo, image_size=image_size)
         # print(imgs.shape, cap, secs)
         num_video_frames = self.num_video_frames
-        
+
         prompt = "<image>\n" * num_video_frames + cap
         # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
         image_tensor = imgs
@@ -141,7 +145,7 @@ class VILAPanda70m(Dataset):
         data_dict = dict(input_ids=input_ids, labels=targets, image=image_tensor)
 
         return data_dict
-        
+
 
 if __name__ == "__main__":
     # video_path = osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_testing/WxTjy7RY2yA.mp4")
