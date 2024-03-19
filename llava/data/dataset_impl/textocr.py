@@ -206,9 +206,7 @@ def preprocess_OCR(image, texts: list, data_args, tokenizer):
     text = " ".join(texts)
     caption = f"Please read the texts on image and type it below, each word separated by space.\n{text}"
 
-    caption = (DEFAULT_IMAGE_TOKEN + caption + tokenizer.eos_token).replace(
-        "<image>", "<IMAGE>"
-    )
+    caption = (DEFAULT_IMAGE_TOKEN + caption + tokenizer.eos_token)
     vila_img = LazySupervisedDataset._process_image(
         image, data_args, image_folder=None
     )

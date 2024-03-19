@@ -465,6 +465,7 @@ def preprocess(
 
     return dict(input_ids=input_ids, labels=targets)
 
+from llava.data.utils import VILAEncodedVideo
 
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning.
@@ -559,14 +560,15 @@ class LazySupervisedDataset(Dataset):
         else:
             image_size = data_args.image_processor.size["height"]
         try:
-            video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            # video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
             duration = float(video.duration)
             assert duration >= 0.25
             video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-            assert video_outputs.size(1) > 8
+            assert video_outputs.size(1) > num_video_frames, f"video itself less than {num_video_frames}."
             num_frames = video_outputs.shape[1]
             # step = (num_frames - 1) // 8 + 1
-            step = num_frames // 8
+            step = num_frames // num_video_frames
             num_frames = num_frames - (num_frames % 8)
             indices = torch.floor(torch.arange(0, num_frames, step)).long()
             video_outputs = video_outputs[:, indices, :, :]

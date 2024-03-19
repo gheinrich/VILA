@@ -175,11 +175,11 @@ class VILAWebDataset(torch.utils.data.Dataset):
         cache_dir="/home/ligengz/datasets/vila-webds-meta",
         max_shards_to_load=None,
     ):
-        self.data_path = data_path
-        self.meta_path = meta_path
+        self.data_path = osp.expanduser(data_path)
+        self.meta_path = osp.expanduser(meta_path) if meta_path is not None else None
         self.max_shards_to_load = max_shards_to_load
 
-        _local_meta_path = osp.join(data_path, "wids-meta.json")
+        _local_meta_path = osp.join(self.data_path, "wids-meta.json")
         if meta_path is None and osp.exists(_local_meta_path):
             print(f"loading from {_local_meta_path}")
             self.meta_path = meta_path = _local_meta_path
@@ -187,7 +187,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
         if meta_path is None:
             self.meta_path = osp.join(
                 osp.expanduser(cache_dir),
-                data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
+                self.data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
             )
 
         assert osp.exists(
@@ -262,17 +262,19 @@ if __name__ == "__main__":
     from torch.utils.data.distributed import DistributedSampler
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_path", nargs="?", type=str, default=COYO_25M_VILA)
+    parser.add_argument("data_path", nargs="?", type=str) #, default=COYO_25M_VILA)
     parser.add_argument("-o", "--overwrite", action="store_true")
     parser.add_argument("--idx", type=int, default=0)
     parser.add_argument("--total", type=int, default=0)
     args = parser.parse_args()
 
+    print("Data path: ", args.data_path)
     prepare_wids_meta(args.data_path, idx=args.idx, total=args.total)
 
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )
+    print("dataset size: " ,len(train_dataset))
     print(train_dataset[0])
     exit(0)
     print("overwrite:", args.overwrite)

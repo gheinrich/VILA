@@ -53,3 +53,10 @@ done
 # /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
 # OUTPUT_STEP2="/home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2"
 # SFT_DATASET=sharegpt4v_sft+hiertext bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
+
+# slurm_account=nvr_elm_llm bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext+textocr
+# 
+# bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext+textocr
+# bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext
+# bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+textocr
+# bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft
