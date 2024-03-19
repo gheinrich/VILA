@@ -124,20 +124,23 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
         return sources
 
     for source in sources:
-        for sentence in source:
+        for sid, sentence in enumerate(source):
+            # In multimodal conversations, we automatically prepend '<image>' at the start of the first sentence if it doesn't already contain one.
+            if sid == 0 and DEFAULT_IMAGE_TOKEN not in sentence["value"]:
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
             if DEFAULT_IMAGE_TOKEN in sentence["value"]:
-                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, "").strip()
-                sentence["value"] = DEFAULT_IMAGE_TOKEN + "\n" + sentence["value"]
-                sentence["value"] = sentence["value"].strip()
+                sentence_chunks = [chunk.strip() for chunk in sentence["value"].split(DEFAULT_IMAGE_TOKEN)]
+                sentence_chunks = [
+                    chunk + " " if not (chunk.endswith("\n")) else chunk for chunk in sentence_chunks[:-1]
+                ] + [sentence_chunks[-1]]
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n".join(sentence_chunks).strip()
+
+                replace_token = DEFAULT_IMAGE_TOKEN
                 if "mmtag" in conversation_lib.default_conversation.version:
-                    sentence["value"] = sentence["value"].replace(
-                        DEFAULT_IMAGE_TOKEN,
-                        "<Image>" + DEFAULT_IMAGE_TOKEN + "</Image>",
-                    )
-            replace_token = DEFAULT_IMAGE_TOKEN
-            if data_args.mm_use_im_start_end:
-                replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
-            sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
+                    replace_token = "<Image>" + replace_token + "</Image>"
+                if data_args.mm_use_im_start_end:
+                    replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
 
     return sources
 
@@ -624,6 +627,7 @@ class LazySupervisedDataset(Dataset):
             sources = [conversation]
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
+
         data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
@@ -1701,7 +1705,10 @@ class DataCollatorForSupervisedDataset(object):
         # kentang-mit@: we need to make sure these two lists have
         # the same length. We will use input_ids to filter out images corresponding
         # to truncated <image> tokens later.
-        assert len(images) == len(input_ids)
+        for _images, _input_ids in zip(images, input_ids):
+            assert (
+                len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
+            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'. Error input_ids: {_input_ids}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
