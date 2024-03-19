@@ -625,7 +625,7 @@ class LazySupervisedDataset(Dataset):
                 {"from": "human", "value": question},
                 {"from": "gpt", "value": answer},
             ]
-
+            
             sources = [conversation]
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])

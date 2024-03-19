@@ -38,6 +38,7 @@ from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
 from llava.train.args import DataArguments, TrainingArguments
+from llava.data.utils import VILAEncodedVideo
 
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 SPLIT = "panda70m_testing"
@@ -112,9 +113,8 @@ class VILAPanda70m(Dataset):
     def __getitem__(self, index):
         data = self.dataset[index]
         
-        
-        video_path = dst[0][".mp4"]
-        jinfo = dst[0][".json"]
+        video_path = data[".mp4"]
+        jinfo = data[".json"]
         if "shortest_edge" in self.data_args.image_processor.size:
             image_size = self.data_args.image_processor.size["shortest_edge"]
         else:
