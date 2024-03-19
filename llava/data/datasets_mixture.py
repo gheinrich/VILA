@@ -13,6 +13,8 @@ class Dataset:
             "help": "Detailed desciption of where the data is from, how it is labelled, intended use case and the size of the dataset."
         },
     )
+    test_script : str = None,
+    maintainer : str = None,
 
 
 DATASETS = {}
@@ -41,7 +43,7 @@ def register_datasets_mixtures():
         dataset_name="hiertext",
         dataset_type="hiertext",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/hiertext",
-        description="",
+        description="https://github.com/google-research-datasets/hiertext OCR dataset",
     )
     add_dataset(hiertext)
     

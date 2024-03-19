@@ -53,11 +53,12 @@ def test_make_supervised_data_module(dataset_name, max_samples=100):
     dataset_len = len(data_module["train_dataset"])
     from torch.utils.data import DataLoader
 
-    dloader = DataLoader(dataset, batch_size=16, collate_fn=data_module["data_collator"], num_workers=4)
+    dloader = DataLoader(dataset, batch_size=16, 
+                         collate_fn=data_module["data_collator"], num_workers=4)
     dloader_len = len(dloader)
     for batch in dloader:
-        if index > min(max_samples, dloader_len):
-            break
+        # if index > min(max_samples, dloader_len):
+        #     break
         print(type(batch), batch.keys())
         # print(batch["image"].shape)
         # print(batch["input_ids"].shape[0])
@@ -71,14 +72,6 @@ class TestStringMethods(unittest.TestCase):
     def test_dataloader_panda70m(self):
         test_make_supervised_data_module(dataset_name="panda70m")
         
-    # @requires_lustre()
-    # def test_dataloader_textocr(self):
-    #     test_make_supervised_data_module(dataset_name="textocr")
-        
-    # @requires_lustre()
-    # def test_dataloader_hiertext(self):
-    #     test_make_supervised_data_module(dataset_name="hiertext")
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,7 @@ checkpoint_path=$1
 # model_name=$2
 model_name=$(echo $checkpoint_path | rev | cut -d "/" -f 1 | rev)
 
+echo $model_name
 # Create output directory if it doesn't exist
 mkdir -p eval_output/$model_name
 

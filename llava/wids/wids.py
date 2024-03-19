@@ -194,7 +194,6 @@ def default_decoder(sample: Dict[str, Any], format: Optional[Union[bool, str]] =
 
             sample[key] = pickle.load(stream)
         elif extension == "mp4":
-
             # Write stream to a temporary file
             # with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmpfile:
             #     tmpfile.write(stream.read())
