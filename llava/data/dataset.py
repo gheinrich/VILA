@@ -1710,7 +1710,9 @@ class DataCollatorForSupervisedDataset(object):
         for _images, _input_ids in zip(images, input_ids):
             assert (
                 len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
-            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'. Error input_ids: {_input_ids}"
+            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'.\
+                Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
+                Error input_ids: {_input_ids}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
@@ -1822,6 +1824,11 @@ def build_datasets(
             from llava.data.dataset_impl.hiertext import VILAHierText
             
             dataset_cls = VILAHierText
+        elif dataset_type == "panda70m":
+            print("dataset.py: Loading VILAPanda70m class")
+            from llava.data.dataset_impl.panda70m import VILAPanda70m
+            
+            dataset_cls = VILAPanda70m
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":

@@ -47,23 +47,7 @@ def str2time(s):
     init = datetime.strptime("0:00:00.000", "%H:%M:%S.%f")
     return t, (t - init).total_seconds()
 
-
-class VILAEncodedVideo(EncodedVideo):
-    @classmethod
-    def from_bytesio(cls, file_path: str, decode_audio: bool = True, decoder: str = "pyav"):
-        if isinstance(file_path, io.BytesIO):
-            video_file = file_path
-            file_path = "tmp.mp4"
-        elif isinstance(file_path, str):
-            # We read the file with PathManager so that we can read from remote uris.
-            with g_pathmgr.open(file_path, "rb") as fh:
-                video_file = io.BytesIO(fh.read())
-
-        video_cls = select_video_class(decoder)
-        return video_cls(video_file, pathlib.Path(file_path).name, decode_audio)
-
-
-def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=224):
+def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
     # video_path = io.BytesIO(open(video_path, "rb").read())
     timestamps = jfino["timestamp"][idx]
     caption = jfino["caption"][idx]
@@ -96,6 +80,8 @@ def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=224):
     # print(begin_s, end_s, caption)
     return image_tensor, caption, (begin_s, end_s)
 
+from llava.data.dataset import LazySupervisedDataset
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
 
 class VILAPanda70m(Dataset):
     def __init__(
@@ -118,6 +104,7 @@ class VILAPanda70m(Dataset):
         self.data_path = data_path
         self.tokenizer = tokenizer
         self.data_args = data_args
+        self.num_video_frames = 8
 
     def __len__(self):
         return len(self.dataset)
@@ -125,10 +112,35 @@ class VILAPanda70m(Dataset):
     def __getitem__(self, index):
         data = self.dataset[index]
         
+        
         video_path = dst[0][".mp4"]
         jinfo = dst[0][".json"]
-        img, cap, secs = load_video(video_path, jfino=jinfo)
-        print(img.shape, cap, secs)
+        if "shortest_edge" in self.data_args.image_processor.size:
+            image_size = self.data_args.image_processor.size["shortest_edge"]
+        else:
+            image_size = self.data_args.image_processor.size["height"]
+        imgs, cap, secs = load_video(video_path, jfino=jinfo, image_size=image_size )
+        # print(imgs.shape, cap, secs)
+        num_video_frames = self.num_video_frames
+        
+        prompt = "<image>\n" * num_video_frames + cap
+        # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+        image_tensor = imgs
+        processor = self.data_args.image_processor
+        image_tensor = [
+            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
+        ]
+        image_tensor = torch.stack(image_tensor)
+
+        input_ids = tokenizer_image_token(
+            prompt,
+            self.tokenizer,
+            return_tensors="pt",
+        )
+        targets = copy.deepcopy(input_ids)
+        data_dict = dict(input_ids=input_ids, labels=targets, image=image_tensor)
+
+        return data_dict
         
 
 if __name__ == "__main__":

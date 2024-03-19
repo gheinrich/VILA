@@ -29,6 +29,14 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    panda70m = Dataset(
+        dataset_name="panda70m",
+        dataset_type="panda70m",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/webdataset",
+        description="",
+    )
+    add_dataset(panda70m)
+    
     hiertext = Dataset(
         dataset_name="hiertext",
         dataset_type="hiertext",
@@ -397,12 +405,13 @@ def register_datasets_mixtures():
     shot2story_shotonly = Dataset(
         dataset_name="shot2story_shotonly",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted",
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(shot2story_shotonly)
-
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
         dataset_name="internvid_test",

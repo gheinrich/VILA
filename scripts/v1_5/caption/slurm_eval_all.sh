@@ -7,9 +7,9 @@
 # Prerequisite: 
 #   1. "pip install openpyxl"; 
 #   2.Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
-# ln -s /home/yunhaof/workspace/datasets/evaluation ./playground/data/eval
 
 # pip install openpyxl word2number mmengine openai
+# ln -s /home/yunhaof/workspace/datasets/evaluation ./playground/data/eval
 
 # Make sure partitions according to different clusters.
 # PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"

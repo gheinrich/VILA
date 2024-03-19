@@ -88,3 +88,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
     --report_to wandb
+
+# SFT_DATASET=sharegpt4v_sft+panda70m bash scripts/v1_5/caption/3_sft_captioner.sh /home/ligengz/workspace/video_checkpoint/video-13b
+# SFT_DATASET=sharegpt4v_sft+shot2story_shotonly bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
