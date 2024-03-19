@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_name, None, "llava_llama")
+    tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_name, "llava_llama", None)
     result_list = eval_model(args, model, tokenizer, image_processor)
     save_name = f"inference-test_{args.model_name.split('/')[-1]}"
     if "nosys" in args.conv_mode:
