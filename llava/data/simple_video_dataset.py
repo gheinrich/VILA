@@ -11,7 +11,7 @@ from filelock import Timeout, FileLock
 from functools import lru_cache, reduce
 import tarfile
 from multiprocessing.pool import ThreadPool as Pool
-
+import multiprocessing
 import torch
 import torch.distributed
 from torch.utils.data import Dataset, get_worker_info, ConcatDataset
@@ -29,6 +29,54 @@ def load_tarfile(tar_path):
 INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt"
 CACHEDIR = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt-webds-meta"
 
+def process_tarfile(tar_abspath, tar_meta_path, cache_dir):
+    tar_realpath = osp.realpath(tar_abspath)
+    tar_real_meta_path = osp.join(
+        osp.expanduser(cache_dir),
+        "dev",
+        tar_realpath.replace("/", "--") + ".wdsmeta.json",
+    )
+
+    print(f"Fetch meta information {tar_abspath} ...")
+
+    if not osp.exists(tar_meta_path) and not osp.exists(tar_real_meta_path):
+        print(f"    Generating meta: {tar_meta_path}")
+        try:
+            tar = load_tarfile(tar_abspath)
+            uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
+        except tarfile.ReadError as e:
+            print(f"Skipping {tar_abspath}")
+            print(e)
+            return
+        nsamples = len(uuids)
+        url = osp.abspath(tar_abspath)
+        tar_meta = {
+            "url": url,
+            "nsamples": nsamples,
+            "filesize": osp.getsize(tar_abspath),
+        }
+        os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
+        json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
+
+    if osp.exists(tar_meta_path):
+        print(f"    Generating abs meta: {tar_meta_path}")
+        tar_meta = json.load(open(tar_meta_path, "r"))
+    elif osp.exists(tar_real_meta_path):
+        print(f"    Generating abs meta: {tar_real_meta_path}")
+        tar_meta = json.load(open(tar_real_meta_path, "r"))
+    else:
+        raise NotImplementedError
+
+    tar_meta["url"] = osp.abspath(tar_abspath)
+    os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
+    json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
+    if tar_meta_path != tar_real_meta_path and not osp.exists(tar_real_meta_path):
+        # tar_meta["url"] = osp.realpath(tar_abspath)
+        print(f"    [abs2real] Copying {tar_meta_path} => {tar_real_meta_path}")
+        os.makedirs(osp.dirname(tar_real_meta_path), exist_ok=True)
+        json.dump(tar_meta, open(tar_real_meta_path, "w+"), indent=2)
+
+    return tar_meta
 
 class SimpleVideoDataset(torch.utils.data.Dataset):
     def __init__(
@@ -73,6 +121,8 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
 
             if "internvid" in data_path:
                 meta_name = "internvid-dev"
+            elif "ego4d" in data_path:
+                meta_name = "ego4d-dev"
             else:
                 print(f"Unknown dataset: {data_path}. Please include the dataset name in the data path")
                 meta_name = "unknown"
@@ -85,6 +135,10 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
                 "shardlist": [],
             }
 
+
+            max_processes = 16  # Set the maximum number of processes
+            pool = multiprocessing.Pool(processes=max_processes)
+            results = []
             for idx, tar_relpath in enumerate(tar_list):
                 tar_abspath = osp.join(data_path, tar_relpath)
                 tar_meta_path = osp.join(
@@ -92,58 +146,13 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
                     "dev",
                     tar_abspath.replace("/", "--") + ".wdsmeta.json",
                 )
-                # print(data_path, tar_relpath, tar_abspath)
-                # input()
-                tar_realpath = osp.realpath(tar_abspath)
-                tar_real_meta_path = osp.join(
-                    osp.expanduser(cache_dir),
-                    "dev",
-                    tar_realpath.replace("/", "--") + ".wdsmeta.json",
-                )
+                result = pool.apply_async(process_tarfile, (tar_abspath, tar_meta_path, cache_dir))
+                results.append(result)
 
-                print(f"Fetch meta information {tar_abspath} ... {idx}-of-{len(tar_list)}")
+            pool.close()
+            pool.join()
 
-                if not osp.exists(tar_meta_path) and not osp.exists(tar_real_meta_path):
-                    print(f"    Generating meta: {tar_meta_path}")
-                    try:
-                        tar = load_tarfile(tar_abspath)
-                        uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
-                    except tarfile.ReadError as e:
-                        print(f"Skipping {tar_abspath}")
-                        print(e)
-                        continue
-                    nsamples = len(uuids)
-                    url = osp.abspath(tar_abspath)
-                    tar_meta = {
-                        "url": url,
-                        "nsamples": nsamples,
-                        "filesize": osp.getsize(tar_abspath),
-                    }
-                    os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
-                    json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
-
-                if osp.exists(tar_meta_path):
-                    print(f"    Generating abs meta: {tar_meta_path}")
-                    tar_meta = json.load(open(tar_meta_path, "r"))
-                elif osp.exists(tar_real_meta_path):
-                    print(f"    Generating abs meta: {tar_real_meta_path}")
-                    tar_meta = json.load(open(tar_real_meta_path, "r"))
-                else:
-                    raise NotImplementedError
-
-                tar_meta["url"] = osp.abspath(tar_abspath)
-                os.makedirs(osp.dirname(tar_meta_path), exist_ok=True)
-                json.dump(tar_meta, open(tar_meta_path, "w+"), indent=2)
-                if tar_meta_path != tar_real_meta_path and not osp.exists(tar_real_meta_path):
-                    # tar_meta["url"] = osp.realpath(tar_abspath)
-                    print(f"    [abs2real] Copying {tar_meta_path} => {tar_real_meta_path}")
-                    os.makedirs(osp.dirname(tar_real_meta_path), exist_ok=True)
-                    json.dump(tar_meta, open(tar_real_meta_path, "w+"), indent=2)
-
-                # input()
-                meta["shardlist"].append(tar_meta)
-                if self.max_shards_to_load is not None and idx > self.max_shards_to_load:
-                    break
+            meta["shardlist"] = [result.get() for result in results if result.get() is not None]
             # sorted by tar names
             meta["shardlist"] = sorted(meta["shardlist"], key=lambda x: x["url"])
             os.makedirs(osp.dirname(self.meta_path), exist_ok=True)
@@ -242,6 +251,7 @@ if __name__ == "__main__":
     # from PIL import Image
     from torch.utils.data import default_collate
     from collections import defaultdict
+
 
     dloader = torch.utils.data.DataLoader(
         train_dataset,

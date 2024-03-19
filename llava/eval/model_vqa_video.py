@@ -119,11 +119,15 @@ def eval_model(args):
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
 
-    gt_questions = json.load(open(args.gt_file_question, "r"))
+    gt_questions = json.load(open(os.path.expanduser(args.gt_file_question), "r"))
     gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
-    gt_answers = json.load(open(args.gt_file_answers, "r"))
+    gt_answers = json.load(open(os.path.expanduser(args.gt_file_answers), "r"))
     gt_answers = get_chunk(gt_answers, args.num_chunks, args.chunk_idx)
 
+    args.output_dir = os.path.expanduser(args.output_dir)
+    print(f"Output directory: {args.output_dir}")
+    args.video_dir = os.path.expanduser(args.video_dir)
+    print(f"Video directory: {args.video_dir}")
     answers_file = os.path.join(args.output_dir, f"{args.output_name}.json")
     os.makedirs(args.output_dir, exist_ok=True)
     ans_file = open(answers_file, "w")
@@ -149,7 +153,10 @@ def eval_model(args):
 
         # Load the video file
         for fmt in tqdm(video_formats):  # Added this line
-            temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
+            if "Activitynet_Zero_Shot_QA" in args.video_dir:
+                temp_path = os.path.join(args.video_dir, f"{id.rsplit('_', 1)[0]}{fmt}")
+            else:
+                temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
             if os.path.exists(temp_path):
                 video_path = temp_path
                 # try:

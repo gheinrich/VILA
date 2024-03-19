@@ -14,7 +14,7 @@ output_dir="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/gpt4"
 output_json="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/results.json"
 num_tasks=8
 
-
+cat ${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/${num_tasks}_*.json > ${pred_path}
 
 python3 llava/eval/video/eval_video_qa.py \
     --pred_path ${pred_path} \

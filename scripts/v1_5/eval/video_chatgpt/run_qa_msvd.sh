@@ -42,7 +42,9 @@ wait
 output_file=${output_dir}/merge.jsonl
 
 # Clear out the output file if it exists.
-> "$output_file"
+if [ -f "$output_file" ]; then
+    > "$output_file"
+fi
 
 # Loop through the indices and concatenate each file.
 for IDX in $(seq 0 $((CHUNKS-1))); do

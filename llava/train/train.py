@@ -267,13 +267,13 @@ def train():
                 model_cls = LlamaForCausalLM
 
     prepare_vision_tower_config(config, model_args)
+    context_length_extension(config)
     model = model_cls.from_pretrained(
         model_args.model_name_or_path,
         config=config,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    context_length_extension(config)
     vision_resolution_elevation(model, config)
     print(model)
 
