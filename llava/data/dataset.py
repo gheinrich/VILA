@@ -56,6 +56,7 @@ from llava.train.llava_trainer import LLaVATrainer
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+PIL.Image.MAX_IMAGE_PIXELS = 1000000000
 # local_rank = None
 
 # def rank0_print(*args):
