@@ -1,8 +1,9 @@
-import unittest
-import torch
 import copy
+import unittest
 
+import torch
 from transformers import AutoTokenizer
+
 from llava.model import LlavaConfig, LlavaLlamaForCausalLM
 from llava.train.args import ModelArguments, TrainingArguments
 from llava.train.utils import prepare_vision_tower_config
@@ -105,10 +106,14 @@ class TestSetGrads(unittest.TestCase):
         self.data = data
         print("Initializing model...")
         prepare_vision_tower_config(config, self.model_args)
-        self.model = model_cls.from_pretrained(
-            self.model_args.model_name_or_path,
-            config=config,
-        ).to(torch.bfloat16).to(device)
+        self.model = (
+            model_cls.from_pretrained(
+                self.model_args.model_name_or_path,
+                config=config,
+            )
+            .to(torch.bfloat16)
+            .to(device)
+        )
         print("Initializing tokenizer...")
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_args.model_name_or_path,
@@ -120,16 +125,10 @@ class TestSetGrads(unittest.TestCase):
         # necessary for model forward
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.model.get_model().requires_grad_(self.training_args.tune_language_model)
-        self.model.get_model().get_vision_tower().requires_grad_(
-            self.training_args.tune_vision_tower
-        )
-        self.model.get_model().get_mm_projector().requires_grad_(
-            self.training_args.tune_mm_projector
-        )
+        self.model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
+        self.model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
 
-    def verify_grads_state(
-        self, model, tune_language_model, tune_vision_tower, tune_mm_projector
-    ):
+    def verify_grads_state(self, model, tune_language_model, tune_vision_tower, tune_mm_projector):
         print("Checking gradients...")
         for param_name, param in model.get_model().named_parameters():
             if "vision_tower" not in param_name and "mm_projector" not in param_name:
@@ -165,7 +164,7 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_vision_tower = True
         self.build_vila_model()
         self.single_forward()
-        
+
         self.verify_grads_state(
             self.model,
             self.training_args.tune_language_model,
@@ -179,7 +178,7 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_mm_projector = True
         self.build_vila_model()
         self.single_forward()
-        
+
         self.verify_grads_state(
             self.model,
             self.training_args.tune_language_model,
@@ -193,7 +192,7 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_vision_tower = True
         self.build_vila_model()
         self.single_forward()
-        
+
         self.verify_grads_state(
             self.model,
             self.training_args.tune_language_model,
@@ -207,7 +206,7 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_language_model = True
         self.build_vila_model()
         self.single_forward()
-        
+
         self.verify_grads_state(
             self.model,
             self.training_args.tune_language_model,

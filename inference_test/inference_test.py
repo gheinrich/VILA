@@ -1,20 +1,22 @@
-'''
+"""
 Inference test to run all examples from the paper and compare w/ expected output.
 Both the inference results and expected output will be printed out.
 
 Currently do not support multi-turn chat. Each time an image and question are input and answer is output.
-'''
-
+"""
 
 import argparse
-import os
 import json
+import os
+
 import torch
 from PIL import Image
-from llava.conversation import SeparatorStyle, conv_templates
-from llava.model import *
-from llava.mm_utils import process_images, KeywordsStoppingCriteria, tokenizer_image_token
+
 from llava.constants import IMAGE_TOKEN_INDEX
+from llava.conversation import SeparatorStyle, conv_templates
+from llava.mm_utils import (KeywordsStoppingCriteria, process_images,
+                            tokenizer_image_token)
+from llava.model import *
 
 DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
 
@@ -26,14 +28,16 @@ def eval_model(args, model, tokenizer, image_processor):
     # read json file
     with open(args.test_json_path) as f:
         all_test_cases = json.load(f)
-    
+
     result_list = []
-    print(len(all_test_cases['test_cases']))
-    
-    for test_case in all_test_cases['test_cases']:
+    print(len(all_test_cases["test_cases"]))
+
+    for test_case in all_test_cases["test_cases"]:
         # read images first
         image_file_list = test_case["image_paths"]
-        image_list = [Image.open(os.path.join(args.test_image_path, image_file)).convert('RGB') for image_file in image_file_list]
+        image_list = [
+            Image.open(os.path.join(args.test_image_path, image_file)).convert("RGB") for image_file in image_file_list
+        ]
         image_tensor = process_images(image_list, image_processor, model.config)
 
         # image_tokens = DEFAULT_IMAGE_PATCH_TOKEN * image_token_len
@@ -41,7 +45,7 @@ def eval_model(args, model, tokenizer, image_processor):
         for i in range(len(test_case["QAs"])):
             query = test_case["QAs"][i]["question"]
             query_text = query
-            
+
             if 1:
                 # query = query.replace("<image>", image_tokens)
                 if len(image_list) < 3:
@@ -75,12 +79,12 @@ def eval_model(args, model, tokenizer, image_processor):
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
 
-            print("%"*10+" "*5+"VILA Response"+" "*5+"%"*10)
+            print("%" * 10 + " " * 5 + "VILA Response" + " " * 5 + "%" * 10)
 
             # inputs = tokenizer([prompt])
             inputs = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX)
             input_ids = torch.as_tensor(inputs).cuda().unsqueeze(0)
-            
+
             stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
             keywords = [stop_str]
             stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
@@ -89,25 +93,25 @@ def eval_model(args, model, tokenizer, image_processor):
             with torch.inference_mode():
                 output_ids = model.generate(
                     input_ids,
-                    images=image_tensor.to(dtype=torch.float16, device='cuda', non_blocking=True),
+                    images=image_tensor.to(dtype=torch.float16, device="cuda", non_blocking=True),
                     do_sample=True if args.temperature > 0 else False,
                     temperature=args.temperature,
                     top_p=0.7,
                     # top_p=args.top_p,
                     # num_beams=args.num_beams,
                     max_new_tokens=512,
-                    #use_cache=True,
+                    # use_cache=True,
                     stopping_criteria=[stopping_criteria],
                 )
             input_token_len = input_ids.shape[1]
             n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
             if n_diff_input_output > 0:
-                print(f'[Warning] {n_diff_input_output} output_ids are not the same as the input_ids')
+                print(f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids")
             outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
             outputs = outputs.strip()
 
-            print(f'Question: {query_text}')
-            print(f'VILA output: {outputs}')
+            print(f"Question: {query_text}")
+            print(f"VILA output: {outputs}")
             print(f'Expected output: {test_case["QAs"][i]["expected_answer"]}')
 
             result_list.append(
