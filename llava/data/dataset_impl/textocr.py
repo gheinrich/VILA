@@ -284,8 +284,9 @@ class VILATextOCR(Dataset):
 if __name__ == "__main__":
     from pprint import pprint
 
-    # dataset = TextOCRDataset()
-    dataset = VILATextOCR()
+    dataset = TextOCRDataset()
+    # dataset = VILATextOCR()
+    print(len(dataset))
 
-    for idx in range(5):
+    for idx in range(2):
         pprint(dataset[idx])

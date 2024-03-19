@@ -31,18 +31,19 @@ acc_step=${ACC_STEP:-1}
 bs=$((global_bs / n_node / acc_step))
 
 if [ "$n_node" = "1" ]; then
-  echo "Detected on single machine. Automatically set batch size to 1 for debugging purpose."
-  bs=1
+    #FIXME: set an extra to surprass the setting.
+    echo "Detected on single machine. Automatically set batch size to 1 for debugging purpose."
+    bs=1
 fi
 
 export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
-# export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
+VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 # OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${1:-"./checkpoints/$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
-OUTPUT_STEP3=${2:-"./checkpoints/$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT:$SFT_DATASET"}
+OUTPUT_STEP2=${1:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP3=${2:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT-$SFT_DATASET"}
 
-# bs=1
+echo "loading from $OUTPUT_STEP2, saving to $OUTPUT_STEP3"
 
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"

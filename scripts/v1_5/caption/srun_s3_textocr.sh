@@ -11,6 +11,7 @@ SLURM_PARTITION=${SLURM_PARTITION:-"adlr-debug-batch_block4,batch_block1,batch_b
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
+VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
 export PT_DATASET=${2:-sharegpt4v_pretrain}
@@ -23,7 +24,7 @@ export NNODES=4
 export ACC_STEP=8
 
 dtime=$(TZ=Asia/Shanghai date +"%b_%d-%H")
-JNAME=ALIGN-$ALIGN_DATASET-PRETRAIN-$PT_DATASET-SFT-$SFT_DATASET
+JNAME=$MNAME-$VTOWER-ALIGN-$ALIGN_DATASET-PRETRAIN-$PT_DATASET-SFT-$SFT_DATASET
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
