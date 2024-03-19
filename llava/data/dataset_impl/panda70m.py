@@ -99,7 +99,7 @@ class VILAPanda70m(Dataset):
         # self.dataset = VILAWebDataset(data_path)
         self.dataset = VILAWebDataset(
             data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
-            meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
+            # meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
         )
 
         self.data_path = data_path
