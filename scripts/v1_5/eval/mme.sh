@@ -5,7 +5,8 @@ MMEDIR="./playground/data/eval/MME"
 
 mkdir -p ./playground/data/eval/MME/answers/$CKPT
 
-python -m llava.eval.model_vqa_loader \
+# TODO(yunhao,ligeng): change the following to the correct device
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/MME/llava_mme.jsonl \
     --image-folder ./playground/data/eval/MME/MME_Benchmark_release_version \

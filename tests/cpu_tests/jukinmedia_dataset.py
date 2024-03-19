@@ -1,24 +1,20 @@
+import torch
+import transformers
 from llava import conversation as conversation_lib
-
 # from llava.train.token_config import (
 #     DEFAULT_IMAGE_PATCH_TOKEN,
 # )
 from llava.constants import DEFAULT_IMAGE_PATCH_TOKEN
-from llava.train.args import DataArguments, TrainingArguments
 from llava.data import datasets_mixture
 from llava.data.dataset import make_supervised_data_module
-from transformers.models.siglip import (
-    SiglipImageProcessor,
-)
-import transformers
-import torch
+from llava.train.args import DataArguments, TrainingArguments
+from transformers.models.siglip import SiglipImageProcessor
 
 
 def test_make_supervised_data_module():
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",
-        cache_dir="",
         model_max_length=8192,
         padding_side="right",
         use_fast=False,
@@ -30,7 +26,7 @@ def test_make_supervised_data_module():
     image_processor = SiglipImageProcessor.from_pretrained("google/siglip-so400m-patch14-384")
 
     data_args = DataArguments(
-        data_mixture='jukinmedia',# 'vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa
+        data_mixture="jukinmedia",  # 'vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa
         is_multimodal=True,
         lazy_preprocess=True,
     )
@@ -42,7 +38,6 @@ def test_make_supervised_data_module():
     training_args = TrainingArguments(
         output_dir="output",
     )
-
 
     # training_args["process_index"] = 0
     # training_args.world_size = 1
@@ -82,7 +77,7 @@ def test_make_supervised_data_module():
 
 import unittest
 
-from llava.unit_test_utils import requires_lustre, requires_gpu
+from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
 class TestStringMethods(unittest.TestCase):

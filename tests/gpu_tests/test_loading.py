@@ -1,16 +1,16 @@
+import os
+import shutil
+import unittest
+
+import shortuuid
 import torch
 import torch.nn as nn
-import os
-import unittest
-import shutil
-import shortuuid
-from transformers import AutoConfig
-from tqdm import tqdm
-from llava.model import LlavaLlamaForCausalLM, LlavaConfig
+from llava.model import LlavaConfig, LlavaLlamaForCausalLM
 from llava.train.args import ModelArguments
-from llava.unit_test_utils import requires_gpu
 from llava.train.utils import get_checkpoint_path, prepare_vision_tower_config
-
+from llava.unit_test_utils import requires_gpu
+from tqdm import tqdm
+from transformers import AutoConfig
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -59,9 +59,7 @@ class TestModelInitialization(unittest.TestCase):
         resume_path = get_checkpoint_path(resume_path)
         if resume_path:
             self.model_args.model_name_or_path = resume_path
-            config = AutoConfig.from_pretrained(
-                self.self.model_args.model_name_or_path, trust_remote_code=True
-            )
+            config = AutoConfig.from_pretrained(self.self.model_args.model_name_or_path, trust_remote_code=True)
             config.resume_path = resume_path
             model_cls = eval(config.architectures[0])
             torch.set_default_dtype(torch.bfloat16)
@@ -86,31 +84,17 @@ class TestModelInitialization(unittest.TestCase):
         """
         model = self.build_vila_model(resume_path=self.random_path)
         ## load pretrained model
-        from transformers import CLIPVisionModel
-        from transformers import LlamaForCausalLM
+        from transformers import CLIPVisionModel, LlamaForCausalLM
 
         vision_tower = CLIPVisionModel.from_pretrained(self.model_args.vision_tower)
-        language_model = LlamaForCausalLM.from_pretrained(
-            self.model_args.model_name_or_path
-        )
+        language_model = LlamaForCausalLM.from_pretrained(self.model_args.model_name_or_path)
 
-        first_loading_params = {
-            param_name: param for param_name, param in model.named_parameters()
-        }
-        pretrained_params = {
-            param_name: param for param_name, param in vision_tower.named_parameters()
-        }
-        pretrained_params.update(
-            {
-                param_name: param
-                for param_name, param in language_model.named_parameters()
-            }
-        )
+        first_loading_params = {param_name: param for param_name, param in model.named_parameters()}
+        pretrained_params = {param_name: param for param_name, param in vision_tower.named_parameters()}
+        pretrained_params.update({param_name: param for param_name, param in language_model.named_parameters()})
         for k, v in pretrained_params.items():
             if k in first_loading_params.keys():
-                self.assertAlmostEqual(
-                    torch.equal(v.data, first_loading_params[k].data), True
-                )
+                self.assertAlmostEqual(torch.equal(v.data, first_loading_params[k].data), True)
 
     @requires_gpu
     def test_resume(self):
@@ -125,13 +109,8 @@ class TestModelInitialization(unittest.TestCase):
             model.save_pretrained(self.random_path)
 
             loaded_model = self.build_vila_model(self.random_path)
-            saved_state_dict = {
-                param_name: param for param_name, param in model.named_parameters()
-            }
-            loaded_state_dict = {
-                param_name: param
-                for param_name, param in loaded_model.named_parameters()
-            }
+            saved_state_dict = {param_name: param for param_name, param in model.named_parameters()}
+            loaded_state_dict = {param_name: param for param_name, param in loaded_model.named_parameters()}
             for k, v in saved_state_dict.items():
                 self.assertEqual(torch.equal(v.data, loaded_state_dict[k].data), True)
             shutil.rmtree(self.random_path)

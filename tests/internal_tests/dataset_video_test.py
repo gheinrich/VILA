@@ -1,15 +1,15 @@
 import json
-from concurrent.futures import ThreadPoolExecutor
-from pytorchvideo.data.encoded_video import EncodedVideo
 import os
+import signal
 import subprocess
-import decord
+from concurrent.futures import ThreadPoolExecutor
 
+import decord
 # from decord import VideoReader
 import numpy as np
 import torch
+from pytorchvideo.data.encoded_video import EncodedVideo
 from torchvision.transforms import Resize
-import signal
 
 decord.bridge.set_bridge("torch")
 

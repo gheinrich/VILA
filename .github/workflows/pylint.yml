@@ -41,7 +41,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install Python dependencies
-        run: pip install black
+        run: pip install black isort
 
       - name: Lint repository on changed files only
         run: |
@@ -49,18 +49,29 @@ jobs:
           for f in ${{needs.changedfiles.outputs.py}}; do
               echo $f
               black --line-length 120 $f
+              isort $f
           done
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          
-          CHANGED_FILES=$(git diff --name-only | wc -l)
-          # avoid "nothing to commit" error.
-          echo "Prepare to commit $CHANGED_FILES"
-          if [ "$CHANGED_FILES" -gt "0" ]; then
+
+          # If there are changes  commit and push
+          if [[ -n $(git status -s) ]]; then
+              echo "Changed detected"
               echo "Commiting $CHANGED_FILES"
-              git commit -m "[CI-Lint] Fix code style issues with black" -a
-              git push  
+              git commit -m "[CI-Lint] Fix code style issues with black and isort" -a
+              git push 
+          else
+              echo "No changes to commit."
           fi
+
+          # CHANGED_FILES=$(git diff --name-only | wc -l)
+          # # avoid "nothing to commit" error.
+          # echo "Prepare to commit $CHANGED_FILES"
+          # if [ "$CHANGED_FILES" -gt "0" ]; then
+          #     echo "Commiting $CHANGED_FILES"
+          #     git commit -m "[CI-Lint] Fix code style issues with black" -a
+          #     git push  
+          # fi

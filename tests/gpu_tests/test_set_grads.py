@@ -1,11 +1,10 @@
-import torch
 import unittest
 
-from llava.model import LlavaLlamaForCausalLM, LlavaConfig
-from llava.unit_test_utils import requires_gpu
+import torch
+from llava.model import LlavaConfig, LlavaLlamaForCausalLM
 from llava.train.args import ModelArguments, TrainingArguments
 from llava.train.utils import prepare_vision_tower_config
-
+from llava.unit_test_utils import requires_gpu
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -50,17 +49,11 @@ class TestSetGrads(unittest.TestCase):
         )
         model.get_model().requires_grad_(self.training_args.tune_language_model)
         print(self.training_args.tune_language_model)
-        model.get_model().get_vision_tower().requires_grad_(
-            self.training_args.tune_vision_tower
-        )
-        model.get_model().get_mm_projector().requires_grad_(
-            self.training_args.tune_mm_projector
-        )
+        model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
+        model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
         return model
 
-    def verify_grads_state(
-        self, model, tune_language_model, tune_vision_tower, tune_mm_projector
-    ):
+    def verify_grads_state(self, model, tune_language_model, tune_vision_tower, tune_mm_projector):
         for param_name, param in model.get_model().named_parameters():
             if "vision_tower" not in param_name and "mm_projector" not in param_name:
                 self.assertEqual(param.requires_grad, tune_language_model)

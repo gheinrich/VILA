@@ -3,7 +3,7 @@
 MODEL_PATH=$1
 CKPT=$2
 
-python -m llava.eval.model_vqa_loader \
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/vizwiz/llava_test.jsonl \
     --image-folder ./playground/data/eval/vizwiz/test \

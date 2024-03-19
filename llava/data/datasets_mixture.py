@@ -17,7 +17,9 @@ class Dataset:
 
 DATASETS = {}
 
-import warnings 
+import warnings
+
+
 def add_dataset(dataset):
     if dataset.dataset_name in DATASETS:
         # make sure the data_name is unique
@@ -27,6 +29,14 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    textocr = Dataset(
+        dataset_name="textocr",
+        dataset_type="textocr",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/TextOCR",
+        description="",
+    )
+    add_dataset(textocr)
+
     sam_recap = Dataset(
         dataset_name="sam_recap",
         dataset_type="sam-wds",
@@ -34,7 +44,7 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(sam_recap)
-    
+
     datacomp_webds = Dataset(
         dataset_name="datacomp_webds",
         dataset_type="coyo-wds",
@@ -101,6 +111,7 @@ def register_datasets_mixtures():
     )
     add_dataset(coyo_25m_test)
 
+    # TODO: switch mmc4 to wds impl as well.
     mmc4core = Dataset(
         dataset_name="mmc4core",
         dataset_type="mmc4",
@@ -152,8 +163,8 @@ def register_datasets_mixtures():
     llava_1_5_mm_align = Dataset(
         dataset_name="llava_1_5_mm_align",
         dataset_type="torch",
-        data_path="/home/yunhaof/workspace/datasets/LLaVA-CC3M-Pretrain-595K/chat.json",
-        image_path="/home/yunhaof/workspace/datasets/LLaVA-CC3M-Pretrain-595K/images",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/LLaVA-CC3M-Pretrain-595K/chat.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/LLaVA-CC3M-Pretrain-595K/images",
     )
     add_dataset(llava_1_5_mm_align)
     llava_1_5_sft = Dataset(
@@ -184,18 +195,18 @@ def register_datasets_mixtures():
         dataset_name="allava_caption_vflan",
         dataset_type="torch",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/ALLaVA-Caption-VFLAN-4V.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/"
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/",
     )
     add_dataset(allava_caption_vflan)
-    
+
     allava_instruct_vflan = Dataset(
         dataset_name="allava_instruct_vflan",
         dataset_type="torch",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/ALLaVA-Instruct-VFLAN-4V.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/"
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/ALLaVA-4V/",
     )
     add_dataset(allava_instruct_vflan)
-    
+
     chartqa = Dataset(
         dataset_name="chartqa",
         dataset_type="torch",
@@ -203,7 +214,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/ChartQA/train/png",
     )
     add_dataset(chartqa)
-    
+
     llavar = Dataset(
         dataset_name="llavar",
         dataset_type="torch",
@@ -211,7 +222,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/LLaVAR-Instruct-16K/images",
     )
     add_dataset(llavar)
-    
+
     dvqa = Dataset(
         dataset_name="dvqa",
         dataset_type="torch",
@@ -219,7 +230,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/DVQA/images",
     )
     add_dataset(dvqa)
-    
+
     ai2d = Dataset(
         dataset_name="ai2d",
         dataset_type="torch",
@@ -227,7 +238,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/AI2D/ai2d/images",
     )
     add_dataset(ai2d)
-    
+
     synthdog_en = Dataset(
         dataset_name="synthdog_en",
         dataset_type="torch",
@@ -235,7 +246,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/synthdog-en/images",
     )
     add_dataset(synthdog_en)
-    
+
     visual7w = Dataset(
         dataset_name="visual7w",
         dataset_type="torch",
@@ -243,7 +254,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/visual7w/images",
     )
     add_dataset(visual7w)
-    
+
     shikra = Dataset(
         dataset_name="shikra",
         dataset_type="torch",
@@ -251,7 +262,7 @@ def register_datasets_mixtures():
         image_path="/home/jasonlu/vlm_datasets/flickr30k-images",
     )
     add_dataset(shikra)
-    
+
     scienceqa = Dataset(
         dataset_name="scienceqa",
         dataset_type="torch",
@@ -259,7 +270,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/evaluation/scienceqa/images",
     )
     add_dataset(scienceqa)
-    
+
     grit_mixture = Dataset(
         dataset_name="grit_mixture",
         dataset_type="torch",
@@ -267,7 +278,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/webdataset_untar",
     )
     add_dataset(grit_mixture)
-    
+
     grit_grounding = Dataset(
         dataset_name="grit_grounding",
         dataset_type="torch",
@@ -275,7 +286,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/GRIT/processed-grit-2m/webdataset_untar",
     )
     add_dataset(grit_grounding)
-    
+
     sharegpt4v_pretrain = Dataset(
         dataset_name="sharegpt4v_pretrain",
         dataset_type="torch",
@@ -284,6 +295,15 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ ~1M long Image - Text pair generated by ShareGPT4V captioner.",
     )
     add_dataset(sharegpt4v_pretrain)
+
+    mmmu_validation = Dataset(
+        dataset_name="mmmu_validation",
+        dataset_type="evaluation",
+        data_path="./playground/data/eval/MMMU",
+        description="MMMU validation set.",
+    )
+    add_dataset(mmmu_validation)
+
     valley = Dataset(
         dataset_name="valley",
         dataset_type="torch",

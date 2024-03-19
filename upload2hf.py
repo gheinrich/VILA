@@ -1,15 +1,15 @@
-import os, os.path as osp
-import time
 import argparse
+import os
+import os.path as osp
+import time
 from hashlib import sha1, sha256
-
-from termcolor import colored
 
 from huggingface_hub import HfApi
 from huggingface_hub.hf_api import CommitOperationAdd
+from termcolor import colored
 
 MAX_UPLOAD_FILES_PER_COMMIT = 64
-MAX_UPLOAD_SIZE_PER_COMMIT = 64 * 1024 * 1024 * 1024  # 64 GiB
+MAX_UPLOAD_SIZE_PER_COMMIT = 32 * 1024 * 1024 * 1024  # 64 GiB
 
 
 def compute_git_hash(filename):
@@ -40,11 +40,13 @@ if __name__ == "__main__":
         "local_folder",
         type=str,
     )
-    parser.add_argument("--model-name", type=str, default=None)
 
+    parser.add_argument("--model-name", type=str, default=None)
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
-    
+    parser.add_argument("--repo-id", type=str, default=None)
+    parser.add_argument("--root-dir", type=str, default=None)
+
     parser.add_argument("--fast-check", action="store_true")
     parser.add_argument("--sleep-on-error", action="store_true")
 
@@ -53,22 +55,32 @@ if __name__ == "__main__":
     api = HfApi()
 
     repo_type = args.repo_type
-    local_folder = args.local_folder
-    if local_folder[-1] == "/":
-        local_folder = local_folder[:-1]
 
-    if args.model_name is None:
-        model_name = osp.basename(local_folder).replace("+", "-")
-    repo = osp.join(args.repo_org, model_name)
+    local_folder = args.local_folder
+
+    if args.repo_id is not None:
+        repo = args.repo_id
+    else:
+        # remove last /
+        if local_folder[-1] == "/":
+            local_folder = local_folder[:-1]
+
+        if args.model_name is None:
+            model_name = osp.basename(local_folder).replace("+", "-")
+        else:
+            model_name = args.model_name
+        repo = osp.join(args.repo_org, model_name)
 
     local_folder = os.path.expanduser(local_folder)
+    root_dir = local_folder if args.root_dir is None else args.root_dir
+    print(f"uploading {local_folder} to {repo}")
     if not api.repo_exists(repo, repo_type=repo_type):
         api.create_repo(
             repo_id=repo,
             private=True,
             repo_type=repo_type,
         )
-        
+
     BASE_URL = "https://hf.co"
     if args.repo_type == "dataset":
         BASE_URL = "https://hf.co/datasets"
@@ -81,7 +93,7 @@ if __name__ == "__main__":
         dirs.sort()
         for name in files:
             fpath = osp.join(root, name)
-            rpath = osp.relpath(fpath, local_folder)
+            rpath = osp.relpath(fpath, osp.abspath(root_dir))
             # print(rpath)
             if "checkpoint-" in rpath:
                 print(colored(f"Checkpoint detected: {rpath}, skipping", "yellow"))
@@ -97,11 +109,7 @@ if __name__ == "__main__":
                     )
                     continue
                 else:
-                    hf_meta = list(
-                        api.list_files_info(
-                            repo_id=repo, paths=rpath, repo_type=repo_type
-                        )
-                    )[0]
+                    hf_meta = list(api.list_files_info(repo_id=repo, paths=rpath, repo_type=repo_type))[0]
 
                     if hf_meta.lfs is not None:
                         hash_type = "lfs-sha256"
@@ -140,7 +148,7 @@ if __name__ == "__main__":
                 continue
 
             commit_message = "Upload files with huggingface_hub"
-            
+
             result = None
             while result is None:
                 try:
@@ -157,10 +165,10 @@ if __name__ == "__main__":
                         raise e
                     else:
                         print("sleeping for one hour then re-try")
-                        time.sleep(3600)
+                        time.sleep(1800)
                         continue
                 result = "success"
-                
+
             commit_description = ""
             ops = []
             commit_size = 0

@@ -1,15 +1,15 @@
 import copy
 import os
-import transformers
-from transformers import AutoTokenizer, CLIPImageProcessor
-from llava.model.builder import load_pretrained_model
-from llava.model import LlavaLlamaForCausalLM, LlavaConfig
-from llava.train.utils import prepare_vision_tower_config
-from llava.train.args import ModelArguments
-from llava.unit_test_utils import requires_gpu, requires_lustre
-import torch
 import unittest
 
+import torch
+import transformers
+from llava.model import LlavaConfig, LlavaLlamaForCausalLM
+from llava.model.builder import load_pretrained_model
+from llava.train.args import ModelArguments
+from llava.train.utils import prepare_vision_tower_config
+from llava.unit_test_utils import requires_gpu, requires_lustre
+from transformers import AutoTokenizer, CLIPImageProcessor
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
