@@ -24,8 +24,8 @@ from torch.utils.data import (ConcatDataset, Dataset, DistributedSampler,
                               RandomSampler, Sampler)
 from transformers import PreTrainedModel, Trainer
 from transformers.modeling_utils import unwrap_model
-from transformers.trainer import (ALL_LAYERNORM_LAYERS,  # ShardedDDPOption,
-                                  get_parameter_names, has_length,
+from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
+from transformers.trainer import (get_parameter_names, has_length,
                                   is_sagemaker_mp_enabled, logger)
 
 
