@@ -33,7 +33,5 @@ for f in captioner/coyo-25m-recap/*.json; do
     -e slurm-logs/dev/$fname-$model-$j.err -o slurm-logs/dev/$fname-$model-$j.out \
     torchrun --nproc-per-node 8 llava/data_aug/caption2qa.py --data_path=$f --task=$task --model_id=$model_id --load_in_4bit=True &
 
-  wait
-  exit
 done
 wait
