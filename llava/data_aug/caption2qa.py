@@ -12,9 +12,8 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 task2prompt = {
-    "cap2qa": """Below is an image description. Please propose 3 questions and answers based on the context. Each line should start with either "question" or "answer" and there should be only single linebreak between question and answer.\n\n"""
-    "rephrase"
-    """Below is an image description. Please rephrease the sentences make the writing more professional.\n\n"""
+    "cap2qa": """Below is an image description. Please propose 3 questions and answers based on the context. Each line should start with either "question" or "answer" and there should be only single linebreak between question and answer.\n\n""",
+    "rephrase": """Below is an image description. Please rephrease the sentences make the writing more professional.\n\n""",
 }
 
 
