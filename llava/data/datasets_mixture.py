@@ -349,8 +349,10 @@ def register_datasets_mixtures():
     jukinmedia = Dataset(
         dataset_name="jukinmedia",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-filtered-bin.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos_decompress_v2",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-filtered-bin.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos_decompress_v2",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/jukinmedia/jukin-100k-filtered-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/jukinmedia/videos_decompress_v2",
         description="A high quailty video caption dataset with 71018 detailed captions. See READMD.md file for the details (e.g. prompt template) of the dataset.",
     )
     add_dataset(jukinmedia)
