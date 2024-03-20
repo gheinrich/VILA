@@ -45,5 +45,7 @@ srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
 
 done
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m
+# bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain jukinmedia
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain shot2story_shotonly
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+shot2story_shotonly
+# bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+shot2story_shotonly+jukinmedia
