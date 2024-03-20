@@ -11,11 +11,13 @@ from torch.utils.data import DataLoader, Dataset, DistributedSampler
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-
 task2prompt = {
     "cap2qa": """Below is an image description. Please propose 3 questions and answers based on the context. Each line should start with either "question" or "answer" and there should be only single linebreak between question and answer.\n\n"""
-    "rephrase"  """Below is an image description. Please rephrease the sentences make the writing more professional.\n\n"""
+    "rephrase"
+    """Below is an image description. Please rephrease the sentences make the writing more professional.\n\n"""
 }
+
+
 def safely_merge_info(out_fpath, info):
     os.makedirs(osp.dirname(out_fpath), exist_ok=True)
     with FileLock(out_fpath.replace(".json", ".lock")):
@@ -70,7 +72,7 @@ def main(
     model_id="mistralai/Mistral-7B-Instruct-v0.2",
     data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json",
     load_in_4bit=False,
-    task="cap2qa"
+    task="cap2qa",
 ):
     dist.init_process_group()
 
