@@ -1840,4 +1840,6 @@ def build_datasets(
     all_datasets = ConcatDataset(all_datasets)
     if split == "train":
         training_args.sample_lens = extra_info
+    elif split == "eval":
+        training_args.eval_sample_lens = extra_info
     return all_datasets

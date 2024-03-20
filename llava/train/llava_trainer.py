@@ -19,7 +19,7 @@
 import os
 import torch
 
-from torch.utils.data import ConcatDataset, DistributedSampler, RandomSampler, Sampler
+from torch.utils.data import Dataset, ConcatDataset, DistributedSampler, RandomSampler, Sampler
 
 from transformers import Trainer, PreTrainedModel
 from transformers.trainer import (
@@ -358,6 +358,24 @@ class LLaVATrainer(Trainer):
         else:
             return super()._get_train_sampler()
 
+    def _get_eval_sampler(self, eval_dataset: Dataset) -> Optional[torch.utils.data.Sampler]:
+        if self.eval_dataset is None or not has_length(self.eval_dataset):
+            return None
+
+        # Always using Jason's sampler.
+        sample_len_list = self.args.eval_sample_lens
+        seed = (
+            self.args.data_seed if self.args.data_seed is not None else self.args.seed
+        )
+        return VILADistributedSampler(
+            eval_dataset,
+            num_replicas=self.args.world_size,
+            rank=self.args.process_index,
+            seed=seed,
+            batch_size=self.args.eval_batch_size,
+            sample_len_list=sample_len_list,
+        )
+    
     def create_optimizer(self):
         """
         Setup the optimizer.
