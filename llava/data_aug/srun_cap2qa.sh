@@ -18,8 +18,8 @@ for f in captioner/coyo-25m-recap/*.json; do
     -p polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3 \
     -t 4:00:00 \
     -J vila:cap2qa-$fname-$model --gpus-per-node 8 --exclusive \
-    -e slurm-logs/dev-$task/$fname-$model-$j.err \
-    -o slurm-logs/dev-$task/$fname-$model-$j.out \
+    -e slurm-logs/dev-$task/$fname-$model.err \
+    -o slurm-logs/dev-$task/$fname-$model.out \
     torchrun --nproc-per-node 8 llava/data_aug/caption2qa.py --data_path=$f --task=$task --model_id=$model_id &
 
   model_id="deepseek-ai/deepseek-llm-67b-chat"
@@ -31,8 +31,8 @@ for f in captioner/coyo-25m-recap/*.json; do
     -p polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3 \
     -t 4:00:00 \
     -J vila:cap2qa-$fname-$model --gpus-per-node 8 --exclusive \
-    -e slurm-logs/dev-$task/$fname-$model-$j.err \
-    -o slurm-logs/dev-$task/$fname-$model-$j.out \
+    -e slurm-logs/dev-$task/$fname-$model.err \
+    -o slurm-logs/dev-$task/$fname-$model.out \
     torchrun --nproc-per-node 8 llava/data_aug/caption2qa.py --data_path=$f --task=$task --model_id=$model_id --load_in_4bit=True &
 
 done

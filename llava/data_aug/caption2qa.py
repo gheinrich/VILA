@@ -75,12 +75,13 @@ def main(
 ):
     dist.init_process_group()
 
-    from llava.train.slurm_utils import (get_local_rank, get_rank,
-                                         get_world_size)
+    # from llava.train.slurm_utils import (get_local_rank, get_rank,
+    #                                      get_world_size)
 
-    local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
-    print(local_rank, rank, world_size, flush=True)
-
+    # local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
+    # print(local_rank, rank, world_size, flush=True)
+    local_rank = dist.get_rank()
+    
     pipe = pipeline(
         "text-generation",
         model=model_id,
