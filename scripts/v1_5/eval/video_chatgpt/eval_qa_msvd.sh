@@ -10,7 +10,7 @@ cd ~/workspace/VILA-Internal
 GPT_Zero_Shot_QA="eval/GPT_Zero_Shot_QA"
 output_name=$1
 pred_path="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/merge.jsonl"
-output_dir="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/gpt4"
+output_dir="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/gpt4-turbo"
 output_json="${GPT_Zero_Shot_QA}/MSVD_Zero_Shot_QA/${output_name}/results.json"
 num_tasks=8
 

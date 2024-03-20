@@ -216,6 +216,9 @@ def train():
     def context_length_extension(config):
         orig_ctx_len = getattr(config, "max_position_embeddings", None)
         if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+            print(
+                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
+            )
             scaling_factor = float(
                 math.ceil(training_args.model_max_length / orig_ctx_len)
             )

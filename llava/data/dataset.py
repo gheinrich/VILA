@@ -567,8 +567,18 @@ class LazySupervisedDataset(Dataset):
             duration = float(video.duration)
             # assert duration >= 0.25
             video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-            assert video_outputs.size(1) > 8
             num_frames = video_outputs.shape[1]
+            if num_frames < 8 + 1:
+                padding_frames = 8 + 1 - num_frames
+                padding_tensor = torch.zeros(
+                    video_outputs.size(0), 
+                    padding_frames, 
+                    video_outputs.size(2), 
+                    video_outputs.size(3), 
+                    dtype=torch.uint8
+                )
+                video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
+                num_frames = video_outputs.shape[1]
             # step = (num_frames - 1) // 8 + 1
             step = num_frames // 8
             num_frames = num_frames - (num_frames % 8)
