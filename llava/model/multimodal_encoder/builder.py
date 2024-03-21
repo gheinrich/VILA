@@ -1,6 +1,7 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 from transformers import PretrainedConfig
+
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
 
@@ -12,11 +13,7 @@ def build_vision_tower(config: PretrainedConfig):
     else:
         vision_tower_cfg = config.vision_tower_config
     try:
-        vision_tower_name = (
-            vision_tower_cfg
-            if isinstance(vision_tower_cfg, str)
-            else vision_tower_cfg["_name_or_path"]
-        )
+        vision_tower_name = vision_tower_cfg if isinstance(vision_tower_cfg, str) else vision_tower_cfg["_name_or_path"]
     except:
         vision_tower_name = None
 
@@ -25,8 +22,9 @@ def build_vision_tower(config: PretrainedConfig):
     elif "siglip" in vision_tower_name:
         return SiglipVisionTower(vision_tower_cfg, config)
     elif "radio" in vision_tower_name:
-        from .radio.radio_encoder import RADIOEncoder
         from transformers import CLIPVisionConfig
+
+        from .radio.radio_encoder import RADIOEncoder
 
         vision_tower = RADIOEncoder(config)
 

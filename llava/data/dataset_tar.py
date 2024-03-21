@@ -1,12 +1,14 @@
 import glob
-import tarfile
-import json
-import os, os.path as osp
-from io import BytesIO
-from PIL import Image, ImageFile
 import hashlib
-from torch.utils.data import Dataset, get_worker_info, ConcatDataset
+import json
+import os
+import os.path as osp
+import tarfile
+from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
+
+from PIL import Image, ImageFile
+from torch.utils.data import ConcatDataset, Dataset, get_worker_info
 
 try:  # make torchvision optional
     from torchvision.transforms.functional import to_tensor

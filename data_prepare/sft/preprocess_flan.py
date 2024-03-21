@@ -1,8 +1,9 @@
-import os
-import pandas
-import pickle
-import torch
 import json
+import os
+import pickle
+
+import pandas
+import torch
 from tqdm import tqdm
 
 # download OpenORCA/FLAN to the dataset_path directory
@@ -38,13 +39,7 @@ print(min([len(x) for x in all_targets]))
 
 targeted_dataset_size = 1_000_000
 filtered_samples = []
-selected_indices = (
-    torch.linspace(0, len(all_inputs) - 1, targeted_dataset_size)
-    .int()
-    .cpu()
-    .numpy()
-    .tolist()
-)
+selected_indices = torch.linspace(0, len(all_inputs) - 1, targeted_dataset_size).int().cpu().numpy().tolist()
 cnt = 0
 for index in selected_indices:
     filtered_samples.append(
@@ -59,4 +54,3 @@ for index in selected_indices:
 
 with open(os.path.join(save_path, "text_flan_1m.pkl"), "wb") as f:
     pickle.dump(filtered_samples, f)
-

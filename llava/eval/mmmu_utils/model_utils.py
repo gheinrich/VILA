@@ -8,8 +8,7 @@ from llava.mm_utils import KeywordsStoppingCriteria, is_gemma_tokenizer
 
 
 def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
-    from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                                 DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX)
+    from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
     from llava.conversation import SeparatorStyle, conv_templates
 
     def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None):

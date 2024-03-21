@@ -14,14 +14,14 @@ import os
 
 import torch
 import torch.nn as nn
+from PIL import Image
+from tqdm import tqdm
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, LlamaConfig, LlamaForCausalLM, LlamaModel
+
 from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.mm_utils import tokenizer_image_token
 from llava.model.builder import load_pretrained_model
 from llava.model.llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
-from PIL import Image
-from tqdm import tqdm
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          LlamaConfig, LlamaForCausalLM, LlamaModel)
 
 
 class LlavaConfig(LlamaConfig):

@@ -21,18 +21,12 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-
-from transformers import (
-    AutoConfig,
-    AutoModelForCausalLM,
-    LlamaConfig,
-    LlamaModel,
-    LlamaForCausalLM,
-)
-
+from transformers import AutoConfig, AutoModelForCausalLM, LlamaConfig, LlamaForCausalLM, LlamaModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
+
 from llava.constants import IGNORE_INDEX
-from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
+
+from ..llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
 from ..multimodal_encoder.builder import build_vision_tower
 from ..multimodal_projector.builder import build_mm_projector
 
@@ -147,9 +141,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         )
         return outputs
 
-    def prepare_inputs_for_generation(
-        self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs
-    ):
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):
         images = kwargs.pop("images", None)
         _inputs = super().prepare_inputs_for_generation(
             input_ids,

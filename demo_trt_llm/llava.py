@@ -29,16 +29,8 @@ from transformers import (
     LlamaForCausalLM,
     LlamaModel,
 )
-from transformers.modeling_outputs import (
-    BaseModelOutputWithPast,
-    CausalLMOutputWithPast,
-)
-from transformers.models.llama.modeling_llama import (
-    LlamaAttention,
-    LlamaDecoderLayer,
-    LlamaMLP,
-    LlamaRMSNorm,
-)
+from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
+from transformers.models.llama.modeling_llama import LlamaAttention, LlamaDecoderLayer, LlamaMLP, LlamaRMSNorm
 
 DEFAULT_IM_END_TOKEN = "<im_end>"
 DEFAULT_IM_START_TOKEN = "<im_start>"
@@ -122,7 +114,7 @@ class LlavaLlamaModel(LlamaModel):
 
     def __init__(self, config: LlamaConfig):
         super(LlavaLlamaModel, self).__init__(config)
-        
+
         ## compatible with old version
         config.vision_tower = getattr(config, "vision_tower", getattr(config, "mm_vision_tower", None))
         if hasattr(config, "vision_tower"):
@@ -138,14 +130,10 @@ class LlavaLlamaModel(LlamaModel):
 
             # HACK: for FSDP
             if self.vision_tower_class == "qwen":
-                vision_tower = AutoModelForCausalLM.from_pretrained(
-                    config.vision_tower, trust_remote_code=True
-                )
+                vision_tower = AutoModelForCausalLM.from_pretrained(config.vision_tower, trust_remote_code=True)
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
-                if (
-                    config.mm_projector_type == "dsresampler"
-                ):  # remove the original resampler
+                if config.mm_projector_type == "dsresampler":  # remove the original resampler
                     vision_tower.proj = nn.Parameter(
                         torch.eye(vision_tower.ln_pre.bias.numel())
                         .to(vision_tower.proj.device)
@@ -155,9 +143,7 @@ class LlavaLlamaModel(LlamaModel):
                     vision_tower.ln_post = nn.Sequential()
                 else:
                     vision_tower.proj = nn.Parameter(
-                        torch.eye(vision_tower.proj.shape[-1])
-                        .to(vision_tower.proj.device)
-                        .to(vision_tower.proj.dtype)
+                        torch.eye(vision_tower.proj.shape[-1]).to(vision_tower.proj.device).to(vision_tower.proj.dtype)
                     )
                 vision_config.image_size = vision_config.visual["image_size"]
                 vision_config.patch_size = vision_config.visual["patch_size"]
@@ -181,15 +167,11 @@ class LlavaLlamaModel(LlamaModel):
                     }
                 )
             else:
-                self.vision_tower = [
-                    CLIPVisionModel.from_pretrained(config.vision_tower)
-                ]
+                self.vision_tower = [CLIPVisionModel.from_pretrained(config.vision_tower)]
 
         if hasattr(config, "use_mm_proj"):
             self.mm_projector = self._get_mm_projector(
-                config.mm_projector_type
-                if hasattr(config, "mm_projector_type")
-                else "linear",
+                config.mm_projector_type if hasattr(config, "mm_projector_type") else "linear",
                 config.mm_hidden_size,
                 config.hidden_size,
             )
@@ -237,9 +219,7 @@ class LlavaLlamaModel(LlamaModel):
 
         if not hasattr(self, "vision_tower"):
             if self.vision_tower_class == "qwen":
-                vision_tower = AutoModelForCausalLM.from_pretrained(
-                    vision_tower, trust_remote_code=True
-                )
+                vision_tower = AutoModelForCausalLM.from_pretrained(vision_tower, trust_remote_code=True)
                 vision_config = vision_tower.config
                 vision_tower = vision_tower.transformer.visual
                 if mm_projector_type == "dsresampler":  # remove the original resampler
@@ -252,9 +232,7 @@ class LlavaLlamaModel(LlamaModel):
                     vision_tower.ln_post = nn.Sequential()
                 else:
                     vision_tower.proj = nn.Parameter(
-                        torch.eye(vision_tower.proj.shape[-1])
-                        .to(vision_tower.proj.device)
-                        .to(vision_tower.proj.dtype)
+                        torch.eye(vision_tower.proj.shape[-1]).to(vision_tower.proj.device).to(vision_tower.proj.dtype)
                     )
 
                 # vision_tower.proj = nn.Parameter(torch.eye(vision_tower.proj.shape[-1]).to(vision_tower.proj.device).to(vision_tower.proj.dtype))
@@ -323,11 +301,12 @@ class LlavaLlamaModel(LlamaModel):
             )
 
         if pretrain_mm_mlp_adapter is not None:
-            mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location='cpu')
-            def get_w(weights, keyword):
-                return {k.split(keyword + '.')[1]: v for k, v in weights.items() if keyword in k}
+            mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location="cpu")
 
-            self.mm_projector.load_state_dict(get_w(mm_projector_weights, 'mm_projector'))
+            def get_w(weights, keyword):
+                return {k.split(keyword + ".")[1]: v for k, v in weights.items() if keyword in k}
+
+            self.mm_projector.load_state_dict(get_w(mm_projector_weights, "mm_projector"))
 
         return dict(
             image_processor=image_processor,
@@ -337,9 +316,7 @@ class LlavaLlamaModel(LlamaModel):
 
     def _get_mm_projector(self, projector_type, vision_hidden_size, llm_hidden_size):
         class TransformerN(nn.Module):
-            def __init__(
-                self, config, n_transformer, n_prompt_token=0, input_embeddings_avg=None
-            ) -> None:
+            def __init__(self, config, n_transformer, n_prompt_token=0, input_embeddings_avg=None) -> None:
                 super().__init__()
 
                 dec_layer_cls = AltLlamaDecoderLayer
@@ -353,9 +330,7 @@ class LlavaLlamaModel(LlamaModel):
 
                 if n_prompt_token > 0:
                     self.prompt_token = nn.Parameter(
-                        input_embeddings_avg.repeat(n_prompt_token, 1).unsqueeze(
-                            0
-                        ),  # 1, n_prompt_token, dim
+                        input_embeddings_avg.repeat(n_prompt_token, 1).unsqueeze(0),  # 1, n_prompt_token, dim
                         requires_grad=True,
                     )
                 else:
@@ -368,9 +343,7 @@ class LlavaLlamaModel(LlamaModel):
                         assert len(x) == 1
                         x = x[0]
                     if i == 0 and self.prompt_token is not None:
-                        x = torch.cat(
-                            [self.prompt_token.repeat(x.shape[0], 1, 1), x], dim=1
-                        ).contiguous()
+                        x = torch.cat([self.prompt_token.repeat(x.shape[0], 1, 1), x], dim=1).contiguous()
 
                 return x
 
@@ -415,20 +388,12 @@ class LlavaLlamaModel(LlamaModel):
                 # initialize to take average
                 ratio = 1 / (llm_hidden_size**0.5) * 10  # some manual alignment
                 self.start_proj = (
-                    nn.Parameter(
-                        (torch.ones(1, n_start, llm_hidden_size) * ratio)
-                        .to(device)
-                        .to(dtype)
-                    )
+                    nn.Parameter((torch.ones(1, n_start, llm_hidden_size) * ratio).to(device).to(dtype))
                     if n_start > 0
                     else None
                 )
                 self.end_proj = (
-                    nn.Parameter(
-                        (torch.ones(1, n_end, llm_hidden_size) * ratio)
-                        .to(device)
-                        .to(dtype)
-                    )
+                    nn.Parameter((torch.ones(1, n_end, llm_hidden_size) * ratio).to(device).to(dtype))
                     if n_end > 0
                     else None
                 )
@@ -447,9 +412,7 @@ class LlavaLlamaModel(LlamaModel):
             def __init__(self, avg_emb, n_tokens) -> None:
                 super().__init__()
                 self.n_tokens = n_tokens
-                self.avg_emb = nn.Parameter(
-                    avg_emb.view(1, 1, -1).repeat(1, n_tokens, 1).detach()
-                )
+                self.avg_emb = nn.Parameter(avg_emb.view(1, 1, -1).repeat(1, n_tokens, 1).detach())
 
             def forward(self, x):
                 return torch.cat([x, self.avg_emb.repeat(x.shape[0], 1, 1)], dim=1)
@@ -466,11 +429,7 @@ class LlavaLlamaModel(LlamaModel):
                 if self.act == "softmax":
                     return torch.softmax(x, dim=-1) @ self.embed_center.detach()
                 elif self.act == "sigmoid":
-                    return (
-                        torch.sigmoid(x)
-                        @ self.embed_center.detach()
-                        / (x.shape[-1] * 0.5)
-                    )  # normed
+                    return torch.sigmoid(x) @ self.embed_center.detach() / (x.shape[-1] * 0.5)  # normed
                 else:
                     raise NotImplementedError
 
@@ -531,25 +490,17 @@ class LlavaLlamaModel(LlamaModel):
                 return x
 
         _embed = self.get_input_embeddings().weight
-        if (
-            hasattr(self.config, "textual_embed_path")
-            and self.config.textual_embed_path is not None
-        ):
+        if hasattr(self.config, "textual_embed_path") and self.config.textual_embed_path is not None:
             print(" * Loading textual embedding from", self.config.textual_embed_path)
             textual_centers = torch.load(self.config.textual_embed_path)
             textual_centers = textual_centers.to(_embed.device).to(_embed.dtype)
         else:
             textual_centers = None
 
-        if (
-            hasattr(self.config, "min_max_range_path")
-            and self.config.min_max_range_path is not None
-        ):
+        if hasattr(self.config, "min_max_range_path") and self.config.min_max_range_path is not None:
             print(" * Loading min_max_range_path from", self.config.min_max_range_path)
             min_max_range = torch.load(self.config.min_max_range_path)
-            min_max_range = [
-                r.to(_embed.device).to(_embed.dtype) for r in min_max_range
-            ]
+            min_max_range = [r.to(_embed.device).to(_embed.dtype) for r in min_max_range]
         else:
             min_max_range = None
 
@@ -609,9 +560,7 @@ class LlavaLlamaModel(LlamaModel):
         elif projector_type == "downsample":
             return Downsampler(vision_hidden_size, llm_hidden_size)
         elif projector_type == "downsampleproj":
-            return Downsampler(
-                vision_hidden_size, llm_hidden_size, textual_centers=textual_centers
-            )
+            return Downsampler(vision_hidden_size, llm_hidden_size, textual_centers=textual_centers)
         elif projector_type == "mlpse":
             return nn.Sequential(
                 nn.Linear(vision_hidden_size, llm_hidden_size),
@@ -685,9 +634,7 @@ class LlavaLlamaModel(LlamaModel):
                     n, t, c = x.shape
                     return x.reshape(n, t * 2, c // 2)
 
-            return nn.Sequential(
-                nn.Linear(vision_hidden_size, llm_hidden_size * 2), Ch2Tok()
-            )
+            return nn.Sequential(nn.Linear(vision_hidden_size, llm_hidden_size * 2), Ch2Tok())
 
         elif projector_type == "dslinear":
             return nn.Sequential(
@@ -842,35 +789,20 @@ class LlavaLlamaModel(LlamaModel):
 
         from contextlib import nullcontext
 
-        if (
-            vision_tower is not None
-            and (input_ids.shape[1] != 1 or self.training)
-            and images is not None
-        ):
-            with nullcontext() if getattr(
-                self.config, "tune_vision_encoder", False
-            ) else torch.no_grad():
+        if vision_tower is not None and (input_ids.shape[1] != 1 or self.training) and images is not None:
+            with nullcontext() if getattr(self.config, "tune_vision_encoder", False) else torch.no_grad():
                 if type(images) is list:
-                    images = [
-                        image.unsqueeze(0) if len(image.shape) == 3 else image
-                        for image in images
-                    ]
+                    images = [image.unsqueeze(0) if len(image.shape) == 3 else image for image in images]
                     images = torch.cat(images, dim=0)
                 dtype = next(vision_tower.parameters()).dtype
                 if "visiontransformer" in vision_tower.__class__.__name__.lower():
                     image_features = vision_tower(images.to(dtype))
                 else:
-                    image_forward_outs = vision_tower(
-                        images.to(dtype), output_hidden_states=True
-                    )
-                    select_hidden_state_layer = getattr(
-                        self.config, "mm_vision_select_layer", -1
-                    )
+                    image_forward_outs = vision_tower(images.to(dtype), output_hidden_states=True)
+                    select_hidden_state_layer = getattr(self.config, "mm_vision_select_layer", -1)
                     if abs(select_hidden_state_layer) > 100:  # TOOD: find a better impl
                         # -212 -> 12,
-                        idx1, idx2 = abs(select_hidden_state_layer) % 100, -(
-                            abs(select_hidden_state_layer) // 100
-                        )
+                        idx1, idx2 = abs(select_hidden_state_layer) % 100, -(abs(select_hidden_state_layer) // 100)
                         # print("selecting multiple indices", idx1, idx2)
                         image_features = torch.cat(
                             (
@@ -880,9 +812,7 @@ class LlavaLlamaModel(LlamaModel):
                             dim=-1,
                         )
                     else:
-                        image_features = image_forward_outs.hidden_states[
-                            select_hidden_state_layer
-                        ]
+                        image_features = image_forward_outs.hidden_states[select_hidden_state_layer]
                 if isinstance(vision_tower, CLIPVisionModel):  # clip case, not for sam
                     image_features = image_features[:, 1:].to(images.dtype)  # (B, N, D)
             image_features = self.mm_projector(image_features)
@@ -891,9 +821,7 @@ class LlavaLlamaModel(LlamaModel):
                 # print("using neftune tuning with alpha", self.config.neftune_alpha)
                 dims = torch.tensor(image_features.shape[-2] * image_features.shape[-1])
                 mag_norm = self.config.neftune_alpha / torch.sqrt(dims)
-                image_features = image_features + torch.zeros_like(
-                    image_features
-                ).uniform_(-mag_norm, mag_norm)
+                image_features = image_features + torch.zeros_like(image_features).uniform_(-mag_norm, mag_norm)
 
             if self.config.mm_projector_type == "dsresampler":
                 dummy_feat_shape = (1, 1024, 1664)
@@ -907,9 +835,7 @@ class LlavaLlamaModel(LlamaModel):
                 device=inputs_embeds.device,
                 dtype=inputs_embeds.dtype,
             )
-            dummy_image_features = self.mm_projector(dummy_image_features)[
-                0
-            ]  # (1, N, D)
+            dummy_image_features = self.mm_projector(dummy_image_features)[0]  # (1, N, D)
 
             new_input_embeds = []
             cur_image_idx = 0
@@ -917,16 +843,12 @@ class LlavaLlamaModel(LlamaModel):
             image_token_idx = []
 
             num_patches = -1
-            for i_sample, (cur_input_ids, cur_input_embeds) in enumerate(
-                zip(input_ids, inputs_embeds)
-            ):
+            for i_sample, (cur_input_ids, cur_input_embeds) in enumerate(zip(input_ids, inputs_embeds)):
                 if (cur_input_ids == vision_tower.config.im_patch_token).sum() == 0:
                     # multimodal LLM, but the current sample is not multimodal
-                    cur_input_embeds = (
-                        cur_input_embeds + (0.0 * dummy_image_features).sum()
-                    )
+                    cur_input_embeds = cur_input_embeds + (0.0 * dummy_image_features).sum()
                     new_input_embeds.append(cur_input_embeds)
-                    #cur_image_idx += 1
+                    # cur_image_idx += 1
                     continue
                 if vision_tower.config.use_im_start_end:
                     cur_image_features = image_features[cur_image_idx]
@@ -938,41 +860,26 @@ class LlavaLlamaModel(LlamaModel):
                             (cur_input_ids == vision_tower.config.im_start_token).sum(),
                             (cur_input_ids == vision_tower.config.im_end_token).sum(),
                         )
-                        raise ValueError(
-                            "The number of image start tokens and image end tokens should be the same."
-                        )
-                    image_start_tokens = torch.where(
-                        cur_input_ids == vision_tower.config.im_start_token
-                    )[0]
+                        raise ValueError("The number of image start tokens and image end tokens should be the same.")
+                    image_start_tokens = torch.where(cur_input_ids == vision_tower.config.im_start_token)[0]
                     for image_start_token_pos in image_start_tokens:
-                        if (
-                            cur_image_idx >= image_features.shape[0]
-                        ):  # SHOULD NOT HAPPEN!!!
+                        if cur_image_idx >= image_features.shape[0]:  # SHOULD NOT HAPPEN!!!
                             if self.training:
                                 print("%" * 20, "INDEXING ERROR!")
                                 break
                             else:
                                 raise ValueError("INDEXING ERROR!")
-                        cur_image_features = image_features[cur_image_idx].to(
-                            device=cur_input_embeds.device
-                        )
+                        cur_image_features = image_features[cur_image_idx].to(device=cur_input_embeds.device)
                         num_patches = cur_image_features.shape[0]
-                        if (
-                            cur_input_ids[image_start_token_pos + num_patches + 1]
-                            != vision_tower.config.im_end_token
-                        ):
+                        if cur_input_ids[image_start_token_pos + num_patches + 1] != vision_tower.config.im_end_token:
                             raise ValueError(
-                                "The image end token should follow the image start token. "
-                                + str(num_patches)
+                                "The image end token should follow the image start token. " + str(num_patches)
                             )
                         if orig_embeds_params is not None:
                             cur_new_input_embeds = torch.cat(
                                 (
                                     cur_input_embeds[:image_start_token_pos].detach(),
-                                    cur_input_embeds[
-                                        image_start_token_pos : image_start_token_pos
-                                        + 1
-                                    ],
+                                    cur_input_embeds[image_start_token_pos : image_start_token_pos + 1],
                                     cur_image_features,
                                     cur_input_embeds[
                                         image_start_token_pos
@@ -981,9 +888,7 @@ class LlavaLlamaModel(LlamaModel):
                                         + num_patches
                                         + 2
                                     ],
-                                    cur_input_embeds[
-                                        image_start_token_pos + num_patches + 2 :
-                                    ].detach(),
+                                    cur_input_embeds[image_start_token_pos + num_patches + 2 :].detach(),
                                 ),
                                 dim=0,
                             )
@@ -992,28 +897,18 @@ class LlavaLlamaModel(LlamaModel):
                                 (
                                     cur_input_embeds[: image_start_token_pos + 1],
                                     cur_image_features,
-                                    cur_input_embeds[
-                                        image_start_token_pos + num_patches + 1 :
-                                    ],
+                                    cur_input_embeds[image_start_token_pos + num_patches + 1 :],
                                 ),
                                 dim=0,
                             )
                         cur_image_idx += 1
                     new_input_embeds.append(cur_new_input_embeds)
                 else:
-                    num_total_patches = (
-                        (cur_input_ids == vision_tower.config.im_patch_token)
-                        .sum()
-                        .item()
-                    )
-                    masked_indices = torch.where(
-                        cur_input_ids == vision_tower.config.im_patch_token
-                    )[0]
+                    num_total_patches = (cur_input_ids == vision_tower.config.im_patch_token).sum().item()
+                    masked_indices = torch.where(cur_input_ids == vision_tower.config.im_patch_token)[0]
 
                     while num_total_patches:
-                        if (
-                            cur_image_idx >= image_features.shape[0]
-                        ):  # SHOULD NOT HAPPEN!!!
+                        if cur_image_idx >= image_features.shape[0]:  # SHOULD NOT HAPPEN!!!
                             if self.training:
                                 print("%" * 20, "INDEXING ERROR!")
                                 break
@@ -1037,9 +932,7 @@ class LlavaLlamaModel(LlamaModel):
                                 (
                                     cur_input_embeds[:mask_index_start].detach(),
                                     cur_image_features,
-                                    cur_input_embeds[
-                                        mask_index_start + num_patches :
-                                    ].detach(),
+                                    cur_input_embeds[mask_index_start + num_patches :].detach(),
                                 ),
                                 dim=0,
                             )
@@ -1066,7 +959,10 @@ class LlavaLlamaModel(LlamaModel):
             inputs_embeds = torch.stack(new_input_embeds, dim=0)
             if self.training:
                 if not cur_image_idx == len(image_features):
-                    print("%" * 20, f"ERROR! cur_image_idx {cur_image_idx} != len(image_feautres) {len(image_features)} ...")
+                    print(
+                        "%" * 20,
+                        f"ERROR! cur_image_idx {cur_image_idx} != len(image_feautres) {len(image_features)} ...",
+                    )
             else:
                 assert cur_image_idx == len(image_features), (
                     cur_image_idx,
@@ -1083,11 +979,7 @@ class LlavaLlamaModel(LlamaModel):
                     if isinstance(m, (LlamaAttention, LlamaMLP)):
                         m.image_token_idx = image_token_idx
 
-            if (
-                self.training
-                and hasattr(self.config, "neftune")
-                and self.config.neftune
-            ):
+            if self.training and hasattr(self.config, "neftune") and self.config.neftune:
                 print("adding neftune...")
                 # TODO:
 
@@ -1147,19 +1039,11 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
         seqlens_in_batch: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.Tensor] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-        output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.config.output_attentions
-        )
+        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
         outputs = self.model(
@@ -1249,27 +1133,19 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
         self.resize_token_embeddings(len(tokenizer))
 
         if mm_use_im_start_end:
-            num_new_tokens = tokenizer.add_tokens(
-                [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True
-            )
+            num_new_tokens = tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
             self.resize_token_embeddings(len(tokenizer))
             (
                 vision_config.im_start_token,
                 vision_config.im_end_token,
-            ) = tokenizer.convert_tokens_to_ids(
-                [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN]
-            )
+            ) = tokenizer.convert_tokens_to_ids([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN])
 
             if num_new_tokens > 0:
                 input_embeddings = self.get_input_embeddings().weight.data
                 output_embeddings = self.get_output_embeddings().weight.data
 
-                input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
-                    dim=0, keepdim=True
-                )
-                output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(
-                    dim=0, keepdim=True
-                )
+                input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+                output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
 
                 input_embeddings[-num_new_tokens:] = input_embeddings_avg
                 output_embeddings[-num_new_tokens:] = output_embeddings_avg
@@ -1284,15 +1160,11 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
                     p.requires_grad = False
 
             if pretrain_mm_mlp_adapter:
-                mm_projector_weights = torch.load(
-                    pretrain_mm_mlp_adapter, map_location="cpu"
-                )
+                mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location="cpu")
                 embed_tokens_weight = mm_projector_weights["model.embed_tokens.weight"]
                 assert num_new_tokens == 2
                 if input_embeddings.shape == embed_tokens_weight.shape:
-                    input_embeddings[-num_new_tokens:] = embed_tokens_weight[
-                        -num_new_tokens:
-                    ]
+                    input_embeddings[-num_new_tokens:] = embed_tokens_weight[-num_new_tokens:]
                 elif embed_tokens_weight.shape[0] == num_new_tokens:
                     input_embeddings[-num_new_tokens:] = embed_tokens_weight
                 else:
@@ -1300,9 +1172,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM):
                         f"Unexpected embed_tokens_weight shape. Pretrained: {embed_tokens_weight.shape}. Current: {input_embeddings.shape}. Numer of new tokens: {num_new_tokens}."
                     )
 
-        vision_config.im_patch_token = tokenizer.convert_tokens_to_ids(
-            [DEFAULT_IMAGE_PATCH_TOKEN]
-        )[0]
+        vision_config.im_patch_token = tokenizer.convert_tokens_to_ids([DEFAULT_IMAGE_PATCH_TOKEN])[0]
 
 
 AutoConfig.register(LlavaConfig.model_type, LlavaConfig)

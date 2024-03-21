@@ -15,25 +15,16 @@
 
 
 import os
-import warnings
 import shutil
+import warnings
 
-from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    AutoConfig,
-    BitsAndBytesConfig,
-    PretrainedConfig,
-)
 import torch
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, PretrainedConfig
+
+from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_PATCH_TOKEN
 from llava.model import *
-from llava.model.utils import is_mm_model
 from llava.model.language_model.llava_llama import LlavaConfig
-from llava.constants import (
-    DEFAULT_IMAGE_PATCH_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IM_END_TOKEN,
-)
+from llava.model.utils import is_mm_model
 
 
 def load_pretrained_model(
@@ -72,9 +63,7 @@ def load_pretrained_model(
             )
         if "lora" in model_name.lower() and model_base is not None:
             lora_cfg_pretrained = AutoConfig.from_pretrained(model_path)
-            tokenizer = AutoTokenizer.from_pretrained(
-                model_base, use_fast=False, legacy=False
-            )
+            tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False, legacy=False)
             print("Loading LLaVA from base model...")
             model = LlavaLlamaForCausalLM.from_pretrained(
                 model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs
@@ -82,14 +71,10 @@ def load_pretrained_model(
             token_num, tokem_dim = model.lm_head.out_features, model.lm_head.in_features
             if model.lm_head.weight.shape[0] != token_num:
                 model.lm_head.weight = torch.nn.Parameter(
-                    torch.empty(
-                        token_num, tokem_dim, device=model.device, dtype=model.dtype
-                    )
+                    torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype)
                 )
                 model.model.embed_tokens.weight = torch.nn.Parameter(
-                    torch.empty(
-                        token_num, tokem_dim, device=model.device, dtype=model.dtype
-                    )
+                    torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype)
                 )
 
             print("Loading additional LLaVA weights...")
@@ -103,22 +88,16 @@ def load_pretrained_model(
                 from huggingface_hub import hf_hub_download
 
                 def load_from_hf(repo_id, filename, subfolder=None):
-                    cache_file = hf_hub_download(
-                        repo_id=repo_id, filename=filename, subfolder=subfolder
-                    )
+                    cache_file = hf_hub_download(repo_id=repo_id, filename=filename, subfolder=subfolder)
                     return torch.load(cache_file, map_location="cpu")
 
-                non_lora_trainables = load_from_hf(
-                    model_path, "non_lora_trainables.bin"
-                )
+                non_lora_trainables = load_from_hf(model_path, "non_lora_trainables.bin")
             non_lora_trainables = {
-                (k[11:] if k.startswith("base_model.") else k): v
-                for k, v in non_lora_trainables.items()
+                (k[11:] if k.startswith("base_model.") else k): v for k, v in non_lora_trainables.items()
             }
             if any(k.startswith("model.model.") for k in non_lora_trainables):
                 non_lora_trainables = {
-                    (k[6:] if k.startswith("model.") else k): v
-                    for k, v in non_lora_trainables.items()
+                    (k[6:] if k.startswith("model.") else k): v for k, v in non_lora_trainables.items()
                 }
             model.load_state_dict(non_lora_trainables, strict=False)
 
@@ -132,9 +111,7 @@ def load_pretrained_model(
         elif model_base is not None:
             # this may be mm projector only
             print("Loading LLaVA from base model...")
-            cfg_pretrained = AutoConfig.from_pretrained(
-                model_path, trust_remote_code=True
-            )
+            cfg_pretrained = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
             mm_config_wrapper(config, kwargs)
             if "mpt" in model_name.lower():
                 if not os.path.isfile(os.path.join(model_path, "configuration_mpt.py")):
@@ -147,9 +124,7 @@ def load_pretrained_model(
                     model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs
                 )
             else:
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_base, use_fast=False, legacy=False
-                )
+                tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False, legacy=False)
                 model = LlavaLlamaForCausalLM.from_pretrained(
                     model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs
                 )
@@ -159,31 +134,23 @@ def load_pretrained_model(
             if "mpt" in model_name.lower():
                 # config._attn_implementation = "flash_attention_2"
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
-                model = LlavaMPTForCausalLM.from_pretrained(
-                    model_path, config=config, low_cpu_mem_usage=True, **kwargs
-                )
+                model = LlavaMPTForCausalLM.from_pretrained(model_path, config=config, low_cpu_mem_usage=True, **kwargs)
             elif "mistral" in model_name.lower() or "mixtral" in model_name.lower():
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
                 model = LlavaMistralForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
             elif "gemma" in model_name.lower():
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
                 model = LlavaGemmaForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
             else:
                 # kentang-mit@: llama-2 model
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
                 model = LlavaLlamaForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
@@ -194,9 +161,7 @@ def load_pretrained_model(
             from peft import PeftModel
 
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False)
-            model = AutoModelForCausalLM.from_pretrained(
-                model_base, low_cpu_mem_usage=True, **kwargs
-            )
+            model = AutoModelForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, **kwargs)
             print(f"Loading LoRA weights from {model_path}")
             model = PeftModel.from_pretrained(model, model_path)
             print(f"Merging weights")
@@ -211,12 +176,8 @@ def load_pretrained_model(
                     model_path, low_cpu_mem_usage=True, trust_remote_code=True, **kwargs
                 )
             else:
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_path, low_cpu_mem_usage=True, **kwargs
-                )
+                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
+                model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
 
     image_processor = None
 
@@ -226,9 +187,7 @@ def load_pretrained_model(
         if mm_use_im_patch_token:
             tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
         if mm_use_im_start_end:
-            tokenizer.add_tokens(
-                [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True
-            )
+            tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
         model.resize_token_embeddings(len(tokenizer))
 
         vision_tower = model.get_vision_tower()
@@ -252,4 +211,3 @@ def mm_config_wrapper(config: PretrainedConfig, kwargs: dict):
     ## siglip does not support device_map = "auto"
     if "siglip" in config.vision_tower.lower():
         kwargs["device_map"] = "cuda"
-

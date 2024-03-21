@@ -41,12 +41,15 @@ from transformers import PreTrainedTokenizer
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.datasets_mixture import DATASETS
-from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
-                                              load_yaml, process_single_sample)
+from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
 from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
@@ -571,11 +574,11 @@ class LazySupervisedDataset(Dataset):
             if num_frames < 8 + 1:
                 padding_frames = 8 + 1 - num_frames
                 padding_tensor = torch.zeros(
-                    video_outputs.size(0), 
-                    padding_frames, 
-                    video_outputs.size(2), 
-                    video_outputs.size(3), 
-                    dtype=torch.uint8
+                    video_outputs.size(0),
+                    padding_frames,
+                    video_outputs.size(2),
+                    video_outputs.size(3),
+                    dtype=torch.uint8,
                 )
                 video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
                 num_frames = video_outputs.shape[1]
@@ -1657,7 +1660,7 @@ class LazyVideoWebDataset(Dataset):
         num_video_frames = 8
 
         info = self.dataset[i]
-        
+
         # print(info)
         if ".mp4" in info:
             caption, video_path = info[".txt"], info[".mp4"]
@@ -1665,11 +1668,14 @@ class LazyVideoWebDataset(Dataset):
             video_path = None
             caption = "Empty video."
 
-
-        if 'ego' in self.data_path:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
+        if "ego" in self.data_path:
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(
+                video_path, num_video_frames, self.data_args, use_decord=False
+            )
         else:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(
+                video_path, num_video_frames, self.data_args
+            )
 
         if not video_loading_succeed:
             caption = "Empty video."
@@ -1834,8 +1840,7 @@ def build_datasets(
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import \
-                LazyCoyoWebRecapDataset
+            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
 
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
