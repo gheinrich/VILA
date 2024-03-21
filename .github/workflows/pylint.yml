@@ -1,6 +1,7 @@
 name: Lint and Commit (for PR)
 # on: [push, pull_request]
-on: [pull_request, ]
+# on: [pull_request, ]
+on: [label, ]
 # if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
 
 # run only one unit test for a branch / tag.
@@ -11,7 +12,6 @@ concurrency:
   
 jobs:
   changedfiles:
-    if: github.event.pull_request.merged == true && github.event.action == 'closed'
     # https://dev.to/scienta/get-changed-files-in-github-actions-1p36
     runs-on: ubuntu-latest
     # Map a step output to a job output
