@@ -14,7 +14,7 @@ on:
 
 # run only one unit test for a branch / tag.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-lint-${{ github.ref }}
   cancel-in-progress: true
   
 jobs:

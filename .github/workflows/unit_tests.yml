@@ -3,7 +3,7 @@ on: [pull_request, ]
 
 # run only one unit test for a branch / tag.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-unit_test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
