@@ -1,7 +1,14 @@
 name: Lint and Commit (for PR)
 # on: [push, pull_request]
 on: [pull_request, ]
+if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
 
+# run only one unit test for a branch / tag.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+  
 jobs:
   changedfiles:
     # https://dev.to/scienta/get-changed-files-in-github-actions-1p36
