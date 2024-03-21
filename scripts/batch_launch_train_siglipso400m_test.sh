@@ -7,7 +7,7 @@
 #SBATCH --partition=grizzly,polar,grizzly2,polar2,polar3,polar4
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
-#SBATCH --output=video-training-test-5.out
+#SBATCH --output=video-training-test-6.out
 
 
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/2_train_mmc4_coyo_sharegpt4v_ego4d_vicuna_siglipso400m_test.sh

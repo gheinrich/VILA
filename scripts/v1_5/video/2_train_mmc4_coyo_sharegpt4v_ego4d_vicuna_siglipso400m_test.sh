@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e11111 \
+    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-video-linear-e11112 \
     --version v1 \
     --data_mixture ego4d_1M \
     --vision_tower google/siglip-so400m-patch14-384 \
@@ -35,7 +35,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_10M_ego4d_1M-linear-e2-test \
+    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_10M_ego4d_1M-linear-e3-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

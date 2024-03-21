@@ -40,6 +40,7 @@ from llava.train.utils import (
     get_checkpoint_path,
     prepare_vision_tower_config,
     vision_resolution_elevation,
+    unit_test_rope_scaling,
 )
 
 import math
@@ -278,6 +279,13 @@ def train():
         **bnb_model_from_pretrained_args,
     )
     vision_resolution_elevation(model, config)
+
+    # This is an empty func.
+    # It would be overwritten by unit test script.
+    if unit_test_rope_scaling(model, config, training_args):
+        return
+
+    # Take a look on model architecture.
     print(model)
 
     model.config.use_cache = False
