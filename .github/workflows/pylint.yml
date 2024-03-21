@@ -1,7 +1,7 @@
 name: Lint and Commit (for PR)
 # on: [push, pull_request]
-# on: [pull_request, ]
-on: [label, ]
+on: [pull_request, ]
+# on: [label, ]
 # if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
 
 # run only one unit test for a branch / tag.
