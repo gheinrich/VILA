@@ -1,8 +1,9 @@
-from datasets import load_dataset, concatenate_datasets
+import json
 import os
 import pickle
+
 import torch
-import json
+from datasets import concatenate_datasets, load_dataset
 from tqdm import tqdm
 
 # download M3IT to the dataset_path directory
@@ -24,7 +25,7 @@ dataset_types = [
     "vqa",
     "vqa",
     "vqa",
-    "vqa"
+    "vqa",
 ]
 dataset_names = [
     "image-paragraph-captioning",
@@ -42,7 +43,6 @@ dataset_names = [
     "viquae",
     "vqa-v2",
 ]
-
 
 
 assert len(dataset_types) == len(dataset_names)
@@ -66,4 +66,3 @@ for dataset_type, dataset_name in zip(dataset_types, dataset_names):
     save_filename = os.path.join(save_path, save_filename)
     with open(save_filename, "wb") as f:
         pickle.dump(dataset, f)
-    

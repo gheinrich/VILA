@@ -5,12 +5,13 @@ import unittest
 import shortuuid
 import torch
 import torch.nn as nn
+from tqdm import tqdm
+from transformers import AutoConfig
+
 from llava.model import LlavaConfig, LlavaLlamaForCausalLM
 from llava.train.args import ModelArguments
 from llava.train.utils import get_checkpoint_path, prepare_vision_tower_config
 from llava.unit_test_utils import requires_gpu
-from tqdm import tqdm
-from transformers import AutoConfig
 
 torch.manual_seed(1)
 if torch.cuda.is_available():

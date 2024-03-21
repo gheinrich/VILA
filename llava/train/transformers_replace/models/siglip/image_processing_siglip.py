@@ -16,33 +16,34 @@
 
 from typing import Dict, List, Optional, Union
 
+import numpy as np
+
 from ...image_processing_utils import BaseImageProcessor, BatchFeature, get_size_dict
 from ...image_transforms import (
     center_crop,
-    resize,
-    rescale,
-    normalize,
-    to_channel_dimension_format,
-    get_resize_output_image_size,
-    get_channel_dimension_axis,
     convert_to_rgb,
+    get_channel_dimension_axis,
+    get_resize_output_image_size,
+    normalize,
+    rescale,
+    resize,
+    to_channel_dimension_format,
 )
+from ...image_utils import IMAGENET_STANDARD_MEAN  # is_scaled_image,
 from ...image_utils import (
-    IMAGENET_STANDARD_MEAN,
     IMAGENET_STANDARD_STD,
     ChannelDimension,
     ImageInput,
     PILImageResampling,
     infer_channel_dimension_format,
-    # is_scaled_image,
     make_list_of_images,
     to_numpy_array,
     valid_images,
 )
 from ...utils import TensorType, is_vision_available, logging
-import numpy as np
 
 logger = logging.get_logger(__name__)
+
 
 def is_scaled_image(image: np.ndarray) -> bool:
     """
@@ -109,7 +110,7 @@ class SiglipImageProcessor(BaseImageProcessor):
         size = get_size_dict(size, default_to_square=False)
         image_mean = image_mean if image_mean is not None else IMAGENET_STANDARD_MEAN
         image_std = image_std if image_std is not None else IMAGENET_STANDARD_STD
-        
+
         self.do_resize = do_resize
         self.size = size
         self.resample = resample
@@ -229,7 +230,6 @@ class SiglipImageProcessor(BaseImageProcessor):
         image_std = image_std if image_std is not None else self.image_std
         do_convert_rgb = do_convert_rgb if do_convert_rgb is not None else self.do_convert_rgb
 
-
         images = make_list_of_images(images)
 
         if not valid_images(images):
@@ -263,7 +263,7 @@ class SiglipImageProcessor(BaseImageProcessor):
         # if input_data_format is None:
         #     # We assume that all images have the same channel dimension format.
         #     input_data_format = infer_channel_dimension_format(images[0])
-        
+
         if do_resize:
             images = [self.resize(image=image, size=size, resample=resample) for image in images]
 
@@ -275,7 +275,7 @@ class SiglipImageProcessor(BaseImageProcessor):
             for image in images:
                 if get_channel_dimension_axis(image) == 0:
                     image = image.transpose((1, 2, 0))
-                if image.shape[-1] == 1:    
+                if image.shape[-1] == 1:
                     image = np.dstack((image, image, image))
                 output_images.append(image)
             images = output_images
@@ -296,7 +296,6 @@ class SiglipImageProcessor(BaseImageProcessor):
             images = [normalize(image=image, mean=image_mean, std=image_std) for image in images]
 
         images = [to_channel_dimension_format(image, data_format) for image in images]
-
 
         data = {"pixel_values": images}
         return BatchFeature(data=data, tensor_type=return_tensors)

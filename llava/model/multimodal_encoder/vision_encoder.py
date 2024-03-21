@@ -1,13 +1,13 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 from abc import abstractmethod
-from transformers import AutoConfig, PreTrainedModel
-from transformers.image_processing_utils import BaseImageProcessor
-from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
-from accelerate.hooks import add_hook_to_module
 
 import torch
 import torch.nn as nn
+from accelerate.hooks import add_hook_to_module
+from transformers import AutoConfig, PreTrainedModel
+from transformers.image_processing_utils import BaseImageProcessor
+from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 
 class VisionTower(nn.Module):
@@ -53,7 +53,8 @@ class VisionTower(nn.Module):
             case "linear":
                 ## Step 1: Calculate the corresponding patch ID (pid) in the current resolution (M patches) based on the target resolution (N patches). Formula: pid = pid / N * M
                 ## Step 2:  Obtain new embeddings by interpolating between the embeddings of the two nearest calculated patch IDs. Formula: new_embeds = (pid - floor(pid)) * embeds[ceil(pid)] + (ceil(pid) - pid) * embeds[floor(pid)]
-                import torch, torch.nn as nn
+                import torch
+                import torch.nn as nn
 
                 if is_deepspeed_zero3_enabled():
                     import deepspeed

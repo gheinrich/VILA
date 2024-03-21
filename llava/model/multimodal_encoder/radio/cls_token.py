@@ -11,10 +11,12 @@ from torch import nn
 
 
 class ClsToken(nn.Module):
-    def __init__(self, ndim: int,
-                 num_tokens: int = 1,
-                 enabled: bool = True,
-                 register_multiple: int = 0,
+    def __init__(
+        self,
+        ndim: int,
+        num_tokens: int = 1,
+        enabled: bool = True,
+        register_multiple: int = 0,
     ):
         super().__init__()
 
@@ -26,7 +28,7 @@ class ClsToken(nn.Module):
             if register_multiple > 0:
                 self.num_registers = register_multiple - (num_tokens % register_multiple)
 
-            scale = ndim ** -0.5
+            scale = ndim**-0.5
             self.token = nn.Parameter(torch.randn(num_tokens + self.num_registers, ndim) * scale)
         else:
             self.token = None
@@ -42,20 +44,23 @@ class ClsToken(nn.Module):
             return x
 
         token = self.token.unsqueeze(0).expand(x.shape[0], -1, -1)
-        x = torch.cat([
-            token,
-            x,
-        ], dim=1)
+        x = torch.cat(
+            [
+                token,
+                x,
+            ],
+            dim=1,
+        )
 
         return x
 
     def no_weight_decay(self):
         return [
-            'token',
+            "token",
         ]
 
     def init_from_cls_token(self, cls_token: torch.Tensor):
         if not self.enabled:
             return
 
-        self.token.data[:self.num_tokens].copy_(cls_token)
+        self.token.data[: self.num_tokens].copy_(cls_token)

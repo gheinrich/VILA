@@ -7,10 +7,11 @@ import sys
 
 import torch
 import transformers
+from pytorchvideo.data.encoded_video import EncodedVideo
+
 from llava import conversation as conversation_lib
 from llava.train import arguments, dataset, datasets_mixture
 from llava.train.token_config import DEFAULT_IMAGE_PATCH_TOKEN
-from pytorchvideo.data.encoded_video import EncodedVideo
 
 video_path = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/VideoInstruct100K.json"
 video_path_out = "/home/jasonlu/video_datasets/Video_ChatGPT/VideoInstruct-100K/filtered_VideoInstruct100K.json"

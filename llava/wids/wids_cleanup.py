@@ -73,9 +73,7 @@ class ExclusiveLock:
         os.unlink(self.lockfile)
 
 
-def create_cleanup_background_process(
-    pattern, maxsize=int(1e12), maxfiles=1000, every=60
-):
+def create_cleanup_background_process(pattern, maxsize=int(1e12), maxfiles=1000, every=60):
     """Create a background process that keeps a directory below a certain size."""
 
     def cleanup_worker(every):
