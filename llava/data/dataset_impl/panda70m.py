@@ -32,13 +32,9 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
@@ -59,6 +55,7 @@ def str2time(s):
 
 def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
     import torch
+
     # video_path = io.BytesIO(open(video_path, "rb").read())
     timestamps = jfino["timestamp"][idx]
     caption = jfino["caption"][idx]
@@ -66,9 +63,7 @@ def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
     begin_t, begin_s = str2time(timestamps[0])
     end_t, end_s = str2time(timestamps[1])
     try:
-        video = VILAEncodedVideo.from_bytesio(
-            video_path, decoder="decord", decode_audio=False
-        )
+        video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
         duration = float(video.duration)
         # print("DEBUG", duration)
         assert duration >= 0.25
@@ -139,8 +134,7 @@ class VILAPanda70m(Dataset):
         image_tensor = imgs
         processor = self.data_args.image_processor
         image_tensor = [
-            processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-            for image in torch.unbind(image_tensor)
+            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
         ]
         image_tensor = torch.stack(image_tensor)
 
@@ -169,7 +163,7 @@ def cleanup_corrupted_videos(
     total=-1,
 ):
     workdir = osp.expanduser(workdir)
-    print("workdir" ,workdir)
+    print("workdir", workdir)
     video_list = glob.glob(f"{workdir}/*.mp4")
     video_list = sorted(video_list)
     if total > 0:
@@ -191,14 +185,10 @@ def cleanup_corrupted_videos(
             jinfo = json.load(open(json_path, "r"))
             info = with_opencv(video_path)
             print(info)
-            video = VILAEncodedVideo.from_bytesio(
-                video_path, decoder="decord", decode_audio=False
-            )
+            video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
         except RuntimeError as e:
             debug_info[video_path] = str(e)
-            print(
-                f"!! deleting wrong [{idx}/{len(video_list)}]", video_path
-            )  # , type(e))
+            print(f"!! deleting wrong [{idx}/{len(video_list)}]", video_path)  # , type(e))
             os.remove(video_path)
             os.remove(json_path)
             # input()
@@ -232,9 +222,7 @@ def split_video_to_clips(
         jinfo = json.load(open(json_path, "r"))
         info = with_opencv(video_path)
         print(info)
-        video = VILAEncodedVideo.from_bytesio(
-            video_path, decoder="decord", decode_audio=False
-        )
+        video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
 
         print(jinfo)
 

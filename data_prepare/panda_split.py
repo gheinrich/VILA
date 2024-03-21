@@ -36,13 +36,9 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
@@ -54,12 +50,14 @@ from llava.train.args import DataArguments, TrainingArguments
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 SPLIT = "panda70m_testing"
 
+
 def with_opencv(filename):
     video = cv2.VideoCapture(filename)
     fps = video.get(cv2.CAP_PROP_FPS)
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     duration = frame_count / fps
     return duration, fps, frame_count
+
 
 def split_video_to_clips(
     workdir=osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_training_2m"),
@@ -86,11 +84,10 @@ def split_video_to_clips(
         print(jinfo)
         info = with_opencv(video_path)
         print(info)
-        video = VILAEncodedVideo.from_bytesio(
-            video_path, decoder="decord", decode_audio=False
-        )
-        
+        video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
+
         return
+
 
 if __name__ == "__main__":
     # WORKDIR=osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_testing")

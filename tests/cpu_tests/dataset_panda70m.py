@@ -56,8 +56,7 @@ def test_make_supervised_data_module(dataset_name, max_samples=-1):
     for idx, batch in enumerate(dloader):
         if max_samples > 0 and idx > min(max_samples, dloader_len):
             break
-        
-        
+
         info = []
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
