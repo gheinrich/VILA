@@ -1,29 +1,34 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import argparse
-import math
-import os
-from typing import Dict, Tuple
-
 import torch
-from datasets import load_dataset
-from mmengine import dump
+import os
 from tqdm import tqdm
-from transformers import PretrainedConfig, PreTrainedTokenizer
-from transformers.image_processing_utils import BaseImageProcessor
 
-from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
-from llava.conversation import Conversation, SeparatorStyle, conv_templates
-from llava.mm_utils import (
-    KeywordsStoppingCriteria,
-    get_model_name_from_path,
-    is_gemma_tokenizer,
-    process_images,
-    tokenizer_image_token,
+from llava.constants import (
+    IMAGE_TOKEN_INDEX,
+    DEFAULT_IMAGE_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IM_END_TOKEN,
 )
+from llava.conversation import conv_templates, SeparatorStyle
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
+from llava.mm_utils import (
+    tokenizer_image_token,
+    process_images,
+    get_model_name_from_path,
+    is_gemma_tokenizer,
+    KeywordsStoppingCriteria,
+)
 
+import math
+from mmengine import dump
+from datasets import load_dataset
+from typing import Dict, Tuple
+from transformers import PretrainedConfig, PreTrainedTokenizer
+from transformers.image_processing_utils import BaseImageProcessor
+from llava.conversation import Conversation
 from .mathvista_utils.extract_answer import extract_answer
 
 
@@ -51,7 +56,13 @@ def process_data(
     ## preprocess text
     qs = data["query"]
     if model_config.mm_use_im_start_end:
-        qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + "\n" + qs
+        qs = (
+            DEFAULT_IM_START_TOKEN
+            + DEFAULT_IMAGE_TOKEN
+            + DEFAULT_IM_END_TOKEN
+            + "\n"
+            + qs
+        )
     else:
         qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
 
@@ -59,7 +70,9 @@ def process_data(
     conv.append_message(conv.roles[0], qs)
     conv.append_message(conv.roles[1], None)
     prompt = conv.get_prompt()
-    input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0)
+    input_ids = tokenizer_image_token(
+        prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+    ).unsqueeze(0)
 
     return input_ids, image_tensor
 
@@ -69,14 +82,20 @@ def eval_model(args):
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(
+        model_path, model_name, args.model_base
+    )
 
     data = load_dataset(os.path.expanduser(args.data_file))[args.split]
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     answer_dict = {}
 
-    if "plain" in model_name and "finetune" not in model_name.lower() and "mmtag" not in args.conv_mode:
+    if (
+        "plain" in model_name
+        and "finetune" not in model_name.lower()
+        and "mmtag" not in args.conv_mode
+    ):
         args.conv_mode = args.conv_mode + "_mmtag"
         print(
             f"It seems that this is a plain model, but it is not using a mmtag prompt, auto switching to {args.conv_mode}."
@@ -106,7 +125,9 @@ def eval_model(args):
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
-                images=image_tensor.to(dtype=torch.float16, device="cuda", non_blocking=True),
+                images=image_tensor.to(
+                    dtype=torch.float16, device="cuda", non_blocking=True
+                ),
                 do_sample=True if args.temperature > 0 else False,
                 temperature=args.temperature,
                 top_p=args.top_p,
@@ -117,10 +138,16 @@ def eval_model(args):
             )
 
         input_token_len = input_ids.shape[1]
-        n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
+        n_diff_input_output = (
+            (input_ids != output_ids[:, :input_token_len]).sum().item()
+        )
         if n_diff_input_output > 0:
-            print(f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids")
-        outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
+            print(
+                f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids"
+            )
+        outputs = tokenizer.batch_decode(
+            output_ids[:, input_token_len:], skip_special_tokens=True
+        )[0]
         outputs = outputs.strip()
         res = extract_answer(outputs, d)
         d["extraction"] = res
@@ -132,7 +159,9 @@ def eval_model(args):
     if args.split == "testmini":
         from .mathvista_utils.calculate_score import simple_calculate_score
 
-        simple_calculate_score(answer_dict, answers_file.split(".json")[0] + "_scores.json")
+        simple_calculate_score(
+            answer_dict, answers_file.split(".json")[0] + "_scores.json"
+        )
 
 
 if __name__ == "__main__":

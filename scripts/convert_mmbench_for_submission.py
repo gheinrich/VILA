@@ -1,9 +1,7 @@
-import argparse
-import json
 import os
-
+import json
+import argparse
 import pandas as pd
-
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -14,17 +12,16 @@ def get_args():
 
     return parser.parse_args()
 
-
 if __name__ == "__main__":
     args = get_args()
 
     df = pd.read_table(args.annotation_file)
 
     cur_df = df.copy()
-    cur_df = cur_df.drop(columns=["hint", "category", "source", "image", "comment", "l2-category"])
-    cur_df.insert(6, "prediction", None)
+    cur_df = cur_df.drop(columns=['hint', 'category', 'source', 'image', 'comment', 'l2-category'])
+    cur_df.insert(6, 'prediction', None)
     for pred in open(os.path.join(args.result_dir, f"{args.experiment}.jsonl")):
         pred = json.loads(pred)
-        cur_df.loc[df["index"] == pred["question_id"], "prediction"] = pred["text"]
+        cur_df.loc[df['index'] == pred['question_id'], 'prediction'] = pred['text']
 
-    cur_df.to_excel(os.path.join(args.upload_dir, f"{args.experiment}_upload.xlsx"), index=False, engine="openpyxl")
+    cur_df.to_excel(os.path.join(args.upload_dir, f"{args.experiment}_upload.xlsx"), index=False, engine='openpyxl')

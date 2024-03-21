@@ -1,11 +1,10 @@
-import json
 import os
-import pickle
-import re
-import time
-
 import cv2
+import json
+import time
+import pickle
 import openai
+import re
 from word2number import w2n
 
 
@@ -65,7 +64,9 @@ def contains_digit(text):
 def contains_number_word(text):
     # check if text contains a number word
     ignore_words = ["a", "an", "point"]
-    words = re.findall(r"\b\w+\b", text)  # This regex pattern matches any word in the text
+    words = re.findall(
+        r"\b\w+\b", text
+    )  # This regex pattern matches any word in the text
     for word in words:
         if word in ignore_words:
             continue
@@ -84,69 +85,29 @@ def contains_number_word(text):
 
 def contains_quantity_word(text, special_keep_words=[]):
     # check if text contains a quantity word
-    quantity_words = [
-        "most",
-        "least",
-        "fewest" "more",
-        "less",
-        "fewer",
-        "largest",
-        "smallest",
-        "greatest",
-        "larger",
-        "smaller",
-        "greater",
-        "highest",
-        "lowest",
-        "higher",
-        "lower",
-        "increase",
-        "decrease",
-        "minimum",
-        "maximum",
-        "max",
-        "min",
-        "mean",
-        "average",
-        "median",
-        "total",
-        "sum",
-        "add",
-        "subtract",
-        "difference",
-        "quotient",
-        "gap",
-        "half",
-        "double",
-        "twice",
-        "triple",
-        "square",
-        "cube",
-        "root",
-        "approximate",
-        "approximation",
-        "triangle",
-        "rectangle",
-        "circle",
-        "square",
-        "cube",
-        "sphere",
-        "cylinder",
-        "cone",
-        "pyramid",
-        "multiply",
-        "divide",
-        "percentage",
-        "percent",
-        "ratio",
-        "proportion",
-        "fraction",
-        "rate",
-    ]
-
+    quantity_words = ["most", "least", "fewest"
+                      "more", "less", "fewer", 
+                      "largest", "smallest", "greatest", 
+                      "larger", "smaller", "greater", 
+                      "highest", "lowest", "higher", "lower",
+                      "increase", "decrease",
+                      "minimum", "maximum", "max", "min",
+                      "mean", "average", "median",
+                      "total", "sum", "add", "subtract",
+                      "difference", "quotient", "gap",
+                      "half", "double", "twice", "triple",
+                      "square", "cube", "root",
+                      "approximate", "approximation",
+                      "triangle", "rectangle", "circle", "square", "cube", "sphere", "cylinder", "cone", "pyramid",
+                      "multiply", "divide",
+                      "percentage", "percent", "ratio", "proportion", "fraction", "rate", 
+                    ]
+    
     quantity_words += special_keep_words  # dataset specific words
 
-    words = re.findall(r"\b\w+\b", text)  # This regex pattern matches any word in the text
+    words = re.findall(
+        r"\b\w+\b", text
+    )  # This regex pattern matches any word in the text
     if any(word in quantity_words for word in words):
         return True
 
@@ -154,7 +115,9 @@ def contains_quantity_word(text, special_keep_words=[]):
 
 
 def is_bool_word(text):
-    if text in ["Yes", "No", "True", "False", "yes", "no", "true", "false", "YES", "NO", "TRUE", "FALSE"]:
+    if text in ["Yes", "No", "True", "False", 
+                "yes", "no", "true", "false", 
+                "YES", "NO", "TRUE", "FALSE"]:
         return True
     return False
 
@@ -204,14 +167,7 @@ def get_image_size(img_path):
 
 
 def get_chat_response(
-    prompt,
-    client,
-    model="gpt-3.5-turbo",
-    temperature=0,
-    max_tokens=256,
-    n=1,
-    patience=10000000,
-    sleep_time=0,
+    prompt, client, model="gpt-3.5-turbo", temperature=0, max_tokens=256, n=1, patience=10000000,sleep_time=0,
 ):
     messages = [
         {"role": "user", "content": prompt},
@@ -232,7 +188,9 @@ def get_chat_response(
                 if prediction != "" and prediction != None:
                     return prediction
             else:
-                prediction = [choice.message.content.strip() for choice in response.choices]
+                prediction = [
+                    choice.message.content.strip() for choice in response.choices
+                ]
                 if prediction[0] != "" and prediction[0] != None:
                     return prediction
 

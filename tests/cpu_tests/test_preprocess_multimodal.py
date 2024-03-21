@@ -2,7 +2,8 @@ import unittest
 
 import torch
 
-from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN)
 from llava.data.dataset import preprocess_multimodal
 from llava.train.args import ModelArguments
 

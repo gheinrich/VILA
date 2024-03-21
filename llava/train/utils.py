@@ -1,11 +1,10 @@
 import os
-import pathlib
 import re
+import pathlib
 from dataclasses import dataclass
-
-from accelerate.hooks import add_hook_to_module
 from transformers import PretrainedConfig, PreTrainedModel
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
+from accelerate.hooks import add_hook_to_module
 
 
 def rprint(*args, **kwargs):
@@ -33,7 +32,9 @@ def is_local(model_name_or_path: str) -> bool:
     return os.path.isdir(model_name_or_path)
 
 
-def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") -> str | None:
+def get_checkpoint_path(
+    output_dir: str, checkpoint_prefix: str = "checkpoint"
+) -> str | None:
     pathlib_dir = pathlib.Path(output_dir)
 
     if list(pathlib_dir.glob("config.json")):
@@ -42,7 +43,9 @@ def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") 
         try:
             ordering_and_checkpoint_path = []
             glob_checkpoints = [
-                str(x) for x in pathlib.Path(output_dir).glob(f"{checkpoint_prefix}-*") if os.path.isdir(x)
+                str(x)
+                for x in pathlib.Path(output_dir).glob(f"{checkpoint_prefix}-*")
+                if os.path.isdir(x)
             ]
             for path in glob_checkpoints:
                 regex_match = re.match(f".*{checkpoint_prefix}-([0-9]+)", path)
@@ -54,7 +57,9 @@ def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") 
             return None
 
 
-def prepare_vision_tower_config(config: PretrainedConfig, model_args: dataclass) -> None:
+def prepare_vision_tower_config(
+    config: PretrainedConfig, model_args: dataclass
+) -> None:
     config.mm_vision_select_layer = model_args.mm_vision_select_layer
     config.mm_vision_select_feature = model_args.mm_vision_select_feature
 
@@ -76,7 +81,6 @@ def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig
             resolution=getattr(config, "vision_resolution", -1),
             interpolate_mode=getattr(config, "interpolate_mode", "linear"),
         )
-
 
 def unit_test_rope_scaling(model: PreTrainedModel, config: PretrainedConfig, training_args: dataclass):
     return False

@@ -35,6 +35,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
+
 # Integrations must be imported before ML frameworks:
 # isort: off
 from .integrations import (
@@ -152,6 +153,7 @@ from .utils import (
 )
 from .utils.quantization_config import QuantizationMethod
 
+
 DEFAULT_CALLBACKS = [DefaultFlowCallback]
 DEFAULT_PROGRESS_CALLBACK = ProgressCallback
 
@@ -192,9 +194,8 @@ if is_peft_available():
 
 
 if is_accelerate_available():
-    from accelerate import Accelerator
+    from accelerate import Accelerator, skip_first_batches
     from accelerate import __version__ as accelerate_version
-    from accelerate import skip_first_batches
     from accelerate.utils import (
         DistributedDataParallelKwargs,
         DistributedType,
@@ -1249,6 +1250,7 @@ class Trainer:
                 raise ValueError("For sweeps with deepspeed, `args.deepspeed` must be set")
             # Rebuild the deepspeed config to reflect the updated training parameters
             from accelerate.utils import DeepSpeedPlugin
+
             from transformers.integrations.deepspeed import HfTrainerDeepSpeedConfig
 
             self.args.hf_deepspeed_config = HfTrainerDeepSpeedConfig(self.args.deepspeed)
@@ -1407,7 +1409,10 @@ class Trainer:
             try:
                 from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
                 from torch_xla.distributed.fsdp import checkpoint_module
-                from torch_xla.distributed.fsdp.wrap import size_based_auto_wrap_policy, transformer_auto_wrap_policy
+                from torch_xla.distributed.fsdp.wrap import (
+                    size_based_auto_wrap_policy,
+                    transformer_auto_wrap_policy,
+                )
 
                 if self.is_fsdp_xla_v2_enabled:
                     from torch_xla.experimental.spmd_fully_sharded_data_parallel import (
@@ -1489,7 +1494,9 @@ class Trainer:
 
             xm.optimizer_step = patched_optimizer_step
         elif is_sagemaker_dp_enabled():
-            model = nn.parallel.DistributedDataParallel(model, device_ids=[int(os.getenv("SMDATAPARALLEL_LOCAL_RANK"))])
+            model = nn.parallel.DistributedDataParallel(
+                model, device_ids=[int(os.getenv("SMDATAPARALLEL_LOCAL_RANK"))]
+            )
         elif self.args.parallel_mode == ParallelMode.DISTRIBUTED:
             if is_torch_neuroncore_available():
                 return model
@@ -1900,7 +1907,9 @@ class Trainer:
                 self._past = None
 
             steps_in_epoch = (
-                len(epoch_iterator) if len_dataloader is not None else args.max_steps * args.gradient_accumulation_steps
+                len(epoch_iterator)
+                if len_dataloader is not None
+                else args.max_steps * args.gradient_accumulation_steps
             )
             self.control = self.callback_handler.on_epoch_begin(args, self.state, self.control)
 
@@ -1996,7 +2005,10 @@ class Trainer:
                                 args.max_grad_norm,
                             )
 
-                        if is_accelerate_available() and self.accelerator.distributed_type == DistributedType.DEEPSPEED:
+                        if (
+                            is_accelerate_available()
+                            and self.accelerator.distributed_type == DistributedType.DEEPSPEED
+                        ):
                             grad_norm = model.get_global_grad_norm()
                         else:
                             grad_norm = _grad_norm.item() if _grad_norm is not None else None
@@ -2367,7 +2379,9 @@ class Trainer:
             else:
                 logger.warning(f"There were missing keys in the checkpoint model loaded: {load_result.missing_keys}.")
         if len(load_result.unexpected_keys) != 0:
-            logger.warning(f"There were unexpected keys in the checkpoint model loaded: {load_result.unexpected_keys}.")
+            logger.warning(
+                f"There were unexpected keys in the checkpoint model loaded: {load_result.unexpected_keys}."
+            )
 
     def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval):
         if self.control.should_log and self.state.global_step > self._globalstep_last_logged:
@@ -3068,7 +3082,9 @@ class Trainer:
                 else:
                     torch.save(state_dict, os.path.join(output_dir, WEIGHTS_NAME))
         else:
-            self.model.save_pretrained(output_dir, state_dict=state_dict, safe_serialization=self.args.save_safetensors)
+            self.model.save_pretrained(
+                output_dir, state_dict=state_dict, safe_serialization=self.args.save_safetensors
+            )
 
         if self.tokenizer is not None:
             self.tokenizer.save_pretrained(output_dir)
@@ -3446,7 +3462,9 @@ class Trainer:
                     )
                 if labels_host is not None:
                     labels = nested_numpify(labels_host)
-                    all_labels = labels if all_labels is None else nested_concat(all_labels, labels, padding_index=-100)
+                    all_labels = (
+                        labels if all_labels is None else nested_concat(all_labels, labels, padding_index=-100)
+                    )
 
                 # Set back to None to begin a new accumulation
                 losses_host, preds_host, inputs_host, labels_host = None, None, None, None

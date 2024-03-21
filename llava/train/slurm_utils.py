@@ -3,15 +3,19 @@ import logging
 import logging.handlers
 import os
 import sys
-import time
-import warnings
-
 import requests
-import torch
+import time
 import transformers
-from transformers.trainer_callback import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
 
+from transformers.trainer_callback import (
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
+    TrainingArguments,
+)
+import torch
+import warnings
 
 def get_rank():
     if not torch.distributed.is_initialized():
@@ -47,8 +51,7 @@ class Timer:
     def get_elapsed_time(self):
         if self.start_time is not None:
             return self.elapsed_time + (time.time() - self.start_time)
-
-
+        
 class TimeoutTerminateCallback(transformers.TrainerCallback):
     def __init__(self, args, total_time_limit=240, pre_terminate_time=10):
         self.training_args = args
@@ -58,15 +61,14 @@ class TimeoutTerminateCallback(transformers.TrainerCallback):
         self.timer.start()
 
         if args.local_rank == 0:
-            print(
-                f"Timer for terminate callback has been set.\nTotal limit: {total_time_limit}min\nPre terminate time: {pre_terminate_time}min"
-            )
+            print(f"Timer for terminate callback has been set.\nTotal limit: {total_time_limit}min\nPre terminate time: {pre_terminate_time}min")
 
         self.time_to_kill = (total_time_limit - pre_terminate_time) * 60
 
+
     def on_step_end(self, args, state, control, model, **kwargs):
         elapsed_time = self.timer.get_elapsed_time()
-
+        
         if elapsed_time > self.time_to_kill:
             if args.local_rank == 0:
                 print("Timeout, start to save checkpoint....")

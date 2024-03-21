@@ -1,7 +1,11 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
-from transformers import CLIPImageProcessor, CLIPVisionConfig, CLIPVisionModel, PretrainedConfig
-
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
+from transformers import (
+    PretrainedConfig,
+    CLIPVisionModel,
+    CLIPImageProcessor,
+    CLIPVisionConfig,
+)
 
 
 class CLIPVisionTower(VisionTower):
@@ -16,7 +20,9 @@ class CLIPVisionTower(VisionTower):
             assert (
                 getattr(config, "resume_path", None) is not None
             ), "You are loading from a checkpoint, but resume_path is None!"
-            self.image_processor = CLIPImageProcessor.from_pretrained(config.resume_path)
+            self.image_processor = CLIPImageProcessor.from_pretrained(
+                config.resume_path
+            )
             vision_tower_cfg = CLIPVisionConfig.from_dict(vision_tower_cfg)
             self.vision_tower = CLIPVisionModel(vision_tower_cfg)
         self.is_loaded = True

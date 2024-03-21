@@ -9,15 +9,13 @@ import torch
 from datasets import concatenate_datasets, load_dataset
 from tqdm import tqdm
 
-from llava.eval.mmmu_utils.data_utils import (
-    CAT_SHORT2LONG,
-    construct_prompt,
-    load_yaml,
-    process_single_sample,
-    save_json,
-)
-from llava.eval.mmmu_utils.eval_utils import parse_multi_choice_response, parse_open_response
-from llava.eval.mmmu_utils.model_utils import call_llava_engine_df, llava_image_processor
+from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
+                                              load_yaml, process_single_sample,
+                                              save_json)
+from llava.eval.mmmu_utils.eval_utils import (parse_multi_choice_response,
+                                              parse_open_response)
+from llava.eval.mmmu_utils.model_utils import (call_llava_engine_df,
+                                               llava_image_processor)
 from llava.mm_utils import get_model_name_from_path
 from llava.model.builder import load_pretrained_model
 

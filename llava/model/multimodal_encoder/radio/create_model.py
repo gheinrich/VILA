@@ -1,11 +1,11 @@
-from timm.models import create_model
 from torch import nn
 
-from .enable_cpe_support import enable_cpe
+from timm.models import create_model
 
 # This will trigger timm's register_model, which allows these architectures
 # to be instantiated
 from .extra_timm_models import *
+from .enable_cpe_support import enable_cpe
 
 
 def create_model_from_args(args):
@@ -33,19 +33,18 @@ def create_model_from_args(args):
         **args.model_kwargs,
     )
 
-    if hasattr(model, "norm") and not getattr(args, "model_norm", False):
+    if hasattr(model, 'norm') and not getattr(args, 'model_norm', False):
         model.norm = nn.Identity()
 
-    assert (
-        not args.cls_token_per_teacher or args.cpe_max_size is not None
-    ), "CPE must be enabled for multiple CLS tokens!"
+    assert not args.cls_token_per_teacher or args.cpe_max_size is not None, "CPE must be enabled for multiple CLS tokens!"
 
     if args.cpe_max_size is not None:
-        enable_cpe(
-            model,
-            args.cpe_max_size,
-            num_cls_tokens=len(args.teachers) if args.cls_token_per_teacher else 1,
-            register_multiple=args.register_multiple,
+        enable_cpe(model,
+                   args.cpe_max_size,
+                   num_cls_tokens=len(args.teachers) if args.cls_token_per_teacher else 1,
+                   register_multiple=args.register_multiple,
         )
+
+
 
     return model

@@ -5,7 +5,6 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 import decord
-
 # from decord import VideoReader
 import numpy as np
 import torch

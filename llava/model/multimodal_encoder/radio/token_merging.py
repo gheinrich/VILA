@@ -1,9 +1,11 @@
+
 from typing import Callable, Tuple
 
 import torch
 
-
-def kth_bipartite_soft_matching(metric: torch.Tensor, k: int) -> Tuple[Callable, Callable]:
+def kth_bipartite_soft_matching(
+    metric: torch.Tensor, k: int
+) -> Tuple[Callable, Callable]:
     """
     https://github.com/facebookresearch/ToMe/blob/main/tome/merge.py
     Applies ToMe with the two sets as (every kth element, the rest).
@@ -60,3 +62,4 @@ def kth_bipartite_soft_matching(metric: torch.Tensor, k: int) -> Tuple[Callable,
         return out
 
     return merge, unmerge
+

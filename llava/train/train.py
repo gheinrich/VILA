@@ -14,35 +14,39 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import os
 import copy
+from dataclasses import dataclass, field
 import json
 import logging
-import math
-import os
 import pathlib
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Optional, Sequence, List
 
 import torch
 import transformers
-from peft import PeftModel
-from PIL import Image
-from torch.utils.data import Dataset
-from transformers import AutoConfig, AutoTokenizer, HfArgumentParser, LlamaForCausalLM
+
+from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
 from transformers.modeling_utils import unwrap_model
 
-from llava import conversation as conversation_lib
-from llava.data import DataCollatorForSupervisedDataset, make_supervised_data_module
-from llava.mm_utils import tokenizer_image_token
-from llava.model import *
-from llava.train.args import DataArguments, ModelArguments, TrainingArguments
+from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
+from llava.train.args import TrainingArguments, ModelArguments, DataArguments
+
+from llava import conversation as conversation_lib
+from llava.data import make_supervised_data_module, DataCollatorForSupervisedDataset
+from llava.model import *
+from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
     prepare_vision_tower_config,
-    unit_test_rope_scaling,
     vision_resolution_elevation,
+    unit_test_rope_scaling,
 )
+
+import math
+from peft import PeftModel
+from PIL import Image
+
 
 local_rank = None
 os.environ["WANDB_PROJECT"] = "VILA"
@@ -60,7 +64,9 @@ def maybe_zero_3(param, ignore_status=False, name=None):
     if hasattr(param, "ds_id"):
         if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
             if not ignore_status:
-                logging.warning(f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}")
+                logging.warning(
+                    f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}"
+                )
         with zero.GatheredParameters([param]):
             param = param.data.detach().cpu().clone()
     else:
@@ -98,13 +104,21 @@ def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
     if require_grad_only:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
+    to_return = {
+        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
+    }
     return to_return
 
 
 def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
-    to_return = {k: t for k, t in named_params if any(key_match in k for key_match in keys_to_match)}
-    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
+    to_return = {
+        k: t
+        for k, t in named_params
+        if any(key_match in k for key_match in keys_to_match)
+    }
+    to_return = {
+        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
+    }
     return to_return
 
 
@@ -154,8 +168,12 @@ def smart_tokenizer_and_embedding_resize(
         input_embeddings = model.get_input_embeddings().weight.data
         output_embeddings = model.get_output_embeddings().weight.data
 
-        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
+            dim=0, keepdim=True
+        )
+        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(
+            dim=0, keepdim=True
+        )
 
         input_embeddings[-num_new_tokens:] = input_embeddings_avg
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
@@ -168,7 +186,11 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     training_args.run_name = training_args.output_dir.split("/")[-1]
     local_rank = training_args.local_rank
-    compute_dtype = torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
+    compute_dtype = (
+        torch.float16
+        if training_args.fp16
+        else (torch.bfloat16 if training_args.bf16 else torch.float32)
+    )
 
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
@@ -195,15 +217,21 @@ def train():
     def context_length_extension(config):
         orig_ctx_len = getattr(config, "max_position_embeddings", None)
         if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
-            print(f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}")
-            scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
+            print(
+                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
+            )
+            scaling_factor = float(
+                math.ceil(training_args.model_max_length / orig_ctx_len)
+            )
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
 
     resume_path = get_checkpoint_path(training_args.output_dir)
     if resume_path:
         resume_from_checkpoint = True
         model_args.model_name_or_path = resume_path
-        config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
+        config = AutoConfig.from_pretrained(
+            model_args.model_name_or_path, trust_remote_code=True
+        )
         config.resume_path = resume_path
         model_cls = eval(config.architectures[0])
         torch.set_default_dtype(torch.bfloat16)
@@ -211,7 +239,9 @@ def train():
         ## first time training
         resume_from_checkpoint = False
         if "mpt" in model_args.model_name_or_path:
-            config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
+            config = AutoConfig.from_pretrained(
+                model_args.model_name_or_path, trust_remote_code=True
+            )
             config.attn_config["attn_impl"] = training_args.mpt_attn_impl
             model_cls = LlavaMPTForCausalLM
         elif "mistral" in model_args.model_name_or_path.lower():
@@ -273,7 +303,10 @@ def train():
 
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
-            if generation_config.temperature is not None and generation_config.temperature != 1.0:
+            if (
+                generation_config.temperature is not None
+                and generation_config.temperature != 1.0
+            ):
                 return True
             if generation_config.top_p is not None and generation_config.top_p != 1.0:
                 return True
@@ -287,9 +320,13 @@ def train():
         from peft import prepare_model_for_kbit_training
 
         model.config.torch_dtype = (
-            torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
+            torch.float32
+            if training_args.fp16
+            else (torch.bfloat16 if training_args.bf16 else torch.float32)
         )
-        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=training_args.gradient_checkpointing)
+        model = prepare_model_for_kbit_training(
+            model, use_gradient_checkpointing=training_args.gradient_checkpointing
+        )
 
     if training_args.gradient_checkpointing:
         if hasattr(model, "enable_input_require_grads"):
@@ -349,9 +386,13 @@ def train():
     else:
         tokenizer.pad_token = tokenizer.unk_token
         if model_args.version in conversation_lib.conv_templates:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
+            conversation_lib.default_conversation = conversation_lib.conv_templates[
+                model_args.version
+            ]
         else:
-            conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
+            conversation_lib.default_conversation = conversation_lib.conv_templates[
+                "vicuna_v1"
+            ]
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.pad_token_id = tokenizer.pad_token_id
@@ -367,9 +408,13 @@ def train():
         model.config.tokenizer_padding_side = tokenizer.padding_side
         model.config.tokenizer_model_max_length = tokenizer.model_max_length
         if training_args.bits in [4, 8]:
-            model.get_model().get_mm_projector().to(dtype=compute_dtype, device=training_args.device)
+            model.get_model().get_mm_projector().to(
+                dtype=compute_dtype, device=training_args.device
+            )
 
-        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = model_args.mm_use_im_start_end
+        model.config.mm_use_im_start_end = (
+            data_args.mm_use_im_start_end
+        ) = model_args.mm_use_im_start_end
         model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
@@ -394,7 +439,9 @@ def train():
         data_args=data_args,
         training_args=training_args,
     )
-    trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
+    trainer = LLaVATrainer(
+        model=model, tokenizer=tokenizer, args=training_args, **data_module
+    )
     print(
         "length of dataloader:",
         len(trainer.get_train_dataloader()),
@@ -414,8 +461,12 @@ def train():
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
 
     if training_args.lora_enable:
-        state_dict = get_peft_state_maybe_zero_3(model.named_parameters(), training_args.lora_bias)
-        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(model.named_parameters())
+        state_dict = get_peft_state_maybe_zero_3(
+            model.named_parameters(), training_args.lora_bias
+        )
+        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+            model.named_parameters()
+        )
         if training_args.local_rank == 0 or training_args.local_rank == -1:
             model.config.save_pretrained(training_args.output_dir)
             model.save_pretrained(training_args.output_dir, state_dict=state_dict)
@@ -424,7 +475,9 @@ def train():
                 os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
             )
     else:
-        safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+        safe_save_model_for_hf_trainer(
+            trainer=trainer, output_dir=training_args.output_dir
+        )
 
 
 if __name__ == "__main__":
