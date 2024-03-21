@@ -40,6 +40,7 @@ from llava.train.utils import (
     get_checkpoint_path,
     prepare_vision_tower_config,
     vision_resolution_elevation,
+    unit_test_rope_scaling,
 )
 
 import math
@@ -216,6 +217,9 @@ def train():
     def context_length_extension(config):
         orig_ctx_len = getattr(config, "max_position_embeddings", None)
         if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+            print(
+                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
+            )
             scaling_factor = float(
                 math.ceil(training_args.model_max_length / orig_ctx_len)
             )
@@ -267,14 +271,21 @@ def train():
                 model_cls = LlamaForCausalLM
 
     prepare_vision_tower_config(config, model_args)
+    context_length_extension(config)
     model = model_cls.from_pretrained(
         model_args.model_name_or_path,
         config=config,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    context_length_extension(config)
     vision_resolution_elevation(model, config)
+
+    # This is an empty func.
+    # It would be overwritten by unit test script.
+    if unit_test_rope_scaling(model, config, training_args):
+        return
+
+    # Take a look on model architecture.
     print(model)
 
     model.config.use_cache = False

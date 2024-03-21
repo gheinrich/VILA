@@ -22,11 +22,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5 \
+    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e11111 \
     --version v1 \
-    --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain+internvid_10M \
+    --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain+internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --pretrain_mm_mlp_adapter ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1111/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
     --tune_mm_projector True \
     --tune_language_model True \
@@ -36,7 +35,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_10M-linear-e1-test \
+    --output_dir ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_1300K-linear-e4-test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
@@ -53,5 +52,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --tf32 True \
     --model_max_length 8192 \
     --gradient_checkpointing True \
+    --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb

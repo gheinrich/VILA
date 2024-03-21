@@ -552,19 +552,33 @@ class LazySupervisedDataset(Dataset):
         return image
 
     @staticmethod
-    def _load_video(video_path, num_video_frames, data_args):
+    def _load_video(video_path, num_video_frames, data_args, use_decord=True):
         # decord.bridge.set_bridge("torch")
+        video_loading_succeed = True
         if "shortest_edge" in data_args.image_processor.size:
             image_size = data_args.image_processor.size["shortest_edge"]
         else:
             image_size = data_args.image_processor.size["height"]
         try:
-            video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            if use_decord:
+                video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            else:
+                video = EncodedVideo.from_path(video_path, decoder="pyav", decode_audio=False)
             duration = float(video.duration)
-            assert duration >= 0.25
+            # assert duration >= 0.25
             video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-            assert video_outputs.size(1) > 8
             num_frames = video_outputs.shape[1]
+            if num_frames < 8 + 1:
+                padding_frames = 8 + 1 - num_frames
+                padding_tensor = torch.zeros(
+                    video_outputs.size(0), 
+                    padding_frames, 
+                    video_outputs.size(2), 
+                    video_outputs.size(3), 
+                    dtype=torch.uint8
+                )
+                video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
+                num_frames = video_outputs.shape[1]
             # step = (num_frames - 1) // 8 + 1
             step = num_frames // 8
             num_frames = num_frames - (num_frames % 8)
@@ -574,6 +588,7 @@ class LazySupervisedDataset(Dataset):
             print(f"bad data path {video_path}")
             print(f"Error processing {video_path}: {e}")
             video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+            video_loading_succeed = False
 
         c, b, h, w = video_outputs.size()
         image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
@@ -581,7 +596,7 @@ class LazySupervisedDataset(Dataset):
         video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
         image_tensor[:, :, :, :] = video_frames
 
-        return image_tensor
+        return image_tensor, video_loading_succeed
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
@@ -600,7 +615,7 @@ class LazySupervisedDataset(Dataset):
                 video_file = sources[0]["video_id"] + ".mp4"
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
-            image_tensor = self._load_video(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
             processor = self.data_args.image_processor
 
             image_tensor = [
@@ -615,6 +630,9 @@ class LazySupervisedDataset(Dataset):
             else:
                 question = sources[0]["q"]
                 answer = sources[0]["a"]
+
+            if not video_loading_succeed:
+                answer = "Empty video."
 
             question = question.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
             question = question.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
@@ -1614,8 +1632,8 @@ class LazyVideoWebDataset(Dataset):
 
         print("total samples", len(self.dataset))
         # InternVid: TODO
-        rank = int(os.environ["RANK"]) if "RANK" in os.environ else 0
-        world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
+        rank = int(os.environ["RANK"]) if "RANK" in os.environ else 2
+        world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 32
 
         self.tokenizer = tokenizer
         self.data_args = data_args
@@ -1639,15 +1657,24 @@ class LazyVideoWebDataset(Dataset):
         num_video_frames = 8
 
         info = self.dataset[i]
-
+        
+        # print(info)
         if ".mp4" in info:
             caption, video_path = info[".txt"], info[".mp4"]
         else:
             video_path = None
             caption = "Empty video."
 
+
+        if 'ego' in self.data_path:
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
+        else:
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+
+        if not video_loading_succeed:
+            caption = "Empty video."
+
         prompt = "<image>\n" * num_video_frames + caption
-        image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
 
         processor = self.data_args.image_processor
         image_tensor = [

@@ -21,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vila-vicuna-7b-256gpus-mmc4-coyo \
+    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_1300K-linear-e4 \
     --version v1 \
     --data_mixture vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa \
     --vision_tower google/siglip-so400m-patch14-384 \

@@ -20,6 +20,13 @@ import numpy as np
 from torchvision.transforms import Resize
 from pytorchvideo.data.encoded_video import EncodedVideo
 
+import signal
+
+# This function will be called when the timeout is reached
+def handler(signum, frame):
+    raise TimeoutError()
+# Set the signal handler
+signal.signal(signal.SIGALRM, handler)
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
@@ -42,6 +49,8 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
         image_size = image_processor.size["height"]
 
     try:
+        # Set a timeout of 5 seconds
+        signal.alarm(30)
         video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
         duration = float(video.duration)
         assert duration >= 0.25
@@ -53,6 +62,11 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
         num_frames = num_frames - (num_frames % 8)
         indices = torch.floor(torch.arange(0, num_frames, step)).long()
         video_outputs = video_outputs[:, indices, :, :]
+        # Cancel the alarm if the code finishes within the timeout
+        signal.alarm(0)
+    except TimeoutError:
+        print(f'Timeout for video path {video_path}')
+        video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
     except Exception as e:
         print(f'bad data path {video_path}')
         print(f"Error processing {video_path}: {e}")
@@ -119,14 +133,28 @@ def eval_model(args):
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
 
-    gt_questions = json.load(open(args.gt_file_question, "r"))
+    gt_questions = json.load(open(os.path.expanduser(args.gt_file_question), "r"))
     gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
-    gt_answers = json.load(open(args.gt_file_answers, "r"))
+    gt_answers = json.load(open(os.path.expanduser(args.gt_file_answers), "r"))
     gt_answers = get_chunk(gt_answers, args.num_chunks, args.chunk_idx)
 
+    args.output_dir = os.path.expanduser(args.output_dir)
+    print(f"Output directory: {args.output_dir}")
+    args.video_dir = os.path.expanduser(args.video_dir)
+    print(f"Video directory: {args.video_dir}")
     answers_file = os.path.join(args.output_dir, f"{args.output_name}.json")
     os.makedirs(args.output_dir, exist_ok=True)
-    ans_file = open(answers_file, "w")
+    # Read cache answer file, each line is a json object
+    if os.path.exists(answers_file):
+        cache_ans_file = open(answers_file, "r")
+        cache_ans = cache_ans_file.readlines()
+        cache_ans_file.close()
+    else:
+        cache_ans = []
+
+    # Get cached video ids
+    cache_set = set([json.loads(line)['id'] for line in cache_ans])
+        
 
     # Create the output directory if it doesn't exist
     if not os.path.exists(args.output_dir):
@@ -135,6 +163,7 @@ def eval_model(args):
     # List to store the output results
     output_list = [] 
     video_formats = ['.mp4', '.avi', '.mov', '.mkv']
+
 
     # Iterate over each sample in the ground truth file
     index = 0
@@ -149,7 +178,17 @@ def eval_model(args):
 
         # Load the video file
         for fmt in tqdm(video_formats):  # Added this line
-            temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
+
+            if "Activitynet_Zero_Shot_QA" in args.video_dir:
+                temp_path = os.path.join(args.video_dir, f"{id.rsplit('_', 1)[0]}{fmt}")
+                if f"{id}" in cache_set:
+                    print(f"Skipping {id} because it is in the cache")
+                    continue
+            else:
+                temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
+                if f"{video_name}" in cache_set:
+                    print(f"Skipping {video_name} because it is in the cache")
+                    continue
             if os.path.exists(temp_path):
                 video_path = temp_path
                 # try:
@@ -159,11 +198,10 @@ def eval_model(args):
                 output_list.append(sample_set)
                 # except Exception as e:
                 #     print(f"Error processing video file '{video_name}': {e}")
-                ans_file.write(json.dumps(sample_set) + "\n")
+                    # Write into the answer file.
+                with open(answers_file, 'a') as f:
+                    f.write(json.dumps(sample_set) + "\n")
                 break
-
-    ans_file.close()
-
 
 
 if __name__ == "__main__":
