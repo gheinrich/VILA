@@ -81,3 +81,6 @@ def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig
             resolution=getattr(config, "vision_resolution", -1),
             interpolate_mode=getattr(config, "interpolate_mode", "linear"),
         )
+
+def unit_test_rope_scaling(model: PreTrainedModel, config: PretrainedConfig, training_args: dataclass):
+    return False

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=internvid-pretraining:nvr_lpr_aiagent
+#SBATCH --job-name=msvd-eval:nvr_lpr_aiagent
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
 #SBATCH --time=4:00:00

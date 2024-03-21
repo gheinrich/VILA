@@ -3,7 +3,7 @@
 partition=llmservice_nlp_fm
 report_file=dev/tmp.md
 
-export VILA_CI_RECIPIENTS="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com"
+export VILA_CI_RECIPIENTS="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com"
 # a@nvidia.com,b@nvidia.com,c@nvidia.com
 
 > $report_file

@@ -421,7 +421,6 @@ def register_datasets_mixtures():
         dataset_name="internvid_test",
         dataset_type="video-wds",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-8K-flt",
-        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-8K-flt-webds-meta',
         description="A tiny debug set of internvid with only 8K samples.",
     )
     add_dataset(internvid_test)
@@ -429,15 +428,21 @@ def register_datasets_mixtures():
         dataset_name="internvid_1300K",
         dataset_type="video-wds",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt",
-        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta',
         description="1M (not 1300K after cleaning) video-caption pairs from InternVid. We select the top-relevant 1M samples from the Intern-Vid-10M set.",
     )
     add_dataset(internvid_1300K)
-    internvid_1300K = Dataset(
+    internvid_10M = Dataset(
         dataset_name="internvid_10M",
         dataset_type="video-wds",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
-        # cache_path='/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta',
         description="10M (actually 8M) video-caption pairs from InternVid 10M dataset.",
     )
-    add_dataset(internvid_1300K)
+    add_dataset(internvid_10M)
+    ego4d_1M = Dataset(
+        dataset_name="ego4d_1M",
+        dataset_type="video-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v3/ego4d/ego4d_clips_tar/ego4d_1m",
+        description="A subset of Ego4D dataset including 1M video-caption pairs. We re-generate the captions by removing the speical characters.",
+    )
+    add_dataset(ego4d_1M)
+
