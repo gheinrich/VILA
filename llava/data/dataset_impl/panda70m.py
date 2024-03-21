@@ -43,6 +43,7 @@ from llava.train.args import DataArguments, TrainingArguments
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 SPLIT = "panda70m_testing"
 
+import decord
 
 def str2time(s):
     t = datetime.strptime(s, "%H:%M:%S.%f")
@@ -70,7 +71,8 @@ def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
         num_frames = num_frames - (num_frames % 8)
         indices = torch.floor(torch.arange(0, num_frames, step)).long()
         video_outputs = video_outputs[:, indices, :, :]
-    except (FileNotFoundError, FileNotFoundError) as e:
+    # except (FileNotFoundError, decord._ffi.base.DECORDError) as e:
+    except Exception as e:
         print(f"bad data path {video_path}")
         print(f"Error processing {video_path}: {e}")
         video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
@@ -147,25 +149,69 @@ class VILAPanda70m(Dataset):
         return data_dict
 
 
+from decord._ffi.base import DECORDError
+
+def cleanup_corrupted_videos(
+        workdir=osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_training_2m"),
+        shards=0,
+        total=-1
+    ):
+    import glob, shutil, time
+    
+    video_list = glob.glob(f"{workdir}/*.mp4")
+    if total > 0:
+        chunk = len(video_list) // total
+        begin_idx = shards * chunk
+        end_idx = (shards + 1) * chunk
+        if shards == total - 1:
+            end_idx = len(video_list)
+        video_list = video_list[begin_idx:end_idx]
+    print(f"checking total {len(video_list)} videos")
+    
+    debug_info = {}
+    for idx, video_path in enumerate(video_list):
+        print(f"[{idx}/{len(video_list)}]", video_path)
+        
+        json_path = video_path.replace(".mp4", ".json")
+        jinfo = json.load(open(json_path, "r"))
+        try:
+            assert osp.exists(json_path) and osp.exists(video_path)
+            video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
+        except Exception as e:
+            debug_info[video_path] = str(e)
+            print(f"!! deleting wrong [{idx}/{len(video_list)}]", video_path, type(e))
+            os.remove(video_path)
+            os.remove(json_path)
+            # input()
+            time.sleep(3)
+                
+    print(debug_info)
+    
 if __name__ == "__main__":
-    # video_path = osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_testing/WxTjy7RY2yA.mp4")
-    # json_path = osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_testing/WxTjy7RY2yA.json")
-    # # video_path = io.BytesIO(open(video_path, "rb").read())
-    # jinfo = json.load(open(json_path, "r"))
-    # img_t = load_video(video_path, jfino=jinfo)
-    # # print(img_t)
+    # WORKDIR=osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_testing")
+    # cleanup_corrupted_videos()
+    import fire
+    fire.Fire(cleanup_corrupted_videos)
+    exit(0)
+    
+    # video_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.mp4")
+    # json_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.json")
+    jinfo = json.load(open(json_path, "r"))
+    img_t = load_video(video_path, jfino=jinfo)
+    print(img_t)
+    
     # # print(jinfo["timestamp"][0])
     # s1 = datetime.strptime(jinfo["timestamp"][0][0], "%H:%M:%S.%f")
     # s2 = datetime.strptime(jinfo["timestamp"][0][1], "%H:%M:%S.%f")
     # print(type(s2-s1))
     # print((s2 - s1).total_seconds())
 
-    dst = VILAWebDataset(
-        data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
-        meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
-    )
+    # dst = VILAWebDataset(
+    #     data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
+    #     meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
+    # )
 
-    video_path = dst[0][".mp4"]
-    jinfo = dst[0][".json"]
-    img, cap, secs = load_video(video_path, jfino=jinfo)
-    print(img.shape, cap, secs)
+    # video_path = dst[0][".mp4"]
+    # jinfo = dst[0][".json"]
+    # img, cap, secs = load_video(video_path, jfino=jinfo)
+    # print(img.shape, cap, secs)

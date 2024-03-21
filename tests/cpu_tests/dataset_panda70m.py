@@ -15,7 +15,7 @@ from llava.train.args import DataArguments, TrainingArguments
 from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
-def test_make_supervised_data_module(dataset_name, max_samples=100):
+def test_make_supervised_data_module(dataset_name, max_samples=-1):
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",
@@ -48,19 +48,25 @@ def test_make_supervised_data_module(dataset_name, max_samples=100):
     )
 
     dataset = data_module["train_dataset"]
-    index = 0
     dataset_len = len(data_module["train_dataset"])
     from torch.utils.data import DataLoader
 
-    dloader = DataLoader(dataset, batch_size=16, collate_fn=data_module["data_collator"], num_workers=4)
+    dloader = DataLoader(dataset, batch_size=32, collate_fn=data_module["data_collator"], num_workers=16)
     dloader_len = len(dloader)
-    for batch in dloader:
-        # if index > min(max_samples, dloader_len):
-        #     break
-        print(type(batch), batch.keys())
+    for idx, batch in enumerate(dloader):
+        if max_samples > 0 and idx > min(max_samples, dloader_len):
+            break
+        
+        
+        info = []
+        for k, v in batch.items():
+            if isinstance(v, torch.Tensor):
+                info.append((k, v.shape))
+            else:
+                info.append((k, type(v)))
+        print(f"[{idx}/{len(dloader)}]", info)
         # print(batch["image"].shape)
         # print(batch["input_ids"].shape[0])
-        index += 1
         # print(batch['image'].shape, batch['input_ids'].shape)
     # print(data_module)
 
