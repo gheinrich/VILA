@@ -41,15 +41,12 @@ from transformers import PreTrainedTokenizer
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 from llava.data.datasets_mixture import DATASETS
-from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
+from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
+                                              load_yaml, process_single_sample)
 from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
 from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
@@ -1856,7 +1853,8 @@ def build_datasets(
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
             print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
+            from llava.data.dataset_impl.coyo_recap import \
+                LazyCoyoWebRecapDataset
 
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
