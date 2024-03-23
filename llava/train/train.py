@@ -283,7 +283,11 @@ def train():
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
     model.get_model().requires_grad_(training_args.tune_language_model)
-    print(f"Tunable parameters:\n language model {training_args.tune_language_model}")
+    try:
+        model.get_lm_head.requires_grad_(training_args.tune_language_model)
+    except:
+        logging.warning("model.get_lm_head() is not available")
+    print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
     if model.get_model().get_vision_tower():
         model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
         model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)

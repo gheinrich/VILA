@@ -38,7 +38,7 @@ class TestSetGrads(unittest.TestCase):
             output_dir=None,
         )
 
-    def single_forward(self):
+    def single_forward_backward(self):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)
         data["input_ids"] = data["input_ids"].to(device)
@@ -125,21 +125,50 @@ class TestSetGrads(unittest.TestCase):
         # necessary for model forward
         self.model.pad_token_id = self.tokenizer.pad_token_id
         self.model.get_model().requires_grad_(self.training_args.tune_language_model)
+        self.model.lm_head.requires_grad_(self.training_args.tune_language_model)
         self.model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
         self.model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
-
-    def verify_grads_state(self, model, tune_language_model, tune_vision_tower, tune_mm_projector):
-        print("Checking gradients...")
-        for param_name, param in model.get_model().named_parameters():
-            if "vision_tower" not in param_name and "mm_projector" not in param_name:
-                self.assertEqual(param.grad is not None, tune_language_model)
-        for name, param in model.get_model().get_vision_tower().named_parameters():
-            # some models do not use the last layer feature.
-            if "post_layernorm" in name:
-                continue
-            self.assertEqual(param.grad is not None, tune_vision_tower)
-        for _, param in model.get_model().get_mm_projector().named_parameters():
-            self.assertEqual(param.grad is not None, tune_mm_projector)
+        ## save the loaded weights
+        self.loaded_weights_dict = {name: copy.deepcopy(param.detach().cpu().data) for name, param in self.model.named_parameters()}
+    
+    def verify_grads_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
+        print("Checking gradients state...")
+        
+        for name, param in self.model.named_parameters():
+            if "vision_tower" in name:
+                if "post_layernorm" in name:
+                    continue
+                if tune_vision_tower:
+                    ## some position embeddings are not trained
+                    self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+                
+            elif "mm_projector" in name:
+                if tune_mm_projector:
+                    self.assertEqual(param.grad is not None and (param.grad != 0).all(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+            else:
+                if tune_language_model:
+                    ## some tokens are not trained
+                    self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+    
+    def verify_weights_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
+        print("Checking weights state...")
+        
+        for name in self.updated_weights_dict.keys():
+            if "vision_tower" in name:
+                if "post_layernorm" in name:
+                    continue
+                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_vision_tower)
+            elif "mm_projector" in name:
+                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_mm_projector)
+            else:
+                if self.updated_weights_dict[name].numel() > 1:
+                    self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model)
 
     # Actually can write a loop to iterate through combinations
     @requires_gpu
@@ -148,25 +177,43 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_mm_projector = True
         self.training_args.tune_language_model = True
         self.build_vila_model()
-        self.single_forward()
-
+        self.single_forward_backward()
+        
         self.verify_grads_state(
-            self.model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
+    # @requires_gpu
     def test_tune_projector_and_vision_tower(self):
         print("Testing tune projector and vision tower ...")
         self.training_args.tune_mm_projector = True
         self.training_args.tune_vision_tower = True
         self.build_vila_model()
-        self.single_forward()
+        self.single_forward_backward()
 
         self.verify_grads_state(
-            self.model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
@@ -177,10 +224,19 @@ class TestSetGrads(unittest.TestCase):
         print("Testing tune projector ...")
         self.training_args.tune_mm_projector = True
         self.build_vila_model()
-        self.single_forward()
+        self.single_forward_backward()
 
         self.verify_grads_state(
-            self.model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
@@ -191,24 +247,43 @@ class TestSetGrads(unittest.TestCase):
         print("Testing tune vision tower ...")
         self.training_args.tune_vision_tower = True
         self.build_vila_model()
-        self.single_forward()
+        self.single_forward_backward()
 
         self.verify_grads_state(
-            self.model,
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
         )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+
 
     @requires_gpu
     def test_tune_language_model(self):
         print("Testing tune language model ...")
         self.training_args.tune_language_model = True
         self.build_vila_model()
-        self.single_forward()
+        self.single_forward_backward()
 
         self.verify_grads_state(
-            self.model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,

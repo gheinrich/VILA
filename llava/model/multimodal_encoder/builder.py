@@ -20,7 +20,7 @@ def build_vision_tower(config: PretrainedConfig):
     except:
         vision_tower_name = None
 
-    if vision_tower_name.startswith("openai"):
+    if "clip" in vision_tower_name:
         return CLIPVisionTower(vision_tower_cfg, config)
     elif "siglip" in vision_tower_name:
         return SiglipVisionTower(vision_tower_cfg, config)
