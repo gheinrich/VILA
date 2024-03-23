@@ -56,6 +56,7 @@ from llava.train.llava_trainer import LLaVATrainer
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+PIL.Image.MAX_IMAGE_PIXELS = 1000000000
 # local_rank = None
 
 # def rank0_print(*args):
@@ -1866,4 +1867,6 @@ def build_datasets(
     all_datasets = ConcatDataset(all_datasets)
     if split == "train":
         training_args.sample_lens = extra_info
+    elif split == "eval":
+        training_args.eval_sample_lens = extra_info
     return all_datasets
