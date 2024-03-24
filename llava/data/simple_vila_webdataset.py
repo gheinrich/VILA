@@ -87,6 +87,7 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
 
 
 def generate_wids_meta(tar_list, data_path, cache_dir, idx=0, total=0):
+    # TODO(ligeng): add return value
     meta_path_of_tar_abs = osp.join(
         osp.expanduser(cache_dir),
         data_path.replace("/", "--") + ".wdsmeta.json",
@@ -266,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--overwrite", action="store_true")
     parser.add_argument("--idx", type=int, default=0)
     parser.add_argument("--total", type=int, default=0)
+    parser.add_argument("--test-all", action="store_true")
     args = parser.parse_args()
 
     print("Data path: ", args.data_path)
@@ -274,34 +276,35 @@ if __name__ == "__main__":
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )
+    # print("overwrite:", args.overwrite)
     print("dataset size: ", len(train_dataset))
     print(train_dataset[0])
-    exit(0)
-    print("overwrite:", args.overwrite)
-    train_dataset = VILAWebDataset(
-        data_path=args.data_path,
-        max_shards_to_load=args.max_shards,
-        # cache_dir="~/.cache/simplecoyo",
-        overwrite=args.overwrite,
-    )
+    
+    if args.test_all:
+        print("iterating all dataset for data integrity.")
+        train_dataset = VILAWebDataset(
+            data_path=args.data_path,
+            # cache_dir="~/.cache/simplecoyo",
+            # overwrite=args.overwrite,
+        )
 
-    sampler = None
-    from collections import defaultdict
+        sampler = None
+        from collections import defaultdict
 
-    from PIL import Image
-    from torch.utils.data import default_collate
+        from PIL import Image
 
-    dloader = torch.utils.data.DataLoader(
-        train_dataset,
-        shuffle=False,
-        sampler=sampler,
-        batch_size=1,
-        collate_fn=VILAWebDataset.custom_collate,
-        # num_workers=8,
-    )
-    # sampler.set_epoch(0)
-    print(len(train_dataset), len(dloader))
-    for idx, data in enumerate(dloader):
-        print(f"{idx}-of-{len(dloader)}", data)
-        if idx >= 5:
-            break
+        dloader = torch.utils.data.DataLoader(
+            train_dataset,
+            shuffle=False,
+            sampler=sampler,
+            batch_size=8,
+            collate_fn=VILAWebDataset.custom_collate,
+            num_workers=8,
+        )
+        # dloader = train_dataset
+        # sampler.set_epoch(0)
+        print(len(train_dataset), len(dloader))
+        for idx, data in enumerate(dloader):
+            print(f"{idx}-of-{len(dloader)}", type(data))
+            # if idx >= 5:
+            #     break

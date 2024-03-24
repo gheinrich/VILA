@@ -94,7 +94,8 @@ def compute_num_samples(fname):
 def splitname(fname):
     """Returns the basename and extension of a filename"""
     assert "." in fname, "Filename must have an extension"
-    basename, extension = re.match(r"^((?:.*/)?.*?)(\..*)$", fname).groups()
+    # basename, extension = re.match(r"^((?:.*/)?.*?)(\..*)$", fname).groups()
+    basename, extension = os.path.splitext(fname)
     return basename, extension
 
 
@@ -278,7 +279,11 @@ class IndexedTarSamples:
 
     def __getitem__(self, idx):
         # Get indexes of files for the sample at index idx
-        indexes = self.samples[idx]
+        try:
+            indexes = self.samples[idx]
+        except IndexError as e:
+            print(f"curr idx: {idx}, total sample length: {len(self.samples)}")
+            raise e
         sample = {}
         key = None
         for i in indexes:

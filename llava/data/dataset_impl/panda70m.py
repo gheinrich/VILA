@@ -20,11 +20,9 @@ from io import BytesIO
 from typing import Dict, List, Optional, Sequence
 
 import cv2
-import decord
 import numpy as np
 import PIL
-import transformers
-from decord._ffi.base import DECORDError
+# import transformers
 from iopath.common.file_io import g_pathmgr
 from PIL import Image
 from torch.utils.data import ConcatDataset, Dataset
@@ -45,7 +43,7 @@ from llava.train.args import DataArguments, TrainingArguments
 
 # DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 # SPLIT = "panda70m_testing"
-
+print("import finish")
 
 def str2time(s):
     t = datetime.strptime(s, "%H:%M:%S.%f")
@@ -95,7 +93,7 @@ class VILAPanda70m(Dataset):
         self,
         data_path,
         image_folder,
-        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer,
         data_args: DataArguments,
         training_args: TrainingArguments,
     ) -> None:
@@ -174,6 +172,7 @@ def cleanup_corrupted_videos(
             end_idx = len(video_list)
         video_list = video_list[begin_idx:end_idx]
     print(f"checking total {len(video_list)} videos")
+    # return 
 
     debug_info = {}
     for idx, video_path in enumerate(video_list):
@@ -186,7 +185,7 @@ def cleanup_corrupted_videos(
             info = with_opencv(video_path)
             print(info)
             video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
-        except RuntimeError as e:
+        except (RuntimeError, ZeroDivisionError) as e:
             debug_info[video_path] = str(e)
             print(f"!! deleting wrong [{idx}/{len(video_list)}]", video_path)  # , type(e))
             os.remove(video_path)
@@ -195,38 +194,6 @@ def cleanup_corrupted_videos(
             time.sleep(3)
 
     print(debug_info)
-
-
-def split_video_to_clips(
-    workdir=osp.expanduser("~/nvr_elm_llm/dataset/panda70m/panda70m_training_2m"),
-    shards=0,
-    total=-1,
-):
-    video_list = glob.glob(f"{workdir}/*.mp4")
-    video_list = sorted(video_list)
-    if total > 0:
-        chunk = len(video_list) // total
-        begin_idx = shards * chunk
-        end_idx = (shards + 1) * chunk
-        if shards == total - 1:
-            end_idx = len(video_list)
-        video_list = video_list[begin_idx:end_idx]
-    print(f"checking total {len(video_list)} videos")
-
-    debug_info = {}
-    for idx, video_path in enumerate(video_list):
-        print(f"[{idx}/{len(video_list)}]", video_path)
-        json_path = video_path.replace(".mp4", ".json")
-
-        assert osp.exists(json_path) and osp.exists(video_path)
-        jinfo = json.load(open(json_path, "r"))
-        info = with_opencv(video_path)
-        print(info)
-        video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
-
-        print(jinfo)
-
-        return
 
 
 if __name__ == "__main__":
