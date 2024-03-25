@@ -17,6 +17,29 @@ export ALIGN_DATASET=${1:-llava_1_5_mm_align}
 export PT_DATASET=${2:-sharegpt4v_pretrain}
 export SFT_DATASET=${3:-sharegpt4v_sft}
 
+sort_and_join() {
+    local original_string=$1
+    local delimiter=$2
+    # Save the current IFS
+    local oldIFS=$IFS
+    # Split the string into an array based on the delimiter
+    IFS="$delimiter" read -r -a array <<< "$original_string"
+    # Sort the array
+    sorted_array=($(for i in "${array[@]}"; do echo "$i"; done | sort))
+    # Concatenate the sorted array elements back into a string
+    IFS="$delimiter"; sorted_string="${sorted_array[*]}"
+    # Restore the original IFS
+    IFS=$oldIFS
+    # Return the sorted, concatenated string
+    echo "$sorted_string"
+}
+
+# sort the dataset name to avoid duplicate experiments
+delimiter="+"
+ALIGN_DATASET=$(sort_and_join "$ALIGN_DATASET" "$delimiter")
+PT_DATASET=$(sort_and_join "$PT_DATASET" "$delimiter")
+SFT_DATASET=$(sort_and_join "$SFT_DATASET" "$delimiter")
+
 echo "$SLURM_ACCOUNT | $SLURM_PARTITION | $MNAME | $VISION_TOWER | $ALIGN_DATASET | $PT_DATASET | $SFT_DATASET"
 
 export BATCH_SIZE=128
@@ -47,4 +70,5 @@ done
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain jukinmedia
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain shot2story_shotonly
-# bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain shot2story_shotonly+jukinmedia
+# bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+jukinmedia+shot2story_shotonly
+# bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+shot2story_shotonly

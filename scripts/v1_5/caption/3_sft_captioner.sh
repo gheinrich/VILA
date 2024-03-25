@@ -26,6 +26,30 @@ export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
 export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+textocr}
 
+sort_and_join() {
+    local original_string=$1
+    local delimiter=$2
+    # Save the current IFS
+    local oldIFS=$IFS
+    # Split the string into an array based on the delimiter
+    IFS="$delimiter" read -r -a array <<< "$original_string"
+    # Sort the array
+    sorted_array=($(for i in "${array[@]}"; do echo "$i"; done | sort))
+    # Concatenate the sorted array elements back into a string
+    IFS="$delimiter"; sorted_string="${sorted_array[*]}"
+    # Restore the original IFS
+    IFS=$oldIFS
+    # Return the sorted, concatenated string
+    echo "$sorted_string"
+}
+
+delimiter="+"
+ALIGN_DATASET=$(sort_and_join "$ALIGN_DATASET" "$delimiter")
+PT_DATASET=$(sort_and_join "$PT_DATASET" "$delimiter")
+SFT_DATASET=$(sort_and_join "$SFT_DATASET" "$delimiter")
+
+echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET | SFT: $SFT_DATASET"
+
 global_bs=${BATCH_SIZE:-128}
 acc_step=${ACC_STEP:-1}
 bs=$((global_bs / n_node / acc_step))

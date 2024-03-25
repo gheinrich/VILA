@@ -283,7 +283,7 @@ class IndexedTarSamples:
         try:
             indexes = self.samples[idx]
         except IndexError as e:
-            print(f"curr idx: {idx}, total sample length: {len(self.samples)}")
+            print(f"[wids-debug] curr idx: {idx}, total sample length: {len(self.samples)} {e}")
             raise e
         sample = {}
         key = None

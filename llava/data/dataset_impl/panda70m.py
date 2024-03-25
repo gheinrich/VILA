@@ -23,6 +23,7 @@ import cv2
 import numpy as np
 import PIL
 import torch
+
 # import transformers
 from iopath.common.file_io import g_pathmgr
 from PIL import Image
@@ -31,9 +32,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
@@ -44,6 +49,7 @@ from llava.train.args import DataArguments, TrainingArguments
 
 # DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 # SPLIT = "panda70m_testing"
+
 
 def str2time(s):
     t = datetime.strptime(s, "%H:%M:%S.%f")
@@ -56,8 +62,8 @@ def load_video(video_path, jinfo, idx=0, num_video_frames=8, image_size=334):
 
     # video_path = io.BytesIO(open(video_path, "rb").read())
     # print(jinfo.keys(), jinfo)
-    timestamps = jinfo["timestamp"]#[idx]
-    caption = jinfo["caption"]#[idx]
+    timestamps = jinfo["timestamp"]  # [idx]
+    caption = jinfo["caption"]  # [idx]
     duration = jinfo["duration"]
 
     # begin_t, begin_s = str2time(timestamps[0])
@@ -88,7 +94,7 @@ def load_video(video_path, jinfo, idx=0, num_video_frames=8, image_size=334):
     video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
     image_tensor[:, :, :, :] = video_frames
     # print(begin_s, end_s, caption)
-    return image_tensor, caption #, (begin_s, end_s)
+    return image_tensor, caption  # , (begin_s, end_s)
 
 
 class VILAPanda70m(Dataset):
@@ -121,14 +127,20 @@ class VILAPanda70m(Dataset):
 
     def __getitem__(self, index):
         data = self.dataset[index]
-
-        video_path = data[".mp4"]
+        
+        # TODO: we shall make sure every data is complete in panda70m.
+        try:
+            video_path = data[".mp4"]
+        except KeyError:
+            video_path = None
+            print("bad data", data)
+        
         if ".json" in data:
             jinfo = data[".json"]
         else:
             jinfo = {
                 "caption": "This is a sample video from Youtube.",
-                "timestamp": None, 
+                "timestamp": None,
                 "duration": None,
             }
         if "shortest_edge" in self.data_args.image_processor.size:
@@ -184,7 +196,7 @@ def cleanup_corrupted_videos(
             end_idx = len(video_list)
         video_list = video_list[begin_idx:end_idx]
     print(f"checking total {len(video_list)} videos")
-    # return 
+    # return
 
     debug_info = {}
     for idx, video_path in enumerate(video_list):

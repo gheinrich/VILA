@@ -54,12 +54,15 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
         print(f"    Generating meta: {tar_abs_metapath}")
         try:
             tar = load_tarfile(tar_abspath)
-            uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
+            uuids = list(set([osp.splitext(_)[0] for _ in tar.getnames()]))
         except tarfile.ReadError as e:
             print(f"Skipping {tar_abspath}")
             print(e)
             return None
         nsamples = len(uuids)
+        # print(uuids)
+        # print(nsamples)
+        # input()
 
         tar_meta = {
             "url": osp.abspath(tar_abspath),
@@ -301,10 +304,9 @@ if __name__ == "__main__":
             collate_fn=VILAWebDataset.custom_collate,
             num_workers=8,
         )
-        dloader = train_dataset
+        # dloader = train_dataset
         # sampler.set_epoch(0)
         print(len(train_dataset), len(dloader))
-        
         count = 0
         for idx, data in enumerate(dloader):
             if ".json" in data and ".mp4" in data:

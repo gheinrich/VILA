@@ -16,6 +16,7 @@ class VILAEncodedVideo(EncodedVideo):
             # We read the file with PathManager so that we can read from remote uris.
             with g_pathmgr.open(file_path, "rb") as fh:
                 video_file = io.BytesIO(fh.read())
-
+        else:
+            print(f"unsupported type {type(file_path)}")
         video_cls = select_video_class(decoder)
         return video_cls(video_file, pathlib.Path(file_path).name, decode_audio)
