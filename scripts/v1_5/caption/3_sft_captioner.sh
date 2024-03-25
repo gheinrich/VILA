@@ -43,7 +43,7 @@ VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 OUTPUT_STEP2=${1:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
 OUTPUT_STEP3=${2:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT-$SFT_DATASET"}
 
-echo "loading from $OUTPUT_STEP2, saving to $OUTPUT_STEP3"
+echo "[vision] $VISION_TOWER \n[loading] from $OUTPUT_STEP2, \n[saving] to $OUTPUT_STEP3"
 
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"

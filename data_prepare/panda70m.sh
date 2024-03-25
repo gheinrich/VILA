@@ -25,9 +25,9 @@ for idx in $(seq 0 $idx_size); do
 
 done
 
-bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_training_10m;
-bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_training_2m;
-bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_testing;
+# bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_training_10m;
+# bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_training_2m;
+# bash data_prepare/panda70m.sh 32 /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/panda70m_testing;
 
 # --exclusive \
 # --cpus-per-task 8 \

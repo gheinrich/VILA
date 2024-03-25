@@ -301,10 +301,16 @@ if __name__ == "__main__":
             collate_fn=VILAWebDataset.custom_collate,
             num_workers=8,
         )
-        # dloader = train_dataset
+        dloader = train_dataset
         # sampler.set_epoch(0)
         print(len(train_dataset), len(dloader))
+        
+        count = 0
         for idx, data in enumerate(dloader):
-            print(f"{idx}-of-{len(dloader)}", type(data))
+            if ".json" in data and ".mp4" in data:
+                print(f"{idx}-of-{len(dloader)}", type(data), count)
+            else:
+                count += 1
+            
             # if idx >= 5:
             #     break

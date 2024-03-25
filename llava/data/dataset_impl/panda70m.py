@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Sequence
 import cv2
 import numpy as np
 import PIL
+import torch
 # import transformers
 from iopath.common.file_io import g_pathmgr
 from PIL import Image
@@ -43,7 +44,6 @@ from llava.train.args import DataArguments, TrainingArguments
 
 # DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m"
 # SPLIT = "panda70m_testing"
-print("import finish")
 
 def str2time(s):
     t = datetime.strptime(s, "%H:%M:%S.%f")
@@ -51,12 +51,14 @@ def str2time(s):
     return t, (t - init).total_seconds()
 
 
-def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
+def load_video(video_path, jinfo, idx=0, num_video_frames=8, image_size=334):
     import torch
 
     # video_path = io.BytesIO(open(video_path, "rb").read())
-    timestamps = jfino["timestamp"][idx]
-    caption = jfino["caption"][idx]
+    # print(jinfo.keys(), jinfo)
+    timestamps = jinfo["timestamp"]#[idx]
+    caption = jinfo["caption"]#[idx]
+    duration = jinfo["duration"]
 
     begin_t, begin_s = str2time(timestamps[0])
     end_t, end_s = str2time(timestamps[1])
@@ -65,10 +67,11 @@ def load_video(video_path, jfino, idx=0, num_video_frames=8, image_size=334):
         duration = float(video.duration)
         # print("DEBUG", duration)
         assert duration >= 0.25
-        video_outputs = video.get_clip(start_sec=begin_s, end_sec=end_s)["video"]
+        video_outputs = video.get_clip(start_sec=0, end_sec=video.duration)["video"]
         assert video_outputs.size(1) > num_video_frames
         num_frames = video_outputs.shape[1]
         # step = (num_frames - 1) // 8 + 1
+        # NOTE(ligeng): current impl loads the whole (decompressed video) first then slice, may face OOMs for long videos.
         step = num_frames // num_video_frames
         num_frames = num_frames - (num_frames % 8)
         indices = torch.floor(torch.arange(0, num_frames, step)).long()
@@ -102,7 +105,9 @@ class VILAPanda70m(Dataset):
         data_path = osp.expanduser(data_path)
         # self.dataset = VILAWebDataset(data_path)
         self.dataset = VILAWebDataset(
-            data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
+            # data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
+            # data_path="~/nvr_elm_llm/dataset/panda70m/wds-testing",
+            data_path="~/nvr_elm_llm/dataset/panda70m/wds-training_2m",
             # meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
         )
 
@@ -118,12 +123,19 @@ class VILAPanda70m(Dataset):
         data = self.dataset[index]
 
         video_path = data[".mp4"]
-        jinfo = data[".json"]
+        if ".json" in data:
+            jinfo = data[".json"]
+        else:
+            jinfo = {
+                "caption": "This is a sample video from Youtube.",
+                "timestamps": None, 
+                "duration": None,
+            }
         if "shortest_edge" in self.data_args.image_processor.size:
             image_size = self.data_args.image_processor.size["shortest_edge"]
         else:
             image_size = self.data_args.image_processor.size["height"]
-        imgs, cap, secs = load_video(video_path, jfino=jinfo, image_size=image_size)
+        imgs, cap, secs = load_video(video_path, jinfo=jinfo, image_size=image_size)
         # print(imgs.shape, cap, secs)
         num_video_frames = self.num_video_frames
 
@@ -207,7 +219,7 @@ if __name__ == "__main__":
     # video_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.mp4")
     # json_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.json")
     jinfo = json.load(open(json_path, "r"))
-    img_t = load_video(video_path, jfino=jinfo)
+    img_t = load_video(video_path, jinfo=jinfo)
     print(img_t)
 
     # # print(jinfo["timestamp"][0])
