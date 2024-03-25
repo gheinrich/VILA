@@ -60,8 +60,8 @@ def load_video(video_path, jinfo, idx=0, num_video_frames=8, image_size=334):
     caption = jinfo["caption"]#[idx]
     duration = jinfo["duration"]
 
-    begin_t, begin_s = str2time(timestamps[0])
-    end_t, end_s = str2time(timestamps[1])
+    # begin_t, begin_s = str2time(timestamps[0])
+    # end_t, end_s = str2time(timestamps[1])
     try:
         video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
         duration = float(video.duration)
@@ -88,7 +88,7 @@ def load_video(video_path, jinfo, idx=0, num_video_frames=8, image_size=334):
     video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
     image_tensor[:, :, :, :] = video_frames
     # print(begin_s, end_s, caption)
-    return image_tensor, caption, (begin_s, end_s)
+    return image_tensor, caption #, (begin_s, end_s)
 
 
 class VILAPanda70m(Dataset):
@@ -128,14 +128,14 @@ class VILAPanda70m(Dataset):
         else:
             jinfo = {
                 "caption": "This is a sample video from Youtube.",
-                "timestamps": None, 
+                "timestamp": None, 
                 "duration": None,
             }
         if "shortest_edge" in self.data_args.image_processor.size:
             image_size = self.data_args.image_processor.size["shortest_edge"]
         else:
             image_size = self.data_args.image_processor.size["height"]
-        imgs, cap, secs = load_video(video_path, jinfo=jinfo, image_size=image_size)
+        imgs, cap = load_video(video_path, jinfo=jinfo, image_size=image_size)
         # print(imgs.shape, cap, secs)
         num_video_frames = self.num_video_frames
 
