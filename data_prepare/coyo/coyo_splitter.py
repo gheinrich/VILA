@@ -1,6 +1,5 @@
 import os
 import pickle
-
 from tqdm import tqdm
 
 inp_dirs = ["/dataset/coyo/coyo-700m/pkl"]
@@ -25,8 +24,8 @@ for pkl in tqdm(pkl_list):
         samples2write, cur_samples = cur_samples[:12440], cur_samples[12440:]
         with open(os.path.join(out_dir, f"part-{counter:05d}.pkl"), "wb") as f:
             pickle.dump(samples2write, f)
-
+        
         with open(os.path.join(out_dir, f"part-{counter:05d}.count"), "w") as f:
-            f.write(str(len(samples2write)))
-
+            f.write(str(len(samples2write)))    
+        
         counter += 1

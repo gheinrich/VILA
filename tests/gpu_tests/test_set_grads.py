@@ -1,6 +1,8 @@
+import copy
 import unittest
 
 import torch
+from transformers import AutoTokenizer
 
 from llava.model import LlavaConfig, LlavaLlamaForCausalLM
 from llava.train.args import ModelArguments, TrainingArguments
@@ -36,6 +38,62 @@ class TestSetGrads(unittest.TestCase):
             output_dir=None,
         )
 
+    def single_forward_backward(self):
+        print("Preprocessing inputs...")
+        data = copy.deepcopy(self.data)
+        data["input_ids"] = data["input_ids"].to(device)
+        data["images"] = data["images"].to(torch.bfloat16).to(device)
+        data["attention_mask"] = data["attention_mask"].to(device)
+        data["labels"] = data["labels"].to(device)
+        data["position_ids"] = None
+        data["past_key_values"] = None
+
+        (
+            input_ids,
+            position_ids,
+            attention_mask,
+            past_key_values,
+            inputs_embeds,
+            labels,
+        ) = self.model.prepare_inputs_labels_for_multimodal(**data)
+
+        print("Packing inputs...")
+        (
+            _,
+            new_position_ids,
+            new_attention_mask,
+            _,
+            new_inputs_embeds,
+            new_labels,
+            sorted_seqlens_in_batch,
+        ) = self.model.repack_multimodal_data(
+            input_ids,
+            position_ids,
+            attention_mask,
+            past_key_values,
+            inputs_embeds,
+            labels,
+        )
+
+        print("Running models...")
+
+        # forward results with input packing
+        outputs = super(LlavaLlamaForCausalLM, self.model).forward(
+            input_ids=None,
+            attention_mask=new_attention_mask,
+            position_ids=new_position_ids,
+            past_key_values=None,
+            inputs_embeds=new_inputs_embeds,
+            labels=new_labels,
+            use_cache=False,
+            output_attentions=True,
+            output_hidden_states=True,
+            return_dict=True,
+            seqlens_in_batch=sorted_seqlens_in_batch,
+        )
+        loss = outputs.loss
+        loss.backward()
+
     def build_vila_model(self):
         ## first time training
         config = LlavaConfig.from_pretrained(self.model_args.model_name_or_path)
@@ -43,48 +101,119 @@ class TestSetGrads(unittest.TestCase):
         torch.set_default_dtype(torch.bfloat16)
         model_cls = LlavaLlamaForCausalLM
 
+        print("Initializing data...")
+        data = torch.load("tests/sample_data/test_packing.pth")
+        self.data = data
+        print("Initializing model...")
         prepare_vision_tower_config(config, self.model_args)
-        model = model_cls.from_pretrained(
-            self.model_args.model_name_or_path,
-            config=config,
+        self.model = (
+            model_cls.from_pretrained(
+                self.model_args.model_name_or_path,
+                config=config,
+            )
+            .to(torch.bfloat16)
+            .to(device)
         )
-        model.get_model().requires_grad_(self.training_args.tune_language_model)
-        print(self.training_args.tune_language_model)
-        model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
-        model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
-        return model
+        print("Initializing tokenizer...")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.model_args.model_name_or_path,
+            model_max_length=4096,
+            padding_side="right",
+            use_fast=False,
+            legacy=False,
+        )
+        # necessary for model forward
+        self.model.pad_token_id = self.tokenizer.pad_token_id
+        self.model.get_model().requires_grad_(self.training_args.tune_language_model)
+        self.model.lm_head.requires_grad_(self.training_args.tune_language_model)
+        self.model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
+        self.model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
+        ## save the loaded weights
+        self.loaded_weights_dict = {name: copy.deepcopy(param.detach().cpu().data) for name, param in self.model.named_parameters()}
+    
+    def verify_grads_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
+        print("Checking gradients state...")
+        
+        for name, param in self.model.named_parameters():
+            if "vision_tower" in name:
+                if "post_layernorm" in name:
+                    continue
+                if tune_vision_tower:
+                    ## some position embeddings are not trained
+                    self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+                
+            elif "mm_projector" in name:
+                if tune_mm_projector:
+                    self.assertEqual(param.grad is not None and (param.grad != 0).all(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+            else:
+                if tune_language_model:
+                    ## some tokens are not trained
+                    self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
+                else:
+                    self.assertEqual(param.grad is not None, False)
+    
+    def verify_weights_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
+        print("Checking weights state...")
+        
+        for name in self.updated_weights_dict.keys():
+            if "vision_tower" in name:
+                if "post_layernorm" in name:
+                    continue
+                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_vision_tower)
+            elif "mm_projector" in name:
+                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_mm_projector)
+            else:
+                if self.updated_weights_dict[name].numel() > 1:
+                    self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model)
 
-    def verify_grads_state(self, model, tune_language_model, tune_vision_tower, tune_mm_projector):
-        for param_name, param in model.get_model().named_parameters():
-            if "vision_tower" not in param_name and "mm_projector" not in param_name:
-                self.assertEqual(param.requires_grad, tune_language_model)
-        for _, param in model.get_model().get_vision_tower().named_parameters():
-            self.assertEqual(param.requires_grad, tune_vision_tower)
-        for _, param in model.get_model().get_mm_projector().named_parameters():
-            self.assertEqual(param.requires_grad, tune_mm_projector)
-
-    ## Actually can write a loop to iterate through combinations
+    # Actually can write a loop to iterate through combinations
     @requires_gpu
     def test_tune_projector_and_language_model(self):
         print("Testing tune projector and language model ...")
         self.training_args.tune_mm_projector = True
         self.training_args.tune_language_model = True
-        model = self.build_vila_model()
+        self.build_vila_model()
+        self.single_forward_backward()
+        
         self.verify_grads_state(
-            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
+    # @requires_gpu
     def test_tune_projector_and_vision_tower(self):
         print("Testing tune projector and vision tower ...")
         self.training_args.tune_mm_projector = True
         self.training_args.tune_vision_tower = True
-        model = self.build_vila_model()
+        self.build_vila_model()
+        self.single_forward_backward()
+
         self.verify_grads_state(
-            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
@@ -94,9 +223,20 @@ class TestSetGrads(unittest.TestCase):
     def test_tune_projector(self):
         print("Testing tune projector ...")
         self.training_args.tune_mm_projector = True
-        model = self.build_vila_model()
+        self.build_vila_model()
+        self.single_forward_backward()
+
         self.verify_grads_state(
-            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
@@ -105,22 +245,45 @@ class TestSetGrads(unittest.TestCase):
     @requires_gpu
     def test_tune_vision_tower(self):
         print("Testing tune vision tower ...")
-        self.training_args.tune_mm_projector = True
-        model = self.build_vila_model()
+        self.training_args.tune_vision_tower = True
+        self.build_vila_model()
+        self.single_forward_backward()
+
         self.verify_grads_state(
-            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
         )
 
+
     @requires_gpu
     def test_tune_language_model(self):
         print("Testing tune language model ...")
         self.training_args.tune_language_model = True
-        model = self.build_vila_model()
+        self.build_vila_model()
+        self.single_forward_backward()
+
         self.verify_grads_state(
-            model,
+            self.training_args.tune_language_model,
+            self.training_args.tune_vision_tower,
+            self.training_args.tune_mm_projector,
+        )
+        self.updated_weights_dict = {}
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                param = param - 100 * param.grad
+            self.updated_weights_dict[name] = copy.deepcopy(param.detach().cpu().data)
+        self.verify_weights_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,

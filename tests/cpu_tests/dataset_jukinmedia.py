@@ -1,7 +1,5 @@
 import torch
 import transformers
-from transformers.models.siglip import SiglipImageProcessor
-
 from llava import conversation as conversation_lib
 # from llava.train.token_config import (
 #     DEFAULT_IMAGE_PATCH_TOKEN,
@@ -10,6 +8,7 @@ from llava.constants import DEFAULT_IMAGE_PATCH_TOKEN
 from llava.data import datasets_mixture
 from llava.data.dataset import make_supervised_data_module
 from llava.train.args import DataArguments, TrainingArguments
+from transformers.models.siglip import SiglipImageProcessor
 
 
 def test_make_supervised_data_module():

@@ -445,3 +445,4 @@ def register_datasets_mixtures():
         description="A subset of Ego4D dataset including 1M video-caption pairs. We re-generate the captions by removing the speical characters.",
     )
     add_dataset(ego4d_1M)
+

@@ -18,13 +18,9 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_PATCH_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_PATCH_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 
 
 class LlavaMetaModel(ABC):
@@ -41,7 +37,7 @@ class LlavaMetaModel(ABC):
         return mm_projector
 
     def _post_init(self):
-        if self.config.vision_tower_config is None:
+        if getattr(self.config, "vision_tower_config") is None:
             self.config.vision_tower_config = self.vision_tower.config
 
 

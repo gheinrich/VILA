@@ -56,6 +56,7 @@ from llava.train.llava_trainer import LLaVATrainer
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+PIL.Image.MAX_IMAGE_PIXELS = 1000000000
 # local_rank = None
 
 # def rank0_print(*args):
@@ -576,11 +577,11 @@ class LazySupervisedDataset(Dataset):
             if num_frames < 8 + 1:
                 padding_frames = 8 + 1 - num_frames
                 padding_tensor = torch.zeros(
-                    video_outputs.size(0),
-                    padding_frames,
-                    video_outputs.size(2),
-                    video_outputs.size(3),
-                    dtype=torch.uint8,
+                    video_outputs.size(0), 
+                    padding_frames, 
+                    video_outputs.size(2), 
+                    video_outputs.size(3), 
+                    dtype=torch.uint8
                 )
                 video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
                 num_frames = video_outputs.shape[1]
@@ -1671,7 +1672,7 @@ class LazyVideoWebDataset(Dataset):
         num_video_frames = 8
 
         info = self.dataset[i]
-
+        
         # print(info)
         if ".mp4" in info:
             caption, video_path = info[".txt"], info[".mp4"]
@@ -1679,14 +1680,11 @@ class LazyVideoWebDataset(Dataset):
             video_path = None
             caption = "Empty video."
 
-        if "ego" in self.data_path:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(
-                video_path, num_video_frames, self.data_args, use_decord=False
-            )
+
+        if 'ego' in self.data_path:
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
         else:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(
-                video_path, num_video_frames, self.data_args
-            )
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
 
         if not video_loading_succeed:
             caption = "Empty video."
@@ -1895,4 +1893,6 @@ def build_datasets(
     all_datasets = ConcatDataset(all_datasets)
     if split == "train":
         training_args.sample_lens = extra_info
+    elif split == "eval":
+        training_args.eval_sample_lens = extra_info
     return all_datasets

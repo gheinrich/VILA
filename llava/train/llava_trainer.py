@@ -20,11 +20,13 @@ import os
 from typing import List, Optional
 
 import torch
-from torch.utils.data import ConcatDataset, DistributedSampler, RandomSampler, Sampler
+from torch.utils.data import (ConcatDataset, Dataset, DistributedSampler,
+                              RandomSampler, Sampler)
 from transformers import PreTrainedModel, Trainer
 from transformers.modeling_utils import unwrap_model
 from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
-from transformers.trainer import get_parameter_names, has_length, is_sagemaker_mp_enabled, logger
+from transformers.trainer import (get_parameter_names, has_length,
+                                  is_sagemaker_mp_enabled, logger)
 
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -293,6 +295,22 @@ class LLaVATrainer(Trainer):
             )
         else:
             return super()._get_train_sampler()
+
+    def _get_eval_sampler(self, eval_dataset: Dataset) -> Optional[torch.utils.data.Sampler]:
+        if self.eval_dataset is None or not has_length(self.eval_dataset):
+            return None
+
+        # Always using Jason's sampler.
+        sample_len_list = self.args.eval_sample_lens
+        seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
+        return VILADistributedSampler(
+            eval_dataset,
+            num_replicas=self.args.world_size,
+            rank=self.args.process_index,
+            seed=seed,
+            batch_size=self.args.eval_batch_size,
+            sample_len_list=sample_len_list,
+        )
 
     def create_optimizer(self):
         """

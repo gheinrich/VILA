@@ -18,16 +18,13 @@ import os
 import shutil
 import sys
 
-
 def main(model_name):
     # Define the dataset and prediction file mapping
     datasets = {
         "vqav2": "playground/data/eval/vqav2/answers_upload/llava_vqav2_mscoco_test-dev2015/{}.json".format(model_name),
         "vizwiz": "playground/data/eval/vizwiz/answers_upload/{}.json".format(model_name),
         "mmbench": "playground/data/eval/mmbench/answers_upload/mmbench_dev_20230712/{}.xlsx".format(model_name),
-        "mmbench_cn": "playground/data/eval/mmbench_cn/answers_upload/mmbench_dev_cn_20231003/{}.xlsx".format(
-            model_name
-        ),
+        "mmbench_cn": "playground/data/eval/mmbench_cn/answers_upload/mmbench_dev_cn_20231003/{}.xlsx".format(model_name),
         "mmmu": "playground/data/eval/MMMU/test_results/{}.json".format(model_name),
     }
 
@@ -45,7 +42,6 @@ def main(model_name):
         dest_file = os.path.join(dataset_dir, os.path.basename(pred_file))
         shutil.copy(pred_file, dest_file)
         print("Copied {} to {}".format(pred_file, dest_file))
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

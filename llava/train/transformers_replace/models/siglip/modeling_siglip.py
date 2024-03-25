@@ -27,7 +27,6 @@ from torch import nn
 from torch.nn.init import _calculate_fan_in_and_fan_out
 
 from ...activations import ACT2FN
-
 # from ...modeling_attn_mask_utils import _prepare_4d_attention_mask
 from ...modeling_outputs import BaseModelOutput, BaseModelOutputWithPooling
 from ...modeling_utils import PreTrainedModel
@@ -39,6 +38,7 @@ from ...utils import (
     replace_return_docstrings,
 )
 from .configuration_siglip import SiglipConfig, SiglipTextConfig, SiglipVisionConfig
+
 
 logger = logging.get_logger(__name__)
 
@@ -684,7 +684,9 @@ class SiglipEncoder(nn.Module):
 
         if not return_dict:
             return tuple(v for v in [hidden_states, encoder_states, all_attentions] if v is not None)
-        return BaseModelOutput(last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions)
+        return BaseModelOutput(
+            last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions
+        )
 
 
 class SiglipTextTransformer(nn.Module):

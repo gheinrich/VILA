@@ -1,10 +1,8 @@
-import os
-import os.path as osp
-import shutil
-import tarfile
-
 from fire import Fire
 from tqdm import tqdm
+import os, os.path as osp
+import tarfile
+import shutil
 
 
 def main(

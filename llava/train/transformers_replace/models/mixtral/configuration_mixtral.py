@@ -17,6 +17,7 @@
 from ...configuration_utils import PretrainedConfig
 from ...utils import logging
 
+
 logger = logging.get_logger(__name__)
 
 MIXTRAL_PRETRAINED_CONFIG_ARCHIVE_MAP = {

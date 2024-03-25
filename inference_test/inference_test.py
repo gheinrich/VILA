@@ -5,7 +5,6 @@ Both the inference results and expected output will be printed out.
 Currently do not support multi-turn chat. Each time an image and question are input and answer is output.
 """
 
-
 import argparse
 import json
 import os
@@ -15,7 +14,8 @@ from PIL import Image
 
 from llava.constants import IMAGE_TOKEN_INDEX
 from llava.conversation import SeparatorStyle, conv_templates
-from llava.mm_utils import KeywordsStoppingCriteria, process_images, tokenizer_image_token
+from llava.mm_utils import (KeywordsStoppingCriteria, process_images,
+                            tokenizer_image_token)
 from llava.model import *
 
 DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_name, None, "llava_llama")
+    tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_name, "llava_llama", None)
     result_list = eval_model(args, model, tokenizer, image_processor)
     save_name = f"inference-test_{args.model_name.split('/')[-1]}"
     if "nosys" in args.conv_mode:

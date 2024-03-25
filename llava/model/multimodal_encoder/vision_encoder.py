@@ -41,9 +41,7 @@ class VisionTower(nn.Module):
     ):
         if resolution in [model.config.image_size, -1]:
             return
-        print(
-            "Resizing vision model's position embeddings to increase vision resolution..."
-        )
+        print("Resizing vision model's position embeddings to increase vision resolution...")
         embeddings = model.vision_model.embeddings
         patch_size = embeddings.patch_size
         num_new_tokens = int((resolution // patch_size) ** 2)
@@ -59,9 +57,7 @@ class VisionTower(nn.Module):
                 if is_deepspeed_zero3_enabled():
                     import deepspeed
 
-                    with deepspeed.zero.GatheredParameters(
-                        [old_embeddings.weight], modifier_rank=None
-                    ):
+                    with deepspeed.zero.GatheredParameters([old_embeddings.weight], modifier_rank=None):
                         old_num_tokens, old_embedding_dim = old_embeddings.weight.size()
                 else:
                     old_num_tokens, old_embedding_dim = old_embeddings.weight.size()
@@ -76,34 +72,18 @@ class VisionTower(nn.Module):
                     / (num_new_tokens - 1)
                     * (old_num_tokens - 1)
                 )
-                floor_indices = torch.clamp(
-                    mapped_indices.floor().long(), min=0, max=old_num_tokens - 1
-                )
-                ceil_indices = torch.clamp(
-                    mapped_indices.ceil().long(), min=0, max=old_num_tokens - 1
-                )
+                floor_indices = torch.clamp(mapped_indices.floor().long(), min=0, max=old_num_tokens - 1)
+                ceil_indices = torch.clamp(mapped_indices.ceil().long(), min=0, max=old_num_tokens - 1)
                 if is_deepspeed_zero3_enabled():
                     params = [old_embeddings.weight, new_embeddings.weight]
                     with deepspeed.zero.GatheredParameters(params, modifier_rank=0):
-                        interpolated_embeds = (mapped_indices - floor_indices)[
-                            :, None
-                        ] * old_embeddings.weight.data[ceil_indices, :] + (
-                            ceil_indices - mapped_indices
-                        )[
-                            :, None
-                        ] * old_embeddings.weight.data[
-                            floor_indices, :
-                        ]
+                        interpolated_embeds = (mapped_indices - floor_indices)[:, None] * old_embeddings.weight.data[
+                            ceil_indices, :
+                        ] + (ceil_indices - mapped_indices)[:, None] * old_embeddings.weight.data[floor_indices, :]
                 else:
-                    interpolated_embeds = (mapped_indices - floor_indices)[
-                        :, None
-                    ] * old_embeddings.weight.data[ceil_indices, :] + (
-                        ceil_indices - mapped_indices
-                    )[
-                        :, None
-                    ] * old_embeddings.weight.data[
-                        floor_indices, :
-                    ]
+                    interpolated_embeds = (mapped_indices - floor_indices)[:, None] * old_embeddings.weight.data[
+                        ceil_indices, :
+                    ] + (ceil_indices - mapped_indices)[:, None] * old_embeddings.weight.data[floor_indices, :]
                 new_embeddings.weight.data = interpolated_embeds
             case _:
                 raise NotImplementedError
@@ -126,12 +106,9 @@ class VisionTower(nn.Module):
         embeddings.image_size = resolution
         embeddings.num_patches = embeddings.num_positions = num_new_tokens
         embeddings.position_ids = (
-            torch.arange(embeddings.num_positions)
-            .expand((1, -1))
-            .to(old_embeddings.weight.device)
+            torch.arange(embeddings.num_positions).expand((1, -1)).to(old_embeddings.weight.device)
         )
 
-    @torch.no_grad()
     def forward(self, images):
         if type(images) is list:
             image_features = []

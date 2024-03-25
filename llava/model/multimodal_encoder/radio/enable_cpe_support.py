@@ -6,12 +6,13 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
+from typing import Union, Tuple
 from types import MethodType
-from typing import Tuple, Union
 
 import torch
-from timm.models import VisionTransformer, checkpoint_seq
 from torch import nn
+
+from timm.models import VisionTransformer, checkpoint_seq
 
 from .vit_patch_generator import ViTPatchGenerator
 
@@ -26,12 +27,11 @@ def _forward_cpe(self: VisionTransformer, x: torch.Tensor) -> torch.Tensor:
     return x
 
 
-def enable_cpe(
-    model: nn.Module,
-    max_img_size: Union[int, Tuple[int, int]] = 1024,
-    num_cls_tokens: int = 1,
-    pos_dropout: float = 0.1,
-    register_multiple: int = 0,
+def enable_cpe(model: nn.Module,
+               max_img_size: Union[int, Tuple[int, int]] = 1024,
+               num_cls_tokens: int = 1,
+               pos_dropout: float = 0.1,
+               register_multiple: int = 0,
 ):
     if not isinstance(model, VisionTransformer):
         raise ValueError("CPE only support for VisionTransformer models!")

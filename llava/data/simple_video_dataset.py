@@ -1,25 +1,22 @@
-import argparse
-import base64
-import getpass
-import io
-import json
-import multiprocessing
-import os
-import os.path as osp
-import pickle
-import pprint
 import shutil
-import tarfile
+import os, os.path as osp, io
+import argparse
+import pprint
+import pickle
 from bisect import bisect
+import base64
+from PIL import Image
+import json
+from filelock import Timeout, FileLock
 from functools import lru_cache, reduce
+import tarfile
 from multiprocessing.pool import ThreadPool as Pool
-
+import multiprocessing
 import torch
 import torch.distributed
-from filelock import FileLock, Timeout
-from PIL import Image
-from torch.utils.data import ConcatDataset, Dataset, get_worker_info
+from torch.utils.data import Dataset, get_worker_info, ConcatDataset
 
+import getpass
 from llava.wids import ShardListDataset
 
 
@@ -31,7 +28,6 @@ def load_tarfile(tar_path):
 # INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video"
 INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v3/ego4d/ego4d_clips_tar/ego4d_1m"
 CACHEDIR = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v3/ego4d/ego4d_clips_tar/ego4d_1m-webds-meta"
-
 
 def process_tarfile(tar_abspath, tar_meta_path, cache_dir):
     tar_realpath = osp.realpath(tar_abspath)
@@ -81,7 +77,6 @@ def process_tarfile(tar_abspath, tar_meta_path, cache_dir):
         json.dump(tar_meta, open(tar_real_meta_path, "w+"), indent=2)
 
     return tar_meta
-
 
 class SimpleVideoDataset(torch.utils.data.Dataset):
     def __init__(
@@ -139,6 +134,7 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
                 "wids_version": 1,
                 "shardlist": [],
             }
+
 
             max_processes = 16  # Set the maximum number of processes
             pool = multiprocessing.Pool(processes=max_processes)
@@ -229,11 +225,11 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    import argparse
-
     import torch
     import torch.distributed as dist
     from torch.utils.data.distributed import DistributedSampler
+
+    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_path", nargs="?", type=str, default=INTERNVID)
@@ -253,9 +249,9 @@ if __name__ == "__main__":
 
     sampler = None
     # from PIL import Image
+    from torch.utils.data import default_collate
     from collections import defaultdict
 
-    from torch.utils.data import default_collate
 
     dloader = torch.utils.data.DataLoader(
         train_dataset,
