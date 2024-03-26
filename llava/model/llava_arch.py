@@ -50,12 +50,15 @@ class LlavaMetaModel(ABC):
         if type(mm_projector) is list:
             mm_projector = mm_projector[0]
         return mm_projector
-    
+    ## @yunhao: is there a better way to handle function call and attributes for llm?
     def get_input_embeddings(self):
         return self.get_llm().get_input_embeddings()
     
     def get_output_embeddings(self):
         return self.get_llm().get_output_embeddings()
+    
+    def resize_token_embeddings(self, embed_size):
+        return self.get_llm().resize_token_embeddings(embed_size)
 
     def post_config(self):
         self.training = self.get_llm().training
@@ -149,7 +152,7 @@ class LlavaMetaForCausalLM(ABC):
         input_ids_copy = input_ids.clone()
         # kentang-mit@: Otherwise tokenizer out of bounds. Embeddings of image tokens will not be used.
         input_ids_copy[input_ids_copy == IMAGE_TOKEN_INDEX] = 0
-        input_embeds = self.get_model().embed_tokens(input_ids_copy)
+        input_embeds = self.llm.model.embed_tokens(input_ids_copy)
 
         input_ids = [
             cur_input_ids[cur_attention_mask]
@@ -178,7 +181,7 @@ class LlavaMetaForCausalLM(ABC):
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             if num_images == 0:
                 cur_image_features = image_features[0]
-                # cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
+                # cur_input_embeds_1 = self.get_llm().embed_tokens(cur_input_ids)
                 cur_input_embeds_1 = input_embeds_1[batch_idx]
                 cur_input_embeds = torch.cat(
                     [cur_input_embeds_1, cur_image_features[0:0]], dim=0
@@ -214,7 +217,7 @@ class LlavaMetaForCausalLM(ABC):
                     ]
                 )
             split_sizes = [x.shape[0] for x in cur_labels_noim]
-            # cur_input_embeds = self.get_model().embed_tokens(torch.cat(cur_input_ids_noim))
+            # cur_input_embeds = self.get_llm().embed_tokens(torch.cat(cur_input_ids_noim))
             # cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
             cur_new_input_embeds = []
             cur_new_labels = []
@@ -242,7 +245,7 @@ class LlavaMetaForCausalLM(ABC):
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(
-            self.config, "tokenizer_model_max_length", None
+            self.llm.config, "tokenizer_model_max_length", None
         )
         if tokenizer_model_max_length is not None:
             if any(len(x) > tokenizer_model_max_length for x in new_input_embeds):
@@ -275,7 +278,7 @@ class LlavaMetaForCausalLM(ABC):
             zip(new_input_embeds, new_labels)
         ):
             cur_len = cur_new_embed.shape[0]
-            if getattr(self.config, "tokenizer_padding_side", "right") == "left":
+            if getattr(self.llm.config, "tokenizer_padding_side", "right") == "left":
                 new_input_embeds_padded.append(
                     torch.cat(
                         (
@@ -410,7 +413,7 @@ class LlavaMetaForCausalLM(ABC):
         # print(new_position_ids[0].device, [x.shape for x in new_inputs_embeds], [x.shape for x in new_labels], [x.shape for x in new_position_ids])
         # assert 0
         new_inputs_embeds = torch.nn.utils.rnn.pad_sequence(
-            new_inputs_embeds, batch_first=True, padding_value=self.pad_token_id
+            new_inputs_embeds, batch_first=True, padding_value=self.llm.pad_token_id
         )
 
         new_position_ids = torch.nn.utils.rnn.pad_sequence(
@@ -450,8 +453,8 @@ class LlavaMetaForCausalLM(ABC):
             self.resize_token_embeddings(len(tokenizer))
 
             if num_new_tokens > 0:
-                input_embeddings = self.llm.get_input_embeddings().weight.data
-                output_embeddings = self.llm.get_output_embeddings().weight.data
+                input_embeddings = self.get_input_embeddings().weight.data
+                output_embeddings = self.get_output_embeddings().weight.data
 
                 input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
                     dim=0, keepdim=True

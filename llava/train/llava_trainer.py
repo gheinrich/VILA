@@ -420,15 +420,19 @@ class LLaVATrainer(Trainer):
             except:
                 raise ValueError("Failed to save image processor")
 
-    def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        ## save modules separately
-        self.model.get_llm().save_pretrained(os.path.join(output_dir, "llm"), _internal_call=True)
-        self.model.get_vision_tower().save_pretrained(os.path.join(output_dir, "vision_tower"), _internal_call=True)
-        self.model.get_vision_tower().image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"), _internal_call=True)
-        self.model.get_mm_projector().save_checkpoint(os.path.join(output_dir, "mm_projector"), _internal_call=True)
+    def save_model(self, output_dir: Optional[str], _internal_call: bool):
+        ## save tuned model separately
+        if self.model.get_llm() and self.model.config.tune_language_model:
+            self.model.llm.save_pretrained(os.path.join(output_dir, "llm"))
+            self.model.config.llm_cfg = self.model.llm.config
+        if self.model.get_vision_tower() and self.model.config.tune_vision_tower:
+            self.model.vision_tower.vision_tower.save_pretrained(os.path.join(output_dir, "vision_tower"))
+            self.model.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
+            self.model.config.vision_tower_cfg = self.model.vision_tower.config
+        if self.model.get_mm_projector():
+            ## always save mm_projector
+            self.model.mm_projector.save_pretrained(os.path.join(output_dir, "mm_projector"))
+            self.model.config.mm_projector_cfg = self.model.mm_projector.config
         ## update and save top-level config
-        self.model.config.llm_cfg = self.llm.config
-        self.model.config.vision_tower_cfg = self.vision_tower.config
-        self.model.config.mm_projector_cfg = self.mm_projector.config
         self.model.config.save_pretrained(output_dir)
         # self.save_extra(self.model, os.path.join(output_dir, "vision_tower"))

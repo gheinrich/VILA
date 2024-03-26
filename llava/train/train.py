@@ -38,7 +38,7 @@ from llava.model import *
 from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
-    prepare_vision_tower_config,
+    prepare_config_for_training,
     vision_resolution_elevation,
     unit_test_rope_scaling,
 )
@@ -248,7 +248,7 @@ def train():
         else:
             ## llm and default multimodal model
             model_cls = LlavaLlamaModel
-            config = LlavaConfig(
+            config = LlavaLlamaConfig(
                 model_args.model_name_or_path,
                 model_args.vision_tower,
                 model_args.mm_projector,
@@ -256,7 +256,7 @@ def train():
             )
             torch.set_default_dtype(torch.bfloat16)
     ## extra configurations
-    prepare_vision_tower_config(config, model_args)
+    prepare_config_for_training(config, model_args, training_args)
     ## TODO handle _attn_implementation
     model = model_cls(
         config=config,

@@ -51,7 +51,6 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
             "mm_projector_cfg",
             mm_projector_cfg,
         )
-        self.config = config
         self.llm = build_llm(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
         )
@@ -123,7 +122,7 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
         # print(inputs_embeds.device, "preparation time:", ed - st, "s.")
 
         # st = time.time()
-        outputs = self.get_llm().forward(
+        outputs = self.llm.forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,
             position_ids=new_position_ids,

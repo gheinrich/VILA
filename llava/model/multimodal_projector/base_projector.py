@@ -32,7 +32,7 @@ class SimpleResBlock(nn.Module):
 class MultimodalProjectorConfig(PretrainedConfig):
     model_type = "v2l_projector"
 
-    def __init__(self, mm_projector_type: str):
+    def __init__(self, mm_projector_type: str=None):
         super().__init__()
         self.mm_projector_type = mm_projector_type
 

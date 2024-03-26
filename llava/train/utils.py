@@ -59,9 +59,13 @@ def get_checkpoint_path(
             return None
 
 
-def prepare_vision_tower_config(
-    config: PretrainedConfig, model_args: dataclass
+def prepare_config_for_training(
+    config: PretrainedConfig, model_args: dataclass, training_args: dataclass
 ) -> None:
+    config.tune_language_model = training_args.tune_language_model
+    config.tune_vision_tower = training_args.tune_vision_tower
+    config.tune_mm_projector = training_args.tune_mm_projector
+    ## vision tower configuration
     if getattr(config, "vision_tower_cfg", None) is not None:
         config.mm_vision_select_layer = model_args.mm_vision_select_layer
         config.mm_vision_select_feature = model_args.mm_vision_select_feature
