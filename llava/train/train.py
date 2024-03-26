@@ -219,7 +219,8 @@ def train():
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
-        model_cls = eval(config.architectures[0])
+        config.resume_path = resume_path
+        model_cls = eval(config.architecture)
         torch.set_default_dtype(torch.bfloat16)
     else:
         ## first time training

@@ -14,7 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # This file is modified from https://github.com/haotian-liu/LLaVA/
-
+import os
 from transformers import AutoConfig
 
 
@@ -24,7 +24,7 @@ def get_model_config(config):
     for key in default_keys:
         cfg = getattr(config, key, None)
         if isinstance(cfg, dict):
-            return_list.append(cfg["_name_or_path"])
+            return_list.append(os.path.join(config.resume_path, key[:-4]))
         elif isinstance(cfg, str):
             return_list.append(cfg)
     return return_list

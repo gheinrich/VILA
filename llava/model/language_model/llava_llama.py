@@ -20,7 +20,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from transformers import LlamaForCausalLM, LlamaConfig, PreTrainedModel
+from transformers import LlamaForCausalLM, LlamaConfig, PreTrainedModel, AutoConfig, AutoModel
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
@@ -33,7 +33,6 @@ from .builder import build_llm
 
 class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
-    architectures = ["LlavaLlamaModel"]
 
 
 class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
@@ -43,14 +42,7 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
     def __init__(self, config: LlavaLlamaConfig=None, *args, **kwargs) -> None:
         super().__init__(config)
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-        print(
-            "llm_cfg",
-            llm_cfg,
-            "vision_tower_cfg",
-            vision_tower_cfg,
-            "mm_projector_cfg",
-            mm_projector_cfg,
-        )
+        
         self.llm = build_llm(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
         )
@@ -150,3 +142,6 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
         if images is not None:
             _inputs["images"] = images
         return _inputs
+
+AutoConfig.register("llava_llama", LlavaLlamaConfig)
+AutoModel.register(LlavaLlamaConfig, LlavaLlamaModel)

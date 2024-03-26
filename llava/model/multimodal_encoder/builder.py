@@ -1,11 +1,16 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
-from transformers import PretrainedConfig, PreTrainedModel
+import os
+from transformers import AutoConfig, PretrainedConfig, PreTrainedModel
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
 
 
 def build_vision_tower(model_name_or_path: str, config: PretrainedConfig) -> PreTrainedModel:
+    if os.path.exists(model_name_or_path):
+        vision_tower_cfg = AutoConfig.from_pretrained(model_name_or_path)
+        vision_tower_arch = vision_tower_cfg.architectures[0]
+        
     if "clip" in model_name_or_path:
         vision_tower = CLIPVisionTower(model_name_or_path, config)
     elif "siglip" in model_name_or_path:

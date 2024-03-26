@@ -9,21 +9,35 @@ class LlavaConfig(PretrainedConfig):
         llm_cfg=None,
         vision_tower_cfg=None,
         mm_projector_cfg=None,
+        architecture=None,
+        resume=False,
+        hidden_size=None,
         mm_hidden_size=None,
         image_aspect_ratio=None,
+        mm_vision_select_layer=None,
+        mm_vision_select_feature=None,
         mm_use_im_start_end=False,
-        mm_projector_lr=None,
         mm_use_im_patch_token=True,
-        resume=False
+        mm_projector_lr=None,
+        vision_resolution=None,
+        interpolate_mode=None,
+        **kwargs
     ):
         super().__init__()
+        self.architecture = architecture
         self.llm_cfg = llm_cfg
         self.vision_tower_cfg = vision_tower_cfg
         self.mm_projector_cfg = mm_projector_cfg
+        self.resume = resume
+        
+        self.hidden_size = hidden_size
         self.mm_hidden_size = mm_hidden_size
         self.image_aspect_ratio = image_aspect_ratio
+        self.mm_vision_select_layer = mm_vision_select_layer
+        self.mm_vision_select_feature = mm_vision_select_feature
         self.mm_use_im_start_end = mm_use_im_start_end
-        self.mm_projector_lr = mm_projector_lr
         self.mm_use_im_start_end = mm_use_im_start_end
         self.mm_use_im_patch_token = mm_use_im_patch_token
-        self.resume = resume
+        self.mm_projector_lr = mm_projector_lr
+        self.vision_resolution = vision_resolution
+        self.interpolate_mode = interpolate_mode
