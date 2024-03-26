@@ -225,6 +225,7 @@ def train():
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
 
     resume_path = get_checkpoint_path(training_args.output_dir)
+    ## TODO add prefix for different modules
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -284,24 +285,16 @@ def train():
     # Take a look on model architecture.
     print(model)
 
-    model.config.use_cache = False
+    model.llm.config.use_cache = False
     ## set tunnable parameters
     logging.warning(
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
-    model.get_model().requires_grad_(training_args.tune_language_model)
-    try:
-        model.get_lm_head.requires_grad_(training_args.tune_language_model)
-    except:
-        logging.warning("model.get_lm_head() is not available")
+    model.get_llm().requires_grad_(training_args.tune_language_model)
     print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
-    if model.get_model().get_vision_tower():
-        model.get_model().get_vision_tower().requires_grad_(
-            training_args.tune_vision_tower
-        )
-        model.get_model().get_mm_projector().requires_grad_(
-            training_args.tune_mm_projector
-        )
+    if model.get_vision_tower():
+        model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+        model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
         print(f"vision tower {training_args.tune_vision_tower}")
         print(f"mm projector {training_args.tune_mm_projector}")
 
@@ -316,25 +309,25 @@ def train():
                 return True
         return False
 
-    if need_to_modify_do_sample(model.generation_config):
-        model.generation_config.do_sample = True
+    if need_to_modify_do_sample(model.llm.generation_config):
+        model.llm.generation_config.do_sample = True
 
-    ## quantize training
+    ## quantize training @yunhao: be careful here
     if training_args.bits in [4, 8]:
         from peft import prepare_model_for_kbit_training
 
-        model.config.torch_dtype = (
+        model.llm.config.torch_dtype = (
             torch.float32
             if training_args.fp16
             else (torch.bfloat16 if training_args.bf16 else torch.float32)
         )
-        model = prepare_model_for_kbit_training(
-            model, use_gradient_checkpointing=training_args.gradient_checkpointing
+        model.llm = prepare_model_for_kbit_training(
+            model.llm, use_gradient_checkpointing=training_args.gradient_checkpointing
         )
 
     if training_args.gradient_checkpointing:
-        if hasattr(model, "enable_input_require_grads"):
-            model.enable_input_require_grads()
+        if hasattr(model.llm, "enable_input_require_grads"):
+            model.llm.enable_input_require_grads()
         else:
 
             def make_inputs_require_grad(module, input, output):
@@ -383,7 +376,7 @@ def train():
             smart_tokenizer_and_embedding_resize(
                 special_tokens_dict=dict(pad_token="[PAD]"),
                 tokenizer=tokenizer,
-                model=model,
+                model=model.llm,
             )
     elif model_args.version == "v0.5":
         tokenizer.pad_token = tokenizer.unk_token
@@ -399,9 +392,9 @@ def train():
             ]
 
     # kentang-mit@: It will be useful in on-the-fly packing
-    model.pad_token_id = tokenizer.pad_token_id
+    model.llm.pad_token_id = tokenizer.pad_token_id
     if training_args.lora_enable:
-        model.base_model.model.pad_token_id = tokenizer.pad_token_id
+        model.base_model.model.llm.pad_token_id = tokenizer.pad_token_id
 
     vision_tower = model.get_vision_tower()
     if vision_tower is not None:
@@ -409,10 +402,10 @@ def train():
         data_args.is_multimodal = True
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
-        model.config.tokenizer_padding_side = tokenizer.padding_side
-        model.config.tokenizer_model_max_length = tokenizer.model_max_length
+        model.llm.config.tokenizer_padding_side = tokenizer.padding_side
+        model.llm.config.tokenizer_model_max_length = tokenizer.model_max_length
         if training_args.bits in [4, 8]:
-            model.get_model().get_mm_projector().to(
+            model.get_mm_projector().to(
                 dtype=compute_dtype, device=training_args.device
             )
 
@@ -461,9 +454,9 @@ def train():
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()
 
-    model.config.use_cache = True
+    model.llm.config.use_cache = True
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
-
+    ## TODO handle lora for new initialization
     if training_args.lora_enable:
         state_dict = get_peft_state_maybe_zero_3(
             model.named_parameters(), training_args.lora_bias

@@ -35,18 +35,17 @@ class LlavaLlamaConfig(LlavaConfig):
     architectures = ["LlavaLlamaModel"]
 
 
-class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM):
-    config_class = LlavaLlamaConfig
+class LlavaLlamaModel(nn.Module, LlavaMetaModel, LlavaMetaForCausalLM):
 
-    def __init__(self, config: LlavaConfig = None, *args, **kwargs) -> None:
+    def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         super().__init__()
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-        
+
         self.llm = LlamaForCausalLM.from_pretrained(llm_cfg, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg)
         self.post_config()
-        
+
         assert (
             self.llm is not None
             or self.vision_tower is not None

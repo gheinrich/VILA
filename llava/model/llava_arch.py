@@ -51,6 +51,12 @@ class LlavaMetaModel(ABC):
         if type(mm_projector) is list:
             mm_projector = mm_projector[0]
         return mm_projector
+    
+    def get_input_embeddings(self):
+        return self.get_llm().get_input_embeddings()
+    
+    def get_output_embeddings(self):
+        return self.get_llm().get_output_embeddings()
 
     def post_config(self):
         self.training = self.get_llm().training
@@ -444,8 +450,8 @@ class LlavaMetaForCausalLM(ABC):
             self.resize_token_embeddings(len(tokenizer))
 
             if num_new_tokens > 0:
-                input_embeddings = self.get_input_embeddings().weight.data
-                output_embeddings = self.get_output_embeddings().weight.data
+                input_embeddings = self.llm.get_input_embeddings().weight.data
+                output_embeddings = self.llm.get_output_embeddings().weight.data
 
                 input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
                     dim=0, keepdim=True
