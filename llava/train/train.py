@@ -225,7 +225,7 @@ def train():
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
 
     resume_path = get_checkpoint_path(training_args.output_dir)
-    ## TODO add prefix for different modules
+    ## TODO add suffix for different modules, e.g. checkpoint_dir/llm or vision_tower or mm_projector
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)

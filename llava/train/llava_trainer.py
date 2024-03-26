@@ -421,6 +421,14 @@ class LLaVATrainer(Trainer):
                 raise ValueError("Failed to save image processor")
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        self.save_extra(self.model, output_dir)
-        super(LLaVATrainer, self)._save(output_dir, state_dict)
-        ## TODO save top config, and separate modules
+        ## save modules separately
+        self.model.get_llm().save_pretrained(os.path.join(output_dir, "llm"), _internal_call=True)
+        self.model.get_vision_tower().save_pretrained(os.path.join(output_dir, "vision_tower"), _internal_call=True)
+        self.model.get_vision_tower().image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"), _internal_call=True)
+        self.model.get_mm_projector().save_checkpoint(os.path.join(output_dir, "mm_projector"), _internal_call=True)
+        ## update and save top-level config
+        self.model.config.llm_cfg = self.llm.config
+        self.model.config.vision_tower_cfg = self.vision_tower.config
+        self.model.config.mm_projector_cfg = self.mm_projector.config
+        self.model.config.save_pretrained(output_dir)
+        # self.save_extra(self.model, os.path.join(output_dir, "vision_tower"))
