@@ -1,6 +1,6 @@
 import torch.nn as nn
 import re
-from transformers import PretrainedConfig, PreTrainedModel
+from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel
 
 
 class IdentityMap(nn.Module):
@@ -32,7 +32,7 @@ class SimpleResBlock(nn.Module):
 class MultimodalProjectorConfig(PretrainedConfig):
     model_type = "v2l_projector"
 
-    def __init__(self, mm_projector_type: str=None):
+    def __init__(self, mm_projector_type: str=None, **kwargs):
         super().__init__()
         self.mm_projector_type = mm_projector_type
 
@@ -63,3 +63,6 @@ class MultimodalProjector(PreTrainedModel):
 
     def forward(self, x, *args, **kwargs):
         return self.layers(x)
+
+AutoConfig.register("v2l_projector", MultimodalProjectorConfig)
+AutoModel.register(MultimodalProjectorConfig, MultimodalProjector)

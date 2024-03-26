@@ -14,8 +14,8 @@ def build_mm_projector(
         return None
     ## load from pretrained model
     if os.path.exists(model_type_or_path):
-        return MultimodalProjector.from_pretrained(model_type_or_path)
-    ## build from config
+        return MultimodalProjector.from_pretrained(model_type_or_path, config)
+    ## build from scratch
     else:
         mm_projector_cfg = MultimodalProjectorConfig(model_type_or_path)
         return MultimodalProjector(mm_projector_cfg, config)

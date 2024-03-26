@@ -27,7 +27,7 @@ from transformers.modeling_utils import unwrap_model
 from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
 from transformers.trainer import (get_parameter_names, has_length,
                                   is_sagemaker_mp_enabled, logger)
-
+from collections import OrderedDict
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -422,18 +422,50 @@ class LLaVATrainer(Trainer):
 
     def save_model(self, output_dir: Optional[str], _internal_call: bool):
         ## save tuned model separately
-        if self.model.get_llm() and self.model.config.tune_language_model:
-            self.model.llm.save_pretrained(os.path.join(output_dir, "llm"))
+        if self.is_deepspeed_enabled:
+            state_dict = self.accelerator.get_state_dict(self.deepspeed)
+        else:
+            state_dict = self.model.state_dict()
+
+        if self.model.get_llm():
+            llm_state_dict = OrderedDict(
+                {k.split("llm.")[-1]: v for k, v in state_dict.items() if "llm" in k}
+            )
+            self.model.llm.save_pretrained(
+                os.path.join(output_dir, "llm"), state_dict=llm_state_dict
+            )
             self.model.config.llm_cfg = self.model.llm.config
-        if self.model.get_vision_tower() and self.model.config.tune_vision_tower:
-            self.model.vision_tower.vision_tower.save_pretrained(os.path.join(output_dir, "vision_tower"))
-            self.model.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
+
+        if self.model.get_vision_tower():
+            vision_tower_state_dict = OrderedDict(
+                {
+                    k.split("vision_tower.vision_tower.")[-1]: v
+                    for k, v in state_dict.items()
+                    if "vision_tower" in k
+                }
+            )
+            self.model.vision_tower.vision_tower.save_pretrained(
+                os.path.join(output_dir, "vision_tower"),
+                state_dict=vision_tower_state_dict,
+            )
+            self.model.vision_tower.image_processor.save_pretrained(
+                os.path.join(output_dir, "vision_tower")
+            )
             self.model.config.vision_tower_cfg = self.model.vision_tower.config
+
         if self.model.get_mm_projector():
-            ## always save mm_projector
-            self.model.mm_projector.save_pretrained(os.path.join(output_dir, "mm_projector"))
+            mm_projector_state_dict = OrderedDict(
+                {
+                    k.split("mm_projector.")[-1]: v
+                    for k, v in state_dict.items()
+                    if "mm_projector" in k
+                }
+            )
+            self.model.mm_projector.save_pretrained(
+                os.path.join(output_dir, "mm_projector"),
+                state_dict=mm_projector_state_dict,
+            )
             self.model.config.mm_projector_cfg = self.model.mm_projector.config
         ## update and save top-level config
         self.model.config.architecture = self.model.__class__.__name__
         self.model.config.save_pretrained(output_dir)
-        # self.save_extra(self.model, os.path.join(output_dir, "vision_tower"))
