@@ -18,6 +18,18 @@
 from transformers import AutoConfig
 
 
+def get_model_config(config):
+    default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
+    return_list = []
+    for key in default_keys:
+        cfg = getattr(config, key, None)
+        if isinstance(cfg, dict):
+            return_list.append(cfg["_name_or_path"])
+        elif isinstance(cfg, str):
+            return_list.append(cfg)
+    return return_list
+
+
 def is_mm_model(model_path):
     config = AutoConfig.from_pretrained(model_path)
     architectures = config.architectures

@@ -24,6 +24,7 @@ from transformers import (
     AutoConfig,
     BitsAndBytesConfig,
     PretrainedConfig,
+    PreTrainedModel,
 )
 import torch
 from llava.model import *
@@ -34,7 +35,6 @@ from llava.constants import (
     DEFAULT_IM_START_TOKEN,
     DEFAULT_IM_END_TOKEN,
 )
-
 
 def load_pretrained_model(
     model_path,
@@ -252,4 +252,3 @@ def mm_config_wrapper(config: PretrainedConfig, kwargs: dict):
     ## siglip does not support device_map = "auto"
     if "siglip" in config.vision_tower.lower():
         kwargs["device_map"] = "cuda"
-

@@ -423,3 +423,4 @@ class LLaVATrainer(Trainer):
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         self.save_extra(self.model, output_dir)
         super(LLaVATrainer, self)._save(output_dir, state_dict)
+        ## TODO save top config, and separate modules

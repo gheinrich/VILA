@@ -38,8 +38,7 @@ from llava.model import *
 from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
-    prepare_vision_tower_config,
-    vision_resolution_elevation,
+    prepare_vision_tower_for_training,
     unit_test_rope_scaling,
 )
 
@@ -228,11 +227,7 @@ def train():
     resume_path = get_checkpoint_path(training_args.output_dir)
     if resume_path:
         resume_from_checkpoint = True
-        model_args.model_name_or_path = resume_path
-        config = AutoConfig.from_pretrained(
-            model_args.model_name_or_path, trust_remote_code=True
-        )
-        config.resume_path = resume_path
+        config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
         model_cls = eval(config.architectures[0])
         torch.set_default_dtype(torch.bfloat16)
     else:
@@ -260,25 +255,26 @@ def train():
             torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaGemmaForCausalLM
         else:
-            ## multimodal model
+            ## llm and default multimodal model
+            model_cls = LlavaLlamaModel
+            config = LlavaConfig(
+                model_args.model_name_or_path,
+                model_args.vision_tower,
+                model_args.mm_projector,
+                resume=resume_from_checkpoint,
+            )
+            torch.set_default_dtype(torch.bfloat16)
             if model_args.vision_tower:
-                config = LlavaConfig.from_pretrained(model_args.model_name_or_path)
                 config._attn_implementation = "flash_attention_2"
-                torch.set_default_dtype(torch.bfloat16)
-                model_cls = LlavaLlamaForCausalLM
-            ## language model
-            else:
-                model_cls = LlamaForCausalLM
-
-    prepare_vision_tower_config(config, model_args)
-    context_length_extension(config)
-    model = model_cls.from_pretrained(
-        model_args.model_name_or_path,
+    ## extra visual configurations and increase resolution
+    prepare_vision_tower_for_training(model, model_args)
+    context_length_extension(model.get_llm().config)
+    ## TODO handle _attn_implementation
+    model = model_cls(
         config=config,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    vision_resolution_elevation(model, config)
 
     # This is an empty func.
     # It would be overwritten by unit test script.
@@ -300,8 +296,12 @@ def train():
         logging.warning("model.get_lm_head() is not available")
     print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
     if model.get_model().get_vision_tower():
-        model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-        model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)
+        model.get_model().get_vision_tower().requires_grad_(
+            training_args.tune_vision_tower
+        )
+        model.get_model().get_mm_projector().requires_grad_(
+            training_args.tune_mm_projector
+        )
         print(f"vision tower {training_args.tune_vision_tower}")
         print(f"mm projector {training_args.tune_mm_projector}")
 
@@ -416,9 +416,9 @@ def train():
                 dtype=compute_dtype, device=training_args.device
             )
 
-        model.config.mm_use_im_start_end = (
-            data_args.mm_use_im_start_end
-        ) = model_args.mm_use_im_start_end
+        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
+            model_args.mm_use_im_start_end
+        )
         model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
