@@ -32,3 +32,4 @@ def build_vision_tower(model_name_or_path: str, config: PretrainedConfig) -> Pre
         raise ValueError(f"Unknown vision tower: {model_name_or_path}")
 
     config.mm_hidden_size = vision_tower.config.hidden_size
+    return vision_tower

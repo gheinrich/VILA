@@ -59,18 +59,15 @@ def get_checkpoint_path(
             return None
 
 
-def prepare_vision_tower_for_training(
-    model: PreTrainedModel, model_args: dataclass
+def prepare_vision_tower_config(
+    config: PretrainedConfig, model_args: dataclass
 ) -> None:
     if getattr(config, "vision_tower_cfg", None) is not None:
-        config = model.config
         config.mm_vision_select_layer = model_args.mm_vision_select_layer
         config.mm_vision_select_feature = model_args.mm_vision_select_feature
         ## vision tower configurations
         config.vision_resolution = model_args.vision_resolution
         config.interpolate_mode = model_args.interpolate_mode
-        ## increase resolution of vision tower
-        vision_resolution_elevation(model, config)
 
 
 def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig):

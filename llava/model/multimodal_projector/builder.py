@@ -3,7 +3,7 @@
 import torch.nn as nn
 import os
 
-from base_projector import MultimodalProjectorConfig, MultimodalProjector
+from .base_projector import MultimodalProjectorConfig, MultimodalProjector
 from transformers import PretrainedConfig, PreTrainedModel
 
 

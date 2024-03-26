@@ -38,7 +38,8 @@ from llava.model import *
 from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
-    prepare_vision_tower_for_training,
+    prepare_vision_tower_config,
+    vision_resolution_elevation,
     unit_test_rope_scaling,
 )
 
@@ -213,17 +214,6 @@ def train():
             )
         )
 
-    def context_length_extension(config):
-        orig_ctx_len = getattr(config, "max_position_embeddings", None)
-        if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
-            print(
-                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
-            )
-            scaling_factor = float(
-                math.ceil(training_args.model_max_length / orig_ctx_len)
-            )
-            config.rope_scaling = {"type": "linear", "factor": scaling_factor}
-
     resume_path = get_checkpoint_path(training_args.output_dir)
     ## TODO add suffix for different modules, e.g. checkpoint_dir/llm or vision_tower or mm_projector
     if resume_path:
@@ -265,18 +255,17 @@ def train():
                 resume=resume_from_checkpoint,
             )
             torch.set_default_dtype(torch.bfloat16)
-            if model_args.vision_tower:
-                config._attn_implementation = "flash_attention_2"
-    ## extra visual configurations and increase resolution
-    prepare_vision_tower_for_training(model, model_args)
-    context_length_extension(model.get_llm().config)
+    ## extra configurations
+    prepare_vision_tower_config(config, model_args)
     ## TODO handle _attn_implementation
     model = model_cls(
         config=config,
+        attn_implementation = "flash_attention_2",
+        model_max_length=training_args.model_max_length,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-
+    vision_resolution_elevation(model, config)
     # This is an empty func.
     # It would be overwritten by unit test script.
     if unit_test_rope_scaling(model, config, training_args):

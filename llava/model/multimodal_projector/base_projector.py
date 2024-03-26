@@ -43,6 +43,7 @@ class MultimodalProjector(PreTrainedModel):
     def __init__(
         self, mm_projector_cfg: MultimodalProjectorConfig, config: PretrainedConfig
     ):
+        super().__init__(mm_projector_cfg)
         mm_projector_type = mm_projector_cfg.mm_projector_type
         if mm_projector_type == "identity":
             self.layers = IdentityMap()
@@ -57,7 +58,8 @@ class MultimodalProjector(PreTrainedModel):
                     modules.append(nn.GELU())
                     modules.append(nn.Linear(config.hidden_size, config.hidden_size))
                 self.layers = nn.Sequential(*modules)
-            raise ValueError(f"Unknown projector type: {mm_projector_type}")
+            else:
+                raise ValueError(f"Unknown projector type: {mm_projector_type}")
 
     def forward(self, x, *args, **kwargs):
         return self.layers(x)

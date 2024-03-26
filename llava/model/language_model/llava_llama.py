@@ -20,14 +20,15 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from transformers import LlamaForCausalLM
+from transformers import LlamaForCausalLM, LlamaConfig, PreTrainedModel
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 from ..multimodal_encoder.builder import build_vision_tower
 from ..multimodal_projector.builder import build_mm_projector
-from configuration_llava import LlavaConfig
-from utils import get_model_config
+from ..configuration_llava import LlavaConfig
+from ..utils import get_model_config
+from .builder import build_llm
 
 
 class LlavaLlamaConfig(LlavaConfig):
@@ -35,15 +36,27 @@ class LlavaLlamaConfig(LlavaConfig):
     architectures = ["LlavaLlamaModel"]
 
 
-class LlavaLlamaModel(nn.Module, LlavaMetaModel, LlavaMetaForCausalLM):
-
-    def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
-        super().__init__()
+class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
+    config_class = LlavaLlamaConfig
+    supports_gradient_checkpointing = True
+    
+    def __init__(self, config: LlavaLlamaConfig=None, *args, **kwargs) -> None:
+        super().__init__(config)
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-
-        self.llm = LlamaForCausalLM.from_pretrained(llm_cfg, *args, **kwargs)
+        print(
+            "llm_cfg",
+            llm_cfg,
+            "vision_tower_cfg",
+            vision_tower_cfg,
+            "mm_projector_cfg",
+            mm_projector_cfg,
+        )
+        self.config = config
+        self.llm = build_llm(
+            llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
+        )
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
-        self.mm_projector = build_mm_projector(mm_projector_cfg)
+        self.mm_projector = build_mm_projector(mm_projector_cfg, config)
         self.post_config()
 
         assert (

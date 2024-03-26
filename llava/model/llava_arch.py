@@ -29,7 +29,6 @@ from llava.constants import (
 
 ## TODO decide whether should we use metaclass
 class LlavaMetaModel(ABC):
-    @abstractmethod
     def get_llm(self):
         llm = getattr(self, "llm", None)
         if type(llm) is list:
@@ -60,6 +59,7 @@ class LlavaMetaModel(ABC):
 
     def post_config(self):
         self.training = self.get_llm().training
+        self.config
         ## configuration
         if getattr(self.config, "llm_cfg", None) is None:
             self.config.llm_cfg = self.llm.config
