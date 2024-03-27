@@ -106,7 +106,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --model_max_length 4096 \
+    --model_max_length 5120 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
