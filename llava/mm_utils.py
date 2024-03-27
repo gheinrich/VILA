@@ -6,6 +6,69 @@ import torch
 from transformers import StoppingCriteria
 from llava.constants import IMAGE_TOKEN_INDEX
 
+import tempfile
+from io import BytesIO
+
+def get_frame_from_vcap(vidcap, num_frames=10):
+    import cv2
+    fps = vidcap.get(cv2.CAP_PROP_FPS)
+    
+    if fps == 0:
+        print("Video file not found")
+        return [
+             Image.new('RGB', (720, 720)),
+        ]
+    
+    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = frame_count / fps
+
+    frame_interval = frame_count // 10
+    # print("duration:", duration, "frames:", frame_count, "intervals:", frame_interval)
+
+    images = []
+    count = 0
+    success = True
+    while success:
+        success, frame = vidcap.read()
+        if count % frame_interval:
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            im_pil = Image.fromarray(img)
+            images.append(im_pil)
+            if len(images) == num_frames:
+                return images
+        count += 1
+
+    return images
+
+def opencv_extract_frames(vpath_or_bytesio, frames=6):
+    """
+    Extract frames from a video using OpenCV.
+
+    Args:
+        vpath_or_bytesio (str or BytesIO): Path to the video file or BytesIO object containing the video.
+        frames (int): Number of frames to extract from the video.
+
+    Returns:
+        list: List of PIL Images extracted from the video.
+
+    Raises:
+        NotImplementedError: If the type of `vpath_or_bytesio` is not supported.
+    """
+    import cv2
+    if isinstance(vpath_or_bytesio, str):
+        vidcap = cv2.VideoCapture(vpath_or_bytesio)
+        return get_frame_from_vcap(vidcap, frames)
+    elif isinstance(vpath_or_bytesio, (BytesIO,)):
+        # assuming mp4
+        with tempfile.NamedTemporaryFile(delete=True, suffix='.mp4') as temp_video:
+            temp_video.write(vpath_or_bytesio.read())
+            temp_video_name = temp_video.name
+            vidcap = cv2.VideoCapture(temp_video_name)
+            return get_frame_from_vcap(vidcap, frames)
+    else:
+        raise NotImplementedError(type(vpath_or_bytesio))
+
+
 
 def load_image_from_base64(image):
     return Image.open(BytesIO(base64.b64decode(image)))

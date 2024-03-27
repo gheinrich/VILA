@@ -128,7 +128,7 @@ class VILAPanda70m(Dataset):
     def __getitem__(self, index):
         data = self.dataset[index]
         
-        # TODO: we shall make sure every data is complete in panda70m.
+        # TODO: we shall make sure no key is missing in panda70m.
         try:
             video_path = data[".mp4"]
         except KeyError:
@@ -147,16 +147,19 @@ class VILAPanda70m(Dataset):
             image_size = self.data_args.image_processor.size["shortest_edge"]
         else:
             image_size = self.data_args.image_processor.size["height"]
-        imgs, cap = load_video(video_path, jinfo=jinfo, image_size=image_size)
+        # imgs, cap = load_video(video_path, jinfo=jinfo, image_size=image_size)
+        from llava.mm_utils import opencv_extract_frames
+        imgs = opencv_extract_frames(video_path, self.num_video_frames)
+        cap = "This is a sample video from Youtube"
         # print(imgs.shape, cap, secs)
-        num_video_frames = self.num_video_frames
-
-        prompt = "<image>\n" * num_video_frames + cap
+        # num_video_frames = self.num_video_frames
+        prompt = "<image>\n" * len(imgs) + cap
         # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
-        image_tensor = imgs
+        # image_tensor = imgs
         processor = self.data_args.image_processor
         image_tensor = [
-            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
+            # processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
+            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in imgs
         ]
         image_tensor = torch.stack(image_tensor)
 

@@ -144,7 +144,7 @@ def eval_model(args):
     video_path = osp.expanduser("~/workspace/vila-captioner-avfm/videos/1.mp4")
     question = "please describe the video in details "
 
-    
+    print(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
     output = get_model_output(model, image_processor, tokenizer, video_path, question)
     print(question)
@@ -153,9 +153,9 @@ def eval_model(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--model-path", type=str, default="/home/ligengz/workspace/video_checkpoint/video-13b")
+    parser.add_argument("--model-path", type=str, default="checkpoints/video-13b-clip-vit-large-patch14-336-align-llava_1_5_mm_align-pretrain-sharegpt4v_pretrain-SFT-shot2story_shotonly")
     # parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA-7b")
-    parser.add_argument("--model-path", type=str, default="checkpoints/stage2-siglip-large-patch16-384-align-llava_1_5_mm_align-pretrain-sharegpt4v_pretrain-SFT-sharegpt4v_sft+textocr")
+    # parser.add_argument("--model-path", type=str, default="checkpoints/stage2-siglip-large-patch16-384-align-llava_1_5_mm_align-pretrain-sharegpt4v_pretrain-SFT-sharegpt4v_sft+textocr")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--model_max_length", type=int, required=False, default=5120)
     # parser.add_argument('--video_dir', help='Directory containing video files.', required=True)
