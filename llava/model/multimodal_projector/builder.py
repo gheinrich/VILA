@@ -1,6 +1,6 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
-import torch.nn as nn
+import torch
 import os
 
 from .base_projector import MultimodalProjectorConfig, MultimodalProjector
@@ -15,8 +15,12 @@ def build_mm_projector(
 
     ## load from pretrained model
     if config.resume:
-        assert os.path.exists(model_type_or_path), f"Resume mm projector path {model_type_or_path} does not exist!"
-        return MultimodalProjector.from_pretrained(model_type_or_path, config)
+        assert os.path.exists(
+            model_type_or_path
+        ), f"Resume mm projector path {model_type_or_path} does not exist!"
+        return MultimodalProjector.from_pretrained(
+            model_type_or_path, config, dtype=torch.bfloat16
+        )
     ## build from scratch
     else:
         mm_projector_cfg = MultimodalProjectorConfig(model_type_or_path)

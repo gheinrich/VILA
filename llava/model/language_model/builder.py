@@ -1,5 +1,7 @@
 import math
+import torch
 from transformers import PretrainedConfig, PreTrainedModel
+
 
 def context_length_extension(config):
     orig_ctx_len = getattr(config, "max_position_embeddings", None)
@@ -25,7 +27,9 @@ def build_llm(
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length
     context_length_extension(llm_cfg)
-    
-    llm = llm_cls.from_pretrained(model_name_or_path, config=llm_cfg, *args, **kwargs)
+
+    llm = llm_cls.from_pretrained(
+        model_name_or_path, config=llm_cfg, dtype=torch.base_model, *args, **kwargs
+    )
     config.hidden_size = llm.config.hidden_size
     return llm

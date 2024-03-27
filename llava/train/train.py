@@ -220,7 +220,6 @@ def train():
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
         config.resume_path = resume_path
         model_cls = eval(config.architecture)
-        torch.set_default_dtype(torch.bfloat16)
     else:
         ## first time training
         resume_from_checkpoint = False
@@ -233,17 +232,14 @@ def train():
         elif "mistral" in model_args.model_name_or_path.lower():
             config = LlavaMistralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaMistralForCausalLM
         elif "mixtral" in model_args.model_name_or_path.lower():
             config = LlavaMixtralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaMixtralForCausalLM
         elif "gemma" in model_args.model_name_or_path.lower():
             config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaGemmaForCausalLM
         else:
             ## llm and default multimodal model
@@ -254,12 +250,11 @@ def train():
                 model_args.mm_projector,
                 resume=resume_from_checkpoint,
             )
-            torch.set_default_dtype(torch.bfloat16)
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args)
     model = model_cls(
         config=config,
-        attn_implementation = "flash_attention_2",
+        attn_implementation="flash_attention_2",
         model_max_length=training_args.model_max_length,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
@@ -381,6 +376,8 @@ def train():
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.llm.pad_token_id = tokenizer.pad_token_id
+    model.llm.config.tokenizer_padding_side = tokenizer.padding_side
+    model.llm.config.tokenizer_model_max_length = tokenizer.model_max_length
     if training_args.lora_enable:
         model.base_model.model.llm.pad_token_id = tokenizer.pad_token_id
 
@@ -390,13 +387,6 @@ def train():
         data_args.is_multimodal = True
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
-        model.llm.config.tokenizer_padding_side = tokenizer.padding_side
-        model.llm.config.tokenizer_model_max_length = tokenizer.model_max_length
-        if training_args.bits in [4, 8]:
-            model.get_mm_projector().to(
-                dtype=compute_dtype, device=training_args.device
-            )
-
         model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
             model_args.mm_use_im_start_end
         )

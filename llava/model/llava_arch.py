@@ -50,13 +50,14 @@ class LlavaMetaModel(ABC):
         if type(mm_projector) is list:
             mm_projector = mm_projector[0]
         return mm_projector
+
     ## @yunhao: is there a better way to handle function call and attributes for llm?
     def get_input_embeddings(self):
         return self.get_llm().get_input_embeddings()
-    
+
     def get_output_embeddings(self):
         return self.get_llm().get_output_embeddings()
-    
+
     def resize_token_embeddings(self, embed_size):
         return self.get_llm().resize_token_embeddings(embed_size)
 

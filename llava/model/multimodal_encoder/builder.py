@@ -12,7 +12,7 @@ def build_vision_tower(
     ## skip vision tower instantiation
     if model_name_or_path is None:
         return None
-    
+
     vision_tower_arch = None
     if config.resume:
         assert os.path.exists(
