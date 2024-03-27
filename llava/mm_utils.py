@@ -23,8 +23,7 @@ def get_frame_from_vcap(vidcap, num_frames=10):
 
     frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration = frame_count / fps
-
-    frame_interval = frame_count // 10
+    frame_interval = frame_count // num_frames
     # print("duration:", duration, "frames:", frame_count, "intervals:", frame_interval)
 
     images = []

@@ -137,23 +137,29 @@ class VILAPanda70m(Dataset):
         
         if ".json" in data:
             jinfo = data[".json"]
+            caption = jinfo["caption"]
         else:
-            jinfo = {
-                "caption": "This is a sample video from Youtube.",
-                "timestamp": None,
-                "duration": None,
-            }
-        if "shortest_edge" in self.data_args.image_processor.size:
-            image_size = self.data_args.image_processor.size["shortest_edge"]
-        else:
-            image_size = self.data_args.image_processor.size["height"]
+            caption = "This is a sample video from Youtube."
+            # jinfo = {
+            #     "caption": "This is a sample video from Youtube.",
+            #     "timestamp": None,
+            #     "duration": None,
+            # }
+            
+        # if "shortest_edge" in self.data_args.image_processor.size:
+        #     image_size = self.data_args.image_processor.size["shortest_edge"]
+        # else:
+        #     image_size = self.data_args.image_processor.size["height"]
         # imgs, cap = load_video(video_path, jinfo=jinfo, image_size=image_size)
         from llava.mm_utils import opencv_extract_frames
         imgs = opencv_extract_frames(video_path, self.num_video_frames)
-        cap = "This is a sample video from Youtube"
+        cap = caption
         # print(imgs.shape, cap, secs)
         # num_video_frames = self.num_video_frames
-        prompt = "<image>\n" * len(imgs) + cap
+        if len(imgs) < self.num_video_frames:
+            # pad the video to be consistent
+            imgs = [imgs[0]] * self.num_video_frames
+        prompt = "<image>\n" * self.num_video_frames + cap
         # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
         # image_tensor = imgs
         processor = self.data_args.image_processor
