@@ -12,6 +12,20 @@ def load_image_from_base64(image):
 
 
 def expand2square(pil_img, background_color):
+    """
+    Expand the given PIL image to a square shape by adding padding.
+
+    Parameters:
+    - pil_img: The PIL image to be expanded.
+    - background_color: The color of the padding to be added.
+
+    Returns:
+    - The expanded PIL image.
+
+    If the image is already square, it is returned as is.
+    If the image is wider than it is tall, padding is added to the top and bottom.
+    If the image is taller than it is wide, padding is added to the left and right.
+    """
     width, height = pil_img.size
     if width == height:
         return pil_img
@@ -23,6 +37,47 @@ def expand2square(pil_img, background_color):
         result = Image.new(pil_img.mode, (height, height), background_color)
         result.paste(pil_img, ((height - width) // 2, 0))
         return result
+
+
+def sample_from_video(video_path, num_video_frames):
+    """
+    Extracts a specified number of frames from a video file.
+
+    Args:
+        video_path (str): The path to the video file.
+        num_video_frames (int): The number of frames to extract from the video.
+
+    Returns:
+        list: A list of PIL.Image objects representing the extracted frames.
+    """
+    import cv2
+    from PIL import Image
+
+    vidcap = cv2.VideoCapture(video_path)
+    fps = vidcap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = frame_count / fps
+
+    frame_interval = frame_count // 10
+
+    def get_frame(max_frames):
+        images = []
+        count = 0
+        success = True
+        while success:
+            success, frame = vidcap.read()
+            if count % frame_interval:
+                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                im_pil = Image.fromarray(img)
+                images.append(im_pil)
+                if len(images) == max_frames:
+                    return images
+
+            count += 1
+
+        return images
+
+    return get_frame(num_video_frames)
 
 
 def process_images(images, image_processor, model_cfg):
@@ -73,6 +128,7 @@ def get_model_name_from_path(model_path):
         return model_paths[-2] + "_" + model_paths[-1]
     else:
         return model_paths[-1]
+
 
 class KeywordsStoppingCriteria(StoppingCriteria):
     def __init__(self, keywords, tokenizer, input_ids):

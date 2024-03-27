@@ -73,4 +73,4 @@ done
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+shot2story_shotonly
 # bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+jukinmedia+shot2story_shotonly
-# SLURM_ACCOUNT=nvr_elm_llm bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain shot2story_shotonly
+# SLURM_ACCOUNT=nvr_elm_llm bash scripts/v1_5/caption/srun_s3_video.sh llava_1_5_mm_align sharegpt4v_pretrain panda70m+shot2story_shotonly
