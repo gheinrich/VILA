@@ -18,9 +18,15 @@
 from typing import List, Optional, Tuple, Union
 
 import torch
-import torch.nn as nn
 
-from transformers import LlamaForCausalLM, LlamaConfig, PreTrainedModel, AutoConfig, AutoModel
+from transformers import (
+    LlamaForCausalLM,
+    LlamaConfig,
+    PreTrainedModel,
+    AutoConfig,
+    AutoModel,
+    GenerationConfig,
+)
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
@@ -38,11 +44,11 @@ class LlavaLlamaConfig(LlavaConfig):
 class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
     config_class = LlavaLlamaConfig
     supports_gradient_checkpointing = True
-    
-    def __init__(self, config: LlavaLlamaConfig=None, *args, **kwargs) -> None:
+
+    def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         super().__init__(config)
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-        
+
         self.llm = build_llm(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
         )
@@ -56,7 +62,52 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
             or self.mm_projector is not None
         ), "At least one of the components must be instantiated."
 
-    ## TODO define generation method here
+    ## TODO test generation here!!!
+    @torch.no_grad()
+    def generate(
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        images: Optional[torch.FloatTensor] = None,
+        return_dict: Optional[bool] = None,
+        generation_config: Optional[GenerationConfig] = None,
+        **generate_kwargs,
+    ) -> torch.LongTensor:
+        if inputs_embeds is None:
+            (
+                input_ids,
+                position_ids,
+                attention_mask,
+                past_key_values,
+                inputs_embeds,
+                labels,
+            ) = self.prepare_inputs_labels_for_multimodal(
+                input_ids, position_ids, attention_mask, past_key_values, labels, images
+            )
+
+        outputs = self.llm.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_values=past_key_values,
+            inputs_embeds=inputs_embeds,
+            labels=labels,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+            seqlens_in_batch=attention_mask.sum(-1).int(),
+            generation_config=generation_config,
+            **generate_kwargs,
+        )
+        return outputs
 
     def forward(
         self,
@@ -110,10 +161,7 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-        # ed = time.time()
-        # print(inputs_embeds.device, "preparation time:", ed - st, "s.")
 
-        # st = time.time()
         outputs = self.llm.forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,
@@ -142,6 +190,7 @@ class LlavaLlamaModel(PreTrainedModel, LlavaMetaModel, LlavaMetaForCausalLM):
         if images is not None:
             _inputs["images"] = images
         return _inputs
+
 
 AutoConfig.register("llava_llama", LlavaLlamaConfig)
 AutoModel.register(LlavaLlamaConfig, LlavaLlamaModel)
