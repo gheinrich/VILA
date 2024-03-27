@@ -158,7 +158,8 @@ class VILAPanda70m(Dataset):
         # num_video_frames = self.num_video_frames
         if len(imgs) < self.num_video_frames:
             # pad the video to be consistent
-            imgs = [imgs[0]] * self.num_video_frames
+            # print(imgs)
+            imgs = [imgs[0], ] * self.num_video_frames
         prompt = "<image>\n" * self.num_video_frames + cap
         # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
         # image_tensor = imgs

@@ -42,7 +42,7 @@ echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs"
 echo "node rank:" $SLURM_PROCID
 echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET"
-
+echo "[loading] from ./checkpoints/$OUTPUT_STEP1 [saving] to ./checkpoints/$OUTPUT_STEP2"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \

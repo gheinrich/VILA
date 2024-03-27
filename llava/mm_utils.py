@@ -14,16 +14,21 @@ def get_frame_from_vcap(vidcap, num_frames=10):
     import cv2
 
     fps = vidcap.get(cv2.CAP_PROP_FPS)
-
-    if fps == 0:
-        print("Video file not found")
+    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    if fps == 0 or frame_count == 0:
+        print("Video file not found. return empty image.")
         return [
             Image.new("RGB", (720, 720)),
         ]
-
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
     duration = frame_count / fps
     frame_interval = frame_count // num_frames
+    if frame_interval == 0:
+        print("frame_interval is equal to 0. return empty image.")
+        return [
+            Image.new("RGB", (720, 720)),
+        ]
     # print("duration:", duration, "frames:", frame_count, "intervals:", frame_interval)
 
     images = []
@@ -35,11 +40,15 @@ def get_frame_from_vcap(vidcap, num_frames=10):
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             im_pil = Image.fromarray(img)
             images.append(im_pil)
-            if len(images) == num_frames:
+            if len(images) >= num_frames:
                 return images
         count += 1
 
-    return images
+    print("Did not find enough frames in the video. return empty image.")
+          
+    return [
+        Image.new("RGB", (720, 720)),
+    ]
 
 
 def opencv_extract_frames(vpath_or_bytesio, frames=6):

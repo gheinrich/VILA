@@ -16,7 +16,7 @@ def requires_lustre(reason=None):
     return __id
 
 
-def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32, num_workers=16):
+def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32, num_workers=16, skip_before=0):
     import torch
     import transformers
     from transformers.models.siglip import SiglipImageProcessor
@@ -63,6 +63,9 @@ def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32
     dloader = DataLoader(dataset, collate_fn=data_module["data_collator"], batch_size=batch_size, num_workers=num_workers)
     dloader_len = len(dloader)
     for idx, batch in enumerate(dloader):
+        if idx < skip_before:
+            continue
+        
         if max_samples > 0 and idx > min(max_samples, dloader_len):
             break
 
