@@ -35,6 +35,7 @@ def is_local(model_name_or_path: str) -> bool:
 def get_checkpoint_path(
     output_dir: str, checkpoint_prefix: str = "checkpoint"
 ) -> str | None:
+    output_dir = os.path.abspath(output_dir)
     pathlib_dir = pathlib.Path(output_dir)
 
     if list(pathlib_dir.glob("config.json")):

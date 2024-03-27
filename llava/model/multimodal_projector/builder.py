@@ -12,8 +12,10 @@ def build_mm_projector(
 ) -> PreTrainedModel:
     if model_type_or_path is None:
         return None
+
     ## load from pretrained model
-    if os.path.exists(model_type_or_path):
+    if config.resume:
+        assert os.path.exists(model_type_or_path), f"Resume mm projector path {model_type_or_path} does not exist!"
         return MultimodalProjector.from_pretrained(model_type_or_path, config)
     ## build from scratch
     else:

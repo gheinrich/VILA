@@ -142,7 +142,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
     """Collects the state dict and dump to disk."""
     if trainer.deepspeed:
         torch.cuda.synchronize()
-        trainer.save_model(output_dir)
+        trainer.save_model(output_dir, _internal_call=True)
         return
 
     state_dict = trainer.model.state_dict()
@@ -215,7 +215,6 @@ def train():
         )
 
     resume_path = get_checkpoint_path(training_args.output_dir)
-    ## TODO add suffix for different modules, e.g. checkpoint_dir/llm or vision_tower or mm_projector
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -258,7 +257,6 @@ def train():
             torch.set_default_dtype(torch.bfloat16)
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args)
-    ## TODO handle _attn_implementation
     model = model_cls(
         config=config,
         attn_implementation = "flash_attention_2",
@@ -406,7 +404,7 @@ def train():
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
-
+    ## TODO pay attention to quantize
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
 

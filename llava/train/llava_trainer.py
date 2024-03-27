@@ -411,14 +411,6 @@ class LLaVATrainer(Trainer):
 
         return self.optimizer
 
-    ## Image Processor is always the same, but keep a method for potential saving need
-    def save_extra(self, model: PreTrainedModel, output_dir: Optional[str] = None):
-        unwrapped_model = unwrap_model(model)
-        if getattr(unwrapped_model.config, "vision_tower_config", None) is not None:
-            try:
-                unwrapped_model.model.vision_tower.image_processor.save_pretrained(output_dir)
-            except:
-                raise ValueError("Failed to save image processor")
 
     def save_model(self, output_dir: Optional[str], _internal_call: bool):
         ## save tuned model separately
