@@ -419,45 +419,46 @@ class LLaVATrainer(Trainer):
         else:
             state_dict = self.model.state_dict()
 
-        if self.model.get_llm():
-            llm_state_dict = OrderedDict(
-                {k.split("llm.")[-1]: v for k, v in state_dict.items() if "llm" in k}
-            )
-            self.model.llm.save_pretrained(
-                os.path.join(output_dir, "llm"), state_dict=llm_state_dict
-            )
-            self.model.config.llm_cfg = self.model.llm.config
+        if self.args.should_save:
+            if self.model.get_llm():
+                llm_state_dict = OrderedDict(
+                    {k.split("llm.")[-1]: v for k, v in state_dict.items() if "llm" in k}
+                )
+                self.model.llm.save_pretrained(
+                    os.path.join(output_dir, "llm"), state_dict=llm_state_dict
+                )
+                self.model.config.llm_cfg = self.model.llm.config
 
-        if self.model.get_vision_tower():
-            vision_tower_state_dict = OrderedDict(
-                {
-                    k.split("vision_tower.vision_tower.")[-1]: v
-                    for k, v in state_dict.items()
-                    if "vision_tower" in k
-                }
-            )
-            self.model.vision_tower.vision_tower.save_pretrained(
-                os.path.join(output_dir, "vision_tower"),
-                state_dict=vision_tower_state_dict,
-            )
-            self.model.vision_tower.image_processor.save_pretrained(
-                os.path.join(output_dir, "vision_tower")
-            )
-            self.model.config.vision_tower_cfg = self.model.vision_tower.config
+            if self.model.get_vision_tower():
+                vision_tower_state_dict = OrderedDict(
+                    {
+                        k.split("vision_tower.vision_tower.")[-1]: v
+                        for k, v in state_dict.items()
+                        if "vision_tower" in k
+                    }
+                )
+                self.model.vision_tower.vision_tower.save_pretrained(
+                    os.path.join(output_dir, "vision_tower"),
+                    state_dict=vision_tower_state_dict,
+                )
+                self.model.vision_tower.image_processor.save_pretrained(
+                    os.path.join(output_dir, "vision_tower")
+                )
+                self.model.config.vision_tower_cfg = self.model.vision_tower.config
 
-        if self.model.get_mm_projector():
-            mm_projector_state_dict = OrderedDict(
-                {
-                    k.split("mm_projector.")[-1]: v
-                    for k, v in state_dict.items()
-                    if "mm_projector" in k
-                }
-            )
-            self.model.mm_projector.save_pretrained(
-                os.path.join(output_dir, "mm_projector"),
-                state_dict=mm_projector_state_dict,
-            )
-            self.model.config.mm_projector_cfg = self.model.mm_projector.config
-        ## update and save top-level config
-        self.model.config.architecture = self.model.__class__.__name__
-        self.model.config.save_pretrained(output_dir)
+            if self.model.get_mm_projector():
+                mm_projector_state_dict = OrderedDict(
+                    {
+                        k.split("mm_projector.")[-1]: v
+                        for k, v in state_dict.items()
+                        if "mm_projector" in k
+                    }
+                )
+                self.model.mm_projector.save_pretrained(
+                    os.path.join(output_dir, "mm_projector"),
+                    state_dict=mm_projector_state_dict,
+                )
+                self.model.config.mm_projector_cfg = self.model.mm_projector.config
+            ## update and save top-level config
+            self.model.config.architecture = self.model.__class__.__name__
+            self.model.config.save_pretrained(output_dir)
