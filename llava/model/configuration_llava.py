@@ -9,8 +9,8 @@ class LlavaConfig(PretrainedConfig):
         llm_cfg=None,
         vision_tower_cfg=None,
         mm_projector_cfg=None,
-        architecture=None,
-        resume=False,
+        architectures=None,
+        resume_path=None,
         hidden_size=None,
         mm_hidden_size=None,
         image_aspect_ratio=None,
@@ -24,11 +24,11 @@ class LlavaConfig(PretrainedConfig):
         **kwargs
     ):
         super().__init__()
-        self.architecture = architecture
+        self.architectures = architectures
         self.llm_cfg = llm_cfg
         self.vision_tower_cfg = vision_tower_cfg
         self.mm_projector_cfg = mm_projector_cfg
-        self.resume = resume
+        self.resume_path = resume_path
         
         self.hidden_size = hidden_size
         self.mm_hidden_size = mm_hidden_size

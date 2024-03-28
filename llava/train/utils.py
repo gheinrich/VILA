@@ -1,5 +1,6 @@
 import os
 import re
+import torch
 import pathlib
 from dataclasses import dataclass
 from transformers import PretrainedConfig, PreTrainedModel
@@ -63,6 +64,9 @@ def get_checkpoint_path(
 def prepare_config_for_training(
     config: PretrainedConfig, model_args: dataclass, training_args: dataclass
 ) -> None:
+    ## default dtype for model
+    config.model_dtype = torch.bfloat16 if training_args.bf16 else torch.float16
+
     config.tune_language_model = training_args.tune_language_model
     config.tune_vision_tower = training_args.tune_vision_tower
     config.tune_mm_projector = training_args.tune_mm_projector

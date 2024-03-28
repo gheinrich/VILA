@@ -15,11 +15,7 @@
 #    limitations under the License.
 
 import os
-import copy
-from dataclasses import dataclass, field
-import json
 import logging
-import pathlib
 from typing import Dict, Optional, Sequence, List
 
 import torch
@@ -33,19 +29,14 @@ from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
 
 from llava import conversation as conversation_lib
-from llava.data import make_supervised_data_module, DataCollatorForSupervisedDataset
+from llava.data import make_supervised_data_module
 from llava.model import *
-from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
     prepare_config_for_training,
     vision_resolution_elevation,
     unit_test_rope_scaling,
 )
-
-import math
-from peft import PeftModel
-from PIL import Image
 
 
 local_rank = None
@@ -219,7 +210,7 @@ def train():
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
         config.resume_path = resume_path
-        model_cls = eval(config.architecture)
+        model_cls = eval(config.architectures[0])
     else:
         ## first time training
         resume_from_checkpoint = False

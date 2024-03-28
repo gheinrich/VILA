@@ -460,5 +460,5 @@ class LLaVATrainer(Trainer):
                 )
                 self.model.config.mm_projector_cfg = self.model.mm_projector.config
             ## update and save top-level config
-            self.model.config.architecture = self.model.__class__.__name__
+            self.model.config.architectures = [self.model.__class__.__name__]
             self.model.config.save_pretrained(output_dir)

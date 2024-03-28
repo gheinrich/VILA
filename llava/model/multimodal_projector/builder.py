@@ -14,12 +14,12 @@ def build_mm_projector(
         return None
 
     ## load from pretrained model
-    if config.resume:
+    if config.resume_path:
         assert os.path.exists(
             model_type_or_path
         ), f"Resume mm projector path {model_type_or_path} does not exist!"
         return MultimodalProjector.from_pretrained(
-            model_type_or_path, config, dtype=torch.bfloat16
+            model_type_or_path, config, torch_dtype=config.model_dtype
         )
     ## build from scratch
     else:

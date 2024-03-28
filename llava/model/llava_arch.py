@@ -16,7 +16,7 @@
 import warnings
 from abc import ABC, abstractmethod
 
-import torch
+import torch, logging
 
 from llava.constants import (
     DEFAULT_IM_END_TOKEN,
@@ -52,6 +52,10 @@ class LlavaMetaModel(ABC):
         return mm_projector
 
     ## @yunhao: is there a better way to handle function call and attributes for llm?
+    ## support beam search
+    def _temporary_reorder_cache(self, past_key_values, sorted_idx):
+        return self.get_llm()._temporary_reorder_cache(past_key_values, sorted_idx)
+        
     def get_input_embeddings(self):
         return self.get_llm().get_input_embeddings()
 
@@ -59,11 +63,10 @@ class LlavaMetaModel(ABC):
         return self.get_llm().get_output_embeddings()
 
     def resize_token_embeddings(self, embed_size):
-        return self.get_llm().resize_token_embeddings(embed_size)
+        self.get_llm().resize_token_embeddings(embed_size)
 
     def post_config(self):
         self.training = self.get_llm().training
-        self.config
         ## configuration
         if getattr(self.config, "llm_cfg", None) is None:
             self.config.llm_cfg = self.llm.config

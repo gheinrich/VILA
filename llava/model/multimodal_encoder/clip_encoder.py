@@ -14,6 +14,6 @@ class CLIPVisionTower(VisionTower):
         super().__init__(model_name_or_path, config)
         self.image_processor = CLIPImageProcessor.from_pretrained(model_name_or_path)
         self.vision_tower = CLIPVisionModel.from_pretrained(
-            model_name_or_path, dtype=torch.bfloat16
+            model_name_or_path, torch_dtype=config.model_dtype
         )
         self.is_loaded = True

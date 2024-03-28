@@ -24,7 +24,10 @@ def get_model_config(config):
     for key in default_keys:
         cfg = getattr(config, key, None)
         if isinstance(cfg, dict):
-            return_list.append(os.path.join(config.resume_path, key[:-4]))
+            try:
+                return_list.append(os.path.join(config.resume_path, key[:-4]))
+            except:
+                raise ValueError(f"Cannot find resume path in config for {key}!")
         elif isinstance(cfg, str):
             return_list.append(cfg)
     return return_list

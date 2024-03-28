@@ -66,6 +66,7 @@ def load_pretrained_model(
 
     if is_mm_model(model_path):
         # Load LLaVA model
+        ## TODO @yunhao: mind fixing lora
         if "lora" in model_name.lower() and model_base is None:
             warnings.warn(
                 "There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument. Detailed instruction: https://github.com/haotian-liu/LLaVA#launch-a-model-worker-lora-weights-unmerged."
@@ -129,6 +130,7 @@ def load_pretrained_model(
             print("Merging LoRA weights...")
             model = model.merge_and_unload()
             print("Model is loaded...")
+        ## TODO @yunhao: mind fixing this
         elif model_base is not None:
             # this may be mm projector only
             print("Loading LLaVA from base model...")
@@ -155,7 +157,8 @@ def load_pretrained_model(
                 )
         else:
             config = AutoConfig.from_pretrained(model_path)
-            mm_config_wrapper(config, kwargs)
+            config.resume_path = model_path
+            prepare_config_for_eval(config, kwargs)
             if "mpt" in model_name.lower():
                 # config._attn_implementation = "flash_attention_2"
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
@@ -181,11 +184,15 @@ def load_pretrained_model(
             else:
                 # kentang-mit@: llama-2 model
                 # config._attn_implementation = "flash_attention_2"
+                tokenizer_path = parse_model_name_or_path(config, "llm")
                 tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
+                    tokenizer_path, use_fast=False, legacy=False
                 )
-                model = LlavaLlamaForCausalLM.from_pretrained(
-                    model_path, config=config, low_cpu_mem_usage=True, **kwargs
+                model = LlavaLlamaModel(
+                    config=config,
+                    low_cpu_mem_usage=True,
+                    attn_implementation="flash_attention_2",
+                    **kwargs
                 )
     else:
         # Load language model
@@ -230,25 +237,36 @@ def load_pretrained_model(
                 [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True
             )
         model.resize_token_embeddings(len(tokenizer))
-
         vision_tower = model.get_vision_tower()
-        if not vision_tower.is_loaded:
-            vision_tower.load_model()
         vision_tower.to(device=device, dtype=torch.float16)
+        mm_projector = model.get_mm_projector()
+        mm_projector.to(device=device, dtype=torch.float16)
         image_processor = vision_tower.image_processor
 
-    if hasattr(model.config, "max_sequence_length"):
+    if hasattr(model.llm.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length
     else:
         context_len = 2048
 
     return tokenizer, model, image_processor, context_len
 
+def parse_model_name_or_path(config: PretrainedConfig, model_name="llm", suffix="_cfg"):
+    target_model = f"{model_name}{suffix}"
+    target_cfg = getattr(config, target_model, None)
+    
+    if isinstance(target_cfg, str):
+        return target_cfg
+    elif isinstance(target_cfg, dict):
+        return target_cfg["_name_or_path"]
+    else:
+        raise ValueError(f"Invalid {target_model} configuration!")
 
-def mm_config_wrapper(config: PretrainedConfig, kwargs: dict):
-    ## compatible with deprecated config convention
-    if getattr(config, "vision_tower", None) is None:
-        config.vision_tower = config.mm_vision_tower
-    ## siglip does not support device_map = "auto"
-    if "siglip" in config.vision_tower.lower():
+def prepare_config_for_eval(config: PretrainedConfig, kwargs: dict):
+    # # compatible with deprecated config convention
+    # if getattr(config, "vision_tower", None) is None:
+    #     config.vision_tower = config.mm_vision_tower
+    config.model_dtype = kwargs.pop("torch_dtype")
+    # siglip does not support device_map = "auto"
+    vision_tower_name = parse_model_name_or_path(config, "vision_tower")
+    if "siglip" in vision_tower_name:
         kwargs["device_map"] = "cuda"

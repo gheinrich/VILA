@@ -26,10 +26,11 @@ def build_llm(
     llm_cfg = config_cls.from_pretrained(model_name_or_path)
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length
-    context_length_extension(llm_cfg)
+    if model_max_length is not None:
+        context_length_extension(llm_cfg)
 
     llm = llm_cls.from_pretrained(
-        model_name_or_path, config=llm_cfg, dtype=torch.base_model, *args, **kwargs
+        model_name_or_path, config=llm_cfg, torch_dtype=config.model_dtype, *args, **kwargs
     )
     config.hidden_size = llm.config.hidden_size
     return llm
