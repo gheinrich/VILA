@@ -15,6 +15,7 @@ hostfile
 *_dev.sh
 *.ipynb
 
+
 # Python
 __pycache__
 *.pyc
@@ -39,6 +40,7 @@ wandb
 output
 
 checkpoints
+checkpoints_bak
 ckpts*
 
 *.pt

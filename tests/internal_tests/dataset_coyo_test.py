@@ -23,8 +23,18 @@ from PIL import Image
 from pytorchvideo.data.encoded_video import EncodedVideo
 from pytorchvideo.transforms import (ApplyTransformToKey,
                                      UniformTemporalSubsample)
+from pytorchvideo.transforms import (ApplyTransformToKey,
+                                     UniformTemporalSubsample)
 from torch.utils.data import ConcatDataset, Dataset
 from torchvision.transforms import Compose, Resize
+
+from llava import conversation as conversation_lib
+from llava.train import datasets_mixture
+from llava.train.token_config import (DEFAULT_IM_END_TOKEN,
+                                      DEFAULT_IM_START_TOKEN,
+                                      DEFAULT_IMAGE_PATCH_TOKEN,
+                                      DEFAULT_IMAGE_TOKEN, DEFAULT_VIDEO_TOKEN,
+                                      IGNORE_INDEX)
 
 
 def dprint(*args, **kwargs):
@@ -974,7 +984,11 @@ class LazyCoyoDataset(Dataset):
         world_size = int(os.environ.get("WORLD_SIZE", 1))
         shared_size = n_shards // world_size
 
-        mprint("total COYO samples", sum(n_samples), f"rank:{rank} / world:{world_size} / shared_size:{shared_size}")
+        mprint(
+            "total COYO samples",
+            sum(n_samples),
+            f"rank:{rank} / world:{world_size} / shared_size:{shared_size}",
+        )
 
         self.gpu_samples = [
             sum(n_samples[i * shared_size : (i + 1) * shared_size]) // n_samples_per_idx for i in range(world_size)
@@ -1120,7 +1134,12 @@ class LazyCoyoDataset(Dataset):
             assert (input_ids == im_start_token).sum() == (input_ids == im_end_token).sum(), input_ids
         targets[targets == self.tokenizer.pad_token_id] = IGNORE_INDEX
 
-        return dict(input_ids=input_ids, labels=targets, image=image_list, raw_info_list=raw_info_list)
+        return dict(
+            input_ids=input_ids,
+            labels=targets,
+            image=image_list,
+            raw_info_list=raw_info_list,
+        )
 
 
 @dataclass
@@ -1173,7 +1192,11 @@ class DataCollatorForSupervisedDataset(object):
                 if len(current_batch) + len(sorted_ids[i]) <= max_seq_length:
                     seqlens_in_batch.append(sorted_ids[i].ne(self.tokenizer.pad_token_id).sum())
                     current_position_ids = torch.cat(
-                        (current_position_ids, torch.arange(start=0, end=len(sorted_ids[i]))), dim=0
+                        (
+                            current_position_ids,
+                            torch.arange(start=0, end=len(sorted_ids[i])),
+                        ),
+                        dim=0,
                     )
                     current_batch = torch.cat((current_batch, sorted_ids[i]), dim=0)
                     current_label_batch = torch.cat((current_label_batch, sorted_labels[i]), dim=0)

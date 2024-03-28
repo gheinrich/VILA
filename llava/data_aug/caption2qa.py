@@ -11,6 +11,11 @@ from torch.utils.data import DataLoader, Dataset, DistributedSampler
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
+task2prompt = {
+    "cap2qa": """Below is an image description. Please propose 3 questions and answers based on the context. Each line should start with either "question" or "answer" and there should be only single linebreak between question and answer.\n\n""",
+    "rephrase": """Below is an image description. Please rephrease the sentences make the writing more professional.\n\n""",
+}
+
 
 def safely_merge_info(out_fpath, info):
     os.makedirs(osp.dirname(out_fpath), exist_ok=True)
@@ -25,28 +30,29 @@ def safely_merge_info(out_fpath, info):
     return info
 
 
-def process_caption(msg):
+def process_caption(msg, task):
     # msg = v['output']
     segs = []
     d = set()
     for seg in msg.split("."):
-        # repetition detect
+        # repeatition detect
         if seg.lower() in d:
             break
         d.add(seg.lower())
         segs.append(seg)
     caption = ".".join(segs)
-    return f"""Below is an image description. Please propose 3 questions and answers based on the context. Each line should start with either "question" or "answer" and there should be only single linebreak between question and answer.\n\n{caption}"""
+    return task2prompt[task] + caption
 
 
 class Cap2QADataset(Dataset):
-    def __init__(self, data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json") -> None:
+    def __init__(self, data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json", task="cap2qa") -> None:
         caption_json = json.load(open(data_path, "r"))
         self.captions = list(caption_json.items())
+        self.task = task
 
     def __getitem__(self, index):
         k, v = self.captions[index]
-        v["cap2llm"] = process_caption(v["output"])
+        v["cap2llm"] = process_caption(v["output"], task=self.task)
         return k, v
 
     def __len__(self):
@@ -65,14 +71,16 @@ def main(
     model_id="mistralai/Mistral-7B-Instruct-v0.2",
     data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json",
     load_in_4bit=False,
+    task="cap2qa",
 ):
     dist.init_process_group()
 
     from llava.train.slurm_utils import (get_local_rank, get_rank,
                                          get_world_size)
 
-    local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
-    print(local_rank, rank, world_size, flush=True)
+    # local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
+    # print(local_rank, rank, world_size, flush=True)
+    local_rank = dist.get_rank()
 
     pipe = pipeline(
         "text-generation",
@@ -86,13 +94,13 @@ def main(
         repetition_penalty=1.0,
     )
 
-    dst = Cap2QADataset(data_path=data_path)
+    dst = Cap2QADataset(data_path=data_path, task=task)
     dloader = DataLoader(dst, batch_size=2, sampler=DistributedSampler(dst))
 
     output_json = {}
 
     save_folder = "captioner_bk"
-    save_folder = osp.join(save_folder, model_id.replace("/", "--"))
+    save_folder = osp.join(save_folder, task, model_id.replace("/", "--"))
     # output_path = osp.join(save_folder, data_path.replace(".json", f"-{rank}-of-{world_size}.json"))
     output_path = osp.join(save_folder, data_path)
     os.makedirs(osp.dirname(output_path), exist_ok=True)
