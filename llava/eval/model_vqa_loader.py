@@ -118,7 +118,7 @@ def eval_model(args):
         # if n_diff_input_output > 0:
         #     print(f'[Warning] {n_diff_input_output} output_ids are not the same as the input_ids')
         # outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
-        response = tokenizer.decode(output_ids, skip_special_tokens=True)[0]
+        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
         outputs = outputs.strip()
 
         ans_id = shortuuid.uuid()
