@@ -481,7 +481,8 @@ class LazySupervisedDataset(Dataset):
         training_args: TrainingArguments,
     ):
         super(LazySupervisedDataset, self).__init__()
-        list_data_dict = json.load(open(data_path, "r"))
+        with open(data_path, "r") as fp:
+            list_data_dict = json.load(fp)
 
         # rank0_print("Formatting inputs...Skip in lazy mode")
         print("Formatting inputs...Skip in lazy mode")
@@ -646,7 +647,17 @@ class LazySupervisedDataset(Dataset):
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
 
-        data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
+        # data_dict = preprocess(sources, self.tokenizer, has_image=("image" in self.list_data_dict[i]))
+        data_dict = preprocess(
+            sources,
+            self.tokenizer,
+            has_image=(
+                "image" in self.list_data_dict[i]
+                or "video" in self.list_data_dict[i]
+                or "video_id" in self.list_data_dict[i]
+            ),
+        )
+
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 

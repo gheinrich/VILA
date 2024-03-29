@@ -1,5 +1,6 @@
 #!/bin/bash
-
+source /lustre/fsw/portfolios/nvr/users/${USER}/anaconda3/bin/activate
+conda init
 source ~/.bashrc
 conda activate vila
 which python
