@@ -56,6 +56,9 @@ class LlavaMistralForCausalLM(MistralForCausalLM, LlavaMetaForCausalLM):
 
     def get_model(self):
         return self.model
+    
+    def get_lm_head(self):
+        return self.lm_head
 
     def forward(
         self,

@@ -37,7 +37,7 @@ class LlavaMetaModel(ABC):
         return mm_projector
 
     def _post_init(self):
-        if self.config.vision_tower_config is None:
+        if getattr(self.config, "vision_tower_config", None) is None:
             self.config.vision_tower_config = self.vision_tower.config
 
 

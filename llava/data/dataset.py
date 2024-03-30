@@ -56,6 +56,7 @@ from llava.train.llava_trainer import LLaVATrainer
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+PIL.Image.MAX_IMAGE_PIXELS = 1000000000
 # local_rank = None
 
 # def rank0_print(*args):
@@ -466,6 +467,9 @@ def preprocess(
     return dict(input_ids=input_ids, labels=targets)
 
 
+from llava.data.utils import VILAEncodedVideo
+
+
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is originally implemented by the LLaVA team and modified by
@@ -581,7 +585,7 @@ class LazySupervisedDataset(Dataset):
                 video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
                 num_frames = video_outputs.shape[1]
             # step = (num_frames - 1) // 8 + 1
-            step = num_frames // 8
+            step = num_frames // num_video_frames
             num_frames = num_frames - (num_frames % 8)
             indices = torch.floor(torch.arange(0, num_frames, step)).long()
             video_outputs = video_outputs[:, indices, :, :]
@@ -657,7 +661,6 @@ class LazySupervisedDataset(Dataset):
                 or "video_id" in self.list_data_dict[i]
             ),
         )
-
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
 
@@ -1746,7 +1749,9 @@ class DataCollatorForSupervisedDataset(object):
         for _images, _input_ids in zip(images, input_ids):
             assert (
                 len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
-            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'. Error input_ids: {_input_ids}"
+            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'.\
+                Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
+                Error input_ids: {_input_ids}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
@@ -1791,7 +1796,7 @@ def make_supervised_data_module(
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning.
     This function is originally implemented by the LLaVA team and
-    modified by Jason Lu, Haotian Tang and Ligeng Zhu"""
+    modified by Jason Lu, Haotian Tang and Ligeng Zhu."""
     datasets_mixture.register_datasets_mixtures()
     train_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="train")
     eval_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="eval")
@@ -1821,7 +1826,7 @@ def build_datasets(
         logging.warning(f"Pay attention, split {split} is not built...")
         return None
     mixture = (DATASETS[_] for _ in mixture_names)
-    print(f"[INFO-log]: Loading from {mixture_names}")
+    print(f"[Dataset-INFO]: Loading from {mixture_names}")
     image_folder = None
     for dataset in mixture:
         dataset_type = dataset.dataset_type
@@ -1851,9 +1856,19 @@ def build_datasets(
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
             print("dataset.py: Loading textocr class")
-            from llava.data.dataset_impl.textocr import VILAOCRDataset
+            from llava.data.dataset_impl.textocr import VILATextOCR
 
-            dataset_cls = VILAOCRDataset
+            dataset_cls = VILATextOCR
+        elif dataset_type == "hiertext":
+            print("dataset.py: Loading hiertext class")
+            from llava.data.dataset_impl.hiertext import VILAHierText
+
+            dataset_cls = VILAHierText
+        elif dataset_type == "panda70m":
+            print("dataset.py: Loading VILAPanda70m class")
+            from llava.data.dataset_impl.panda70m import VILAPanda70m
+
+            dataset_cls = VILAPanda70m
         elif dataset_type == "ccs-wds":
             dataset_cls = LazyCCSWebDataset
         elif dataset_type == "vflan":
@@ -1877,4 +1892,6 @@ def build_datasets(
     all_datasets = ConcatDataset(all_datasets)
     if split == "train":
         training_args.sample_lens = extra_info
+    elif split == "eval":
+        training_args.eval_sample_lens = extra_info
     return all_datasets

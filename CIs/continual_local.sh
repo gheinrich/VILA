@@ -7,7 +7,9 @@ export VILA_CI_RECIPIENTS="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.
 # a@nvidia.com,b@nvidia.com,c@nvidia.com
 
 > $report_file
-for pyfile in tests/cpu_tests/*.py; do 
+
+# for pyfile in tests/cpu_tests/*.py; do 
+for pyfile in $(find ./tests/ -iname "*.py" -not -path "./tests/gpu_tests/*" | xargs); do
     # bash CIs/test_single.sh $pyfile
     pylog=${pyfile//\//\-\-}
     > dev/$pylog.err 
@@ -18,7 +20,8 @@ for pyfile in tests/cpu_tests/*.py; do
         bash CIs/test_single.sh $pyfile &
 done
 
-for pyfile in tests/gpu_tests/*.py; do 
+# for pyfile in tests/gpu_tests/*.py; do 
+for pyfile in $(find ./tests/gpu_tests -iname "*.py" | xargs); do
     # bash CIs/test_single.sh $pyfile
     pylog=${pyfile//\//\-\-}
     > dev/$pylog.err 

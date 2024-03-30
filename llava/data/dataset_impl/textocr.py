@@ -86,7 +86,6 @@ class SummedDataset(GenericDataset):
         return len(self.left) + len(self.right)
 
     def __getitem__(self, idx):
-
         if idx > (len(self.left) - 1):
             idx_corrected = idx % len(self.left)
             return self.right[idx_corrected]
@@ -114,7 +113,10 @@ class TextOCRDataset(GenericDataset):
         annotations = json.load(open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r"))
         valid_images = [
             {
-                "size": (annotations["imgs"][img]["width"], annotations["imgs"][img]["height"]),
+                "size": (
+                    annotations["imgs"][img]["width"],
+                    annotations["imgs"][img]["height"],
+                ),
                 "path": os.path.join(
                     base_folder,
                     annotations["imgs"][img]["file_name"].replace("train/", "train_images/"),
@@ -192,7 +194,33 @@ class TextOCRDataset(GenericDataset):
         }
 
 
-class VILAOCRDataset(Dataset):
+def preprocess_OCR(image, texts: list, data_args, tokenizer):
+    text = " ".join(texts)
+    caption = f"Please read the texts on image and type it below, each word separated by space.\n{text}"
+
+    caption = DEFAULT_IMAGE_TOKEN + caption + tokenizer.eos_token
+    vila_img = LazySupervisedDataset._process_image(image, data_args, image_folder=None)
+
+    input_ids = tokenizer_image_token(
+        caption,
+        tokenizer,
+        return_tensors="pt",
+    )
+
+    targets = copy.deepcopy(input_ids)
+    # mask image tokens is unnecessary for llava-1.5
+    # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
+    for i in range(len(targets)):
+        targets[i][targets[i] == tokenizer.pad_token_id] = IGNORE_INDEX
+
+    return dict(
+        input_ids=input_ids,
+        labels=targets,
+        image=vila_img.unsqueeze(0),
+    )
+
+
+class VILATextOCR(Dataset):
     """
     Dataset class for VILA OCR data.
 
@@ -235,35 +263,18 @@ class VILAOCRDataset(Dataset):
         fpath = meta["image_path"]
         text = " ".join(meta["annotation"])
 
-        caption = f"Please read the text on image and type it below, each word separated by space.\n{text}"
+        caption = f"Please read the texts on image and type it below, each word separated by space.\n{text}"
 
-        caption = (DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token).replace("<image>", "<IMAGE>")
-        vila_img = LazySupervisedDataset._process_image(img, self.data_args, image_folder=None)
-
-        input_ids = tokenizer_image_token(
-            caption,
-            self.tokenizer,
-            return_tensors="pt",
-        )
-
-        targets = copy.deepcopy(input_ids)
-        # mask image tokens is unnecessary for llava-1.5
-        # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
-        for i in range(len(targets)):
-            targets[i][targets[i] == self.tokenizer.pad_token_id] = IGNORE_INDEX
-
-        return dict(
-            input_ids=input_ids,
-            labels=targets,
-            image=vila_img.unsqueeze(0),
-        )
+        data = preprocess_OCR(image=img, texts=text, data_args=self.data_args, tokenizer=self.tokenizer)
+        return data
 
 
 if __name__ == "__main__":
     from pprint import pprint
 
-    # dataset = TextOCRDataset()
-    dataset = VILAOCRDataset()
+    dataset = TextOCRDataset()
+    # dataset = VILATextOCR()
+    print(len(dataset))
 
-    for idx in range(5):
+    for idx in range(2):
         pprint(dataset[idx])

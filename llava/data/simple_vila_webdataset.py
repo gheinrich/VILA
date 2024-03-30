@@ -54,12 +54,15 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
         print(f"    Generating meta: {tar_abs_metapath}")
         try:
             tar = load_tarfile(tar_abspath)
-            uuids = list(set([".".join(_.split(".")[:-1]) for _ in tar.getnames()]))
+            uuids = list(set([osp.splitext(_)[0] for _ in tar.getnames()]))
         except tarfile.ReadError as e:
             print(f"Skipping {tar_abspath}")
             print(e)
             return None
         nsamples = len(uuids)
+        # print(uuids)
+        # print(nsamples)
+        # input()
 
         tar_meta = {
             "url": osp.abspath(tar_abspath),
@@ -87,6 +90,7 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
 
 
 def generate_wids_meta(tar_list, data_path, cache_dir, idx=0, total=0):
+    # TODO(ligeng): add return value
     meta_path_of_tar_abs = osp.join(
         osp.expanduser(cache_dir),
         data_path.replace("/", "--") + ".wdsmeta.json",
@@ -175,11 +179,11 @@ class VILAWebDataset(torch.utils.data.Dataset):
         cache_dir="/home/ligengz/datasets/vila-webds-meta",
         max_shards_to_load=None,
     ):
-        self.data_path = data_path
-        self.meta_path = meta_path
+        self.data_path = osp.expanduser(data_path)
+        self.meta_path = osp.expanduser(meta_path) if meta_path is not None else None
         self.max_shards_to_load = max_shards_to_load
 
-        _local_meta_path = osp.join(data_path, "wids-meta.json")
+        _local_meta_path = osp.join(self.data_path, "wids-meta.json")
         if meta_path is None and osp.exists(_local_meta_path):
             print(f"loading from {_local_meta_path}")
             self.meta_path = meta_path = _local_meta_path
@@ -187,7 +191,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
         if meta_path is None:
             self.meta_path = osp.join(
                 osp.expanduser(cache_dir),
-                data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
+                self.data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
             )
 
         assert osp.exists(
@@ -262,44 +266,53 @@ if __name__ == "__main__":
     from torch.utils.data.distributed import DistributedSampler
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_path", nargs="?", type=str, default=COYO_25M_VILA)
+    parser.add_argument("data_path", nargs="?", type=str)  # , default=COYO_25M_VILA)
     parser.add_argument("-o", "--overwrite", action="store_true")
     parser.add_argument("--idx", type=int, default=0)
     parser.add_argument("--total", type=int, default=0)
+    parser.add_argument("--test-all", action="store_true")
     args = parser.parse_args()
 
+    print("Data path: ", args.data_path)
     prepare_wids_meta(args.data_path, idx=args.idx, total=args.total)
 
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )
+    # print("overwrite:", args.overwrite)
+    print("dataset size: ", len(train_dataset))
     print(train_dataset[0])
-    exit(0)
-    print("overwrite:", args.overwrite)
-    train_dataset = VILAWebDataset(
-        data_path=args.data_path,
-        max_shards_to_load=args.max_shards,
-        # cache_dir="~/.cache/simplecoyo",
-        overwrite=args.overwrite,
-    )
+    
+    if args.test_all:
+        print("iterating all dataset for data integrity.")
+        train_dataset = VILAWebDataset(
+            data_path=args.data_path,
+            # cache_dir="~/.cache/simplecoyo",
+            # overwrite=args.overwrite,
+        )
 
-    sampler = None
-    from collections import defaultdict
+        sampler = None
+        from collections import defaultdict
 
-    from PIL import Image
-    from torch.utils.data import default_collate
+        from PIL import Image
 
-    dloader = torch.utils.data.DataLoader(
-        train_dataset,
-        shuffle=False,
-        sampler=sampler,
-        batch_size=1,
-        collate_fn=VILAWebDataset.custom_collate,
-        # num_workers=8,
-    )
-    # sampler.set_epoch(0)
-    print(len(train_dataset), len(dloader))
-    for idx, data in enumerate(dloader):
-        print(f"{idx}-of-{len(dloader)}", data)
-        if idx >= 5:
-            break
+        dloader = torch.utils.data.DataLoader(
+            train_dataset,
+            shuffle=False,
+            sampler=sampler,
+            batch_size=8,
+            collate_fn=VILAWebDataset.custom_collate,
+            num_workers=8,
+        )
+        # dloader = train_dataset
+        # sampler.set_epoch(0)
+        print(len(train_dataset), len(dloader))
+        count = 0
+        for idx, data in enumerate(dloader):
+            if ".json" in data and ".mp4" in data:
+                print(f"{idx}-of-{len(dloader)}", type(data), count)
+            else:
+                count += 1
+            
+            # if idx >= 5:
+            #     break

@@ -13,6 +13,8 @@ class Dataset:
             "help": "Detailed desciption of where the data is from, how it is labelled, intended use case and the size of the dataset."
         },
     )
+    test_script: str = (None,)
+    maintainer: str = (None,)
 
 
 DATASETS = {}
@@ -29,6 +31,22 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    panda70m = Dataset(
+        dataset_name="panda70m",
+        dataset_type="panda70m",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/webdataset",
+        description="",
+    )
+    add_dataset(panda70m)
+
+    hiertext = Dataset(
+        dataset_name="hiertext",
+        dataset_type="hiertext",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/hiertext",
+        description="https://github.com/google-research-datasets/hiertext OCR dataset",
+    )
+    add_dataset(hiertext)
+
     textocr = Dataset(
         dataset_name="textocr",
         dataset_type="textocr",
@@ -331,14 +349,17 @@ def register_datasets_mixtures():
     jukinmedia = Dataset(
         dataset_name="jukinmedia",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-filtered-bin.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos_decompress_v2",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/jukin-100k-filtered-bin.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/jukinmedia/videos_decompress_v2",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/jukinmedia/jukin-100k-filtered-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/jukinmedia/videos_decompress_v2",
         description="A high quailty video caption dataset with 71018 detailed captions. See READMD.md file for the details (e.g. prompt template) of the dataset.",
     )
     add_dataset(jukinmedia)
     youcook2 = Dataset(
         dataset_name="youcook2",
         dataset_type="torch",
+        # TODO: move to nvr_elm_llm
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json",
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped",
         description="YouCook2 (http://youcook2.eecs.umich.edu/): A large-scale video dataset with 11680 short but precise human written captions.",
@@ -347,6 +368,7 @@ def register_datasets_mixtures():
     vatex = Dataset(
         dataset_name="vatex",
         dataset_type="torch",
+        # TODO: move to nvr_elm_llm
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json",
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped",
         description="VATEX dataset (https://eric-xw.github.io/vatex-website/about.html), 22703 video clips, 227030 precise short captions (human annotated). Note: all clips are 10s.",
@@ -387,12 +409,13 @@ def register_datasets_mixtures():
     shot2story_shotonly = Dataset(
         dataset_name="shot2story_shotonly",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/shot2story/train-shortclip-processed-bin.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/Shot2Story/data/videos_extracted",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted",
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(shot2story_shotonly)
-
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
         dataset_name="internvid_test",

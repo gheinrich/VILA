@@ -97,7 +97,10 @@ class LazySAMWebDataset(Dataset):
         CONCAT_SAMPLES = False
         # info_list = self.dataset[i - self.idx_offset]
 
-        begin_idx, end_idx = i * self.n_samples_per_idx, (i + 1) * self.n_samples_per_idx
+        begin_idx, end_idx = (
+            i * self.n_samples_per_idx,
+            (i + 1) * self.n_samples_per_idx,
+        )
         end_idx = min(end_idx, len(self.dataset))
 
         text_list = []
