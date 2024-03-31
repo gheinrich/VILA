@@ -235,11 +235,9 @@ def train():
         else:
             ## llm and default multimodal model
             model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig(
+            config = LlavaLlamaConfig.from_pretrained(
                 model_args.model_name_or_path,
-                model_args.vision_tower,
-                model_args.mm_projector,
-                resume=resume_from_checkpoint,
+                resume=resume_from_checkpoint
             )
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args)
