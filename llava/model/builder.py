@@ -184,14 +184,12 @@ def load_pretrained_model(
             else:
                 # kentang-mit@: llama-2 model
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer_path = parse_model_name_or_path(config, "llm")
                 tokenizer = AutoTokenizer.from_pretrained(
-                    tokenizer_path, use_fast=False, legacy=False
+                    model_path, use_fast=False, legacy=False
                 )
                 model = LlavaLlamaModel(
                     config=config,
                     low_cpu_mem_usage=True,
-                    attn_implementation="flash_attention_2",
                     **kwargs
                 )
     else:
@@ -211,7 +209,6 @@ def load_pretrained_model(
             print("Convert to FP16...")
             model.to(torch.float16)
         else:
-            use_fast = False
             if "mpt" in model_name.lower():
                 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
                 model = AutoModelForCausalLM.from_pretrained(
@@ -226,7 +223,6 @@ def load_pretrained_model(
                 )
 
     image_processor = None
-
     if is_mm_model(model_path):
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
         mm_use_im_patch_token = getattr(model.config, "mm_use_im_patch_token", True)
@@ -257,16 +253,20 @@ def parse_model_name_or_path(config: PretrainedConfig, model_name="llm", suffix=
     if isinstance(target_cfg, str):
         return target_cfg
     elif isinstance(target_cfg, dict):
-        return target_cfg["_name_or_path"]
+        return target_cfg["architectures"][0]
     else:
         raise ValueError(f"Invalid {target_model} configuration!")
 
 def prepare_config_for_eval(config: PretrainedConfig, kwargs: dict):
-    # # compatible with deprecated config convention
-    # if getattr(config, "vision_tower", None) is None:
-    #     config.vision_tower = config.mm_vision_tower
-    config.model_dtype = kwargs.pop("torch_dtype")
+    try:
+        # compatible with deprecated config convention
+        if getattr(config, "vision_tower_cfg", None) is None:
+            config.vision_tower_cfg = config.mm_vision_tower
+    except AttributeError:
+        raise ValueError(f"Invalid configuration! Cannot find vision_tower in config:\n{config}")
+    
+    config.model_dtype = kwargs.pop("torch_dtype").__str__()
     # siglip does not support device_map = "auto"
     vision_tower_name = parse_model_name_or_path(config, "vision_tower")
-    if "siglip" in vision_tower_name:
+    if "siglip" in vision_tower_name.lower():
         kwargs["device_map"] = "cuda"

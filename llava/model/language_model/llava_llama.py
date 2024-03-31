@@ -152,6 +152,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             )
         else:
             inputs_embeds = self.get_input_embeddings(input_ids)
+        inputs_embeds = inputs_embeds.to(self.dtype)
         
         outputs = self.llm.generate(
             inputs_embeds=inputs_embeds,
@@ -160,21 +161,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         )
         return outputs
         
-        
-    # def prepare_inputs_for_generation(
-    #     self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs
-    # ):
-    #     images = kwargs.pop("images", None)
-    #     _inputs = self.llm.prepare_inputs_for_generation(
-    #         input_ids,
-    #         past_key_values=past_key_values,
-    #         inputs_embeds=inputs_embeds,
-    #         **kwargs,
-    #     )
-    #     if images is not None:
-    #         _inputs["images"] = images
-    #     return _inputs
-
 
 AutoConfig.register("llava_llama", LlavaLlamaConfig)
 AutoModel.register(LlavaLlamaConfig, LlavaLlamaModel)
