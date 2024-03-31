@@ -151,7 +151,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 input_ids, None, attention_mask, None, None, images
             )
         else:
-            inputs_embeds = self.get_input_embeddings(input_ids)
+            inputs_embeds = self.get_input_embeddings()(input_ids)
         inputs_embeds = inputs_embeds.to(self.dtype)
         
         outputs = self.llm.generate(

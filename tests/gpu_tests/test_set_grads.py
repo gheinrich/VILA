@@ -4,9 +4,9 @@ import unittest
 import torch
 from transformers import AutoTokenizer
 
-from llava.model import LlavaConfig, LlavaLlamaForCausalLM
+from llava.model import LlavaLlamaConfig, LlavaLlamaModel
 from llava.train.args import ModelArguments, TrainingArguments
-from llava.train.utils import prepare_vision_tower_config
+from llava.train.utils import prepare_config_for_training
 from llava.unit_test_utils import requires_gpu
 
 torch.manual_seed(1)
@@ -26,9 +26,9 @@ class TestSetGrads(unittest.TestCase):
         torch.set_default_dtype(torch.bfloat16)
 
         self.model_args = ModelArguments(
-            model_name_or_path="liuhaotian/llava-v1.5-7b",
+            model_name_or_path="lmsys/vicuna-7b-v1.5",
             vision_tower="openai/clip-vit-large-patch14-336",
-            mm_projector_type="mlp2x_gelu",
+            mm_projector="mlp2x_gelu",
         )
 
         self.training_args = TrainingArguments(
@@ -36,6 +36,7 @@ class TestSetGrads(unittest.TestCase):
             tune_vision_tower=False,
             tune_mm_projector=False,
             output_dir=None,
+            bf16=True
         )
 
     def single_forward_backward(self):
@@ -78,7 +79,7 @@ class TestSetGrads(unittest.TestCase):
         print("Running models...")
 
         # forward results with input packing
-        outputs = super(LlavaLlamaForCausalLM, self.model).forward(
+        outputs = self.model.llm.forward(
             input_ids=None,
             attention_mask=new_attention_mask,
             position_ids=new_position_ids,
@@ -96,24 +97,15 @@ class TestSetGrads(unittest.TestCase):
 
     def build_vila_model(self):
         ## first time training
-        config = LlavaConfig.from_pretrained(self.model_args.model_name_or_path)
-        config._attn_implementation = "flash_attention_2"
-        torch.set_default_dtype(torch.bfloat16)
-        model_cls = LlavaLlamaForCausalLM
+        config = LlavaLlamaConfig.from_pretrained(self.model_args.model_name_or_path)
+        model_cls = LlavaLlamaModel
 
         print("Initializing data...")
         data = torch.load("tests/sample_data/test_packing.pth")
         self.data = data
         print("Initializing model...")
-        prepare_vision_tower_config(config, self.model_args)
-        self.model = (
-            model_cls.from_pretrained(
-                self.model_args.model_name_or_path,
-                config=config,
-            )
-            .to(torch.bfloat16)
-            .to(device)
-        )
+        prepare_config_for_training(config, self.model_args, self.training_args)
+        self.model = model_cls(config=config).to(device)
         print("Initializing tokenizer...")
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_args.model_name_or_path,
@@ -123,11 +115,10 @@ class TestSetGrads(unittest.TestCase):
             legacy=False,
         )
         # necessary for model forward
-        self.model.pad_token_id = self.tokenizer.pad_token_id
-        self.model.get_model().requires_grad_(self.training_args.tune_language_model)
-        self.model.lm_head.requires_grad_(self.training_args.tune_language_model)
-        self.model.get_model().get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
-        self.model.get_model().get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
+        self.model.llm.pad_token_id = self.tokenizer.pad_token_id
+        self.model.get_llm().requires_grad_(self.training_args.tune_language_model)
+        self.model.get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
+        self.model.get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
         ## save the loaded weights
         self.loaded_weights_dict = {name: copy.deepcopy(param.detach().cpu().data) for name, param in self.model.named_parameters()}
     
@@ -170,7 +161,6 @@ class TestSetGrads(unittest.TestCase):
                 if self.updated_weights_dict[name].numel() > 1:
                     self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model)
 
-    # Actually can write a loop to iterate through combinations
     @requires_gpu
     def test_tune_projector_and_language_model(self):
         print("Testing tune projector and language model ...")
@@ -195,7 +185,7 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_mm_projector,
         )
 
-    # @requires_gpu
+    @requires_gpu
     def test_tune_projector_and_vision_tower(self):
         print("Testing tune projector and vision tower ...")
         self.training_args.tune_mm_projector = True
