@@ -66,6 +66,7 @@ def prepare_config_for_training(
 ) -> None:
     ## default dtype for model
     config.model_dtype = torch.bfloat16 if training_args.bf16 else torch.float16
+    config.model_dtype = config.model_dtype.__str__()
 
     config.tune_language_model = training_args.tune_language_model
     config.tune_vision_tower = training_args.tune_vision_tower

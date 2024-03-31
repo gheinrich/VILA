@@ -19,7 +19,7 @@ def build_mm_projector(
             model_type_or_path
         ), f"Resume mm projector path {model_type_or_path} does not exist!"
         return MultimodalProjector.from_pretrained(
-            model_type_or_path, config, torch_dtype=config.model_dtype
+            model_type_or_path, config, torch_dtype=eval(config.model_dtype)
         )
     ## build from scratch
     else:

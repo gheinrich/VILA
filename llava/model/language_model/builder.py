@@ -30,7 +30,7 @@ def build_llm(
         context_length_extension(llm_cfg)
 
     llm = llm_cls.from_pretrained(
-        model_name_or_path, config=llm_cfg, torch_dtype=config.model_dtype, *args, **kwargs
+        model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
     config.hidden_size = llm.config.hidden_size
     return llm
