@@ -125,9 +125,10 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
         return sources
 
     for source in sources:
+        concat_values = "".join([sentence["value"] for sentence in source])
         for sid, sentence in enumerate(source):
             # In multimodal conversations, we automatically prepend '<image>' at the start of the first sentence if it doesn't already contain one.
-            if sid == 0 and DEFAULT_IMAGE_TOKEN not in sentence["value"]:
+            if sid == 0 and DEFAULT_IMAGE_TOKEN not in concat_values:
                 sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
             if DEFAULT_IMAGE_TOKEN in sentence["value"]:
                 sentence_chunks = [chunk.strip() for chunk in sentence["value"].split(DEFAULT_IMAGE_TOKEN)]
