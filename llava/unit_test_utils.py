@@ -16,6 +16,14 @@ def requires_lustre(reason=None):
     return __id
 
 
+def requires_lustre_nvr_datataset(reason=None):
+    import os.path as osp
+    if not osp.isdir("/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset"):
+        reason = "nvr dataset path is not avaliable." if reason is None else reason
+        return __skip(reason)
+    return __id
+
+
 def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32, num_workers=16, skip_before=0):
     import torch
     import transformers

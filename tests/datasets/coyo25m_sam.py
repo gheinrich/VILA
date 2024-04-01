@@ -10,9 +10,6 @@ from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
 class TestDatasetLoading(unittest.TestCase):
-    def test_print(self):
-        print("hello world")
-
     @requires_lustre()
     def test_sam(self):
         from llava.data.simple_vila_webdataset import VILAWebDataset
