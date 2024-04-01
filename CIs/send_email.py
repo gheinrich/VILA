@@ -11,11 +11,10 @@ from email.mime.multipart import MIMEMultipart
 sender = os.environ.get("VILA_CI_SENDER", None)
 password = os.environ.get("VILA_CI_PASSWORD", None)
 # recipients = ["ligengz@nvidia.com", "jasonlu@nvidia.com"]
-recipients = os.environ.get("VILA_CI_RECIPIENTS", "ligengz@nvidia.com")
 
 assert sender is not None and password is not None, "sender account and password must be set."
-
-recipients = recipients.split(",")
+# recipients = os.environ.get("VILA_CI_RECIPIENTS", "ligengz@nvidia.com")
+# recipients = recipients.split(",")
 
 
 def send_email(subject, body, sender, recipients, password, files=None):
@@ -45,8 +44,10 @@ def send_email(subject, body, sender, recipients, password, files=None):
     print(f"Message sent to {recipients}")
 
 
-def main(text=None):
-
+def main(
+    text=None,
+    recipients="ligengz@nvidia.com",
+):
     today = datetime.now().strftime("%m/%d/%Y %H:%M")
     subject = f"[VILA] Continual Test Report {today}"
     body = f"""Testing"""
@@ -55,25 +56,38 @@ def main(text=None):
     if text is not None:
         body_md = open(text, "r").readlines()
 
-        info = ""
+        info_html = ""
+        
+        info_success = []
+        info_failed = []
         for md in body_md:
             if "failed" in md:
-                info += f"""<li><span style="color: red;">{md}.</span></li>\n"""
+                info = f"""<li><span style="color: red;">{md}</span></li>\n"""
                 failed_jobs.append(md.replace("[failed]", "").strip())
+                info_failed.append(info)
             else:
-                info += f"""<li><span style="color: green;">{md}.</span></li>\n"""
-                
-
+                info = f"""<li><span style="color: green;">{md}</span></li>\n"""
+                info_success.append(info)
+        info = "".join(info_failed + info_success)
+        
+        if len(info_failed) > 0:
+            header = "<p>The log for failed jobs are attached. You can run <b> python xxx.py </b> to reproduce.</p>"
+        else:
+            header = "All checks have passed succesfully!"
+        
         body = f"""\
             <html>
             <body>
+                {header}
                 <ul>
                     {info}
                 </ul>
             </body>
             </html>
             """
-    
+    # recipients = os.environ.get("VILA_CI_RECIPIENTS", "ligengz@nvidia.com")
+    recipients = recipients.split(",")
+
     send_email(subject, body, sender, recipients, password, files=failed_jobs)
 
 

@@ -25,6 +25,7 @@ import pickle
 import random
 import re
 import time
+import warnings
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
@@ -557,8 +558,24 @@ class LazySupervisedDataset(Dataset):
             image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         return image
 
+    
     @staticmethod
     def _load_video(video_path, num_video_frames, data_args, use_decord=True):
+        from llava.mm_utils import opencv_extract_frames
+        from torchvision import transforms
+        video_loading_succeed = True
+        toTensor = transforms.ToTensor()
+        
+        pil_imgs = opencv_extract_frames(video_path, num_video_frames)
+        tensor_imgs = torch.stack([toTensor(_) for _ in pil_imgs])
+
+        return tensor_imgs, video_loading_succeed
+            
+        
+    
+    @staticmethod
+    def _load_video_torchvideo(video_path, num_video_frames, data_args, use_decord=True):
+        warnings.warn("This is a deprecated function and should NOT be called.")
         # decord.bridge.set_bridge("torch")
         video_loading_succeed = True
         if "shortest_edge" in data_args.image_processor.size:
