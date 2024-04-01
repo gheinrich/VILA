@@ -47,7 +47,7 @@ from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 from llava.data.datasets_mixture import DATASETS
 from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
                                               load_yaml, process_single_sample)
-from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token, opencv_extract_frames
 from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
 from llava.train.llava_trainer import LLaVATrainer
@@ -470,6 +470,146 @@ def preprocess(
 from llava.data.utils import VILAEncodedVideo
 
 
+class DummyDataset(Dataset):
+    """Dataset for supervised fine-tuning.
+    This class is originally implemented by the LLaVA team and modified by
+    Ji Lin and Haotian Tang.
+    """
+
+    def __init__(self, data_path: str,
+                 tokenizer: transformers.PreTrainedTokenizer,
+                 data_args: DataArguments,
+                 image_folder: str,
+                 training_args: TrainingArguments):
+        super(DummyDataset, self).__init__()
+        # list_data_dict = json.load(open(data_path, "r"))
+        self.num_dummy_samples = 32768
+        import random
+        import string
+
+        def generate_random_string(length):
+            letters = string.ascii_letters
+            result_str = ''.join(random.choice(letters) for _ in range(length))
+            return result_str
+        self.list_data_dict = []
+        for i in range(self.num_dummy_samples):
+            question = generate_random_string(32)
+            answer = question + generate_random_string(8)
+            data_dict = {
+                "id": i,
+                "image": "empty",
+                "conversations": [
+                    {
+                        "from": "human",
+                        "value": question,
+                    },
+                    {
+                        "from": "gpt", 
+                        "value": answer,
+                    },
+                ]
+            }
+            self.list_data_dict.append(data_dict)
+
+        # rank0_print("Formatting inputs...Skip in lazy mode")
+        print("Formatting inputs...Skip in lazy mode")
+        self.tokenizer = tokenizer
+        self.data_args = data_args
+        self.image_folder = image_folder
+
+    def __len__(self):
+        return len(self.list_data_dict)
+
+    @property
+    def lengths(self):
+        length_list = []
+        for sample in self.list_data_dict:
+            img_tokens = 128 if "image" in sample else 0
+            length_list.append(sum(len(conv["value"].split()) for conv in sample["conversations"]) + img_tokens)
+        return length_list
+
+    @property
+    def modality_lengths(self):
+        length_list = []
+        for sample in self.list_data_dict:
+            cur_len = sum(len(conv["value"].split()) for conv in sample["conversations"])
+            cur_len = cur_len if "image" in sample else -cur_len
+            length_list.append(cur_len)
+        return length_list
+
+    @staticmethod
+    def _process_image(image_file, data_args, image_folder, resize=False):
+        processor = data_args.image_processor
+        # if isinstance(image_file, str):
+        #     if image_folder is not None:
+        #         image = Image.open(os.path.join(image_folder, image_file)).convert("RGB")
+        #     else:
+        #         image = Image.open(image_file).convert("RGB")
+        # else:
+        #     # image is stored in bytearray
+        #     image = image_file
+        image = Image.new('RGB', (256, 256), color = 'white')    
+        if resize:
+            if hasattr(data_args.image_processor, "crop_size"):
+                # CLIP vision tower
+                crop_size = data_args.image_processor.crop_size
+            else:
+                # SIGLIP vision tower
+                assert hasattr(data_args.image_processor, "size")
+                crop_size = data_args.image_processor.size
+            image = image.resize((crop_size["height"], crop_size["width"]))
+        if data_args.image_aspect_ratio == "pad":
+
+            def expand2square(pil_img, background_color):
+                width, height = pil_img.size
+                if width == height:
+                    return pil_img
+                elif width > height:
+                    result = Image.new(pil_img.mode, (width, width), background_color)
+                    result.paste(pil_img, (0, (width - height) // 2))
+                    return result
+                else:
+                    result = Image.new(pil_img.mode, (height, height), background_color)
+                    result.paste(pil_img, ((height - width) // 2, 0))
+                    return result
+
+            image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+            image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+        else:
+            image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+        return image
+
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        sources = self.list_data_dict[i]
+        if isinstance(i, int):
+            sources = [sources]
+        assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
+        if "image" in sources[0]:
+            image_file = self.list_data_dict[i]["image"]
+            image = self._process_image(image_file, self.data_args, self.image_folder)
+            sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
+        else:
+            sources = copy.deepcopy([e["conversations"] for e in sources])
+
+        data_dict = preprocess(
+            sources,
+            self.tokenizer,
+            has_image=(
+                "image" in self.list_data_dict[i]
+                or "video" in self.list_data_dict[i]
+                or "video_id" in self.list_data_dict[i]
+            ),
+        )
+        if isinstance(i, int):
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
+
+        # image exist in the data
+        if "image" in self.list_data_dict[i]:
+            data_dict["image"] = image.unsqueeze(0)
+        else:
+            data_dict["image"] = None
+        return data_dict
+
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning.
     This class is originally implemented by the LLaVA team and modified by
@@ -565,41 +705,66 @@ class LazySupervisedDataset(Dataset):
         else:
             image_size = data_args.image_processor.size["height"]
         try:
-            if use_decord:
-                video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
-            else:
-                video = EncodedVideo.from_path(video_path, decoder="pyav", decode_audio=False)
-            duration = float(video.duration)
-            # assert duration >= 0.25
-            video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-            num_frames = video_outputs.shape[1]
-            if num_frames < 8 + 1:
-                padding_frames = 8 + 1 - num_frames
-                padding_tensor = torch.zeros(
-                    video_outputs.size(0), 
-                    padding_frames, 
-                    video_outputs.size(2), 
-                    video_outputs.size(3), 
-                    dtype=torch.uint8
-                )
-                video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
-                num_frames = video_outputs.shape[1]
-            # step = (num_frames - 1) // 8 + 1
-            step = num_frames // num_video_frames
-            num_frames = num_frames - (num_frames % 8)
-            indices = torch.floor(torch.arange(0, num_frames, step)).long()
-            video_outputs = video_outputs[:, indices, :, :]
+            # print(f"loading video from {video_path}")
+            # print(os.path.exists(video_path))
+            # with open(video_path, 'rb') as stream:
+            #     video_stream = io.BytesIO(stream.read())
+            imgs = opencv_extract_frames(video_path, num_video_frames)
+            if len(imgs) < num_video_frames:
+                # pad the video to be consistent
+                imgs = [imgs[0], ] * (len(imgs) - num_video_frames) + imgs
+            # convert list of Image object to a whole torch tensor
+            processor = data_args.image_processor
+            video_outputs = torch.stack(
+                [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in imgs]
+            )
         except Exception as e:
             print(f"bad data path {video_path}")
             print(f"Error processing {video_path}: {e}")
-            video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+            video_outputs = torch.zeros(8, 3, image_size, image_size, dtype=torch.uint8)
             video_loading_succeed = False
 
-        c, b, h, w = video_outputs.size()
+        b, c, h, w = video_outputs.size()
         image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-        video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
-        video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
+        video_frames = Resize(size=[image_size, image_size], antialias=True)(video_outputs)
         image_tensor[:, :, :, :] = video_frames
+        # try:
+        #     if use_decord:
+        #         video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+        #     else:
+        #         video = EncodedVideo.from_path(video_path, decoder="pyav", decode_audio=False)
+        #     duration = float(video.duration)
+        #     # assert duration >= 0.25
+        #     video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+        #     num_frames = video_outputs.shape[1]
+        #     if num_frames < 8 + 1:
+        #         padding_frames = 8 + 1 - num_frames
+        #         padding_tensor = torch.zeros(
+        #             video_outputs.size(0), 
+        #             padding_frames, 
+        #             video_outputs.size(2), 
+        #             video_outputs.size(3), 
+        #             dtype=torch.uint8
+        #         )
+        #         video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
+        #         num_frames = video_outputs.shape[1]
+        #     # step = (num_frames - 1) // 8 + 1
+        #     step = num_frames // num_video_frames
+        #     num_frames = num_frames - (num_frames % 8)
+        #     indices = torch.floor(torch.arange(0, num_frames, step)).long()
+        #     video_outputs = video_outputs[:, indices, :, :]
+        # except Exception as e:
+        #     print(f"bad data path {video_path}")
+        #     print(f"Error processing {video_path}: {e}")
+        #     video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+        #     video_loading_succeed = False
+
+        # c, b, h, w = video_outputs.size()
+        # image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
+        # video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
+        # video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
+        # image_tensor[:, :, :, :] = video_frames
+
 
         return image_tensor, video_loading_succeed
 
@@ -1877,6 +2042,10 @@ def build_datasets(
             dataset_cls = LazyVideoWebDataset
         elif dataset_type == "evaluation":
             dataset_cls = LazyEvaluateDataset
+        elif dataset_type == "dummy":
+            dataset_cls = DummyDataset
+            if hasattr(dataset, "image_path"):
+                image_folder = dataset.image_path
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         dataset = dataset_cls(
