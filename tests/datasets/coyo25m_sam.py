@@ -10,9 +10,6 @@ from llava.unit_test_utils import requires_gpu, requires_lustre
 
 
 class TestDatasetLoading(unittest.TestCase):
-    def test_print(self):
-        print("hello world")
-
     @requires_lustre()
     def test_sam(self):
         from llava.data.simple_vila_webdataset import VILAWebDataset
@@ -21,9 +18,11 @@ class TestDatasetLoading(unittest.TestCase):
         dst = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
-        dl = DataLoader(dst, num_workers=16)
+        dl = DataLoader(dst, batch_size=16, num_workers=16, collate_fn=VILAWebDataset.custom_collate)
         for idx, data in enumerate(dl):
             print(idx, data.keys())
+            if idx > 100:
+                break
         print("SAM loading finish")
 
     @requires_lustre()
@@ -34,11 +33,12 @@ class TestDatasetLoading(unittest.TestCase):
         dst = VILAWebDataset(
             data_path=osp.abspath(data_path),
         )
-        dl = DataLoader(dst, num_workers=16)
+        dl = DataLoader(dst, batch_size=16, num_workers=16, collate_fn=VILAWebDataset.custom_collate)
         for idx, data in enumerate(dl):
             print(idx, data.keys())
-        print("Coyo-25M loading finish")
-
+            if idx > 100:
+                break
+        print("Finish loading 100 examples from COYO25M")
 
 if __name__ == "__main__":
     unittest.main()

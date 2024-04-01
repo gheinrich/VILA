@@ -31,10 +31,18 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    panda70m_testing = Dataset(
+        dataset_name="panda70m_testing",
+        dataset_type="panda70m",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/wds-testing",
+        description="",
+    )
+    add_dataset(panda70m_testing)
+    
     panda70m = Dataset(
         dataset_name="panda70m",
         dataset_type="panda70m",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/webdataset",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/wds-training_2m",
         description="",
     )
     add_dataset(panda70m)

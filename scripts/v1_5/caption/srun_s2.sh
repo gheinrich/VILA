@@ -7,9 +7,9 @@
 SLURM_ACCOUNT=${SLURM_ACCOUNT:-"nvr_elm_llm"}
 SLURM_PARTITION=${SLURM_PARTITION:-"polar4,polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
 ########################################################
-# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m+mmc4core
-# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds_recap
-# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m_wds+mmc4
+# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-13b-hf llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m+mmc4core
+# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-13b-hf llava_1_5_mm_align sharegpt4v_pretrain+coyo_25m+mmc4core
+# bash scripts/v1_5/caption/srun_s2.sh NousResearch/Llama-2-13b-hf llava_1_5_mm_align sharegpt4v_pretrain
 
 # export DATASET=${DATASET:-sharegpt4v_pretrain+coyo_25m_wds}
 # PT_DATASET
