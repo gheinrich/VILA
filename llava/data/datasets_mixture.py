@@ -167,6 +167,15 @@ def register_datasets_mixtures():
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/LLaVA-CC3M-Pretrain-595K/images",
     )
     add_dataset(llava_1_5_mm_align)
+    
+    llava_1_5_pretrain = Dataset(
+        dataset_name="llava_1_5_pretrain",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",
+        image_path="/home/yunhaof/workspace/datasets/LLaVA-Pretrain/images",
+    )
+    add_dataset(llava_1_5_pretrain)
+    
     llava_1_5_sft = Dataset(
         dataset_name="llava_1_5_sft",
         dataset_type="torch",
