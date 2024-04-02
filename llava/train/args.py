@@ -33,6 +33,9 @@ class DataArguments:
     vflan_no_system_prompt: bool = False
     downsample_video: bool = False
 
+    # for video training
+    num_video_frames: int = 8
+
 
 @dataclass
 class ModelArguments:
