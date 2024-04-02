@@ -1,6 +1,5 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
-import torch
 import os
 
 from .base_projector import MultimodalProjectorConfig, MultimodalProjector
@@ -24,4 +23,7 @@ def build_mm_projector(
     ## build from scratch
     else:
         mm_projector_cfg = MultimodalProjectorConfig(model_type_or_path)
-        return MultimodalProjector(mm_projector_cfg, config)
+        mm_projector = MultimodalProjector(mm_projector_cfg, config).to(
+            eval(config.model_dtype)
+        )
+        return mm_projector
