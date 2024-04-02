@@ -722,65 +722,41 @@ class LazySupervisedDataset(Dataset):
         else:
             image_size = data_args.image_processor.size["height"]
         try:
-            # print(f"loading video from {video_path}")
-            # print(os.path.exists(video_path))
-            # with open(video_path, 'rb') as stream:
-            #     video_stream = io.BytesIO(stream.read())
-            imgs = opencv_extract_frames(video_path, num_video_frames)
-            if len(imgs) < num_video_frames:
-                # pad the video to be consistent
-                imgs = [imgs[0], ] * (len(imgs) - num_video_frames) + imgs
-            # convert list of Image object to a whole torch tensor
-            processor = data_args.image_processor
-            video_outputs = torch.stack(
-                [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in imgs]
-            )
+            if use_decord:
+                video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
+            else:
+                video = EncodedVideo.from_path(video_path, decoder="pyav", decode_audio=False)
+            duration = float(video.duration)
+            # assert duration >= 0.25
+            video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
+            num_frames = video_outputs.shape[1]
+            if num_frames < 8 + 1:
+                padding_frames = 8 + 1 - num_frames
+                padding_tensor = torch.zeros(
+                    video_outputs.size(0), 
+                    padding_frames, 
+                    video_outputs.size(2), 
+                    video_outputs.size(3), 
+                    dtype=torch.uint8
+                )
+                video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
+                num_frames = video_outputs.shape[1]
+            # step = (num_frames - 1) // 8 + 1
+            step = num_frames // num_video_frames
+            num_frames = num_frames - (num_frames % 8)
+            indices = torch.floor(torch.arange(0, num_frames, step)).long()
+            video_outputs = video_outputs[:, indices, :, :]
         except Exception as e:
             print(f"bad data path {video_path}")
             print(f"Error processing {video_path}: {e}")
-            video_outputs = torch.zeros(8, 3, image_size, image_size, dtype=torch.uint8)
+            video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
             video_loading_succeed = False
 
-        b, c, h, w = video_outputs.size()
+        c, b, h, w = video_outputs.size()
         image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-        video_frames = Resize(size=[image_size, image_size], antialias=True)(video_outputs)
+        video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
+        video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
         image_tensor[:, :, :, :] = video_frames
-        # try:
-        #     if use_decord:
-        #         video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
-        #     else:
-        #         video = EncodedVideo.from_path(video_path, decoder="pyav", decode_audio=False)
-        #     duration = float(video.duration)
-        #     # assert duration >= 0.25
-        #     video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-        #     num_frames = video_outputs.shape[1]
-        #     if num_frames < 8 + 1:
-        #         padding_frames = 8 + 1 - num_frames
-        #         padding_tensor = torch.zeros(
-        #             video_outputs.size(0), 
-        #             padding_frames, 
-        #             video_outputs.size(2), 
-        #             video_outputs.size(3), 
-        #             dtype=torch.uint8
-        #         )
-        #         video_outputs = torch.cat((video_outputs, padding_tensor), dim=1)
-        #         num_frames = video_outputs.shape[1]
-        #     # step = (num_frames - 1) // 8 + 1
-        #     step = num_frames // num_video_frames
-        #     num_frames = num_frames - (num_frames % 8)
-        #     indices = torch.floor(torch.arange(0, num_frames, step)).long()
-        #     video_outputs = video_outputs[:, indices, :, :]
-        # except Exception as e:
-        #     print(f"bad data path {video_path}")
-        #     print(f"Error processing {video_path}: {e}")
-        #     video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
-        #     video_loading_succeed = False
-
-        # c, b, h, w = video_outputs.size()
-        # image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-        # video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
-        # video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
-        # image_tensor[:, :, :, :] = video_frames
 
 
         return image_tensor, video_loading_succeed

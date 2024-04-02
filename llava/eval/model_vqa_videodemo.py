@@ -22,7 +22,6 @@ from pytorchvideo.data.encoded_video import EncodedVideo
 
 import signal
 
-
 # This function will be called when the timeout is reached
 def handler(signum, frame):
     raise TimeoutError()
@@ -126,95 +125,86 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     outputs = outputs.strip()
     return outputs
 
+def parse_caption_template(template_type):
+    if "bin" in template_type:
+        short_bin = template_type.split("_")[1]
+        long_bin = template_type.split("_")[2]
+        short_question = f"Summarize the visual content of the following video. Please write the caption with no more than {short_bin} words.\n<video>"
+        long_question = f"Summarize the visual content of the following video. Please write the caption with no more than {long_bin} words.\n<video>"
+    else:
+        raise ValueError(f"Invalid template type: {template_type}")
+
+    return short_question, long_question
 
 def eval_model(args):
     # Model
     disable_torch_init()
-    model_path = os.path.expanduser(args.model_path)
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
 
-
-    # Read the ground truth csv file
-    gt_file = os.path.expanduser(args.gt_file)
-    with open(gt_file, 'r') as f:
-        gt_qa_data = f.readlines()
-    # convert the csv data into a list of dictionaries
+    # List video files
+    video_formats = ['.mp4', '.avi', '.mov', '.mkv']
+    video_files = os.listdir(args.video_dir)
+    video_files = [f for f in video_files if os.path.splitext(f)[1] in video_formats]
+    short_q, long_q = parse_caption_template(args.prompt_template)
     gt_questions = []
-    gt_answers = []
-    for line in gt_qa_data[1:]:
-        # ,video,frame_count,width,height,question,answer,qid,type
-        line = line.strip()
-        line = line.split(',')
-        gt_questions.append({'video_name': line[1], 'question': line[5], 'question_id': line[7]})
-        gt_answers.append({'answer': line[6]})
-    gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
-    gt_answers = get_chunk(gt_answers, args.num_chunks, args.chunk_idx)
+    for i, video_name in enumerate(video_files):
+        gt_questions.append(
+            {
+                'video_name': video_name, 
+                'short_q': short_q, 
+                'long_q': long_q,
+            }
+        )
+    
+    # Create the output directory if it doesn't exist
+
 
     args.output_dir = os.path.expanduser(args.output_dir)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
     print(f"Output directory: {args.output_dir}")
     args.video_dir = os.path.expanduser(args.video_dir)
     print(f"Video directory: {args.video_dir}")
-    answers_file = os.path.join(args.output_dir, f"{args.output_name}.json")
-    os.makedirs(args.output_dir, exist_ok=True)
-    # Read cache answer file, each line is a json object
-    if os.path.exists(answers_file):
-        cache_ans_file = open(answers_file, "r")
-        cache_ans = cache_ans_file.readlines()
-        cache_ans_file.close()
-    else:
-        cache_ans = []
+    short_caption_file = os.path.join(args.output_dir, f"short_captions.txt")
+    short_caption_file = open(short_caption_file, "w")
+    long_caption_file = os.path.join(args.output_dir, f"video_captions.txt")
+    long_caption_file = open(long_caption_file, "w")
+    
 
-    # Get cached video ids
-    cache_set = set([f"{json.loads(line)['video_name']}_{json.loads(line)['id']}" for line in cache_ans])
-        
-
-    # Create the output directory if it doesn't exist
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
     
     # List to store the output results
     output_list = [] 
-    video_formats = ['.mp4', '.avi', '.mov', '.mkv']
 
+
+    model_path = os.path.expanduser(args.model_path)
+    model_name = get_model_name_from_path(model_path)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
 
     # Iterate over each sample in the ground truth file
     index = 0
     for sample in tqdm(gt_questions):
         video_name = sample['video_name']
-        question = sample['question']
-        id = sample['question_id']
-        answer = gt_answers[index]['answer']
+        short_question = sample['short_q']
+        long_question = sample['long_q']
         index += 1
-
-        sample_set = {
-            "video_name": video_name,
-            'id': id, 
-            'question': question, 
-            'answer': answer,
-        }
-
+        
         # Load the video file
-        for fmt in tqdm(video_formats):  # Added this line
-
-            temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
-            if f"{video_name}_{id}" in cache_set:
-                print(f"Skipping {video_name}_{id} because it is in the cache")
-                continue
+        for question_type in ['short', 'long']:
+            temp_path = os.path.join(args.video_dir, f"{video_name}")
+            print(f"Processing video: {temp_path}")
             if os.path.exists(temp_path):
                 video_path = temp_path
-                # try:
-                # Run inference on the video and add the output to the list
+                question = short_question if question_type == 'short' else long_question
                 output = get_model_output(model, image_processor, tokenizer, video_path, question, args)
-                sample_set['pred'] = output
-                output_list.append(sample_set)
-                # except Exception as e:
-                #     print(f"Error processing video file '{video_name}': {e}")
-                    # Write into the answer file.
-                with open(answers_file, 'a') as f:
-                    f.write(json.dumps(sample_set) + "\n")
-                break
-
+                print('question:', question)
+                if question_type == 'short':
+                    short_caption_file.write(f"{video_name}: {output}\n")
+                elif question_type == 'long':
+                    long_caption_file.write(f"{video_name}: {output}\n")
+                else:
+                    raise ValueError(f"Invalid question type: {question_type}")
+    short_caption_file.close()
+    long_caption_file.close()
+    print(f"Results saved to {args.output_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -222,12 +212,9 @@ if __name__ == "__main__":
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--model_max_length", type=int, required=False, default=2048)
     parser.add_argument('--video_dir', help='Directory containing video files.', required=True)
-    parser.add_argument('--gt_file', help='Path to the ground truth file containing question.', required=True)
     parser.add_argument('--output_dir', help='Directory to save the model results JSON.', required=True)
-    parser.add_argument('--output_name', help='Name of the file for storing results JSON.', required=True)
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
-    parser.add_argument("--num-chunks", type=int, default=1)
-    parser.add_argument("--chunk-idx", type=int, default=0)
+    parser.add_argument("--prompt_template", type=str, help='The template of video caption question.', required=True)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=None)
     parser.add_argument("--num_beams", type=int, default=1)
