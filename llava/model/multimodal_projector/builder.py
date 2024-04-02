@@ -1,6 +1,7 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import os
+import torch
 
 from .base_projector import MultimodalProjectorConfig, MultimodalProjector
 from transformers import PretrainedConfig, PreTrainedModel
