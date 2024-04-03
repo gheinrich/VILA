@@ -6,7 +6,7 @@ import os
 import json
 from tqdm import tqdm
 
-from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, IGNORE_INDEX
 from llava.conversation import conv_templates, SeparatorStyle
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
@@ -102,6 +102,9 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
         )
         input_ids = data_dict["input_ids"]
         targets = data_dict["labels"]
+        # Remove last ending token
+        targets[0][-1] = IGNORE_INDEX
+
         with torch.inference_mode():
             outputs = model(
                 input_ids=input_ids.cuda(),
@@ -111,10 +114,9 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
             )
             loss = outputs.loss.item()
             loss_list.append(loss)
-    
+
     # Get index of the minimum loss
     min_loss_index = loss_list.index(min(loss_list))
-    # print(asd)
     return min_loss_index
 
 
