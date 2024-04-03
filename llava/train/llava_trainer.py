@@ -432,7 +432,7 @@ class LLaVATrainer(Trainer):
                 )
                 self.model.config.llm_cfg = self.model.llm.config
 
-            if self.model.get_vision_tower():
+            if self.model.get_vision_tower() and "radio" not in self.model.get_vision_tower().__class__.__name__.lower():
                 vision_tower_state_dict = OrderedDict(
                     {
                         k.split("vision_tower.vision_tower.")[-1]: v

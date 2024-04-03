@@ -265,6 +265,14 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/DVQA/images",
     )
     add_dataset(dvqa)
+    
+    dvqa_subset = Dataset(
+        dataset_name="dvqa_subset",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/DVQA/processed/DVQA_train_qa_subset100K.json",
+        image_path="/home/yunhaof/workspace/datasets/DVQA/images",
+    )
+    add_dataset(dvqa_subset)
 
     ai2d = Dataset(
         dataset_name="ai2d",

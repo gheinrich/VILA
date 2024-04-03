@@ -14,7 +14,7 @@ def build_vision_tower(
         return None
 
     vision_tower_arch = None
-    if config.resume_path:
+    if config.resume_path and "radio" not in model_name_or_path:
         assert os.path.exists(
             model_name_or_path
         ), f"Resume vision tower path {model_name_or_path} does not exist!"
