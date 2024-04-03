@@ -32,19 +32,19 @@ python3 llava/eval/model_vqa_videodemo.py \
     --output_dir ${output_dir} \
     --prompt_template ${PROMPT_TEMPLATE} \
     --conv-mode vicuna_v1 \
-    --temperature 0 &
+    --temperature 0
 # done
 
 # wait
 
-output_file=${output_dir}/merge.jsonl
+# output_file=${output_dir}/merge.jsonl
 
-# Clear out the output file if it exists.
-if [ -f "$output_file" ]; then
-    > "$output_file"
-fi
+# # Clear out the output file if it exists.
+# if [ -f "$output_file" ]; then
+#     > "$output_file"
+# fi
 
-# Loop through the indices and concatenate each file.
-for IDX in $(seq 0 $((CHUNKS-1))); do
-    cat ${output_dir}/${CHUNKS}_${IDX}.json >> "$output_file"
-done
+# # Loop through the indices and concatenate each file.
+# for IDX in $(seq 0 $((CHUNKS-1))); do
+#     cat ${output_dir}/${CHUNKS}_${IDX}.json >> "$output_file"
+# done

@@ -778,7 +778,8 @@ class LazySupervisedDataset(Dataset):
                 video_file = sources[0]["video_id"] + ".mp4"
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
-            image_tensor, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
+            # image_tensor, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = self._load_video_torchvideo(video_path, num_video_frames, self.data_args)
             processor = self.data_args.image_processor
 
             image_tensor = [
