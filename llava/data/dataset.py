@@ -1840,9 +1840,9 @@ class LazyVideoWebDataset(Dataset):
 
 
         if 'ego' in self.data_path:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args, use_decord=False)
         else:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args)
 
         if not video_loading_succeed:
             caption = "Empty video."

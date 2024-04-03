@@ -102,27 +102,6 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
         )
         input_ids = data_dict["input_ids"]
         targets = data_dict["labels"]
-        # conv = conv_templates[args.conv_mode].copy()
-        # conv.append_message(conv.roles[0], qs)
-        # conv.append_message(conv.roles[1], option)
-        # prompt = conv.get_prompt()
-        # print(f'Prompt for option {id}: {prompt}')
-        # if id == 0:
-        #     prompt = prompt.replace('</s>', '')
-
-        # input_ids = tokenizer_image_token(
-        #     prompt,
-        #     tokenizer,
-        #     image_token_index=IMAGE_TOKEN_INDEX,
-        #     return_tensors="pt",
-        # )
-        # input_ids = torch.unsqueeze(input_ids, 0)
-        # input_ids = torch.as_tensor(input_ids).cuda()
-        # targets = input_ids.clone()
-
-        # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-        # keywords = [stop_str]
-        # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
         with torch.inference_mode():
             outputs = model(
                 input_ids=input_ids.cuda(),
@@ -131,17 +110,7 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
                 attention_mask=input_ids.cuda().ne(tokenizer.pad_token_id),
             )
             loss = outputs.loss.item()
-            print(f'Loss for option {id}: {loss}')
             loss_list.append(loss)
-            # output_ids = model.generate(
-            #     input_ids,
-            #     images=image_tensor.half().cuda(),
-            #     do_sample=True,
-            #     temperature=0.2,
-            #     max_new_tokens=1024,
-            #     use_cache=True,
-            #     stopping_criteria=[stopping_criteria]
-            # )
     
     # Get index of the minimum loss
     min_loss_index = loss_list.index(min(loss_list))
