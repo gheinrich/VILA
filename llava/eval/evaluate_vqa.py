@@ -199,6 +199,7 @@ if __name__ == '__main__':
     print(f"Evaluating {args.dataset} ...")
     time_prefix = time.strftime('%y%m%d%H%M%S', time.localtime())
     results_file = os.path.join(args.answer_dir, f'{args.dataset}_{time_prefix}.json')
+    os.makedirs(os.path.dirname(results_file), exist_ok=True)
     json.dump(outputs, open(results_file, 'w'), ensure_ascii=False)
 
     if ds_collections[args.dataset]['metric'] == 'relaxed_accuracy':

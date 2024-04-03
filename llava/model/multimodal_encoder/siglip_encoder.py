@@ -1,8 +1,9 @@
 import torch
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
 
-from transformers import PretrainedConfig
-from transformers.models.siglip import (
+from transformers import AutoConfig, PretrainedConfig, AutoModel
+from .siglip import (
+    SiglipVisionConfig, 
     SiglipVisionModel,
     SiglipImageProcessor,
 )
@@ -16,3 +17,6 @@ class SiglipVisionTower(VisionTower):
             model_name_or_path, torch_dtype=eval(config.model_dtype)
         )
         self.is_loaded = True
+
+AutoConfig.register("siglip_vision_model", SiglipVisionConfig)
+AutoModel.register(SiglipVisionConfig, SiglipVisionModel)

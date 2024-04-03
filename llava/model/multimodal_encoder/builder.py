@@ -18,7 +18,7 @@ def build_vision_tower(
         assert os.path.exists(
             model_name_or_path
         ), f"Resume vision tower path {model_name_or_path} does not exist!"
-        vision_tower_cfg = AutoConfig.from_pretrained(model_name_or_path)
+        vision_tower_cfg = AutoConfig.from_pretrained(model_name_or_path, trust_remote_code=True)
         vision_tower_arch = vision_tower_cfg.architectures[0].lower()
     vision_tower_name = (
         vision_tower_arch if vision_tower_arch is not None else model_name_or_path
