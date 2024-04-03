@@ -41,7 +41,7 @@ class VisionTower(nn.Module):
     ):
         if resolution in [model.config.image_size, -1]:
             return
-        print("Resizing vision model's position embeddings to increase vision resolution...")
+        print(f"Resizing vision model's position embeddings to support higher vision resolution: from {model.config.image_size} to {resolution} ...")
         embeddings = model.vision_model.embeddings
         patch_size = embeddings.patch_size
         num_new_tokens = int((resolution // patch_size) ** 2)
