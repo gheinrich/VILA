@@ -52,7 +52,7 @@ class RADIOEncoder(nn.Module):
 
         print(f"RADIO model config: {config}")
 
-        vision_tower = config.vision_tower
+        vision_tower = config.vision_tower_cfg
 
         # The vision_tower_name is expected in the format of:
         # "radio:<image_size>:<vision_tower_checkpoint>", where <image_size>

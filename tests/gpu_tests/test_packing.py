@@ -1,15 +1,12 @@
 import copy
-import os
 import unittest
 
 import torch
-import transformers
-from llava.model import LlavaConfig, LlavaLlamaForCausalLM
-from llava.model.builder import load_pretrained_model
-from llava.train.args import ModelArguments
-from llava.train.utils import prepare_vision_tower_config
+from llava.model import LlavaLlamaConfig, LlavaLlamaModel
+from llava.train.args import ModelArguments, TrainingArguments
+from llava.train.utils import prepare_config_for_training
 from llava.unit_test_utils import requires_gpu, requires_lustre
-from transformers import AutoTokenizer, CLIPImageProcessor
+from transformers import AutoTokenizer
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -30,29 +27,31 @@ class TestInputPacking(unittest.TestCase):
             model_name_or_path=model_name_or_path,
             version="v1",
             vision_tower="openai/clip-vit-large-patch14-336",
+            mm_projector="mlp2x_gelu",
             mm_vision_select_layer=-2,
             mm_use_im_patch_token=False,
         )
-        self.config = LlavaConfig.from_pretrained(model_name_or_path)
-        prepare_vision_tower_config(self.config, self.model_args)
+        self.training_args = TrainingArguments(output_dir="")
+        self.config = LlavaLlamaConfig.from_pretrained(model_name_or_path)
+        prepare_config_for_training(self.config, self.model_args, self.training_args)
         print("Initializing tokenizer...")
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+        self.tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
             model_max_length=4096,
             padding_side="right",
             use_fast=False,
             legacy=False,
         )
-        print("Initializing LlavaLlamaForCausalLM...")
-        self.model = LlavaLlamaForCausalLM(config=self.config)
-        self.model.model.vision_tower.to(dtype=torch.bfloat16)
-        self.model.model.vision_tower = self.model.model.vision_tower.to(device)
-        self.model = self.model.to(torch.bfloat16).to(device)
+        print("Initializing LlavaLlamaModel...")
+        self.model = LlavaLlamaModel(config=self.config)
+        self.model.vision_tower = self.model.vision_tower.to(device)
+        self.model.mm_projector = self.model.mm_projector.to(device)
+        self.model = self.model.to(device)
 
         print("Initializing data...")
         data = torch.load("tests/sample_data/test_packing.pth")
         # necessary for model forward
-        self.model.pad_token_id = self.tokenizer.pad_token_id
+        self.model.llm.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
     @requires_gpu()
@@ -60,7 +59,7 @@ class TestInputPacking(unittest.TestCase):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)
         data["input_ids"] = data["input_ids"].to(device)
-        data["images"] = data["images"].to(torch.bfloat16).to(device)
+        data["images"] = data["images"].to(torch.float16).to(device)
         data["attention_mask"] = data["attention_mask"].to(device)
         data["labels"] = data["labels"].to(device)
         data["position_ids"] = None
@@ -97,7 +96,7 @@ class TestInputPacking(unittest.TestCase):
 
         with torch.no_grad():
             # forward results with input packing
-            outputs = super(LlavaLlamaForCausalLM, self.model).forward(
+            outputs = self.model.llm.forward(
                 input_ids=None,
                 attention_mask=new_attention_mask,
                 position_ids=new_position_ids,
@@ -111,7 +110,7 @@ class TestInputPacking(unittest.TestCase):
                 seqlens_in_batch=sorted_seqlens_in_batch,
             )
             # forward results without input packing
-            outputs_ref = super(LlavaLlamaForCausalLM, self.model).forward(
+            outputs_ref = self.model.llm.forward(
                 input_ids=None,
                 attention_mask=attention_mask.to(device),
                 position_ids=None,

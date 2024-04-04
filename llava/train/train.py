@@ -15,11 +15,7 @@
 #    limitations under the License.
 
 import os
-import copy
-from dataclasses import dataclass, field
-import json
 import logging
-import pathlib
 from typing import Dict, Optional, Sequence, List
 
 import torch
@@ -33,19 +29,14 @@ from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
 
 from llava import conversation as conversation_lib
-from llava.data import make_supervised_data_module, DataCollatorForSupervisedDataset
+from llava.data import make_supervised_data_module
 from llava.model import *
-from llava.mm_utils import tokenizer_image_token
 from llava.train.utils import (
     get_checkpoint_path,
-    prepare_vision_tower_config,
+    prepare_config_for_training,
     vision_resolution_elevation,
     unit_test_rope_scaling,
 )
-
-import math
-from peft import PeftModel
-from PIL import Image
 
 
 local_rank = None
@@ -142,7 +133,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
     """Collects the state dict and dump to disk."""
     if trainer.deepspeed:
         torch.cuda.synchronize()
-        trainer.save_model(output_dir)
+        trainer.save_model(output_dir, _internal_call=True)
         return
 
     state_dict = trainer.model.state_dict()
@@ -214,27 +205,12 @@ def train():
             )
         )
 
-    def context_length_extension(config):
-        orig_ctx_len = getattr(config, "max_position_embeddings", None)
-        if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
-            print(
-                f"Scaling RoPE from {orig_ctx_len} to {training_args.model_max_length}"
-            )
-            scaling_factor = float(
-                math.ceil(training_args.model_max_length / orig_ctx_len)
-            )
-            config.rope_scaling = {"type": "linear", "factor": scaling_factor}
-
     resume_path = get_checkpoint_path(training_args.output_dir)
     if resume_path:
         resume_from_checkpoint = True
-        model_args.model_name_or_path = resume_path
-        config = AutoConfig.from_pretrained(
-            model_args.model_name_or_path, trust_remote_code=True
-        )
+        config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
         config.resume_path = resume_path
         model_cls = eval(config.architectures[0])
-        torch.set_default_dtype(torch.bfloat16)
     else:
         ## first time training
         resume_from_checkpoint = False
@@ -247,39 +223,32 @@ def train():
         elif "mistral" in model_args.model_name_or_path.lower():
             config = LlavaMistralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaMistralForCausalLM
         elif "mixtral" in model_args.model_name_or_path.lower():
             config = LlavaMixtralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaMixtralForCausalLM
         elif "gemma" in model_args.model_name_or_path.lower():
             config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
-            torch.set_default_dtype(torch.bfloat16)
             model_cls = LlavaGemmaForCausalLM
         else:
-            ## multimodal model
-            if model_args.vision_tower:
-                config = LlavaConfig.from_pretrained(model_args.model_name_or_path)
-                config._attn_implementation = "flash_attention_2"
-                torch.set_default_dtype(torch.bfloat16)
-                model_cls = LlavaLlamaForCausalLM
-            ## language model
-            else:
-                model_cls = LlamaForCausalLM
-
-    prepare_vision_tower_config(config, model_args)
-    context_length_extension(config)
-    model = model_cls.from_pretrained(
-        model_args.model_name_or_path,
+            ## llm and default multimodal model
+            model_cls = LlavaLlamaModel
+            config = LlavaLlamaConfig.from_pretrained(
+                model_args.model_name_or_path,
+                resume=resume_from_checkpoint
+            )
+    ## extra configurations
+    prepare_config_for_training(config, model_args, training_args)
+    model = model_cls(
         config=config,
+        attn_implementation="flash_attention_2",
+        model_max_length=training_args.model_max_length,
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
     vision_resolution_elevation(model, config)
-
     # This is an empty func.
     # It would be overwritten by unit test script.
     if unit_test_rope_scaling(model, config, training_args):
@@ -288,20 +257,16 @@ def train():
     # Take a look on model architecture.
     print(model)
 
-    model.config.use_cache = False
+    model.llm.config.use_cache = False
     ## set tunnable parameters
     logging.warning(
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
-    model.get_model().requires_grad_(training_args.tune_language_model)
-    try:
-        model.get_lm_head.requires_grad_(training_args.tune_language_model)
-    except:
-        logging.warning("model.get_lm_head() is not available")
+    model.get_llm().requires_grad_(training_args.tune_language_model)
     print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
-    if model.get_model().get_vision_tower():
-        model.get_model().get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-        model.get_model().get_mm_projector().requires_grad_(training_args.tune_mm_projector)
+    if model.get_vision_tower():
+        model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+        model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
         print(f"vision tower {training_args.tune_vision_tower}")
         print(f"mm projector {training_args.tune_mm_projector}")
 
@@ -316,25 +281,25 @@ def train():
                 return True
         return False
 
-    if need_to_modify_do_sample(model.generation_config):
-        model.generation_config.do_sample = True
+    if need_to_modify_do_sample(model.llm.generation_config):
+        model.llm.generation_config.do_sample = True
 
-    ## quantize training
+    ## quantize training @yunhao: be careful here
     if training_args.bits in [4, 8]:
         from peft import prepare_model_for_kbit_training
 
-        model.config.torch_dtype = (
+        model.llm.config.torch_dtype = (
             torch.float32
             if training_args.fp16
             else (torch.bfloat16 if training_args.bf16 else torch.float32)
         )
-        model = prepare_model_for_kbit_training(
-            model, use_gradient_checkpointing=training_args.gradient_checkpointing
+        model.llm = prepare_model_for_kbit_training(
+            model.llm, use_gradient_checkpointing=training_args.gradient_checkpointing
         )
 
     if training_args.gradient_checkpointing:
-        if hasattr(model, "enable_input_require_grads"):
-            model.enable_input_require_grads()
+        if hasattr(model.llm, "enable_input_require_grads"):
+            model.llm.enable_input_require_grads()
         else:
 
             def make_inputs_require_grad(module, input, output):
@@ -383,7 +348,7 @@ def train():
             smart_tokenizer_and_embedding_resize(
                 special_tokens_dict=dict(pad_token="[PAD]"),
                 tokenizer=tokenizer,
-                model=model,
+                model=model.llm,
             )
     elif model_args.version == "v0.5":
         tokenizer.pad_token = tokenizer.unk_token
@@ -399,9 +364,11 @@ def train():
             ]
 
     # kentang-mit@: It will be useful in on-the-fly packing
-    model.pad_token_id = tokenizer.pad_token_id
+    model.llm.pad_token_id = tokenizer.pad_token_id
+    model.llm.config.tokenizer_padding_side = tokenizer.padding_side
+    model.llm.config.tokenizer_model_max_length = tokenizer.model_max_length
     if training_args.lora_enable:
-        model.base_model.model.pad_token_id = tokenizer.pad_token_id
+        model.base_model.model.llm.pad_token_id = tokenizer.pad_token_id
 
     vision_tower = model.get_vision_tower()
     if vision_tower is not None:
@@ -409,21 +376,14 @@ def train():
         data_args.is_multimodal = True
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
-        model.config.tokenizer_padding_side = tokenizer.padding_side
-        model.config.tokenizer_model_max_length = tokenizer.model_max_length
-        if training_args.bits in [4, 8]:
-            model.get_model().get_mm_projector().to(
-                dtype=compute_dtype, device=training_args.device
-            )
-
-        model.config.mm_use_im_start_end = (
-            data_args.mm_use_im_start_end
-        ) = model_args.mm_use_im_start_end
+        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
+            model_args.mm_use_im_start_end
+        )
         model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
-
+    ## TODO pay attention to quantize
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
 
@@ -461,9 +421,9 @@ def train():
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()
 
-    model.config.use_cache = True
+    model.llm.config.use_cache = True
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
-
+    ## TODO handle lora for new initialization
     if training_args.lora_enable:
         state_dict = get_peft_state_maybe_zero_3(
             model.named_parameters(), training_args.lora_bias

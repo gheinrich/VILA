@@ -1,3 +1,4 @@
+#@yunhao: deprecated comment
 """
 A inference test on llava_arch.py
 This test can be simply run by
@@ -13,53 +14,53 @@ import json
 import os
 
 import torch
-import torch.nn as nn
-from PIL import Image
-from tqdm import tqdm
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          LlamaConfig, LlamaForCausalLM, LlamaModel)
-
 from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.mm_utils import tokenizer_image_token
-from llava.model.builder import load_pretrained_model
-from llava.model.llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
+from llava.model import LlavaLlamaConfig, LlavaLlamaModel
+from llava.train.args import ModelArguments, TrainingArguments
+from llava.train.utils import prepare_config_for_training
+from transformers import AutoTokenizer
 from PIL import Image
 from tqdm import tqdm
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          LlamaConfig, LlamaForCausalLM, LlamaModel)
 
-
-class LlavaConfig(LlamaConfig):
-    model_type = "llava_llama"
-
-
-class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
-    config_class = LlavaConfig
-
-    def __init__(self, config: LlamaConfig):
-        super(LlavaLlamaModel, self).__init__(config)
-
-
-class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
-    config_class = LlavaConfig
-
-    def __init__(self, config):
-        super(LlamaForCausalLM, self).__init__(config)
-        self.model = LlavaLlamaModel(config)
-        self.pretraining_tp = config.pretraining_tp
-        self.vocab_size = config.vocab_size
-        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    def get_model(self):
-        return self.model
-
+def build_model():
+    # This test is supposed to run on a single GPU
+    if torch.cuda.is_available():
+        rank = 0
+        torch.cuda.set_device(rank)
+    model_name_or_path = "lmsys/vicuna-7b-v1.5"
+    model_args = ModelArguments(
+        model_name_or_path=model_name_or_path,
+        version="v1",
+        vision_tower="openai/clip-vit-large-patch14-336",
+        mm_projector="mlp2x_gelu",
+        mm_vision_select_layer=-2,
+        mm_use_im_patch_token=False,
+    )
+    training_args = TrainingArguments(output_dir="")
+    config = LlavaLlamaConfig.from_pretrained(model_name_or_path)
+    prepare_config_for_training(config, model_args, training_args)
+    print("Initializing tokenizer...")
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name_or_path,
+        model_max_length=4096,
+        padding_side="right",
+        use_fast=False,
+        legacy=False,
+    )
+    print("Initializing LlavaLlamaModel...")
+    model = LlavaLlamaModel(config=config)
+    model.vision_tower = model.vision_tower.to(device)
+    model.mm_projector = model.mm_projector.to(device)
+    model = model.to(device)
+    
+    return tokenizer, model, model.vision_tower.image_processor
+    
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default="Efficient-Large-Model/VILA-7b")
+    # parser.add_argument("--model_path", type=str, default="lmsys/vicuna-7b-v1.5")
     parser.add_argument("--question_file", type=str, default="tests/sample_data/llava_arch_test.json")
     parser.add_argument("--image_folder", type=str, default="tests/sample_data/llava_arch_test_images")
     parser.add_argument("--device", type=str, default="cuda:0")
@@ -67,9 +68,8 @@ if __name__ == "__main__":
 
     # model initialization
     device = args.device
-    torch.set_default_dtype(torch.float16)
 
-    tokenizer, model, image_processor, _ = load_pretrained_model(args.model_path, model_name="vila", device=device)
+    tokenizer, model, image_processor = build_model()
     vision_tower = model.get_vision_tower()
     image_size = vision_tower.config.image_size
     patch_size = vision_tower.config.patch_size

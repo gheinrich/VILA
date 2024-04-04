@@ -70,21 +70,18 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
             stopping_criteria=stopping_criteria,
         )
 
-        input_token_len = input_ids.shape[1]
-        n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
-        if n_diff_input_output > 0:
-            print(f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids")
-        response = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
+        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+        return outputs
     else:  # multiple images actually
         raise ValueError("INVALID GENERATION FOR MULTIPLE IMAGE INPUTS")
         # default behavior (random sample answer) from MMMU's offcials implementation
         if sample["question_type"] == "multiple-choice":
             all_choices = sample["all_choices"]
-            response = random.choice(all_choices)
+            outputs = random.choice(all_choices)
         else:
-            response = "INVALID GENERATION FOR MULTIPLE IMAGE INPUTS"
+            outputs = "INVALID GENERATION FOR MULTIPLE IMAGE INPUTS"
 
-    return response
+    return outputs
 
 
 def llava_image_processor(raw_image, vis_processors=None):

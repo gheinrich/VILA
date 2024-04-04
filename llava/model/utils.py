@@ -14,8 +14,23 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # This file is modified from https://github.com/haotian-liu/LLaVA/
-
+import os
 from transformers import AutoConfig
+
+
+def get_model_config(config):
+    default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
+    return_list = []
+    for key in default_keys:
+        cfg = getattr(config, key, None)
+        if isinstance(cfg, dict):
+            try:
+                return_list.append(os.path.join(config.resume_path, key[:-4]))
+            except:
+                raise ValueError(f"Cannot find resume path in config for {key}!")
+        elif isinstance(cfg, str):
+            return_list.append(cfg)
+    return return_list
 
 
 def is_mm_model(model_path):
