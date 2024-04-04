@@ -27,7 +27,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrained+valley \
     --vision_tower google/siglip-so400m-patch14-384 \
     --pretrain_mm_mlp_adapter ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-linear-e1/mm_projector.bin \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \

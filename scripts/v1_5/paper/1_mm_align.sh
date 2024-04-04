@@ -26,7 +26,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version plain \
     --data_mixture ccs_recap_wds \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \

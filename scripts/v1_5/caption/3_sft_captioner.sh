@@ -82,7 +82,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version v1 \
     --data_mixture $SFT_DATASET \
     --vision_tower $VISION_TOWER \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --tune_language_model True \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \
