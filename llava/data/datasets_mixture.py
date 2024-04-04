@@ -471,3 +471,10 @@ def register_datasets_mixtures():
     )
     add_dataset(ego4d_1M)
 
+    dummy = Dataset(
+        dataset_name="dummy",
+        dataset_type="dummy",
+        data_path="dummy",
+        image_path="dummy",
+    )
+    add_dataset(dummy)

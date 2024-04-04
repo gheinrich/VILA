@@ -13,7 +13,8 @@ export DECORD_DUPLICATE_WARNING_THRESHOLD=1.0
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((256 / n_node))
+bs=8
+epoch=$((n_node/2))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
@@ -22,9 +23,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-pretrain-ccs-coyo_25m_mmc4core_sharegpt4v_internvid_1300K-linear-e4 \
+    --model_name_or_path ./checkpoints/vicuna-7b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e2 \
     --version v1 \
-    --data_mixture vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa \
+    --data_mixture dummy \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
@@ -35,14 +36,14 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-7b-siglipso400m-ccs-coyo_25m_mmc4core_sharegpt4v_valley-finetune-vflan_sharegpt4v_sft_video_chatgpt_nv_video_flan-e111 \
-    --num_train_epochs 1 \
+    --output_dir ./checkpoints/dummy-benchmarking-nodes-${n_node} \
+    --num_train_epochs $epoch \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 50 \
+    --save_steps 50000 \
     --save_total_limit 2 \
     --learning_rate 5e-5 \
     --weight_decay 0. \
