@@ -26,7 +26,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version v1 \
     --data_mixture coyo_25m+mmc4core \
     --vision_tower radio:432:/lustre/fsw/portfolios/llmservice/users/mranzinger/outputs/radio/radiov2/radio_v2_ep46_hires.pth.tar \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \

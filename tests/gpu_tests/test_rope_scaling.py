@@ -67,7 +67,7 @@ class TestRopeScaling(unittest.TestCase):
             model_name_or_path: Optional[str] = field(default="/home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5")
             vision_tower: Optional[str] = field(default="google/siglip-so400m-patch14-384")
             mm_vision_select_layer: Optional[int] = field(default=-2)
-            mm_projector_type: Optional[str] = field(default='mlp2x_gelu')
+            mm_projector: Optional[str] = field(default='mlp2x_gelu')
         
         self.PatchedTrainingArguments = PatchedTrainingArguments
         self.PatchedModelArguments = PatchedModelArguments
