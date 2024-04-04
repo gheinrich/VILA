@@ -18,5 +18,5 @@ class SiglipVisionTower(VisionTower):
         )
         self.is_loaded = True
 
-AutoConfig.register("siglip_vision_model", SiglipVisionConfig)
-AutoModel.register(SiglipVisionConfig, SiglipVisionModel)
+# AutoConfig.register("siglip_vision_model", SiglipVisionConfig)
+# AutoModel.register(SiglipVisionConfig, SiglipVisionModel)

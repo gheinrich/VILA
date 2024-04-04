@@ -27,6 +27,8 @@ def main():
         if pred["correct"]:
             correct += 1
         total += 1
+    print("Total: ", total)
+    print("Correct: ", correct)
     print("Accuracy: ", correct/total)
 
 
