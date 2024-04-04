@@ -1,6 +1,5 @@
-CONDA_ENV=${1:-"vila"}
-conda create -n $CONDA_ENV python=3.10 -y
-conda activate $CONDA_ENV
+conda create -n vila python=3.10 -y
+conda activate vila
 
 # this is optional if you prefer to system built-in nvcc.
 conda install -c nvidia cuda-toolkit -y

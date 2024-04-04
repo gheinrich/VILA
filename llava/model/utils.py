@@ -25,7 +25,7 @@ def get_model_config(config):
         cfg = getattr(config, key, None)
         if isinstance(cfg, dict):
             try:
-                return_list.append(os.path.join(config.resume_path, key.replace("_cfg", "")))
+                return_list.append(os.path.join(config.resume_path, key[:-4]))
             except:
                 raise ValueError(f"Cannot find resume path in config for {key}!")
         elif isinstance(cfg, str):
@@ -34,15 +34,6 @@ def get_model_config(config):
 
 
 def is_mm_model(model_path):
-    """
-    Checks if the model at the given path is a Visual LLM model.
-
-    Args:
-        model_path (str): The path to the model.
-
-    Returns:
-        bool: True if the model is an MM model, False otherwise.
-    """
     config = AutoConfig.from_pretrained(model_path)
     architectures = config.architectures
     for architecture in architectures:
