@@ -24,7 +24,6 @@ class LlavaConfig(PretrainedConfig):
         **kwargs
     ):
         super().__init__()
-        
         print("debug")
         print(kwargs)
         input()
