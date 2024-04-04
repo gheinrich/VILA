@@ -705,9 +705,14 @@ class LazySupervisedDataset(Dataset):
         from torchvision import transforms
         video_loading_succeed = True
         toTensor = transforms.ToTensor()
-        
-        pil_imgs = opencv_extract_frames(video_path, num_video_frames)
-        tensor_imgs = torch.stack([toTensor(_) for _ in pil_imgs])
+        try:
+            pil_imgs = opencv_extract_frames(video_path, num_video_frames)
+            tensor_imgs = torch.stack([toTensor(_) for _ in pil_imgs])
+        except Exception as e:
+            print(f"bad data path {video_path}")
+            print(f"Error processing {video_path}: {e}")
+            # video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
+            tensor_imgs = torch.zeros(8, 3, image_size, image_size, dtype=torch.uint8)
 
         return tensor_imgs, video_loading_succeed
             
@@ -779,12 +784,12 @@ class LazySupervisedDataset(Dataset):
                 video_file = sources[0]["video_id"] + ".mp4"
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
-            # image_tensor, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
-            image_tensor, video_loading_succeed = self._load_video_torchvideo(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
+            # image_tensor, video_loading_succeed = self._load_video_torchvideo(video_path, num_video_frames, self.data_args)
             processor = self.data_args.image_processor
 
             image_tensor = [
-                processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+                processor.preprocess(image, return_tensors="pt", do_rescale=False)["pixel_values"][0]
                 for image in torch.unbind(image_tensor)
             ]
             image_tensor = torch.stack(image_tensor)
@@ -1841,10 +1846,12 @@ class LazyVideoWebDataset(Dataset):
 
 
         if 'ego' in self.data_path:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args, use_decord=False)
+            # image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args, use_decord=False)
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
         else:
-            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args)
-
+            # image_tensor, video_loading_succeed = LazySupervisedDataset._load_video_torchvideo(video_path, num_video_frames, self.data_args)
+            image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+        
         if not video_loading_succeed:
             caption = "Empty video."
 
@@ -1852,7 +1859,7 @@ class LazyVideoWebDataset(Dataset):
 
         processor = self.data_args.image_processor
         image_tensor = [
-            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
+            processor.preprocess(image, return_tensors="pt", do_rescale=False)["pixel_values"][0] for image in torch.unbind(image_tensor)
         ]
         image_tensor = torch.stack(image_tensor)
 
