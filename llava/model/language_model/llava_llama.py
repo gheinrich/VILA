@@ -48,6 +48,9 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
 
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         super().__init__(config)
+        # print("222debug info")
+        self.load_pretrained(config, *args, **kwargs)
+        return 
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
         self.llm = build_llm(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
