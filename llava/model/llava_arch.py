@@ -107,7 +107,14 @@ class LlavaMetaModel(ABC):
         self.config.architectures = [self.__class__.__name__]
         self.config.save_pretrained(output_dir)
 
+    def load_pretrain_legacy(self, model_path_or_config, *args, **kwargs):
+        if isinstance(model_path_or_config, str):
+            config = AutoConfig.from_pretrained(model_path_or_config, trust_remote_code=True)
+        elif isinstance(model_path_or_config, LlavaConfig):
+            config = model_path_or_config
+    
     def load_pretrained(self, model_path_or_config, *args, **kwargs):
+        # TODO(ligeng): chang to load_from_pretrained to override
         if isinstance(model_path_or_config, str):
             config = AutoConfig.from_pretrained(model_path_or_config, trust_remote_code=True)
         elif isinstance(model_path_or_config, LlavaConfig):

@@ -24,6 +24,11 @@ class LlavaConfig(PretrainedConfig):
         **kwargs
     ):
         super().__init__()
+        
+        print("debug")
+        print(kwargs)
+        input()
+                
         self.architectures = architectures
         self.llm_cfg = llm_cfg
         self.vision_tower_cfg = vision_tower_cfg
