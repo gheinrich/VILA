@@ -49,7 +49,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version plain \
     --data_mixture $ALIGN_DATASET \
     --vision_tower $VISION_TOWER \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \

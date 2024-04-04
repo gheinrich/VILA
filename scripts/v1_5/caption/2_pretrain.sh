@@ -54,7 +54,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --tune_language_model True \
     --tune_mm_projector True \
     --vision_tower $VISION_TOWER \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector mlp2x_gelu \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
