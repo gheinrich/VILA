@@ -16,8 +16,8 @@
 
 from typing import Dict, List, Optional, Union
 
-from ...image_processing_utils import BaseImageProcessor, BatchFeature, get_size_dict
-from ...image_transforms import (
+from transformers.image_processing_utils import BaseImageProcessor, BatchFeature, get_size_dict
+from transformers.image_transforms import (
     center_crop,
     resize,
     rescale,
@@ -27,7 +27,7 @@ from ...image_transforms import (
     get_channel_dimension_axis,
     convert_to_rgb,
 )
-from ...image_utils import (
+from transformers.image_utils import (
     IMAGENET_STANDARD_MEAN,
     IMAGENET_STANDARD_STD,
     ChannelDimension,
@@ -39,7 +39,7 @@ from ...image_utils import (
     to_numpy_array,
     valid_images,
 )
-from ...utils import TensorType, is_vision_available, logging
+from transformers.utils import TensorType, is_vision_available, logging
 import numpy as np
 
 logger = logging.get_logger(__name__)

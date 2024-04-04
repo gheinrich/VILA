@@ -15,73 +15,58 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 
-PAD_TOKEN_ID = 0
-
 from typing import List, Optional, Tuple, Union
 
 import torch
-import torch.nn as nn
 
 from transformers import (
-    AutoConfig,
-    AutoModelForCausalLM,
-    LlamaConfig,
-    LlamaModel,
     LlamaForCausalLM,
+    LlamaConfig,
+    PreTrainedModel,
+    AutoConfig,
+    AutoModel,
+    GenerationConfig,
 )
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
-from llava.constants import IGNORE_INDEX
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 from ..multimodal_encoder.builder import build_vision_tower
 from ..multimodal_projector.builder import build_mm_projector
+from ..configuration_llava import LlavaConfig
+from ..utils import get_model_config
+from .builder import build_llm
 
-# import time
 
-
-class LlavaConfig(LlamaConfig):
+class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
-    mm_hidden_size = None
-    vision_tower_config = None
 
 
-class LlavaLlamaModel(LlamaModel, LlavaMetaModel):
-    config_class = LlavaConfig
+class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
+    config_class = LlavaLlamaConfig
+    main_input_name = "input_embeds"
+    supports_gradient_checkpointing = True
 
-    def __init__(self, config: LlavaConfig) -> None:
-        super(LlavaLlamaModel, self).__init__(config)
-        self.vision_tower = build_vision_tower(config)
-        config.mm_hidden_size = self.vision_tower.config.hidden_size
-        self.mm_projector = build_mm_projector(config)
-        self._post_init()
+    def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
+        super().__init__(config)
+        llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
+        self.llm = build_llm(
+            llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
+        )
+        self.vision_tower = build_vision_tower(vision_tower_cfg, config)
+        self.mm_projector = build_mm_projector(mm_projector_cfg, config)
+        self.post_config()
 
+        assert (
+            self.llm is not None
+            or self.vision_tower is not None
+            or self.mm_projector is not None
+        ), "At least one of the components must be instantiated."
 
-class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
-    """This class is originally implemented by the LLaVA team and
-    modified by Jason Lu and Haotian Tang based on Ji Lin's implementation
-    to support flash attention with input packing."""
-
-    config_class = LlavaConfig
-
-    def __init__(self, config):
-        super(LlamaForCausalLM, self).__init__(config)
-        self.model = LlavaLlamaModel(config)
-        self.pretraining_tp = config.pretraining_tp
-        self.vocab_size = config.vocab_size
-        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    def get_model(self):
-        return self.model
-    
-    def get_lm_head(self):
-        return self.lm_head
-
+        
     def forward(
         self,
         input_ids: torch.LongTensor = None,
+        images: Optional[torch.FloatTensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
         past_key_values: Optional[List[torch.FloatTensor]] = None,
@@ -90,7 +75,6 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
-        images: Optional[torch.FloatTensor] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         if inputs_embeds is None:
@@ -131,11 +115,8 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-        # ed = time.time()
-        # print(inputs_embeds.device, "preparation time:", ed - st, "s.")
 
-        # st = time.time()
-        outputs = super().forward(
+        outputs = self.llm.forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,
             position_ids=new_position_ids,
@@ -149,21 +130,37 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             seqlens_in_batch=sorted_seqlens_in_batch,
         )
         return outputs
-
-    def prepare_inputs_for_generation(
-        self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs
+    
+    @torch.no_grad()
+    def generate(
+        self,
+        input_ids: Optional[torch.FloatTensor] = None,
+        images: Optional[torch.FloatTensor] = None,
+        attention_mask: Optional[torch.LongTensor] = None,
+        **generation_kwargs,
     ):
-        images = kwargs.pop("images", None)
-        _inputs = super().prepare_inputs_for_generation(
-            input_ids,
-            past_key_values=past_key_values,
-            inputs_embeds=inputs_embeds,
-            **kwargs,
-        )
         if images is not None:
-            _inputs["images"] = images
-        return _inputs
+            (
+                _,
+                _,
+                attention_mask,
+                _,
+                inputs_embeds,
+                _,
+            ) = self.prepare_inputs_labels_for_multimodal(
+                input_ids, None, attention_mask, None, None, images
+            )
+        else:
+            inputs_embeds = self.get_input_embeddings()(input_ids)
+        inputs_embeds = inputs_embeds.to(self.dtype)
+        
+        outputs = self.llm.generate(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            **generation_kwargs
+        )
+        return outputs
+        
 
-
-AutoConfig.register("llava_llama", LlavaConfig)
-AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)
+AutoConfig.register("llava_llama", LlavaLlamaConfig)
+AutoModel.register(LlavaLlamaConfig, LlavaLlamaModel)
