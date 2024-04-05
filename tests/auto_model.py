@@ -34,7 +34,26 @@ def check_params(model):
     assert total_params > 10e5
 
 class TestModelLoadingAndSaving(unittest.TestCase):
+    def test_load_from_config(self):
+        from huggingface_hub import hf_hub_download
+        import json
+        hf_repo = "Efficient-Large-Model/CI-format-7b-v2"
+        cpath = hf_hub_download(repo_id=hf_repo, filename="config.json")
+        
+        
+        from llava.model.language_model.llava_llama import LlavaLlamaConfig, LlavaLlamaModel
+        
+        # testing loading from config
+        # TODO(ligeng): why LlavaLlamaConfig(config_path=cpath) is different btw LlavaLlamaConfig.from_pretrained(cpath)
+        LlavaLlamaConfig.from_pretrained(cpath)
+        LlavaLlamaConfig.from_pretrained(hf_repo)
+        config = AutoConfig.from_pretrained(hf_repo)
+        model = AutoModel.from_config(config)
+        check_params(model)
+
+
     def test_from_config(self):
+        # Model from /home/yunhaof/workspace/scripts/ckpts/vila/debug/reproduce/scratch_stable_test1/stage3
         fpath = "Efficient-Large-Model/CI-format-7b-v2"
         config = AutoConfig.from_pretrained(fpath)
         model = AutoModel.from_config(config)

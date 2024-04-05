@@ -70,11 +70,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         ), "At least one of the components must be instantiated."
     
     @classmethod
-    def from_config(cls):
-        print("here")
-        pass
-    
-    @classmethod
     def from_pretrained(
         cls,
         pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
