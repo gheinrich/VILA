@@ -41,6 +41,7 @@ from llava.train.utils import (
     unit_test_rope_scaling,
     mprint,
 )
+from llava.train.sequence_parallel import set_pg_manager
 
 
 local_rank = None
@@ -208,6 +209,12 @@ def train():
         )
 
     set_seed(training_args.seed)
+
+    sp_degree = training_args.seq_parallel_size
+    ring_degree = training_args.seq_parallel_ring_size
+    if sp_degree > 1:
+        set_pg_manager(sp_degree, ring_degree)
+        print(f"Sequence parallelism is enabled, SP = {sp_degree}")
 
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
 

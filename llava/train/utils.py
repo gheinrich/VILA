@@ -1,6 +1,8 @@
 import os
 import re
+import copy
 import torch
+import torch.distributed as dist
 import pathlib
 from dataclasses import dataclass
 from transformers import PretrainedConfig, PreTrainedModel
@@ -113,3 +115,16 @@ def unit_test_rope_scaling(
     model: PreTrainedModel, config: PretrainedConfig, training_args: dataclass
 ):
     return False
+
+
+def calculate_loss_weight(shift_labels, ignore_index=-100):
+    # (Qinghao): Weighted loss based on num_active_elements
+    # To achieve accurate sequence parallel loss calculation, we need to get
+    # the real active_elements of each sequence partitions.
+    # For data parallelism, the loss almost remains the same (also more accurate).
+    padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
+    num_active_elements = padding_mask.numel() - padding_mask.long().sum()
+    global_active_sum = copy.deepcopy(num_active_elements)
+    dist.all_reduce(global_active_sum)
+    loss_weight = num_active_elements / global_active_sum * dist.get_world_size()
+    return loss_weight
