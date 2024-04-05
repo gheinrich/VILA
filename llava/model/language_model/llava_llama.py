@@ -16,7 +16,7 @@
 
 
 from typing import List, Optional, Tuple, Union
-
+import os, os.path as osp
 import torch
 
 from transformers import (
@@ -26,6 +26,8 @@ from transformers import (
     AutoConfig,
     AutoModel,
     GenerationConfig,
+    PretrainedConfig,
+    PreTrainedModel,
 )
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
@@ -45,12 +47,14 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     config_class = LlavaLlamaConfig
     main_input_name = "input_embeds"
     supports_gradient_checkpointing = True
-
+    
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
-        super().__init__(config)
-        # print("222debug info")
-        self.load_pretrained(config, *args, **kwargs)
-        return 
+        print("[LlavaLlamaModel.__init__() init here")
+        super().__init__(config, *args, **kwargs)
+        # TODO(ligeng): avoid recursive loading here
+        # return self.load_pretrained(config)
+        return self.init_vlm(config)
+        
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
         self.llm = build_llm(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
@@ -64,7 +68,35 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             or self.vision_tower is not None
             or self.mm_projector is not None
         ), "At least one of the components must be instantiated."
-
+    
+    @classmethod
+    def from_config(cls):
+        print("here")
+        pass
+    
+    @classmethod
+    def from_pretrained(
+        cls,
+        pretrained_model_name_or_path: Optional[Union[str, os.PathLike]],
+        *model_args,
+        config: Optional[Union[PretrainedConfig, str, os.PathLike]] = None,
+        cache_dir: Optional[Union[str, os.PathLike]] = None,
+        ignore_mismatched_sizes: bool = False,
+        force_download: bool = False,
+        local_files_only: bool = False,
+        token: Optional[Union[str, bool]] = None,
+        revision: str = "main",
+        use_safetensors: bool = None,
+        **kwargs,
+    ):
+        if hasattr(cls, "load_pretrained"):
+            return cls.load_pretrained(pretrained_model_name_or_path, 
+                *model_args, config=config, cache_dir=cache_dir, ignore_mismatched_sizes=ignore_mismatched_sizes, force_download=force_download, local_files_only=local_files_only, token=token, 
+                revision=revision, use_safetensors=use_safetensors, **kwargs
+            )
+        return super(LlavaLlamaModel).from_pretrained(pretrained_model_name_or_path, 
+            *model_args, config=config, cache_dir=cache_dir, ignore_mismatched_sizes=ignore_mismatched_sizes, force_download=force_download, local_files_only=local_files_only, token=token, 
+            revision=revision, use_safetensors=use_safetensors, **kwargs)    
         
     def forward(
         self,

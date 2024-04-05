@@ -20,6 +20,7 @@ import torch, logging
 
 from transformers import (
     AutoTokenizer,
+    AutoModel,
     AutoModelForCausalLM,
     AutoConfig,
     BitsAndBytesConfig,
@@ -49,6 +50,7 @@ from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.configuration_llava import LlavaConfig
 
+from transformers.modeling_utils import ContextManagers, no_init_weights
 
 def has_tokenizer(path):
     if (
@@ -56,12 +58,108 @@ def has_tokenizer(path):
         and osp.exists(osp.join(path, "tokenizer_config.json"))
         and osp.exists(osp.join(path, "tokenizer.model"))
     ):
+        # print("[has_tokenizer]", path, True)
         return True
+    # print("[has_tokenizer]", path, False)
     return False
-
 
 ## TODO decide whether should we use metaclass
 class LlavaMetaModel(ABC):
+    def init_vlm(self, config: PreTrainedModel = None, *args, **kwargs):
+        # TODO(ligeng): figure out how from_config and from_pretrained works in HF implementation.
+        if hasattr(self, "llm") or hasattr(self, "vision_tower")  or hasattr(self, "mm_projector"):
+            # already initialized, skipped
+            return 
+        
+        model_dtype = getattr(config, "model_dtype", "torch.float16")
+        if not hasattr(config, "model_dtype"):
+            warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
+        config.model_dtype = model_dtype
+        
+        cfgs = get_model_config(config)
+        if len(cfgs) == 3:
+            llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
+        else:
+            raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
+
+        vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
+        # print("vlm_cfg:", vlm_cfg); input()
+
+        if has_tokenizer(vlm_cfg):
+            warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
+            self.tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
+        elif has_tokenizer(llm_cfg):
+            self.tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
+        else:
+            raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
+
+        self.llm = build_llm(llm_cfg, config, None, None, *args, **kwargs)
+        self.vision_tower = build_vision_tower(vision_tower_cfg, config)
+        self.mm_projector = build_mm_projector(mm_projector_cfg, config)
+
+        self.post_config()
+
+        assert (
+            self.llm is not None or self.vision_tower is not None or self.mm_projector is not None
+        ), "At least one of the components must be instantiated."
+    
+    @classmethod
+    def load_from_config(cls, model_path_or_config, *args, **kwargs):
+        pass
+    
+    @classmethod
+    def load_pretrained(cls, model_path_or_config, *args, **kwargs):
+        kwargs.pop("config", None)
+        # print("self: ", cls); input()
+        # print("model_path_or_config: ", model_path_or_config); input()
+        # print("args:", args); input()
+        # print("kwargs:", kwargs); input()
+        
+        if isinstance(model_path_or_config, str):
+            config = AutoConfig.from_pretrained(model_path_or_config)
+        elif isinstance(model_path_or_config, LlavaConfig):
+            config = model_path_or_config
+        else:
+            raise NotImplementedError(f"wrong type, {type(model_path_or_config)} \
+                                      {isinstance(model_path_or_config, LlavaConfig)}")
+
+        model_dtype = getattr(config, "model_dtype", "torch.float16")
+        if not hasattr(config, "model_dtype"):
+            warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
+        config.model_dtype = model_dtype
+        
+        cfgs = get_model_config(config)
+        if len(cfgs) == 3:
+            llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
+        else:
+            raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
+
+        vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
+        # print("vlm_cfg:", vlm_cfg); input()
+
+        with ContextManagers([no_init_weights(_enable=True),]):
+            vlm = cls(config, *args, **kwargs)
+        
+        if has_tokenizer(vlm_cfg):
+            warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
+            vlm.tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
+        elif has_tokenizer(llm_cfg):
+            vlm.tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
+        else:
+            raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
+
+        vlm.llm = build_llm(llm_cfg, config, None, None, *args, **kwargs)
+        vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
+        vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
+
+        vlm.post_config()
+
+        # FIXME(ligeng, yunhao): llm should never be none here.
+        assert (
+            vlm.llm is not None or vlm.vision_tower is not None or vlm.mm_projector is not None
+        ), "At least one of the components must be instantiated."
+        return vlm
+    
     def save_pretrained(self, output_dir, state_dict=None):
         if state_dict is None:
             # other wise fetch from deepspeed
@@ -106,49 +204,7 @@ class LlavaMetaModel(ABC):
         self.config._name_or_path = output_dir
         self.config.architectures = [self.__class__.__name__]
         self.config.save_pretrained(output_dir)
-
-    def load_pretrained(self, model_path_or_config, *args, **kwargs):
-        if isinstance(model_path_or_config, str):
-            config = AutoConfig.from_pretrained(model_path_or_config, trust_remote_code=True)
-        elif isinstance(model_path_or_config, LlavaConfig):
-            config = model_path_or_config
-
-        # assert isinstance(config, LlavaConfig), "model_path_or_config must be an instance of LlavaConfig. If training from scratch, use .init_from_configs() instead "
-
-        model_dtype = getattr(config, "model_dtype", "torch.float16")
-        if not hasattr(config, "model_dtype"):
-            warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
-        config.model_dtype = model_dtype
-
-        cfgs = get_model_config(config)
-        if len(cfgs) == 3:
-            llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
-        else:
-            raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
-
-        vlm_cfg = config._name_or_path
-
-        if has_tokenizer(vlm_cfg):
-            warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
-            self.tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
-        elif has_tokenizer(llm_cfg):
-            self.tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
-        else:
-            raise FileNotFoundError("Tokenizer not found in the model path.")
-
-        self.llm = build_llm(llm_cfg, config, None, None, *args, **kwargs)
-        self.vision_tower = build_vision_tower(vision_tower_cfg, config)
-        self.mm_projector = build_mm_projector(mm_projector_cfg, config)
-
-        self.post_config()
-
-        # FIXME(ligeng, yunhao): llm should never be none here.
-        assert (
-            self.llm is not None or self.vision_tower is not None or self.mm_projector is not None
-        ), "At least one of the components must be instantiated."
-
-    def init_model(self):
-        pass
+   
 
     def get_llm(self):
         llm = getattr(self, "llm", None)
@@ -172,20 +228,6 @@ class LlavaMetaModel(ABC):
             mm_projector = mm_projector[0]
         return mm_projector
 
-    ## @yunhao: is there a better way to handle function call and attributes for llm?
-    ## support beam search
-    def _temporary_reorder_cache(self, past_key_values, sorted_idx):
-        return self.get_llm()._temporary_reorder_cache(past_key_values, sorted_idx)
-
-    def get_input_embeddings(self):
-        return self.get_llm().get_input_embeddings()
-
-    def get_output_embeddings(self):
-        return self.get_llm().get_output_embeddings()
-
-    def resize_token_embeddings(self, embed_size):
-        self.get_llm().resize_token_embeddings(embed_size)
-
     def post_config(self):
         self.training = self.get_llm().training
         ## configuration
@@ -200,7 +242,22 @@ class LlavaMetaModel(ABC):
         image_features = self.get_vision_tower()(images)
         image_features = self.get_mm_projector()(image_features)
         return image_features
+    
+    ## @yunhao: is there a better way to handle function call and attributes for llm?
+    ## support beam search
+    def _temporary_reorder_cache(self, past_key_values, sorted_idx):
+        return self.get_llm()._temporary_reorder_cache(past_key_values, sorted_idx)
 
+    def get_input_embeddings(self):
+        return self.get_llm().get_input_embeddings()
+
+    def get_output_embeddings(self):
+        return self.get_llm().get_output_embeddings()
+
+    def resize_token_embeddings(self, embed_size):
+        self.get_llm().resize_token_embeddings(embed_size)
+
+    
 
 class LlavaMetaForCausalLM(ABC):
     """This class is originally implemented by the LLaVA team and
