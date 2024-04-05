@@ -49,7 +49,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     supports_gradient_checkpointing = True
     
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
-        print("[LlavaLlamaModel.__init__() init here")
+        # print("[LlavaLlamaModel.__init__() init here")
         super().__init__(config, *args, **kwargs)
         # TODO(ligeng): avoid recursive loading here
         # return self.load_pretrained(config)
