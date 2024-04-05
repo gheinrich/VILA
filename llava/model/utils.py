@@ -34,6 +34,15 @@ def get_model_config(config):
 
 
 def is_mm_model(model_path):
+    """
+    Check if the model at the given path is a visual language model.
+
+    Args:
+        model_path (str): The path to the model.
+
+    Returns:
+        bool: True if the model is an MM model, False otherwise.
+    """
     config = AutoConfig.from_pretrained(model_path)
     architectures = config.architectures
     for architecture in architectures:
