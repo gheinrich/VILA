@@ -74,26 +74,15 @@ class LlavaMetaModel(ABC):
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
-        config.model_dtype = model_dtype
+            config.model_dtype = model_dtype
         
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
-
-        vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
-        # print("vlm_cfg:", vlm_cfg); input()
-
-        if has_tokenizer(vlm_cfg):
-            warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
-            self.tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
-        elif has_tokenizer(llm_cfg):
-            self.tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
-        else:
-            raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
-
-        self.llm = build_llm(llm_cfg, config, None, None, *args, **kwargs)
+        
+        self.llm, self.tokenizer = build_llm(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
 
@@ -134,21 +123,10 @@ class LlavaMetaModel(ABC):
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
 
-        vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
-        # print("vlm_cfg:", vlm_cfg); input()
-
         with ContextManagers([no_init_weights(_enable=True),]):
             vlm = cls(config, *args, **kwargs)
-        
-        if has_tokenizer(vlm_cfg):
-            warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
-            vlm.tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
-        elif has_tokenizer(llm_cfg):
-            vlm.tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
-        else:
-            raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
 
-        vlm.llm = build_llm(llm_cfg, config, None, None, *args, **kwargs)
+        vlm.llm, vlm.tokenizer = build_llm(llm_cfg, config, *args, **kwargs)
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
 

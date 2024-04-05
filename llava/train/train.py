@@ -325,24 +325,9 @@ def train():
                 model.to(torch.float16)
         rank0_print("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
-
-    if "mpt" in model_args.model_name_or_path:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            cache_dir=training_args.cache_dir,
-            model_max_length=training_args.model_max_length,
-            padding_side="right",
-        )
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            cache_dir=training_args.cache_dir,
-            model_max_length=training_args.model_max_length,
-            padding_side="right",
-            use_fast=False,
-            legacy=False,
-        )
-
+    # @yunhao: tokenizer instantiation is moved into build_llm
+    tokenizer = model.tokenizer 
+    # @yunhao: may move this block into method "build_llm"
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(

@@ -420,9 +420,6 @@ class LLaVATrainer(Trainer):
             state_dict = self.model.state_dict()
 
         if self.args.should_save:
-            if getattr(self, "tokenizer", None):
-                self.tokenizer.save_pretrained(output_dir)
-
             if self.model.get_llm():
                 llm_state_dict = OrderedDict(
                     {k.split("llm.")[-1]: v for k, v in state_dict.items() if "llm" in k}
@@ -430,6 +427,7 @@ class LLaVATrainer(Trainer):
                 self.model.llm.save_pretrained(
                     os.path.join(output_dir, "llm"), state_dict=llm_state_dict
                 )
+                self.tokenizer.save_pretrained(os.path.join(output_dir, "llm"))
                 self.model.config.llm_cfg = self.model.llm.config
 
             if self.model.get_vision_tower() and "radio" not in self.model.get_vision_tower().__class__.__name__.lower():
