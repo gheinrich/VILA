@@ -38,12 +38,10 @@ export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 OUTPUT_STEP1=${1:-"checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET"}
 
-
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs | base model: $BASE_MODEL_PATH"
 echo "node rank:" $SLURM_PROCID
 echo "ALIGN: $ALIGN_DATASET "
-
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
@@ -75,7 +73,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
-    --report_to wandb \
     --save_steps 10 \
     --save_total_limit 2 \
     --max_steps 30

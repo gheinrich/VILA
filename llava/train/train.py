@@ -256,7 +256,6 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    print(model)
     
     vision_resolution_elevation(model, config)
     # This is an empty func.

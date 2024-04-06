@@ -82,7 +82,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
-    --report_to wandb \
     --save_steps 10 \
     --save_total_limit 2 \
     --max_steps 30

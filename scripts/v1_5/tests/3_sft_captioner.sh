@@ -108,7 +108,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
-    --report_to wandb \
     --save_steps 10 \
     --save_total_limit 2 \
     --max_steps 30

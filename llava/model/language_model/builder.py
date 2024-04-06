@@ -52,17 +52,19 @@ def context_length_extension(config):
 def build_llm(
     model_name_or_path: str,
     config: PretrainedConfig,
-    config_cls: PretrainedConfig = None,
-    llm_cls: PreTrainedModel = None,
+    # config_cls: PretrainedConfig = None,
+    # llm_cls: PreTrainedModel = None,
     attn_implementation=None,
     model_max_length=None,
     *args,
     **kwargs,
 ) -> PreTrainedModel:
-    if config_cls is None:
-        config_cls = AutoConfig
-    if llm_cls is None:
-        llm_cls = AutoModelForCausalLM
+    # if config_cls is None:
+    #     config_cls = AutoConfig
+    # if llm_cls is None:
+    #     llm_cls = AutoModelForCausalLM
+    config_cls = AutoConfig
+    llm_cls = AutoModelForCausalLM
     ## extra configuration for llm
     llm_cfg = config_cls.from_pretrained(model_name_or_path)
     llm_cfg._attn_implementation = attn_implementation
@@ -77,9 +79,9 @@ def build_llm(
     vlm_cfg = model_name_or_path
     if has_tokenizer(vlm_cfg):
         warnings.warn("tokenizer found in VLM root folder. Move to ./{VILA}/llm in the future.")
-        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
+        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg, config=config)
     elif has_tokenizer(osp.join(vlm_cfg, "llm")):
-        tokenizer = AutoTokenizer.from_pretrained(osp.join(vlm_cfg, "llm"))
+        tokenizer = AutoTokenizer.from_pretrained(osp.join(vlm_cfg, "llm"), config=config)
     else:
         raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {osp.join(vlm_cfg, 'llm')}")
     
