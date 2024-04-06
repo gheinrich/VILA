@@ -53,7 +53,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         super().__init__(config, *args, **kwargs)
         # TODO(ligeng): avoid recursive loading here
         # return self.load_pretrained(config)
-        return self.init_vlm(config)
+        # print("DEBUG", config); input()
+        return self.init_vlm(config=config, *args, **kwargs)
         
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
         self.llm = build_llm(

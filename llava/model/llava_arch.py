@@ -60,6 +60,22 @@ def has_tokenizer(path):
     ):
         # print("[has_tokenizer]", path, True)
         return True
+    from huggingface_hub import HfApi, file_exists
+    from huggingface_hub.utils import validate_repo_id, HFValidationError
+    api = HfApi()
+    try:
+        valid_hf_repo = api.repo_exists(path)
+    except HFValidationError as e:
+        valid_hf_repo = False
+    # print("DEBUG1", f"[{path}]", valid_hf_repo); input()
+    if (
+        valid_hf_repo
+        and file_exists(path, "special_tokens_map.json")
+        and file_exists(path, "tokenizer_config.json")
+        and file_exists(path, "tokenizer.model")
+    ):
+        # print("[has_tokenizer]", path, True)
+        return True
     # print("[has_tokenizer]", path, False)
     return False
 
@@ -613,7 +629,7 @@ class LlavaMetaForCausalLM(ABC):
                         f"Unexpected embed_tokens_weight shape. Pretrained: {embed_tokens_weight.shape}. Current: {input_embeddings.shape}. Numer of new tokens: {num_new_tokens}."
                     )
         elif model_args.mm_use_im_patch_token:
-            if model_args.tune_mm_projector:
+            if model_args.mm_projector:
                 for p in self.get_input_embeddings().parameters():
                     p.requires_grad = False
                 for p in self.get_output_embeddings().parameters():

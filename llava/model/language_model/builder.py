@@ -49,5 +49,6 @@ def build_llm(
     llm = llm_cls.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
+    # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
     return llm

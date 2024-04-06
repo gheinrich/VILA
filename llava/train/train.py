@@ -17,6 +17,7 @@
 import os
 import logging
 from typing import Dict, Optional, Sequence, List
+import warnings
 
 import torch
 import transformers
@@ -205,7 +206,12 @@ def train():
             )
         )
 
-    resume_path = get_checkpoint_path(training_args.output_dir)
+    resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
+    
+    if not continue_training:
+        print(f"Models has been ready under {training_args.output_dir}. Skipp training")
+        exit(0)
+    
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -239,8 +245,12 @@ def train():
                 model_args.model_name_or_path,
                 resume=resume_from_checkpoint
             )
+    
     ## extra configurations
+    # print(model_cls, resume_from_checkpoint)#; input()
     prepare_config_for_training(config, model_args, training_args)
+    # print(config)#; input()
+    
     model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",
@@ -248,6 +258,8 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
+    print(model)
+    
     vision_resolution_elevation(model, config)
     # This is an empty func.
     # It would be overwritten by unit test script.
@@ -269,7 +281,10 @@ def train():
         model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
         print(f"vision tower {training_args.tune_vision_tower}")
         print(f"mm projector {training_args.tune_mm_projector}")
-
+    if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
+        logging.warning(
+            "You are not tuning any part of the model. Please check if this is intended."
+        )
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
             if (
@@ -418,6 +433,7 @@ def train():
         flush=True,
     )
 
+    # print(resume_from_checkpoint); input("DEBUG")
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()
 

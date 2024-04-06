@@ -27,7 +27,11 @@ export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 global_bs=${BATCH_SIZE:-128}
 ACC_STEP=${ACC_STEP:-1}
 bs=$((global_bs / n_node / ACC_STEP))
-
+if [ "$n_node" = "1" ]; then
+    #FIXME: set an extra to surprass the setting.
+    echo "Detected on single machine. Automatically set batch size to 1 for debugging purpose."
+    bs=1
+fi
 # bs=1 # for debug purpose
 
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}

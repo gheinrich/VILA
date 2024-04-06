@@ -1,5 +1,6 @@
 from transformers import (
     AutoTokenizer,
+    AutoModel,
     AutoModelForCausalLM,
     AutoConfig,
     BitsAndBytesConfig,
