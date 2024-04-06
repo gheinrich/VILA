@@ -42,7 +42,7 @@ from .builder import build_llm
 class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
 
-
+## FIXME we will follow the convention to add a new class for CausalLM in the future
 class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     config_class = LlavaLlamaConfig
     main_input_name = "input_embeds"

@@ -96,6 +96,7 @@ class LlavaMetaModel(ABC):
     def load_from_config(cls, model_path_or_config, *args, **kwargs):
         pass
     
+    ## FIXME we will use this function to load model in the future
     @classmethod
     def load_pretrained(cls, model_path_or_config, *args, **kwargs):
         kwargs.pop("config", None)
@@ -138,6 +139,7 @@ class LlavaMetaModel(ABC):
         ), "At least one of the components must be instantiated."
         return vlm
     
+    ## FIXME we will use this function to save the model in the future
     def save_pretrained(self, output_dir, state_dict=None):
         if state_dict is None:
             # other wise fetch from deepspeed
