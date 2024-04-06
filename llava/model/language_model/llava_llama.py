@@ -42,7 +42,7 @@ from .builder import build_llm
 class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
 
-
+## FIXME we will follow the convention to add a new class for CausalLM in the future
 class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     config_class = LlavaLlamaConfig
     main_input_name = "input_embeds"
@@ -50,11 +50,12 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         # print("[LlavaLlamaModel.__init__() init here")
-        super().__init__(config, *args, **kwargs)
+        super().__init__(config)
         # TODO(ligeng): avoid recursive loading here
         # return self.load_pretrained(config)
         # print("DEBUG", config); input()
-        return self.init_vlm(config=config, *args, **kwargs)
+        # @yunhao: pass kwargs to llm only if we never call from_pretrained for top-level model?
+        return self.init_vlm(config=config, *args, **kwargs, *args, **kwargs)
         
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
         self.llm = build_llm(
@@ -69,7 +70,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             or self.vision_tower is not None
             or self.mm_projector is not None
         ), "At least one of the components must be instantiated."
-    
+    # @yunhao: do we need to move this method?
     @classmethod
     def from_pretrained(
         cls,

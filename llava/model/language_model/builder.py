@@ -1,5 +1,6 @@
 import math
 import warnings
+import os, os.path as osp
 import torch
 from transformers import PretrainedConfig, PreTrainedModel
 from transformers import (
@@ -10,6 +11,34 @@ from transformers import (
     PretrainedConfig,
     PreTrainedModel,
 )
+
+
+def has_tokenizer(path):
+    if (
+        osp.exists(osp.join(path, "special_tokens_map.json"))
+        and osp.exists(osp.join(path, "tokenizer_config.json"))
+        and osp.exists(osp.join(path, "tokenizer.model"))
+    ):
+        # print("[has_tokenizer]", path, True)
+        return True
+    from huggingface_hub import HfApi, file_exists
+    from huggingface_hub.utils import validate_repo_id, HFValidationError
+    api = HfApi()
+    try:
+        valid_hf_repo = api.repo_exists(path)
+    except HFValidationError as e:
+        valid_hf_repo = False
+    # print("DEBUG1", f"[{path}]", valid_hf_repo); input()
+    if (
+        valid_hf_repo
+        and file_exists(path, "special_tokens_map.json")
+        and file_exists(path, "tokenizer_config.json")
+        and file_exists(path, "tokenizer.model")
+    ):
+        # print("[has_tokenizer]", path, True)
+        return True
+    # print("[has_tokenizer]", path, False)
+    return False
 
 
 def context_length_extension(config):
@@ -51,4 +80,15 @@ def build_llm(
     )
     # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
-    return llm
+    
+    vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
+    
+    if has_tokenizer(vlm_cfg):
+        warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
+        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
+    elif has_tokenizer(llm_cfg):
+        tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
+    else:
+        raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
+        
+    return llm, tokenizer

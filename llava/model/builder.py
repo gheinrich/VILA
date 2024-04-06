@@ -184,14 +184,12 @@ def load_pretrained_model(
             else:
                 # kentang-mit@: llama-2 model
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
                 model = LlavaLlamaModel(
                     config=config,
                     low_cpu_mem_usage=True,
                     **kwargs
                 )
+                tokenizer = model.tokenizer
     else:
         # Load language model
         if model_base is not None:
