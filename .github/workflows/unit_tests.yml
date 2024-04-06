@@ -22,23 +22,15 @@ jobs:
         run: |
           # change to a single installation bash.
           pip install black
-          pip install --upgrade pip  # enable PEP 660 support
-          wget https://github.com/Dao-AILab/flash-attention/releases/download/v2.4.2/flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-          pip install flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-          pip install -e .
-          pip install -e ".[train]"
-
-          pip install pytorchvideo
-          pip install decord
-          pip install datasets
-          pip install scikit-learn
-          pip install openai
           bash environment_setup.sh 
 
       - name: Run tests
         run: |
           #TODO(ligeng): switch to pytest
-          for f in tests/*.py; do
+          # for f in tests/*.py; do
+          #     python $f
+          # done
+          for pyfile in $(find ./tests/ -iname "*.py" -not -path "./tests/gpu_tests/*" -not -path "./tests/archive_tests/*" | xargs); do
               python $f
-          done
+          done 
 
