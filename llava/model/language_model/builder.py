@@ -50,7 +50,7 @@ def context_length_extension(config):
     return config
 
 
-def build_llm(
+def build_llm_and_tokenizer(
     model_name_or_path: str,
     config: PretrainedConfig,
     # config_cls: PretrainedConfig = None,

@@ -45,7 +45,7 @@ from llava.train.utils import (
 
 from collections import OrderedDict
 from llava.model.utils import get_model_config
-from llava.model.language_model.builder import build_llm
+from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.configuration_llava import LlavaConfig
@@ -71,7 +71,7 @@ class LlavaMetaModel(ABC):
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
         
-        self.llm, self.tokenizer = build_llm(llm_cfg, config, *args, **kwargs)
+        self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
 
@@ -112,7 +112,7 @@ class LlavaMetaModel(ABC):
         with ContextManagers([no_init_weights(_enable=True),]):
             vlm = cls(config, *args, **kwargs)
 
-        vlm.llm, vlm.tokenizer = build_llm(llm_cfg, config, *args, **kwargs)
+        vlm.llm, vlm.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
 

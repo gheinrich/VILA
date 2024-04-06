@@ -12,7 +12,7 @@ from llava.model import *
 import llava.model.language_model.llava_llama
 from collections import OrderedDict
 from llava.model.utils import get_model_config
-from llava.model.language_model.builder import build_llm
+from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.configuration_llava import LlavaConfig

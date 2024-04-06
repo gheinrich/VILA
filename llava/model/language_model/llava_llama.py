@@ -36,7 +36,7 @@ from ..multimodal_encoder.builder import build_vision_tower
 from ..multimodal_projector.builder import build_mm_projector
 from ..configuration_llava import LlavaConfig
 from ..utils import get_model_config
-from .builder import build_llm
+from .builder import build_llm_and_tokenizer
 
 
 class LlavaLlamaConfig(LlavaConfig):
@@ -56,7 +56,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         return self.init_vlm(config=config, *args, **kwargs)
         
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-        self.llm = build_llm(
+        self.llm = build_llm_and_tokenizer(
             llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
         )
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
