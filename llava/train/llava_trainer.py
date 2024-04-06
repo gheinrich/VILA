@@ -417,9 +417,12 @@ class LLaVATrainer(Trainer):
         if self.is_deepspeed_enabled:
             state_dict = self.accelerator.get_state_dict(self.deepspeed)
         else:
+            # TODO(ligeng): fix save_model for multi-node training on large models (e.g., Llama-70b)
             state_dict = self.model.state_dict()
 
         if self.args.should_save:
+            self.model.save_pretrained(output_dir, state_dict=state_dict)
+            return 
             if self.model.get_llm():
                 llm_state_dict = OrderedDict(
                     {k.split("llm.")[-1]: v for k, v in state_dict.items() if "llm" in k}

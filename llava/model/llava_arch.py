@@ -130,7 +130,7 @@ class LlavaMetaModel(ABC):
             # other wise fetch from deepspeed
             # state_dict = accelerator.get_state_dict(is_deepspeed_enabled)
             state_dict = self.state_dict()
-
+        
         if getattr(self, "tokenizer", None):
             self.tokenizer.save_pretrained(osp.join(output_dir, "llm"))
 
