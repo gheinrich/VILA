@@ -47,6 +47,7 @@ def context_length_extension(config):
         print(f"Scaling RoPE from {orig_ctx_len} to {model_max_length}")
         scaling_factor = float(math.ceil(model_max_length / orig_ctx_len))
         config.rope_scaling = {"type": "linear", "factor": scaling_factor}
+    return config
 
 
 def build_llm(
@@ -76,15 +77,26 @@ def build_llm(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
     
-    vlm_cfg = model_name_or_path
-    if has_tokenizer(vlm_cfg):
+    llm_path = model_name_or_path
+    if not has_tokenizer(llm_path):
         warnings.warn("tokenizer found in VLM root folder. Move to ./{VILA}/llm in the future.")
-        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg, config=config)
-    elif has_tokenizer(osp.join(vlm_cfg, "llm")):
-        tokenizer = AutoTokenizer.from_pretrained(osp.join(vlm_cfg, "llm"), config=config)
-    else:
-        raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {osp.join(vlm_cfg, 'llm')}")
+        llm_path = osp.join(llm_path, "llm")
     
+    if "mpt" in model_name_or_path:
+        tokenizer = AutoTokenizer.from_pretrained(
+            llm_path, 
+            model_max_length=llm_cfg.model_max_length,
+            padding_side="right",
+        )
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            llm_path, 
+            model_max_length=llm_cfg.model_max_length,
+            padding_side="right",
+            use_fast=False,
+            legacy=False,
+        )
+        
     # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
     return llm, tokenizer
