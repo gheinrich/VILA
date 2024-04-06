@@ -82,6 +82,7 @@ def build_llm_and_tokenizer(
         warnings.warn("tokenizer found in VLM root folder. Move to ./{VILA}/llm in the future.")
         llm_path = osp.join(llm_path, "llm")
     
+    # TODO(ligeng): use LLM class to judge to better compability.
     if "mpt" in model_name_or_path:
         tokenizer = AutoTokenizer.from_pretrained(
             llm_path, 
