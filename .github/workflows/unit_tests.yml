@@ -33,10 +33,7 @@ jobs:
           pip install datasets
           pip install scikit-learn
           pip install openai
-
-          pip install git+https://github.com/huggingface/transformers@v4.38.1
-          export PPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
-          cp -rv ./llava/train/transformers_replace/* $PPATH/transformers/
+          bash environment_setup.sh 
 
       - name: Run tests
         run: |
