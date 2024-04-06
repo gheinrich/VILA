@@ -89,11 +89,7 @@ class LlavaMetaModel(ABC):
     @classmethod
     def load_pretrained(cls, model_path_or_config, *args, **kwargs):
         kwargs.pop("config", None)
-        # print("self: ", cls); input()
-        # print("model_path_or_config: ", model_path_or_config); input()
-        # print("args:", args); input()
-        # print("kwargs:", kwargs); input()
-        
+
         if isinstance(model_path_or_config, str):
             config = AutoConfig.from_pretrained(model_path_or_config)
         elif isinstance(model_path_or_config, LlavaConfig):
@@ -105,7 +101,7 @@ class LlavaMetaModel(ABC):
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
-        config.model_dtype = model_dtype
+            config.model_dtype = model_dtype
         
         cfgs = get_model_config(config)
         if len(cfgs) == 3:

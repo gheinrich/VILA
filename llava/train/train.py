@@ -247,9 +247,7 @@ def train():
             )
     
     ## extra configurations
-    # print(model_cls, resume_from_checkpoint)#; input()
     prepare_config_for_training(config, model_args, training_args)
-    # print(config)#; input()
     
     model = model_cls(
         config=config,

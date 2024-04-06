@@ -52,10 +52,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         # print("[LlavaLlamaModel.__init__() init here")
         super().__init__(config)
         # TODO(ligeng): avoid recursive loading here
-        # return self.load_pretrained(config)
-        # print("DEBUG", config); input()
         # @yunhao: pass kwargs to llm only if we never call from_pretrained for top-level model?
-        return self.init_vlm(config=config, *args, **kwargs, *args, **kwargs)
+        return self.init_vlm(config=config, *args, **kwargs)
         
         llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
         self.llm = build_llm(

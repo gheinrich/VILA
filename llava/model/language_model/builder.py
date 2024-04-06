@@ -28,7 +28,6 @@ def has_tokenizer(path):
         valid_hf_repo = api.repo_exists(path)
     except HFValidationError as e:
         valid_hf_repo = False
-    # print("DEBUG1", f"[{path}]", valid_hf_repo); input()
     if (
         valid_hf_repo
         and file_exists(path, "special_tokens_map.json")
@@ -71,24 +70,19 @@ def build_llm(
     if model_max_length is not None:
         context_length_extension(llm_cfg)
 
-    # model_dtype = getattr(config, "model_dtype", "torch.float16")
-    # if not hasattr(config, "model_dtype"):
-    #     warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
-    
     llm = llm_cls.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
+    
+    vlm_cfg = model_name_or_path
+    if has_tokenizer(vlm_cfg):
+        warnings.warn("tokenizer found in VLM root folder. Move to ./{VILA}/llm in the future.")
+        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
+    elif has_tokenizer(osp.join(vlm_cfg, "llm")):
+        tokenizer = AutoTokenizer.from_pretrained(osp.join(vlm_cfg, "llm"))
+    else:
+        raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {osp.join(vlm_cfg, 'llm')}")
+    
     # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
-    
-    vlm_cfg = config.resume_path if config.resume_path else config._name_or_path
-    
-    if has_tokenizer(vlm_cfg):
-        warnings.warn("tokenizer found in VLM root folder. Move to MODEL_PATH/llm in the future.")
-        tokenizer = AutoTokenizer.from_pretrained(vlm_cfg)
-    elif has_tokenizer(llm_cfg):
-        tokenizer = AutoTokenizer.from_pretrained(llm_cfg)
-    else:
-        raise FileNotFoundError(f"Tokenizer not found in the model path.  {vlm_cfg} and {llm_cfg}")
-        
     return llm, tokenizer
