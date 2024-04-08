@@ -16,24 +16,40 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 import os
 from transformers import AutoConfig
-
+from transformers import  PretrainedConfig
 
 def get_model_config(config):
     default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
     return_list = []
     for key in default_keys:
         cfg = getattr(config, key, None)
+        # print("dd", cfg, type(cfg))
         if isinstance(cfg, dict):
+            # print("cfg type dict")
             try:
                 return_list.append(os.path.join(config.resume_path, key[:-4]))
             except:
                 raise ValueError(f"Cannot find resume path in config for {key}!")
+        elif isinstance(cfg, PretrainedConfig):
+            # print("cfg type PretrainedConfig")
+            return_list.append(os.path.join(config.resume_path, key[:-4]))
         elif isinstance(cfg, str):
+            # print("cfg type str")
             return_list.append(cfg)
+        
     return return_list
 
 
 def is_mm_model(model_path):
+    """
+    Check if the model at the given path is a visual language model.
+
+    Args:
+        model_path (str): The path to the model.
+
+    Returns:
+        bool: True if the model is an MM model, False otherwise.
+    """
     config = AutoConfig.from_pretrained(model_path)
     architectures = config.architectures
     for architecture in architectures:

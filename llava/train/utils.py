@@ -40,7 +40,8 @@ def get_checkpoint_path(
     pathlib_dir = pathlib.Path(output_dir)
 
     if list(pathlib_dir.glob("config.json")):
-        return output_dir
+        # training has been finished
+        return output_dir, False
     else:
         try:
             ordering_and_checkpoint_path = []
@@ -56,14 +57,15 @@ def get_checkpoint_path(
                         (int(regex_match.groups()[0]), path)
                     )
             checkpoints_sorted = sorted(ordering_and_checkpoint_path)
-            return checkpoints_sorted[-1][1]
+            return checkpoints_sorted[-1][1], True
         except:
-            return None
+            return None, True
 
 
 def prepare_config_for_training(
     config: PretrainedConfig, model_args: dataclass, training_args: dataclass
 ) -> None:
+    assert model_args.vision_tower is not None, "requires vision tower"
     ## set module configurations
     if getattr(config, "llm_cfg", None) is None:
         config.llm_cfg = model_args.model_name_or_path
