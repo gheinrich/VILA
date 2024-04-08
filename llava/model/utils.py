@@ -23,8 +23,13 @@ def get_model_config(config):
     default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
     root_path = config._name_or_path # config.resume_path
     # download from huggingface
-    if not osp.exists(root_path) and repo_exists(root_path):
-        root_path = snapshot_download(root_path)
+    if not osp.exists(root_path):
+        try:
+            valid_hf_repo = repo_exists(root_path)
+        except HFValidationError as e:
+            valid_hf_repo = False
+        if valid_hf_repo:
+            root_path = snapshot_download(root_path)
     # print(root_path); input("DEBUG")
     return_list = []
     for key in default_keys:
