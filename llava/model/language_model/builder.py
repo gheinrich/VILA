@@ -64,16 +64,16 @@ def build_llm_and_tokenizer(
     #     config_cls = AutoConfig
     # if llm_cls is None:
     #     llm_cls = AutoModelForCausalLM
-    config_cls = AutoConfig
-    llm_cls = AutoModelForCausalLM
+    # config_cls = AutoConfig
+    # llm_cls = AutoModelForCausalLM
     ## extra configuration for llm
-    llm_cfg = config_cls.from_pretrained(model_name_or_path)
+    llm_cfg = AutoConfig.from_pretrained(model_name_or_path)
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length
     if model_max_length is not None:
         context_length_extension(llm_cfg)
 
-    llm = llm_cls.from_pretrained(
+    llm = AutoModelForCausalLM.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
     

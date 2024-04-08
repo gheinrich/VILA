@@ -33,8 +33,10 @@ bs=$((global_bs / n_node / acc_step))
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 # export BASE_MODEL_PATH=/home/ligengz/workspace/checkpoints/Llama-2-7b-hf
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${2:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
+
+OUTPUT_STEP1=${1:-"$MNAME-$VTOWER-align-$ALIGN_DATASET"}
+OUTPUT_STEP2=${2:-"$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
 
 # bs=1
 

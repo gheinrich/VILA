@@ -71,11 +71,13 @@ class LlavaMetaModel(ABC):
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
         
+        # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG init_vlm")
         self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
 
         self.post_config()
+        self.is_loaded = True
 
         assert (
             self.llm is not None or self.vision_tower is not None or self.mm_projector is not None
@@ -109,14 +111,21 @@ class LlavaMetaModel(ABC):
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
 
+        # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained")
         with ContextManagers([no_init_weights(_enable=True),]):
             vlm = cls(config, *args, **kwargs)
-
+        # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained finish")
+        
+        if hasattr(vlm, "llm") or hasattr(vlm, "vision_tower")  or hasattr(vlm, "mm_projector"):
+            if vlm.is_loaded:
+                return vlm
+        
         vlm.llm, vlm.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
 
-        vlm.post_config()
+        self.post_config()
+        self.is_loaded = True
 
         # FIXME(ligeng, yunhao): llm should never be none here.
         assert (

@@ -14,12 +14,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # This file is modified from https://github.com/haotian-liu/LLaVA/
-import os
+import os, os.path as osp
 from transformers import AutoConfig
 from transformers import  PretrainedConfig
+from huggingface_hub import snapshot_download, repo_exists
 
 def get_model_config(config):
     default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
+    root_path = config._name_or_path # config.resume_path
+    # download from huggingface
+    if not osp.exists(root_path) and repo_exists(root_path):
+        root_path = snapshot_download(root_path)
+    # print(root_path); input("DEBUG")
     return_list = []
     for key in default_keys:
         cfg = getattr(config, key, None)
@@ -27,12 +33,12 @@ def get_model_config(config):
         if isinstance(cfg, dict):
             # print("cfg type dict")
             try:
-                return_list.append(os.path.join(config.resume_path, key[:-4]))
+                return_list.append(os.path.join(root_path, key[:-4]))
             except:
                 raise ValueError(f"Cannot find resume path in config for {key}!")
         elif isinstance(cfg, PretrainedConfig):
             # print("cfg type PretrainedConfig")
-            return_list.append(os.path.join(config.resume_path, key[:-4]))
+            return_list.append(os.path.join(root_path, key[:-4]))
         elif isinstance(cfg, str):
             # print("cfg type str")
             return_list.append(cfg)

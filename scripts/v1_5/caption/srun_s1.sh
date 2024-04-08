@@ -8,7 +8,8 @@ SLURM_ACCOUNT=${SLURM_ACCOUNT:-"nvr_elm_llm"}
 SLURM_PARTITION=${SLURM_PARTITION:-"polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
 ########################################################
 export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
-export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
+# export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
+export BASE_MODEL_PATH=${1:-"lmsys/vicuna-7b-v1.5"}
 export ALIGN_DATASET=${2:-llava_1_5_mm_align}
 
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
