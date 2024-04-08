@@ -50,20 +50,20 @@ class TestModelLoadingAndSaving(unittest.TestCase):
         # Model from /home/yunhaof/workspace/scripts/ckpts/vila/debug/reproduce/scratch_stable_test1/stage3
         # fpath = "Efficient-Large-Model/CI-format-7b-v2"
         global hf_repo
-        config = AutoConfig.from_pretrained(fpath)
+        config = AutoConfig.from_pretrained(hf_repo)
         model = AutoModel.from_config(config)
         check_params(model)
 
     def test_from_pretrained(self):
         # fpath = "Efficient-Large-Model/CI-format-7b-v2"
         global hf_repo
-        model = AutoModel.from_pretrained(fpath)
+        model = AutoModel.from_pretrained(hf_repo)
         check_params(model)
 
     def test_save_and_reload(self):
         # fpath = "Efficient-Large-Model/CI-format-7b-v2"
         global hf_repo
-        model = AutoModel.from_pretrained(fpath)
+        model = AutoModel.from_pretrained(hf_repo)
         shutil.rmtree("checkpoints/tmp", ignore_errors=True)
         model.save_pretrained("checkpoints/tmp")
         model = AutoModel.from_pretrained("checkpoints/tmp")
