@@ -26,13 +26,13 @@ def check_params(model):
     assert total_params > 10e5
 
 
+hf_repo = "Efficient-Large-Model/CI-new-format-llama7b-siglip"
 class TestModelLoadingAndSaving(unittest.TestCase):
     def test_load_from_config(self):
         import json
-
         from huggingface_hub import hf_hub_download
 
-        hf_repo = "Efficient-Large-Model/CI-format-7b-v2"
+        global hf_repo
         cpath = hf_hub_download(repo_id=hf_repo, filename="config.json")
 
         from llava.model.language_model.llava_llama import (LlavaLlamaConfig,
@@ -48,19 +48,22 @@ class TestModelLoadingAndSaving(unittest.TestCase):
 
     def test_from_config(self):
         # Model from /home/yunhaof/workspace/scripts/ckpts/vila/debug/reproduce/scratch_stable_test1/stage3
-        fpath = "Efficient-Large-Model/CI-format-7b-v2"
-        config = AutoConfig.from_pretrained(fpath)
+        # fpath = "Efficient-Large-Model/CI-format-7b-v2"
+        global hf_repo
+        config = AutoConfig.from_pretrained(hf_repo)
         model = AutoModel.from_config(config)
         check_params(model)
 
     def test_from_pretrained(self):
-        fpath = "Efficient-Large-Model/CI-format-7b-v2"
-        model = AutoModel.from_pretrained(fpath)
+        # fpath = "Efficient-Large-Model/CI-format-7b-v2"
+        global hf_repo
+        model = AutoModel.from_pretrained(hf_repo)
         check_params(model)
 
     def test_save_and_reload(self):
-        fpath = "Efficient-Large-Model/CI-format-7b-v2"
-        model = AutoModel.from_pretrained(fpath)
+        # fpath = "Efficient-Large-Model/CI-format-7b-v2"
+        global hf_repo
+        model = AutoModel.from_pretrained(hf_repo)
         shutil.rmtree("checkpoints/tmp", ignore_errors=True)
         model.save_pretrained("checkpoints/tmp")
         model = AutoModel.from_pretrained("checkpoints/tmp")

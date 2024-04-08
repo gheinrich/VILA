@@ -10,11 +10,12 @@ from .siglip import (
 
 
 class SiglipVisionTower(VisionTower):
-    def __init__(self, model_name_or_path: str, config: PretrainedConfig):
+    def __init__(self, model_name_or_path: str, config: PretrainedConfig, state_dict=None):
         super().__init__(model_name_or_path, config)
         self.image_processor = SiglipImageProcessor.from_pretrained(model_name_or_path)
         self.vision_tower = SiglipVisionModel.from_pretrained(
-            model_name_or_path, torch_dtype=eval(config.model_dtype)
+            # TODO(ligeng): why pass config here leading to errors?
+            model_name_or_path, torch_dtype=eval(config.model_dtype), state_dict=state_dict
         )
         self.is_loaded = True
 
