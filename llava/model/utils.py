@@ -29,29 +29,25 @@ def get_model_config(config):
         root_path = config.resume_path 
         
     # download from huggingface
-    if not osp.exists(root_path):
+    if root_path is not None and not osp.exists(root_path):
         try:
             valid_hf_repo = repo_exists(root_path)
         except HFValidationError as e:
             valid_hf_repo = False
         if valid_hf_repo:
             root_path = snapshot_download(root_path)
-    # print(root_path); input("DEBUG")
+
     return_list = []
     for key in default_keys:
         cfg = getattr(config, key, None)
-        # print("dd", cfg, type(cfg))
         if isinstance(cfg, dict):
-            # print("cfg type dict")
             try:
                 return_list.append(os.path.join(root_path, key[:-4]))
             except:
                 raise ValueError(f"Cannot find resume path in config for {key}!")
         elif isinstance(cfg, PretrainedConfig):
-            # print("cfg type PretrainedConfig")
             return_list.append(os.path.join(root_path, key[:-4]))
         elif isinstance(cfg, str):
-            # print("cfg type str")
             return_list.append(cfg)
         
     return return_list
