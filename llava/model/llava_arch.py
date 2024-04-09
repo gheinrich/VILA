@@ -65,12 +65,13 @@ class LlavaMetaModel(ABC):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
         
+        # print("init_vlm(): config", config); input("DEBUG init_vlm")
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
-        
+        # print("init_vlm():", cfgs); input("DEBUG init_vlm")
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG init_vlm")
         self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)

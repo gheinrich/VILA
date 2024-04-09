@@ -67,6 +67,7 @@ def build_llm_and_tokenizer(
     # config_cls = AutoConfig
     # llm_cls = AutoModelForCausalLM
     ## extra configuration for llm
+    # print("build_llm_and_tokenizer():", model_name_or_path); input("DEBUG")
     llm_cfg = AutoConfig.from_pretrained(model_name_or_path)
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length

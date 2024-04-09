@@ -24,7 +24,7 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
-export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+textocr}
+export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+vflan}
 
 sort_and_join() {
     local original_string=$1
@@ -75,7 +75,7 @@ echo "node rank:" $CURRENT_RANK
 echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET | SFT: $SFT_DATASET"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
-    --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+   --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path $OUTPUT_STEP2 \

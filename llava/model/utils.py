@@ -18,10 +18,16 @@ import os, os.path as osp
 from transformers import AutoConfig
 from transformers import  PretrainedConfig
 from huggingface_hub import snapshot_download, repo_exists
+from huggingface_hub.utils import validate_repo_id, HFValidationError
 
 def get_model_config(config):
     default_keys = ["llm_cfg", "vision_tower_cfg", "mm_projector_cfg"]
-    root_path = config._name_or_path # config.resume_path
+    
+    if hasattr(config, "_name_or_path") and len(config._name_or_path) >= 2:
+        root_path = config._name_or_path
+    else:
+        root_path = config.resume_path 
+        
     # download from huggingface
     if not osp.exists(root_path):
         try:
