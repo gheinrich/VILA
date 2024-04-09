@@ -14,8 +14,8 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
-export PT_DATASET=${2:-filter_sharegpt4v_pretrain}
-export SFT_DATASET=${3:-filter_sharegpt4v_sft+vflan}
+export PT_DATASET=${2:-sharegpt4v_pretrain}
+export SFT_DATASET=${3:-sharegpt4v_sft+vflan}
 
 echo "$SLURM_ACCOUNT | $SLURM_PARTITION | $MNAME | $VISION_TOWER | $ALIGN_DATASET | $PT_DATASET | $SFT_DATASET"
 
@@ -33,7 +33,7 @@ LOGF=$LOGDIR/step2-$JNAME.out
 
 # -pty
 # -e $ERRF -o $LOGF \
-for i in $(seq 1 4); do 
+for i in $(seq 1 8); do 
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \
