@@ -4,6 +4,7 @@ import os
 from transformers import AutoConfig, PretrainedConfig, PreTrainedModel
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
+from .radio_encoder import RADIOVisionTower
 
 
 def build_vision_tower(
@@ -25,6 +26,8 @@ def build_vision_tower(
     )
     if "clip" in vision_tower_name:
         vision_tower = CLIPVisionTower(model_name_or_path, config)
+    elif "radio" in vision_tower_name:
+        vision_tower = RADIOVisionTower(model_name_or_path, config)
     elif "siglip" in vision_tower_name:
         vision_tower = SiglipVisionTower(model_name_or_path, config)
     elif "radio" in vision_tower_name:
