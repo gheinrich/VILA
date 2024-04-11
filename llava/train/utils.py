@@ -69,7 +69,7 @@ def prepare_config_for_training(
     ## set module configurations
     if getattr(config, "llm_cfg", None) is None:
         config.llm_cfg = model_args.model_name_or_path
-    if getattr(config, "vision_tower_cfg", None) is None or "radio" in model_args.vision_tower.lower():
+    if getattr(config, "vision_tower_cfg", None) is None:
         config.vision_tower_cfg = model_args.vision_tower
     if getattr(config, "mm_projector_cfg", None) is None:
         config.mm_projector_cfg = model_args.mm_projector
