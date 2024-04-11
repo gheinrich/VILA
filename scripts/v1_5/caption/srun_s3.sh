@@ -41,5 +41,4 @@ srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     --dependency singleton \
     -e $ERRF -o $LOGF \
     bash scripts/v1_5/caption/3_sft_captioner.sh  &
-
 done

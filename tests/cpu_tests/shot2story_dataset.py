@@ -8,10 +8,11 @@ from llava.constants import DEFAULT_IMAGE_PATCH_TOKEN
 from llava.data import datasets_mixture
 from llava.data.dataset import make_supervised_data_module
 from llava.train.args import DataArguments, TrainingArguments
-from transformers.models.siglip import SiglipImageProcessor
 
 
 def test_make_supervised_data_module():
+    from llava.model.multimodal_encoder.siglip import SiglipImageProcessor
+
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",

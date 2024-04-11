@@ -20,7 +20,7 @@ def get_frame_from_vcap(vidcap, num_frames=10):
         print("Video file not found. return empty image.")
         return [
             Image.new("RGB", (720, 720)),
-        ]
+        ] * num_frames
     
     duration = frame_count / fps
     frame_interval = frame_count // num_frames
@@ -28,7 +28,7 @@ def get_frame_from_vcap(vidcap, num_frames=10):
         print("frame_interval is equal to 0. return empty image.")
         return [
             Image.new("RGB", (720, 720)),
-        ]
+        ] * num_frames
     # print("duration:", duration, "frames:", frame_count, "intervals:", frame_interval)
 
     images = []
@@ -48,7 +48,7 @@ def get_frame_from_vcap(vidcap, num_frames=10):
           
     return [
         Image.new("RGB", (720, 720)),
-    ]
+    ] * num_frames
 
 
 def opencv_extract_frames(vpath_or_bytesio, frames=6):
