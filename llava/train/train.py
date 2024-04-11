@@ -260,7 +260,7 @@ def train():
     vision_resolution_elevation(model, config)
     # This is an empty func.
     # It would be overwritten by unit test script.
-    if unit_test_rope_scaling(model, config, training_args):
+    if unit_test_rope_scaling(model, model.llm.config, training_args):
         return
 
     # Take a look on model architecture.
