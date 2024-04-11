@@ -7,9 +7,7 @@ class TestStringMethods(unittest.TestCase):
     def test_dataloader_panda70m(self):
         print("cpu cores: ", os.cpu_count())
         workers = os.cpu_count() // 4
-        
-        workers = 4
-        test_make_supervised_data_module(dataset_name="jukinmedia", batch_size=workers * 2, num_workers=workers, max_samples=100)
+        test_make_supervised_data_module(dataset_name="jukinmedia", batch_size=2, num_workers=workers, max_samples=100)
 
 
 if __name__ == "__main__":

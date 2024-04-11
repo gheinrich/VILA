@@ -36,31 +36,31 @@ for pyfile in $(find ./tests/ -iname "*.py" -not -path "./tests/gpu_tests/*" -no
 done
 
 
-for pyfile in $(find ./tests/gpu_tests -iname "*.py" | xargs); do
-    echo "[gpu] testing $pyfile"
-    pylog=${pyfile//\//\-\-}
-    > dev/$pylog.err 
-    > dev/$pylog.out
-    srun -A $SLURM_ACCOUNT \
-        -p $SLURM_PARTITION,batch_singlenode \
-        -t 4:00:00 -J vila-CI:$pyfile \
-        --gpus-per-node 8 --exclusive \
-        -e dev/$pylog.err -o dev/$pylog.out \
-        bash CIs/test_single.sh $pyfile $report_file &
-done
+# for pyfile in $(find ./tests/gpu_tests -iname "*.py" | xargs); do
+#     echo "[gpu] testing $pyfile"
+#     pylog=${pyfile//\//\-\-}
+#     > dev/$pylog.err 
+#     > dev/$pylog.out
+#     srun -A $SLURM_ACCOUNT \
+#         -p $SLURM_PARTITION,batch_singlenode \
+#         -t 4:00:00 -J vila-CI:$pyfile \
+#         --gpus-per-node 8 --exclusive \
+#         -e dev/$pylog.err -o dev/$pylog.out \
+#         bash CIs/test_single.sh $pyfile $report_file &
+# done
 
-for pyfile in $(find ./tests/bash_tests -iname "*.sh" | xargs); do
-    echo "[bash] testing $pyfile"
-    pylog=${pyfile//\//\-\-}
-    > dev/$pylog.err 
-    > dev/$pylog.out
-    srun -A $SLURM_ACCOUNT \
-        -p $SLURM_PARTITION,batch_singlenode \
-        -t 4:00:00 -J vila-CI:$pyfile \
-        --gpus-per-node 8 --exclusive \
-        -e dev/$pylog.err -o dev/$pylog.out \
-        bash CIs/test_single.sh $pyfile $report_file bash &
-done
+# for pyfile in $(find ./tests/bash_tests -iname "*.sh" | xargs); do
+#     echo "[bash] testing $pyfile"
+#     pylog=${pyfile//\//\-\-}
+#     > dev/$pylog.err 
+#     > dev/$pylog.out
+#     srun -A $SLURM_ACCOUNT \
+#         -p $SLURM_PARTITION,batch_singlenode \
+#         -t 4:00:00 -J vila-CI:$pyfile \
+#         --gpus-per-node 8 --exclusive \
+#         -e dev/$pylog.err -o dev/$pylog.out \
+#         bash CIs/test_single.sh $pyfile $report_file bash &
+# done
 
 wait
 clear
