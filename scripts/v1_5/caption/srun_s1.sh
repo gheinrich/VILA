@@ -18,8 +18,8 @@ VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 echo "$SLURM_ACCOUNT | $SLURM_PARTITION | $ALIGN_DATASET | $BASE_MODEL_PATH"
 
 # export BATCH_SIZE=128
-export NNODES=4
-export ACC_STEP=8
+export NNODES=8
+export ACC_STEP=4
 
 dtime=$(TZ=Asia/Shanghai date +"%b_%d-%H")
 JNAME=$MNAME-$VTOWER-align-$ALIGN_DATASET
@@ -38,9 +38,11 @@ srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -e $ERRF -o $LOGF \
     bash scripts/v1_5/caption/1_mm_align.sh &
 
-# bash scripts/v1_5/captioner/srun_s1.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align
-# bash scripts/v1_5/captioner/srun_s1.sh ccs_recap_wds
-# bash scripts/v1_5/captioner/srun_s1.sh llava_1_5_mm_align+ccs_recap_wds
+# bash scripts/v1_5/caption/srun_s1.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align
+# bash scripts/v1_5/caption/srun_s1.sh NousResearch/Llama-2-13b-hf llava_1_5_mm_align
+# bash scripts/v1_5/caption/srun_s1.sh NousResearch/Llama-2-7b-hf ccs_recap_wds
+# bash scripts/v1_5/caption/srun_s1.sh NousResearch/Llama-2-13b-hf ccs_recap_wds
+# bash scripts/v1_5/caption/srun_s1.sh llava_1_5_mm_align+ccs_recap_wds
 # SLURM_ACCOUNT=llmservice_nlp_fm SLURM_PARTITION=adlr-debug-batch_block4,batch_block1,batch_block2,batch_block3,batch_block4 \
 #     BASE_MODEL_PATH=NousResearch/Llama-2-13b-hf \
 #     bash scripts/v1_5/caption/srun_s1.sh NousResearch/Llama-2-7b-hf llava_1_5_mm_align
