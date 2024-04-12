@@ -441,6 +441,14 @@ def register_datasets_mixtures():
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(shot2story_shotonly)
+    sharegpt_video = Dataset(
+        dataset_name="sharegpt_video",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        description="900K high quailty detailed video caption written by GPT-4V",
+    )
+    add_dataset(sharegpt_video)
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
         dataset_name="internvid_test",
@@ -478,3 +486,16 @@ def register_datasets_mixtures():
         image_path="dummy",
     )
     add_dataset(dummy)
+
+
+    # ========================================================
+    # datasets for osmo storage
+    # ========================================================
+    osmo_shot2story_shotonly = Dataset(
+        dataset_name="osmo_shot2story_shotonly",
+        dataset_type="torch",
+        data_path="/mnt/gear/fuzhaox/vila_datasets/shot2story/train-shortclip-processed-bin.json",
+        image_path="/mnt/gear/fuzhaox/vila_datasets/shot2story/videos_extracted",
+        description="48K high quality video clips with 48K short or long high-qualiy captions.",
+    )
+    add_dataset(osmo_shot2story_shotonly)
