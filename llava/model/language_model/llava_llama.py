@@ -49,26 +49,9 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     supports_gradient_checkpointing = True
     
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
-        # print("[LlavaLlamaModel.__init__() init here")
         super().__init__(config)
-        # TODO(ligeng): avoid recursive loading here
-        # @yunhao: pass kwargs to llm only if we never call from_pretrained for top-level model?
         return self.init_vlm(config=config, *args, **kwargs)
         
-        llm_cfg, vision_tower_cfg, mm_projector_cfg = get_model_config(config)
-        self.llm = build_llm_and_tokenizer(
-            llm_cfg, config, LlamaConfig, LlamaForCausalLM, *args, **kwargs
-        )
-        self.vision_tower = build_vision_tower(vision_tower_cfg, config)
-        self.mm_projector = build_mm_projector(mm_projector_cfg, config)
-        self.post_config()
-
-        assert (
-            self.llm is not None
-            or self.vision_tower is not None
-            or self.mm_projector is not None
-        ), "At least one of the components must be instantiated."
-    # @yunhao: do we need to move this method?
     @classmethod
     def from_pretrained(
         cls,
