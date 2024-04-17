@@ -448,7 +448,6 @@ def register_datasets_mixtures():
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(shot2story_shotonly)
-<<<<<<< HEAD
     sharegpt_video = Dataset(
         dataset_name="sharegpt_video",
         dataset_type="torch",
@@ -457,9 +456,6 @@ def register_datasets_mixtures():
         description="900K high quailty detailed video caption written by GPT-4V",
     )
     add_dataset(sharegpt_video)
-=======
-    
->>>>>>> e6beac4434beedfdcc70f2768295d694efb016e9
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
         dataset_name="internvid_test",
@@ -504,7 +500,6 @@ def register_datasets_mixtures():
         image_path="dummy",
     )
     add_dataset(dummy)
-<<<<<<< HEAD
 
 
     # ========================================================
@@ -518,5 +513,3 @@ def register_datasets_mixtures():
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(osmo_shot2story_shotonly)
-=======
->>>>>>> e6beac4434beedfdcc70f2768295d694efb016e9
