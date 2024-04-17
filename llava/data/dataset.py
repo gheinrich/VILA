@@ -672,7 +672,7 @@ class LazySupervisedDataset(Dataset):
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         if "image" in sources[0]:
             image_file = self.list_data_dict[i]["image"]
-            image = self._process_image(image_file, self.data_args, self.image_folder)
+            image = process_image(image_file, self.data_args, self.image_folder)
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         elif ("video" in sources[0]) or ("video_id" in sources[0]):
             num_video_frames = 8
