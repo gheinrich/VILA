@@ -13,6 +13,7 @@ from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from llava.mm_utils import process_images
 
 from PIL import Image
 import math
@@ -42,50 +43,9 @@ def get_chunk(lst, n, k):
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
 
-    num_video_frames = 8
-
-    # if "shortest_edge" in image_processor.size:
-    #     image_size = image_processor.size["shortest_edge"]
-    # else:
-    #     image_size = image_processor.size["height"]
-
-    # try:
-    #     # Set a timeout of 5 seconds
-    #     signal.alarm(30)
-    #     video = EncodedVideo.from_path(video_path, decoder="decord", decode_audio=False)
-    #     duration = float(video.duration)
-    #     assert duration >= 0.25
-    #     video_outputs = video.get_clip(start_sec=0, end_sec=duration)["video"]
-    #     assert video_outputs.size(1) > 8
-    #     num_frames = video_outputs.shape[1]
-    #     # step = (num_frames - 1) // 8 + 1
-    #     step = num_frames // 8
-    #     num_frames = num_frames - (num_frames % 8)
-    #     indices = torch.floor(torch.arange(0, num_frames, step)).long()
-    #     video_outputs = video_outputs[:, indices, :, :]
-    #     # Cancel the alarm if the code finishes within the timeout
-    #     signal.alarm(0)
-    # except TimeoutError:
-    #     print(f'Timeout for video path {video_path}')
-    #     video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
-    # except Exception as e:
-    #     print(f'bad data path {video_path}')
-    #     print(f"Error processing {video_path}: {e}")
-    #     video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
-
-    # c, b, h, w = video_outputs.size()
-    # image_tensor = torch.zeros(b, c, image_size, image_size, dtype=torch.uint8)
-    # video_frames = video_outputs.permute(1, 0, 2, 3).contiguous()
-    # video_frames = Resize(size=[image_size, image_size], antialias=True)(video_frames)
-    # image_tensor[:, :, :, :] = video_frames
-
-    image_tensor, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
-
-    image_tensor = [
-        image_processor.preprocess(image, return_tensors='pt', do_rescale=False)['pixel_values'][0].unsqueeze(0)
-        for image in torch.unbind(image_tensor)
-    ]
-    image_tensor = torch.cat(image_tensor, dim=0)
+    num_video_frames = model.config.num_video_frames
+    images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
+    image_tensor = process_images(images, image_processor, model.config)
 
     qs = '<image>\n' * num_video_frames + qs
 
@@ -117,7 +77,12 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
             stopping_criteria=[stopping_criteria]
         )
 
-    outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+    # input_token_len = input_ids.shape[1]
+    # n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
+    # if n_diff_input_output > 0:
+    #     print(f'[Warning] {n_diff_input_output} output_ids are not the same as the input_ids')
+    # outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
+    outputs = outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
     outputs = outputs.strip()
     if outputs.endswith(stop_str):
         outputs = outputs[:-len(stop_str)]
@@ -131,7 +96,6 @@ def eval_model(args):
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
-    args.image_processor = image_processor
 
     gt_questions = json.load(open(os.path.expanduser(args.gt_file_question), "r"))
     gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
