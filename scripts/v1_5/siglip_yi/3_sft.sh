@@ -24,7 +24,8 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --version hermes-2 \
     --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector mlp2x_gelu \
+    --mm_vision_select_feature cls_patch \
+    --mm_projector mlp_downsample \
     --tune_vision_tower True \
     --tune_mm_projector True \
     --tune_language_model True \

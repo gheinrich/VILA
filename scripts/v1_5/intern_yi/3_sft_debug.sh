@@ -16,7 +16,7 @@ echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
-#rm -r ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40
+rm -r ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
@@ -45,7 +45,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 1 \
+    --save_steps 100 \
     --save_total_limit 1 \
     --learning_rate 1e-5 \
     --weight_decay 0.05 \
@@ -59,9 +59,3 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
     --report_to wandb
-
-
-
-# TODO
-# fix image try catch
-# how to handle load projector

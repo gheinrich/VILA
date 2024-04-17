@@ -2,6 +2,7 @@ from PIL import Image
 from io import BytesIO
 import base64
 import numpy as np
+import os
 
 import torch
 from transformers import StoppingCriteria

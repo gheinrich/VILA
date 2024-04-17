@@ -1,5 +1,6 @@
 import torch.nn as nn
 import re
+import torch
 from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel
 
 
@@ -41,6 +42,12 @@ class DownSampleBlock(nn.Module):
 
     def flat_square(self, x):
         n, w, h, c = x.size()
+        if w % 2 == 1:
+            x = torch.concat([x, torch.zeros((n, 1, h, c), dtype=x.dtype)], dim=1).contiguous()
+            n, w, h, c = x.size()
+        if h % 2 == 1:
+            x = torch.concat([x, torch.zeros((n, w, 1, c), dtype=x.dtype)], dim=2).contiguous()
+            n, w, h, c = x.size()
         x = x.view(n, w, int(h / 2), int(c * 2))
         x = x.permute(0, 2, 1, 3).contiguous()
         x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
