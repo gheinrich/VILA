@@ -24,6 +24,7 @@ import transformers
 
 from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
 from transformers.modeling_utils import unwrap_model
+from transformers import set_seed
 
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
@@ -205,6 +206,8 @@ def train():
                 ),
             )
         )
+
+    set_seed(training_args.seed)
 
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
     
