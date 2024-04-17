@@ -24,7 +24,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path ./checkpoints/vicuna-13b-siglipso400m-pretrain-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-linear-e11113 \
     --version v1 \
-    --data_mixture vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa+jukinmedia+shot2story_shotonly \
+    --data_mixture vflan+sharegpt4v_sft+video_chatgpt+youcook2+vatex+activitynet_qa+ivqa+nextqa+msrvttqa+jukinmedia+shot2story_shotonly+sharegpt_video \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
@@ -35,7 +35,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e11113 \
+    --output_dir ./checkpoints/vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only_sharegpt_video-e1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

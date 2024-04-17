@@ -9,7 +9,7 @@
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-demo-inference.out
     
-CKPT_NAME=vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e4
+CKPT_NAME=vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e11113
 model_path=./checkpoints/${CKPT_NAME} 
 PROMPT_TEMPLATE=bin_20_80
 
