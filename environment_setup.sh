@@ -1,8 +1,13 @@
-conda create -n vila python=3.10 -y
-conda activate vila
+CONDA_ENV=${1:-""}
 
-# this is optional if you prefer to system built-in nvcc.
-conda install -c nvidia cuda-toolkit -y
+if [ -n "$CONDA_ENV" ]; then
+    conda create -n $CONDA_ENV python=3.10 -y
+    conda activate $CONDA_ENV
+    # this is optional if you prefer to system built-in nvcc.
+    conda install -c nvidia cuda-toolkit -y
+else
+    echo "skip conda enviroments"
+fi
 
 pip install --upgrade pip  # enable PEP 660 support
 wget https://github.com/Dao-AILab/flash-attention/releases/download/v2.4.2/flash_attn-2.4.2+cu118torch2.0cxx11abiFALSE-cp310-cp310-linux_x86_64.whl

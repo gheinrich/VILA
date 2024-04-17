@@ -24,7 +24,7 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
-export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+vflan}
+export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft}
 
 sort_and_join() {
     local original_string=$1
@@ -60,7 +60,7 @@ if [ "$n_node" = "1" ]; then
     bs=1
 fi
 
-export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
+export BASE_MODEL_PATH=${1:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 # OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
@@ -75,7 +75,7 @@ echo "node rank:" $CURRENT_RANK
 echo "ALIGN: $ALIGN_DATASET | PRETRAIN: $PT_DATASET | SFT: $SFT_DATASET"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
-   --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path $OUTPUT_STEP2 \
@@ -92,14 +92,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --group_by_modality_length True \
     --bf16 True \
     --output_dir $OUTPUT_STEP3 \
-    --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps $acc_step \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 210 \
-    --save_total_limit 2 \
     --learning_rate 1e-4 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
@@ -111,8 +108,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
-    --report_to wandb
+    --save_steps 10 \
+    --save_total_limit 2 \
+    --max_steps 20
 
-# SFT_DATASET=shot2story_shotonly bash scripts/v1_5/caption/3_sft_captioner.sh /home/ligengz/workspace/video_checkpoint/video-13b
-# SFT_DATASET=sharegpt4v_sft+panda70m bash scripts/v1_5/caption/3_sft_captioner.sh /home/ligengz/workspace/video_checkpoint/video-13b
-# SFT_DATASET=sharegpt4v_sft+shot2story_shotonly bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2

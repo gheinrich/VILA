@@ -119,6 +119,8 @@ def expand2square(pil_img, background_color):
     If the image is taller than it is wide, padding is added to the left and right.
     """
     width, height = pil_img.size
+    if pil_img.mode == 'L':
+        background_color = background_color[0]
     if width == height:
         return pil_img
     elif width > height:

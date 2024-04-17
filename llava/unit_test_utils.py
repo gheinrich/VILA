@@ -27,11 +27,11 @@ def requires_lustre_nvr_datataset(reason=None):
 def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32, num_workers=16, skip_before=0):
     import torch
     import transformers
-    from transformers.models.siglip import SiglipImageProcessor
     
     from llava import conversation as conversation_lib
     from llava.data.dataset import make_supervised_data_module
     from llava.train.args import DataArguments, TrainingArguments
+    from llava.model.multimodal_encoder.siglip.image_processing_siglip import SiglipImageProcessor
     
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(

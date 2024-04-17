@@ -36,7 +36,7 @@ fi
 
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${1:-"$MNAME-$VTOWER-align-$ALIGN_DATASET"}
+OUTPUT_STEP1=${1:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET"}
 
 
 echo "number of nodes:" $n_node
@@ -59,7 +59,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --bf16 True \
-    --output_dir ./checkpoints/$OUTPUT_STEP1 \
+    --output_dir $OUTPUT_STEP1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

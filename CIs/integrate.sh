@@ -1,17 +1,18 @@
 # /bin/bash
+export SLURM_ACCOUNT=nvr_elm_llm
+
 SECONDS=0
 while true; do
 
-WORKDIR=~/workspace/VILA-internal
-cd $WORKDIR
+# WORKDIR=~/workspace/VILA-internal
+# cd $WORKDIR
 mkdir -p dev
 > $WORKDIR/dev/crontab.txt
 git pull
 
-source activate vila
+# source activate vila
 which python
 bash CIs/continual_local.sh "ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com"
-
 
 while true; do
     if [ "$SECONDS" -gt "28800" ]; then

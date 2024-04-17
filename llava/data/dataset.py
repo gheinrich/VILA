@@ -713,12 +713,16 @@ class LazySupervisedDataset(Dataset):
         else:
             image_size = data_args.image_processor.size["height"]
         toTensor = transforms.ToTensor()
+        if "shortest_edge" in data_args.image_processor.size:
+            image_size = data_args.image_processor.size["shortest_edge"]
+        else:
+            image_size = data_args.image_processor.size["height"]
         try:
             pil_imgs = opencv_extract_frames(video_path, num_video_frames)
             tensor_imgs = torch.stack([toTensor(_) for _ in pil_imgs])
         except Exception as e:
             print(f"bad data path {video_path}")
-            print(f"Error processing {video_path}: {e}")
+            print(f"[DEBUG] Error processing {video_path}: {e}")
             # video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
             tensor_imgs = torch.zeros(8, 3, image_size, image_size, dtype=torch.uint8)
 
