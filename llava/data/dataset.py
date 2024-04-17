@@ -627,8 +627,12 @@ class LazySupervisedDataset(Dataset):
         training_args: TrainingArguments,
     ):
         super(LazySupervisedDataset, self).__init__()
-        with open(data_path, "r") as fp:
-            list_data_dict = json.load(fp)
+        try:
+            with open(data_path, "r") as fp:
+                list_data_dict = json.load(fp)
+        except:
+            with open(data_path, "r") as fp:
+                list_data_dict = [json.loads(q) for q in fp]
 
         # rank0_print("Formatting inputs...Skip in lazy mode")
         print("Formatting inputs...Skip in lazy mode")
@@ -704,6 +708,10 @@ class LazySupervisedDataset(Dataset):
         from llava.mm_utils import opencv_extract_frames
         from torchvision import transforms
         video_loading_succeed = True
+        if "shortest_edge" in data_args.image_processor.size:
+            image_size = data_args.image_processor.size["shortest_edge"]
+        else:
+            image_size = data_args.image_processor.size["height"]
         toTensor = transforms.ToTensor()
         if "shortest_edge" in data_args.image_processor.size:
             image_size = data_args.image_processor.size["shortest_edge"]
