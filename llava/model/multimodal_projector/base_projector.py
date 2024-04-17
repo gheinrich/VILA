@@ -29,6 +29,23 @@ class SimpleResBlock(nn.Module):
         return x + self.proj(x)
 
 
+class DownSampleBlock(nn.Module):
+
+    def forward(self, x):
+        vit_embeds = x
+        h = w = int(vit_embeds.shape[1] ** 0.5)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], h, w, -1)
+        vit_embeds = self.flat_square(vit_embeds)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], -1, vit_embeds.shape[-1])
+        return vit_embeds
+
+    def flat_square(self, x):
+        n, w, h, c = x.size()
+        x = x.view(n, w, int(h / 2), int(c * 2))
+        x = x.permute(0, 2, 1, 3).contiguous()
+        x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
+        return x
+
 class MultimodalProjectorConfig(PretrainedConfig):
     model_type = "v2l_projector"
 
@@ -49,6 +66,14 @@ class MultimodalProjector(PreTrainedModel):
             self.layers = IdentityMap()
         elif mm_projector_type == "linear":
             self.layers = nn.Linear(config.mm_hidden_size, config.hidden_size)
+        elif mm_projector_type == "mlp_downsample":
+            self.layers = nn.Sequential(
+                DownSampleBlock(),
+                nn.LayerNorm(config.mm_hidden_size * 4),
+                nn.Linear(config.mm_hidden_size * 4, config.hidden_size),
+                nn.GELU(),
+                nn.Linear(config.hidden_size, config.hidden_size)
+            )
         else:
             mlp_gelu_match = re.match(r"^mlp(\d+)x_gelu$", mm_projector_type)
             if mlp_gelu_match:

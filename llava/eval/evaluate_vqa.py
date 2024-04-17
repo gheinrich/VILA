@@ -1,8 +1,8 @@
 import argparse
 import json
 import os
-import time
 from typing import Optional
+import math
 
 from tqdm import tqdm
 
@@ -13,6 +13,17 @@ from llava.utils import disable_torch_init
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path
 
 from PIL import Image
+
+
+def split_list(lst, n):
+    """Split a list into n (roughly) equal-sized chunks"""
+    chunk_size = math.ceil(len(lst) / n)  # integer division
+    return [lst[i:i+chunk_size] for i in range(0, len(lst), chunk_size)]
+
+
+def get_chunk(lst, n, k):
+    chunks = split_list(lst, n)
+    return chunks[k]
 
 
 ds_collections = {
@@ -48,85 +59,17 @@ ds_collections = {
     }
 }
 
-# https://github.com/google-research/pix2struct/blob/main/pix2struct/metrics.py#L81
-def relaxed_correctness(target: str,
-                        prediction: str,
-                        max_relative_change: float = 0.05) -> bool:
-    """Calculates relaxed correctness.
-
-    The correctness tolerates certain error ratio defined by max_relative_change.
-    See https://arxiv.org/pdf/2203.10244.pdf, end of section 5.1:
-    “Following Methani et al. (2020), we use a relaxed accuracy measure for the
-    numeric answers to allow a minor inaccuracy that may result from the automatic
-    data extraction process. We consider an answer to be correct if it is within
-    5% of the gold answer. For non-numeric answers, we still need an exact match
-    to consider an answer to be correct.”
-
-    Args:
-      target: Target string.
-      prediction: Predicted string.
-      max_relative_change: Maximum relative change.
-
-    Returns:
-      Whether the prediction was correct given the specified tolerance.
-    """
-
-    def _to_float(text: str) -> Optional[float]:
-        try:
-            if text.endswith('%'):
-                # Convert percentages to floats.
-                return float(text.rstrip('%')) / 100.0
-            else:
-                return float(text)
-        except ValueError:
-            return None
-
-    prediction_float = _to_float(prediction)
-    target_float = _to_float(target)
-    if prediction_float is not None and target_float:
-        relative_change = abs(prediction_float -
-                              target_float) / abs(target_float)
-        return relative_change <= max_relative_change
-    else:
-        return prediction.lower() == target.lower()
-
-
-def evaluate_relaxed_accuracy(entries):
-    scores = []
-    for elem in entries:
-        if isinstance(elem['annotation'], str):
-            elem['annotation'] = [elem['annotation']]
-        score = max([
-            relaxed_correctness(elem['answer'].strip(), ann)
-            for ann in elem['annotation']
-        ])
-        scores.append(score)
-    return sum(scores) / len(scores)
-
-
-def evaluate_exact_match_accuracy(entries):
-    scores = []
-    for elem in entries:
-        if isinstance(elem['annotation'], str):
-            elem['annotation'] = [elem['annotation']]
-        score = max([
-            (1.0 if
-             (elem['answer'].strip().lower() == ann.strip().lower()) else 0.0)
-            for ann in elem['annotation']
-        ])
-        scores.append(score)
-    return sum(scores) / len(scores)
-
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--image-folder", type=str, default="")
+    parser.add_argument("--answers-file", type=str, default=None)
     parser.add_argument('--dataset', type=str, default='')
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
-    parser.add_argument("--answer-dir", type=str, default="")
+    parser.add_argument("--num-chunks", type=int, default=1)
+    parser.add_argument("--chunk-idx", type=int, default=0)
     args = parser.parse_args()
 
     disable_torch_init()
@@ -135,6 +78,7 @@ if __name__ == '__main__':
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base,)
 
     questions = [json.loads(q) for q in open(os.path.expanduser(ds_collections[args.dataset]['test']), "r")]
+    questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
     outputs = []
     for line in tqdm(questions):
         qs = line["question"]
@@ -165,12 +109,10 @@ if __name__ == '__main__':
             num_return_sequences=1,
             use_cache=True
         )
-        answers = [
-            tokenizer.decode(_[input_ids.size(1):].cpu(),
-                             skip_special_tokens=True).strip() for _ in pred
-        ]
 
-        answer = answers[0]
+        answer = tokenizer.batch_decode(pred, skip_special_tokens=True)[0]
+        answer = answer.strip()
+
         if args.dataset in ['ocrvqa_val', 'ocrvqa_test']:
             outputs.append({
                 'questionId': question_id,
@@ -196,34 +138,10 @@ if __name__ == '__main__':
         else:
             raise NotImplementedError
 
-    print(f"Evaluating {args.dataset} ...")
-    time_prefix = time.strftime('%y%m%d%H%M%S', time.localtime())
-    results_file = os.path.join(args.answer_dir, f'{args.dataset}_{time_prefix}.json')
-    os.makedirs(os.path.dirname(results_file), exist_ok=True)
-    json.dump(outputs, open(results_file, 'w'), ensure_ascii=False)
+    answers_file = os.path.expanduser(args.answers_file)
+    os.makedirs(os.path.dirname(answers_file), exist_ok=True)
 
-    if ds_collections[args.dataset]['metric'] == 'relaxed_accuracy':
-        print({
-            'relaxed_accuracy': evaluate_relaxed_accuracy(outputs)
-        })
-    elif ds_collections[args.dataset]['metric'] == 'accuracy':
-        if 'gqa' in args.dataset:
-            for entry in outputs:
-                response = entry['answer']
-                response = response.strip().split('.')[0].split(
-                    ',')[0].split('!')[0].lower()
-                if 'is ' in response:
-                    response = response.split('is ')[1]
-                if 'are ' in response:
-                    response = response.split('are ')[1]
-                if 'a ' in response:
-                    response = response.split('a ')[1]
-                if 'an ' in response:
-                    response = response.split('an ')[1]
-                if 'the ' in response:
-                    response = response.split('the ')[1]
-                if ' of' in response:
-                    response = response.split(' of')[0]
-                response = response.strip()
-                entry['answer'] = response
-        print({'accuracy': evaluate_exact_match_accuracy(outputs)})
+    with open(answers_file, 'w') as ans_file:
+        for output in outputs:
+            ans_file.write(json.dumps(output) + "\n")
+

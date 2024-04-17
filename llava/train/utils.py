@@ -87,6 +87,10 @@ def prepare_config_for_training(
         ## vision tower configurations
         config.vision_resolution = model_args.vision_resolution
         config.interpolate_mode = model_args.interpolate_mode
+        config.drop_path_rate = model_args.drop_path_rate
+        config.s2 = model_args.s2
+        config.s2_scales = model_args.s2_scales
+        config.s2_max_split_size = model_args.s2_max_split_size
 
 
 def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig):
