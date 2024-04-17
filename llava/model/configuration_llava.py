@@ -14,6 +14,7 @@ class LlavaConfig(PretrainedConfig):
         hidden_size=None,
         mm_hidden_size=None,
         image_aspect_ratio=None,
+        num_video_frames=None,
         mm_vision_select_layer=None,
         mm_vision_select_feature=None,
         mm_use_im_start_end=False,
@@ -24,8 +25,6 @@ class LlavaConfig(PretrainedConfig):
         **kwargs
     ):
         super().__init__()
-        # input("DEBUG LlavaConfig")
-                
         self.architectures = architectures
         self.llm_cfg = llm_cfg
         self.vision_tower_cfg = vision_tower_cfg
@@ -35,6 +34,7 @@ class LlavaConfig(PretrainedConfig):
         self.hidden_size = hidden_size
         self.mm_hidden_size = mm_hidden_size
         self.image_aspect_ratio = image_aspect_ratio
+        self.num_video_frames = num_video_frames
         self.mm_vision_select_layer = mm_vision_select_layer
         self.mm_vision_select_feature = mm_vision_select_feature
         self.mm_use_im_start_end = mm_use_im_start_end
@@ -43,3 +43,4 @@ class LlavaConfig(PretrainedConfig):
         self.mm_projector_lr = mm_projector_lr
         self.vision_resolution = vision_resolution
         self.interpolate_mode = interpolate_mode
+
