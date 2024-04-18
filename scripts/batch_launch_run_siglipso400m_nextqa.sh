@@ -9,7 +9,7 @@
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-nextqa-inference.out
     
-CKPT_NAME=vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e11113
+CKPT_NAME=vila-video-13b-fix
 model_path=./checkpoints/${CKPT_NAME} 
 
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/eval/video_chatgpt/run_qa_nextqa.sh ${model_path} ${CKPT_NAME}
