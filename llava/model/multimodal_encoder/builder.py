@@ -15,7 +15,7 @@ def build_vision_tower(
         return None
 
     vision_tower_arch = None
-    if config.resume_path and "radio" not in model_name_or_path and 'intern' not in model_name_or_path:
+    if config.resume_path and "radio" not in model_name_or_path:
         assert os.path.exists(
             model_name_or_path
         ), f"Resume vision tower path {model_name_or_path} does not exist!"
@@ -27,7 +27,7 @@ def build_vision_tower(
 
     use_s2 = getattr(config, 's2', False)
 
-    if "InternViT" in vision_tower_name:
+    if "intern" in vision_tower_name.lower():
         if hasattr(config, 'drop_path_rate'):
             vision_tower = InternVisionTower(
                 model_name_or_path, config=config, drop_path_rate=config.drop_path_rate)

@@ -50,4 +50,4 @@ class InternVisionTower(VisionTower):
         self.is_loaded = True
 
 AutoConfig.register("intern_vit_6b", InternVisionConfig)
-AutoModel.register(InternVisionConfig, InternVisionTower)
+AutoModel.register(InternVisionConfig, InternVisionModel)
