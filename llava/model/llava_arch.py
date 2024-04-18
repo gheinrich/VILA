@@ -163,6 +163,8 @@ class LlavaMetaModel(ABC):
             )
             self.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
             self.config.vision_tower_cfg = self.vision_tower.config
+            if hasattr(self.config.vision_tower_cfg, 'auto_map'):
+                delattr(self.config.vision_tower_cfg, 'auto_map')
 
         if self.get_mm_projector():
             print(f"saving mm_projector to {osp.join(output_dir, 'mm_projector')}")

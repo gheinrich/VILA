@@ -259,7 +259,26 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    
+
+    if not resume_path:
+        if model_args.mlp_path is not None:
+            state_dict = torch.load(model_args.mlp_path, map_location='cpu')
+            state_dict_new = {}
+            for k, v in state_dict.items():
+                if k == '0.weight':
+                    state_dict_new['layers.1.weight'] = v
+                if k == '0.bias':
+                    state_dict_new['layers.1.bias'] = v
+                if k == '1.weight':
+                    state_dict_new['layers.2.weight'] = v
+                if k == '1.bias':
+                    state_dict_new['layers.2.bias'] = v
+                if k == '3.weight':
+                    state_dict_new['layers.4.weight'] = v
+                if k == '3.bias':
+                    state_dict_new['layers.4.bias'] = v
+            model.get_mm_projector().load_state_dict(state_dict_new)
+
     vision_resolution_elevation(model, config)
     # This is an empty func.
     # It would be overwritten by unit test script.

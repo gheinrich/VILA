@@ -409,9 +409,21 @@ conv_llava_v1_mmtag = Conversation(
     version="v1_mmtag",
 )
 
+hermes_2 = Conversation(
+    system='<|im_start|>system\nAnswer the questions.',
+    roles=('<|im_start|>user\n', '<|im_start|>assistant\n'),
+    sep_style=SeparatorStyle.MPT,
+    sep='<|im_end|>',
+    messages=(
+    ),
+    offset=0,
+    version="hermes-2"
+)
+
 default_conversation = conv_vicuna_v1
 conv_templates = {
     "default": conv_vicuna_v0,
+    "hermes-2": hermes_2,
     "v0": conv_vicuna_v0,
     "v1": conv_vicuna_v1,
     "vicuna_v1": conv_vicuna_v1,

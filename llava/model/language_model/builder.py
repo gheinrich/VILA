@@ -90,6 +90,13 @@ def build_llm_and_tokenizer(
             model_max_length=llm_cfg.model_max_length,
             padding_side="right",
         )
+    elif "yi" in model_name_or_path.lower():
+        tokenizer = AutoTokenizer.from_pretrained(
+            llm_path,
+            model_max_length=llm_cfg.model_max_length,
+            padding_side="right",
+            use_fast=False,
+        )
     else:
         tokenizer = AutoTokenizer.from_pretrained(
             llm_path, 

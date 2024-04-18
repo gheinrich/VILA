@@ -218,6 +218,7 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ 655K llava_1_5_sft data relablled w/ ShareGPT4V captioner.",
     )
     add_dataset(sharegpt4v_sft)
+
     sharegpt4v_gpt4_100k = Dataset(
         dataset_name="sharegpt4v_gpt4_100k",
         dataset_type="torch",
@@ -283,13 +284,13 @@ def register_datasets_mixtures():
     )
     add_dataset(ai2d)
 
-    synthdog_en = Dataset(
-        dataset_name="synthdog_en",
-        dataset_type="torch",
-        data_path="/home/yunhaof/workspace/datasets/synthdog-en/synthdog_en_66_5k_with_question.json",
-        image_path="/home/yunhaof/workspace/datasets/synthdog-en/images",
-    )
-    add_dataset(synthdog_en)
+    # synthdog_en = Dataset(
+    #     dataset_name="synthdog_en",
+    #     dataset_type="torch",
+    #     data_path="/home/yunhaof/workspace/datasets/synthdog-en/synthdog_en_66_5k_with_question.json",
+    #     image_path="/home/yunhaof/workspace/datasets/synthdog-en/images",
+    # )
+    # add_dataset(synthdog_en)
 
     visual7w = Dataset(
         dataset_name="visual7w",
@@ -492,6 +493,142 @@ def register_datasets_mixtures():
         description="A subset of Ego4D dataset including 1M video-caption pairs. We re-generate the captions by removing the speical characters.",
     )
     add_dataset(ego4d_1M)
+
+    lvis_instruct = Dataset(
+        dataset_name="lvis_instruct",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/LVIS-Instruct4V/lvis_instruct4v_220k.json",
+        image_path="/home/yunhaof/workspace/datasets"
+    )
+    add_dataset(lvis_instruct)
+    
+    arxivqa = Dataset(
+        dataset_name="arxivqa",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/ArxivQA/arxivqa_100k.json",
+        image_path="/home/yunhaof/workspace/datasets/ArxivQA",
+    )
+    add_dataset(arxivqa)
+
+    llava_instruct = Dataset(
+        dataset_name="llava_instruct",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/llava_instruct_150k_zh.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/coco",
+        description="",
+    )
+    add_dataset(llava_instruct)
+
+
+
+    dvqa_train_200k = Dataset(
+        dataset_name="dvqa_train_200k",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/dvqa_train_200k.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/dvqa",
+        description="",
+    )
+    add_dataset(dvqa_train_200k)
+
+
+    chartqa_train_18k = Dataset(
+        dataset_name="chartqa_train_18k",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/chartqa",
+        description="",
+    )
+    add_dataset(chartqa_train_18k)
+
+    ai2d_train_12k = Dataset(
+        dataset_name="ai2d_train_12k",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/ai2d_train_12k.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/ai2d",
+        description="",
+    )
+    add_dataset(ai2d_train_12k)
+
+    docvqa_train_10k = Dataset(
+        dataset_name="docvqa_train_10k",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/docvqa",
+        description="",
+    )
+    add_dataset(docvqa_train_10k)
+
+    geoqa = Dataset(
+        dataset_name="geoqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/geoqa+.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/geoqa+",
+        description="",
+    )
+    add_dataset(geoqa)
+
+    synthdog_en = Dataset(
+        dataset_name="synthdog_en",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/synthdog_en.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data/synthdog-en",
+        description="",
+    )
+    add_dataset(synthdog_en)
+
+
+    test = Dataset(
+        dataset_name="test",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/test.jsonl",
+        image_path="/home/jasonlu/workspace/InternVL/internvl_chat/playground/data",
+        description="",
+    )
+    add_dataset(test)
+
+    mmc_instruction = Dataset(
+        dataset_name="mmc_instruction",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/MMC-Instruction/processed/mmc_instruction_410k.json",
+        image_path="/home/yunhaof/workspace/datasets/MMC-Instruction",
+    )
+    add_dataset(mmc_instruction)
+    lrv_instruction = Dataset(
+        dataset_name="lrv_instruction",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/LRV-Instruction/processed/lrv_instruction_321k.json",
+        image_path="/home/jasonlu/vlm_datasets/ShareGPT4V/data/vg",
+    )
+    add_dataset(lrv_instruction)
+    sherlock = Dataset(
+        dataset_name="sherlock",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/sherlock/processed/sherlock_317k.json",
+        image_path="/home/yunhaof/workspace/datasets/sherlock/images",
+    )
+    add_dataset(sherlock)
+    math = Dataset(
+        dataset_name="math",
+        dataset_type="vflan",
+        data_path="/home/yunhaof/workspace/datasets/math",
+    )
+    add_dataset(math)
+
+    geo_qa = Dataset(
+        dataset_name="geo_qa",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/Geo170K/qa_tuning.json",
+        image_path="/home/yunhaof/workspace/datasets/Geo170K/images",
+    )
+    add_dataset(geo_qa)
+
+    wit_subset = Dataset(
+        dataset_name="wit_subset",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/wit_processed_538k.json",
+        image_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/images"
+    )
+    add_dataset(wit_subset)
 
     dummy = Dataset(
         dataset_name="dummy",

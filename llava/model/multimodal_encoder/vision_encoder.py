@@ -8,6 +8,7 @@ from accelerate.hooks import add_hook_to_module
 from transformers import AutoConfig, PreTrainedModel
 from transformers.image_processing_utils import BaseImageProcessor
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
+from s2wrapper import forward as multiscale_forward
 
 
 class VisionTower(nn.Module):
@@ -154,3 +155,40 @@ class VisionTower(nn.Module):
     @property
     def num_patches(self):
         return (self.config.image_size // self.config.patch_size) ** 2
+
+
+class VisionTowerS2(VisionTower):
+    def __init__(self, vision_tower, args, delay_load=False):
+        super().__init__(vision_tower, args, delay_load)
+
+        self.scales = list(map(int, args.s2_scales.split(',')))
+        self.scales.sort()
+        self.max_split_size = args.s2_max_split_size
+
+    @torch.no_grad()
+    def forward_feature(self, images):
+        image_forward_outs = self.vision_tower(images.to(device=self.device, dtype=self.dtype), output_hidden_states=True)
+        image_features = self.feature_select(image_forward_outs).to(images.dtype)
+        return image_features
+
+    @torch.no_grad()
+    def forward(self, images):
+        if type(images) is list:
+            image_features = []
+            for image in images:
+                image_feature = multiscale_forward(self.forward_feature,
+                                                   image.unsqueeze(0),
+                                                   img_sizes=self.scales,
+                                                   max_split_size=self.max_split_size)
+                image_features.append(image_feature)
+        else:
+            image_features = multiscale_forward(self.forward_feature,
+                                                images,
+                                                img_sizes=self.scales,
+                                                max_split_size=self.max_split_size)
+
+        return image_features
+
+    @property
+    def hidden_size(self):
+        return self.config.hidden_size * len(self.scales)
