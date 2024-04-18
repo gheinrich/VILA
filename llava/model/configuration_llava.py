@@ -23,6 +23,9 @@ class LlavaConfig(PretrainedConfig):
         mm_projector_lr=None,
         vision_resolution=None,
         interpolate_mode=None,
+        s2=None,
+        s2_scales=None,
+        s2_max_split_size=None,
         **kwargs
     ):
         super().__init__()
@@ -45,4 +48,6 @@ class LlavaConfig(PretrainedConfig):
         self.mm_projector_lr = mm_projector_lr
         self.vision_resolution = vision_resolution
         self.interpolate_mode = interpolate_mode
-
+        self.s2 = s2
+        self.s2_scales = s2_scales
+        self.s2_max_split_size = s2_max_split_size

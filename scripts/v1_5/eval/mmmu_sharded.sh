@@ -26,7 +26,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
   CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python -m llava.eval.model_vqa_mmmu_sharded \
     --model_path $MODEL_PATH \
     --data_path ./playground/data/eval/MMMU \
-    --conv-mode vicuna_v1 \
+    --conv-mode hermes-2 \
     --config_path llava/eval/mmmu_utils/configs/llava1.5.yaml \
     --output_path ./playground/data/eval/MMMU/${SPLIT}_results/$CKPT.json \
     --num-chunks $CHUNKS \

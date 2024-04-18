@@ -20,27 +20,28 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vila-llama2-7b-256gpus-mmc4-coyo \
+    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-vicuna-7b-sharegpt4v_pretrain_test550 \
     --version v1 \
-    --data_mixture vflan+sharegpt4v_sft \
-    --vision_tower openai/clip-vit-large-patch14-336 \
+    --data_mixture sharegpt4v_sft+vflan \
+    --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp2x_gelu \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
+    --image_aspect_ratio resize \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-llama2-7b-256gpus-mmc4-coyo-vflan-sharegpt4v \
+    --output_dir ./checkpoints/vila-siglip-vicuna-7b-sharegpt4v_pretrain-sharegpt4v_sft+vflan_test550 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 210 \
+    --save_steps 100 \
     --save_total_limit 1 \
     --learning_rate 1e-4 \
     --weight_decay 0. \

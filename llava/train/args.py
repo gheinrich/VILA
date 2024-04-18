@@ -50,6 +50,12 @@ class ModelArguments:
     mm_vision_select_feature: Optional[str] = field(default="patch")
     vision_resolution: Optional[int] = field(default=-1)
     interpolate_mode: Optional[str] = field(default="linear")
+    drop_path_rate: Optional[float] = field(default=0.)
+    mlp_path: Optional[str] = field(default=None)
+    s2: bool = field(default=False)
+    s2_scales: Optional[str] = field(default="336,672,1008")
+    s2_max_split_size: int = field(default=336)
+
 
 
 @dataclass
