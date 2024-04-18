@@ -24,6 +24,8 @@ import torch.nn as nn
 from transformers import AutoConfig, AutoModelForCausalLM, \
                          MistralConfig, MistralModel, MistralForCausalLM
 
+from .modeling_mixtral_long_context import MixtralModel, MixtralForCausalLM
+
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM

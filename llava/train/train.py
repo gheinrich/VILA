@@ -24,6 +24,7 @@ import transformers
 
 from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
 from transformers.modeling_utils import unwrap_model
+from transformers import set_seed
 
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
@@ -206,6 +207,8 @@ def train():
             )
         )
 
+    set_seed(training_args.seed)
+
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
     
     if not continue_training:
@@ -371,6 +374,16 @@ def train():
     if vision_tower is not None:
         data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
+
+        if hasattr(data_args, "num_video_frames") and data_args.num_video_frames != None:
+            model.config.num_video_frames = data_args.num_video_frames 
+        else:
+            model.config.num_video_frames =  8
+
+        if hasattr(data_args, "fps"):
+            model.config.fps = data_args.fps 
+        else:
+            model.config.fps =  0.0
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
