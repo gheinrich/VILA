@@ -24,16 +24,18 @@ CHUNKS=${#GPULIST[@]}
 
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
-  CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python3 llava/eval/video/run_inference_video_qa.py \
+  CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python3 llava/eval/model_vqa_video.py \
       --model_path ${model_path} \
       --cache_dir ${cache_dir} \
       --video_dir ${video_dir} \
+      --model_max_length 8192 \
       --gt_file_question ${gt_file_question} \
       --gt_file_answers ${gt_file_answers} \
-      --output_dir ${output_dir} \
-      --output_name ${CHUNKS}_$((IDX+8)) \
-      --num_chunks 16 \
-      --chunk_idx $((IDX+8)) &
+      --output_name ${CHUNKS}_$((IDX)) \
+      --num-chunks $CHUNKS \
+      --chunk-idx $IDX \
+      --conv-mode vicuna_v1 \
+      --temperature 0 &
 done
 
 wait

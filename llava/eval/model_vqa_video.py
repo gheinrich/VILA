@@ -91,6 +91,7 @@ def eval_model(args):
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
+    args.image_processor = image_processor
 
     gt_questions = json.load(open(os.path.expanduser(args.gt_file_question), "r"))
     gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
