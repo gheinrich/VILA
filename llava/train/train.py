@@ -29,6 +29,7 @@ from transformers import set_seed
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
+from llava.train.callbacks.autoresume_callback import AutoResumeCallback
 
 from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module
@@ -42,8 +43,10 @@ from llava.train.utils import (
 
 
 local_rank = None
-os.environ["WANDB_PROJECT"] = "VILA"
 
+if "WANDB_PROJECT" not in os.environ:
+    # Default to WANDB project "VILA".
+    os.environ["WANDB_PROJECT"] = "VILA"
 
 def rank0_print(*args):
     if local_rank == 0:
@@ -423,8 +426,13 @@ def train():
         data_args=data_args,
         training_args=training_args,
     )
+
+    # Add a training step_end callback to check whether to autosuspend.
+    callbacks = [AutoResumeCallback()]
+
     trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module
+        model=model, tokenizer=tokenizer, args=training_args,
+        callbacks=callbacks, **data_module
     )
     print(
         "length of dataloader:",
