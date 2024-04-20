@@ -29,6 +29,7 @@ class SeparatorStyle(Enum):
     PLAIN = auto()
     LLAMA_2 = auto()
     MISTRAL = auto()
+    LLAMA_3 = auto()
 
 
 @dataclasses.dataclass
@@ -67,7 +68,7 @@ class Conversation:
                     ret += role + ": " + message + self.sep
                 else:
                     ret += role + ":"
-        elif self.sep_style == SeparatorStyle.TWO:
+        elif self.sep_style == SeparatorStyle.TWO or self.sep_style == SeparatorStyle.LLAMA_3:
             seps = [self.sep, self.sep2]
             ret = self.system + seps[0]
             for i, (role, message) in enumerate(messages):
@@ -420,10 +421,23 @@ hermes_2 = Conversation(
     version="hermes-2"
 )
 
+llama_3 = Conversation(
+    system="A chat between a curious user and an artificial intelligence assistant. "
+    "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.LLAMA_3,
+    sep=" ",
+    sep2="<|end_of_text|>",
+)
+
 default_conversation = conv_vicuna_v1
 conv_templates = {
     "default": conv_vicuna_v0,
     "hermes-2": hermes_2,
+    "llama_3": llama_3,
     "v0": conv_vicuna_v0,
     "v1": conv_vicuna_v1,
     "vicuna_v1": conv_vicuna_v1,
