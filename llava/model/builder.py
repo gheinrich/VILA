@@ -219,7 +219,7 @@ def load_pretrained_model(
                 model = AutoModelForCausalLM.from_pretrained(
                     model_path, low_cpu_mem_usage=True, **kwargs
                 )
-
+    model.eval()
     image_processor = None
     if is_mm_model(model_path):
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
