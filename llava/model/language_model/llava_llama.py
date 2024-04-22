@@ -75,7 +75,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         return super(LlavaLlamaModel).from_pretrained(pretrained_model_name_or_path, 
             *model_args, config=config, cache_dir=cache_dir, ignore_mismatched_sizes=ignore_mismatched_sizes, force_download=force_download, local_files_only=local_files_only, token=token, 
             revision=revision, use_safetensors=use_safetensors, **kwargs)    
-        
+
     def forward(
         self,
         input_ids: torch.LongTensor = None,
@@ -90,6 +90,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
+        self.freezed_module_patch()
         if inputs_embeds is None:
             (
                 input_ids,

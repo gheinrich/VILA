@@ -215,6 +215,18 @@ class LlavaMetaModel(ABC):
         if getattr(self.config, "mm_projector_cfg", None) is None:
             self.config.mm_projector_cfg = self.mm_projector.config
 
+    def freezed_module_patch(self):
+        '''
+        Huggingface will call model.train() at each training_step. To ensure the expected behaviors for modules like dropout, batchnorm, etc., we need to call model.eval() for the freezed modules.
+        '''
+        if self.training:
+            if self.get_llm() and not getattr(self.config, "tune_language_model", False):
+                self.get_llm().eval()
+            if self.get_vision_tower() and not getattr(self.config, "tune_vision_tower", False):
+                self.get_vision_tower().eval()
+            if self.get_mm_projector() and not getattr(self.config, "tune_mm_projector", False):
+                self.get_mm_projector().eval()
+    
     def encode_images(self, images):
         image_features = self.get_vision_tower()(images)
         image_features = self.get_mm_projector()(image_features)
