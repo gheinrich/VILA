@@ -20,7 +20,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/checkpoints/vila-siglip-vicuna-7b-r200 \
+    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-vicuna-7b-r200 \
     --version v1 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain \
     --vision_tower google/siglip-so400m-patch14-384 \
