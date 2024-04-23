@@ -6,6 +6,7 @@ class Dataset:
     dataset_name: str
     dataset_type: str = field(default="torch")
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    meta_path: str = field(default=None, metadata={"help": "Path to the meta data for webdataset."})
     image_path: str = field(default=None, metadata={"help": "Path to the training image data."})
     description: str = field(
         default=None,
