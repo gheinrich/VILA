@@ -1488,7 +1488,7 @@ class LazyCCSWebDataset(Dataset):
 
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = VILAWebDataset(
-            data_path=osp.abspath(data_path),
+            data_path=osp.abspath(data_path)
         )
 
         t2 = time.time()
@@ -1641,6 +1641,7 @@ class LazyCoyoWebDataset(Dataset):
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = VILAWebDataset(
             data_path=osp.abspath(data_path),
+            meta_path=data_args.meta_path
         )
 
         # None: use original caption
@@ -2031,6 +2032,7 @@ def build_datasets(
                 image_folder = dataset.image_path
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
+        data_args.meta_path = getattr(dataset, "meta_path", None)
         dataset = dataset_cls(
             tokenizer=tokenizer,
             data_path=dataset.data_path,
