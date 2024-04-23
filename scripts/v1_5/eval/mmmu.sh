@@ -8,7 +8,7 @@ mkdir -p ./playground/data/eval/MMMU/test_results
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_mmmu \
     --model_path $MODEL_PATH \
     --data_path ./playground/data/eval/MMMU \
-    --conv-mode llama_3 \
+    --conv-mode vicuna_v1 \
     --config_path llava/eval/mmmu_utils/configs/llava1.5.yaml \
     --output_path ./eval_output/$CKPT/MMMU/${SPLIT}_answers.json \
     --split $SPLIT

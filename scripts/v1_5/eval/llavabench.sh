@@ -10,7 +10,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --image-folder ./playground/data/eval/llava-bench-in-the-wild/images \
     --answers-file ./eval_output/$CKPT/llava-bench-in-the-wild/answers.jsonl \
     --temperature 0 \
-    --conv-mode llama_3
+    --conv-mode vicuna_v1
 
 mkdir -p playground/data/eval/llava-bench-in-the-wild/reviews
 

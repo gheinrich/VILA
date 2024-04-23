@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --image-folder ./playground/data/eval/MME/MME_Benchmark_release_version \
     --answers-file ./eval_output/$CKPT/MME/mme.jsonl \
     --temperature 0 \
-    --conv-mode llama_3
+    --conv-mode vicuna_v1
 
 python $MMEDIR/convert_answer_to_mme.py --experiment ./eval_output/$CKPT/MME/mme.jsonl
 

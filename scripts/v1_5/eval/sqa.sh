@@ -49,7 +49,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_science \
     --answers-file ./eval_output/$CKPT/scienceqa/answers.jsonl \
     --single-pred-prompt \
     --temperature 0 \
-    --conv-mode llama_3
+    --conv-mode vicuna_v1
 
 CUDA_VISIBLE_DEVICES=0 python llava/eval/eval_science_qa.py \
     --base-dir ./playground/data/eval/scienceqa \

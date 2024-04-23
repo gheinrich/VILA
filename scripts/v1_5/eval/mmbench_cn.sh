@@ -11,7 +11,7 @@ python -m llava.eval.model_vqa_mmbench \
     --lang cn \
     --single-pred-prompt \
     --temperature 0 \
-    --conv-mode llama_3
+    --conv-mode vicuna_v1
 
 python scripts/convert_mmbench_for_submission.py \
     --annotation-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \

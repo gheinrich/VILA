@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --image-folder ./playground/data/eval/textvqa/train_images \
     --answers-file ./eval_output/$CKPT/textvqa/answers.jsonl \
     --temperature 0 \
-    --conv-mode llama_3
+    --conv-mode vicuna_v1
 
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.eval_textvqa \
     --annotation-file ./playground/data/eval/textvqa/TextVQA_0.5.1_val.json \
