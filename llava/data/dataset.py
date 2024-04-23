@@ -2032,8 +2032,7 @@ def build_datasets(
                 image_folder = dataset.image_path
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
-        if getattr(dataset, "meta_path"):
-            data_args.meta_path = dataset.meta_path
+        data_args.meta_path = getattr(dataset, "meta_path", None)
         dataset = dataset_cls(
             tokenizer=tokenizer,
             data_path=dataset.data_path,
