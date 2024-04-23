@@ -103,6 +103,24 @@ def register_datasets_mixtures():
         description="See coyo. Relabel coyo w/ VILA captioner, long Image - Text pair.",
     )
     add_dataset(coyo_webds_vila_recaption)
+    
+    coyo_webds_vila_recaption_5_subset = Dataset(
+        dataset_name="coyo_25m_wds_recap_5_subset",
+        dataset_type="coyo-wds-recap",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila/wids-meta-5-subset.json",
+        description="5% subset of coyo_webds_vila_recaption.",
+    )
+    add_dataset(coyo_webds_vila_recaption_5_subset)
+    
+    coyo_webds_vila_recaption_10_subset = Dataset(
+        dataset_name="coyo_25m_wds_recap_10_subset",
+        dataset_type="coyo-wds-recap",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila/wids-meta-10-subset.json",
+        description="5% subset of coyo_webds_vila_recaption.",
+    )
+    add_dataset(coyo_webds_vila_recaption_10_subset)
 
     # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
     # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
@@ -113,6 +131,25 @@ def register_datasets_mixtures():
         description="See coyo. Convert coyo to webds format.",
     )
     add_dataset(coyo_25m_wds)
+    
+    coyo_25m_wds_5_subset = Dataset(
+        dataset_name="coyo_25m_wds_5_subset",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-5-subset.json",
+        description="5% subset of coyo_25m_wds.",
+    )
+    add_dataset(coyo_25m_wds_5_subset)
+    
+    coyo_25m_wds_10_subset = Dataset(
+        dataset_name="coyo_25m_wds_10_subset",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-10-subset.json",
+        description="10% subset of coyo_25m_wds.",
+    )
+    add_dataset(coyo_25m_wds_10_subset)
+    
     coyo_webds_full = Dataset(
         dataset_name="coyowebds_full",
         dataset_type="coyo-wds",
@@ -147,6 +184,14 @@ def register_datasets_mixtures():
     )
     add_dataset(mmc4core)
 
+    mmc4core_10_subset = Dataset(
+        dataset_name="mmc4core_10_subset",
+        dataset_type="mmc4",
+        data_path="/home/yunhaof/workspace/datasets/subsets/mmc4core_subset",
+        description="10% subset of mmc4core.",
+    )
+    add_dataset(mmc4core_10_subset)
+    
     mmc4core_test = Dataset(
         dataset_name="mmc4core_test",
         dataset_type="mmc4",
