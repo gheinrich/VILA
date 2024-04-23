@@ -68,7 +68,7 @@ class Conversation:
                     ret += role + ": " + message + self.sep
                 else:
                     ret += role + ":"
-        elif self.sep_style == SeparatorStyle.TWO or self.sep_style == SeparatorStyle.LLAMA_3:
+        elif self.sep_style == SeparatorStyle.TWO:
             seps = [self.sep, self.sep2]
             ret = self.system + seps[0]
             for i, (role, message) in enumerate(messages):
@@ -78,6 +78,15 @@ class Conversation:
                     ret += role + ": " + message + seps[i % 2]
                 else:
                     ret += role + ":"
+        elif self.sep_style == SeparatorStyle.LLAMA_3:
+            ret = self.system + self.sep
+            for role, message in messages:
+                if message:
+                    if type(message) is tuple:
+                        message = message[0]
+                    ret += role + message + self.sep
+                else:
+                    ret += role
         elif self.sep_style == SeparatorStyle.MPT:
             ret = self.system + self.sep
             for role, message in messages:
@@ -422,15 +431,16 @@ hermes_2 = Conversation(
 )
 
 llama_3 = Conversation(
-    system="A chat between a curious user and an artificial intelligence assistant. "
-    "The assistant gives helpful, detailed, and polite answers to the user's questions.",
-    roles=("USER", "ASSISTANT"),
-    version="v1",
+    system="<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful language and vision assistant. "
+           "You are able to understand the visual content that the user provides, "
+           "and assist the user with a variety of tasks using natural language.",
+    roles=("<|start_header_id|>user<|end_header_id|>\n\n",
+           "<|start_header_id|>system<|end_header_id|>\n\n"),
+    version="llama_v3",
     messages=(),
     offset=0,
     sep_style=SeparatorStyle.LLAMA_3,
-    sep=" ",
-    sep2="<|end_of_text|>",
+    sep="<|end_of_text|>",
 )
 
 default_conversation = conv_vicuna_v1

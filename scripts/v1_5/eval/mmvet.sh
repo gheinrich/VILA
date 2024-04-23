@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --image-folder ./playground/data/eval/mm-vet/images \
     --answers-file ./eval_output/$CKPT/mm-vet/answers.json \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode llama_3
 
 mkdir -p ./playground/data/eval/mm-vet/results
 

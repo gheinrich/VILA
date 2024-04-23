@@ -33,7 +33,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio resize \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-llama3-8b-pretrain_r1_test \
+    --output_dir ./checkpoints/vila-siglip-llama3-8b-pretrain_r2_test \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

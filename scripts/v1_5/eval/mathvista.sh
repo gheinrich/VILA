@@ -10,7 +10,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.eval_mathvista \
     --split $SPLIT \
     --answers-file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode llama_3
 
 if [ "$SPLIT" = "testmini" ]; then
     python llava/eval/eval_mathvista.py --answer_file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json

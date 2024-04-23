@@ -248,7 +248,9 @@ def train():
                 model_args.model_name_or_path,
                 resume=resume_from_checkpoint
             )
-
+        if getattr(config, "resume_path", None) is not None:
+            config.resume_path = model_args.model_name_or_path
+    
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
 

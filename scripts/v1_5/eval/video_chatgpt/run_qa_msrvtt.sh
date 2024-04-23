@@ -39,6 +39,6 @@ output_file=${output_dir}/merge.jsonl
 > "$output_file"
 
 # Loop through the indices and concatenate each file.
-for IDX in $(seq 0 $((CHUNKS+7))); do
+for IDX in $(seq 0 $((CHUNKS-1))); do
     cat ${output_dir}/${CHUNKS}_${IDX}.json >> "$output_file"
 done

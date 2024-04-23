@@ -20,7 +20,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-llama3-8b-pretrain_r1_test \
+    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-llama3-8b-pretrain_r2_test \
     --version llama_3 \
     --data_mixture sharegpt4v_sft+vflan \
     --vision_tower google/siglip-so400m-patch14-384 \
@@ -33,7 +33,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio resize \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-llama3-8b-sft_r1 \
+    --output_dir ./checkpoints/vila-siglip-llama3-8b-sft_r3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

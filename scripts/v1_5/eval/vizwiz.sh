@@ -9,7 +9,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --image-folder ./playground/data/eval/vizwiz/test \
     --answers-file ./eval_output/$CKPT/vizwiz/answers.jsonl \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode llama_3
 
 python scripts/convert_vizwiz_for_submission.py \
     --annotation-file ./playground/data/eval/vizwiz/llava_test.jsonl \
