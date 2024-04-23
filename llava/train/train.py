@@ -39,6 +39,7 @@ from llava.train.utils import (
     prepare_config_for_training,
     vision_resolution_elevation,
     unit_test_rope_scaling,
+    mprint,
 )
 
 
@@ -47,10 +48,6 @@ local_rank = None
 if "WANDB_PROJECT" not in os.environ:
     # Default to WANDB project "VILA".
     os.environ["WANDB_PROJECT"] = "VILA"
-
-def rank0_print(*args):
-    if local_rank == 0:
-        print(*args)
 
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -213,11 +210,11 @@ def train():
     set_seed(training_args.seed)
 
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
-    
+
     if not continue_training:
         print(f"Models has been ready under {training_args.output_dir}. Skipp training")
         exit(0)
-    
+
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -251,10 +248,10 @@ def train():
                 model_args.model_name_or_path,
                 resume=resume_from_checkpoint
             )
-    
+
     ## extra configurations
-    prepare_config_for_training(config, model_args, training_args)
-    
+    prepare_config_for_training(config, model_args, training_args, data_args)
+
     model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",
@@ -289,7 +286,7 @@ def train():
         return
 
     # Take a look on model architecture.
-    print(model)
+    mprint(model)
 
     model.llm.config.use_cache = False
     ## set tunnable parameters
@@ -297,12 +294,12 @@ def train():
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
     model.get_llm().requires_grad_(training_args.tune_language_model)
-    print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
+    mprint(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
     if model.get_vision_tower():
         model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
         model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
-        print(f"vision tower {training_args.tune_vision_tower}")
-        print(f"mm projector {training_args.tune_mm_projector}")
+        mprint(f"vision tower {training_args.tune_vision_tower}")
+        mprint(f"mm projector {training_args.tune_mm_projector}")
     if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
         logging.warning(
             "You are not tuning any part of the model. Please check if this is intended."
@@ -360,10 +357,10 @@ def train():
                 model.to(torch.bfloat16)
             if training_args.fp16:
                 model.to(torch.float16)
-        rank0_print("Adding LoRA adapters...")
+        mprint("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
     # @yunhao: tokenizer instantiation is moved into build_llm
-    tokenizer = model.tokenizer 
+    tokenizer = model.tokenizer
     # @yunhao: may move this block into method "build_llm"
     if model_args.version == "v0":
         if tokenizer.pad_token is None:

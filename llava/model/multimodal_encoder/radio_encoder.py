@@ -5,6 +5,7 @@ from typing import Any, Dict
 import warnings
 
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
+from llava.train.utils import mprint, rprint
 from transformers import CLIPVisionConfig
 from .image_processor import ImageProcessor
 from PIL import Image
@@ -21,14 +22,6 @@ def get_prefix_state_dict(state_dict: Dict[str, Any], prefix: str):
 
 def is_rank0():
     return not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
-
-def rank0_print(s):
-    if is_rank0():
-        print(s)
-
-def rank_print(s):
-    rank = torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
-    print(f"[Rank {rank}] {s}")
 
 class RADIOVisionTower(VisionTower):
     """
@@ -52,7 +45,7 @@ class RADIOVisionTower(VisionTower):
 
         super().__init__(vision_tower, args, delay_load)
 
-        rank0_print(f"RADIOVisionTower: {vision_tower}. Args: {args} Delay load: {delay_load}")
+        mprint(f"RADIOVisionTower: {vision_tower}. Args: {args} Delay load: {delay_load}")
 
         self.vision_tower_name = vision_tower[len("radio:"):]
         config_items = self.vision_tower_name.split(":")
@@ -60,6 +53,7 @@ class RADIOVisionTower(VisionTower):
         if len(self.image_sizes) == 0:
             raise ValueError("Expected more than zero images sizes!")
         self.image_size = self.image_sizes[0]
+        self.image_aspect_ratio = args.image_aspect_ratio
 
         self.downscale_factor = None
         if len(self.image_sizes) > 1:
@@ -143,21 +137,29 @@ class RADIOVisionTower(VisionTower):
 
     def load_model(self):
 
-        self.image_processor = ImageProcessor(
-                size={"longest_edge": self.image_size},
-                do_pad=True,
-                pad_multiple=16,
+        if self.image_aspect_ratio == "resize":
+            self.image_processor = ImageProcessor(
+                size={"width": self.image_size, "height": self.image_size},
+                do_pad=False,
                 do_normalize=False,
                 do_convert_rgb=True,
-                pad_value=0.456,
             )
+        else:
+            self.image_processor = ImageProcessor(
+                    size={"longest_edge": self.image_size},
+                    do_pad=True,
+                    pad_multiple=16,
+                    do_normalize=False,
+                    do_convert_rgb=True,
+                    pad_value=0.456,
+                )
         # For compatibility with CLIP Image Processor: the data loader uses width/height to
         # create dummy blank images for samples that don't have an image.
         self.image_processor.crop_size = {"width": self.image_size, "height": self.image_size}
 
         # Load weights from checkpoint.
         checkpoint_path = self.vision_tower_checkpoint
-        rank_print(f"Loading checkpoint from {checkpoint_path}")
+        rprint(f"Loading checkpoint from {checkpoint_path}")
 
         # NOTE: do a lazy import of Timm to avoid issues with
         # DeepSpeed's ZeRO-3.
@@ -212,7 +214,7 @@ class RADIOVisionTower(VisionTower):
         # Prevent casting the RADIO model's weights
         kwargs = dict(kwargs)
         self._to_dtype = kwargs.pop('dtype', None)
-
+        mprint(f"RADIO: bypass cast to dtype={self._to_dtype}")
         super().to(*args, **kwargs)
         pass
 
@@ -236,14 +238,16 @@ class RADIOVisionTower(VisionTower):
         return features
 
     @torch.no_grad()
-    def forward(self, x: torch.Tensor):
+    def forward(self, images: torch.Tensor):
+        """Main forward pass."""
+        input_shape = images.shape
 
+        x = images
         # Add a batch dimension if necessary.
-        x_shape = x.shape
-        if len(x_shape) == 3:
+        if len(input_shape) == 3:
             x = x.unsqueeze(0)
 
-        rank_print(f"input shape={x_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype}")
+        rprint(f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype}")
 
         features = self.get_features(x) # B, T, C
 
@@ -253,19 +257,22 @@ class RADIOVisionTower(VisionTower):
         spatial_features = features.reshape(B, H // patch_size, W // patch_size, C)
         spatial_features = spatial_features.permute(0, 3, 1, 2) # B, C, H/patch_size, W/patch_size
 
-        rank_print(f"spatial_features: {spatial_features.shape}")
-
-        if self.debug and is_rank0() and self.sample_count % 100 == 0:
+        if self.debug and is_rank0() and self.sample_count % 1000 == 0:
             spatial_features_hwc = spatial_features.permute(0, 2, 3, 1)
-            torch.save(x, f"eval-results/MMMU/test_results/radio/sample_{self.sample_count}_input.pt")
-            torch.save(features, f"eval-results/MMMU/test_results/radio/sample_{self.sample_count}_features.pt")
-            torch.save(spatial_features_hwc, f"eval-results/MMMU/test_results/radio/sample_{self.sample_count}_features_reshaped.pt")
+            # create the debug directory
+            os.makedirs("radio-debug", exist_ok=True)
+            torch.save(x, f"radio-debug/sample_{self.sample_count}_input.pt")
+            torch.save(features, f"radio-debug/sample_{self.sample_count}_features.pt")
+            torch.save(spatial_features_hwc, f"radio-debug/sample_{self.sample_count}_features_reshaped.pt")
             for i in range(B):
+                image = x[i].permute(1, 2, 0).float() * 255
+                image = Image.fromarray(image.cpu().numpy().astype(np.uint8))
+                image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_preprocessed_{i}.png"))
                 pca_map = get_pca_map(spatial_features_hwc[i:i+1], x.shape[-2:])
-                torch.save(pca_map, f"eval-results/MMMU/test_results/radio/sample_{self.sample_count}_pca_map_{i}.pt")
+                torch.save(pca_map, f"radio-debug/sample_{self.sample_count}_pca_map_{i}.pt")
                 image = pca_map * 255
                 image = Image.fromarray(image.astype(np.uint8))
-                image.save(os.path.join("eval-results/MMMU/test_results/radio/", f"sample_{self.sample_count}_pca_map_{i}.png"))
+                image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_pca_map_{i}.png"))
                 pass
 
         if self.pixel_unshuffle is not None:
@@ -276,38 +283,35 @@ class RADIOVisionTower(VisionTower):
                 C * self.downscale_factor**2,
                 (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor)).permute(0, 2, 1)
 
-
         if len(self.image_sizes) > 1:
+            # Experimental support for multi-resolution inference.
             if self.pixel_unshuffle is None:
                 # downscale features
                 spatial_features = self.pool2d(spatial_features) # B, C, H/patch_size/downscale_factor, W/patch_size/downscale_factor
-                print("pooled spatial_features", spatial_features.shape)
                 features = spatial_features.reshape(
                     B,
                     C,
                     (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor))
                 features = features.permute(0, 2, 1) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
-                print("flattened features", features.shape)
 
             # Downscale the input image.
             x = self.pool2d(x) # B, 3, H/downscale_factor, W/downscale_factor)
             features_stage2 = self.get_features(x) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
-            print("lowres features", features_stage2.shape)
 
             # Concatenate stage1 and stage 2 features.
             features = torch.cat([features, features_stage2], dim=2)
 
         # Remove the batch dimension if we added it.
-        if len(x_shape) == 3:
+        if len(input_shape) == 3:
             features = features.squeeze(0)
 
+        # Cast back to the input's dtype.
+        features = features.to(images.dtype)
+
         adaptor_name = f"{self.adaptor_name}{'+backbone' if self.fuse_adaptor_with_backbone else ''}"
-        rank_print(f"features ({adaptor_name}) shape={features.shape} mean={features.mean().item()} std={features.std().item()}")
+        rprint(f"features ({adaptor_name}) shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}")
 
         assert features.shape[-1] == self.get_hidden_size()
         self.sample_count += 1
-
-        if self._to_dtype is not None:
-            features = features.to(dtype=self._to_dtype)
 
         return features

@@ -79,8 +79,9 @@ class ImageProcessor(BaseImageProcessor):
             Whether to resize the image's (height, width) dimensions to the specified `size`. Can be overridden by the
             `do_resize` parameter in the `preprocess` method.
         size (`dict`, *optional*, defaults to `{"longest_edge": 1024}`):
-            Size of the output image after resizing. Resizes the longest edge of the image to match
-            `size["longest_edge"]` while maintaining the aspect ratio. Can be overridden by the `size` parameter in the
+            Size of the output image after resizing. If "longest_edge" is specified, resizes the longest edge of the image to match
+            `size["longest_edge"]` while maintaining the aspect ratio. If "width" and "height" are specified, resizes the image
+            to that size, possibly changing the aspect ratio. Can be overridden by the `size` parameter in the
             `preprocess` method.
         resample (`PILImageResampling`, *optional*, defaults to `Resampling.BILINEAR`):
             Resampling filter to use if resizing the image. Can be overridden by the `resample` parameter in the
@@ -137,8 +138,6 @@ class ImageProcessor(BaseImageProcessor):
     ) -> None:
         super().__init__(**kwargs)
         x = 0
-        if isinstance(x, Image):
-            print("foo")
         size = size if size is not None else {"longest_edge": 1024}
         size = get_size_dict(max_size=size, default_to_square=False) if not isinstance(size, dict) else size
 
@@ -146,7 +145,8 @@ class ImageProcessor(BaseImageProcessor):
             raise ValueError("pad_size and pad_multiple should not be set at the same time.")
 
         pad_size = pad_size if pad_size is not None else {"height": 1024, "width": 1024} if pad_multiple is not None else None
-        pad_size = get_size_dict(pad_size, default_to_square=True)
+        if do_pad:
+            pad_size = get_size_dict(pad_size, default_to_square=True)
 
         self.do_resize = do_resize
         self.size = size
@@ -245,9 +245,10 @@ class ImageProcessor(BaseImageProcessor):
             image (`np.ndarray`):
                 Image to resize.
             size (`Dict[str, int]`):
-                Dictionary in the format `{"longest_edge": int}` specifying the size of the output image. The longest
-                edge of the image will be resized to the specified size, while the other edge will be resized to
-                maintain the aspect ratio.
+                Dictionary in the format `{"longest_edge": int}` or `{"width": int, "height": int}` specifying the size
+                of the output image. If "longest_edge" is specified, resizes the longest edge of the image to match
+                `size["longest_edge"]` while maintaining the aspect ratio. If "width" and "height" are specified, resizes the image
+                to that size, possibly changing the aspect ratio.
             resample:
                 `PILImageResampling` filter to use when resizing the image e.g. `PILImageResampling.BILINEAR`.
             data_format (`ChannelDimension` or `str`, *optional*):
@@ -266,9 +267,13 @@ class ImageProcessor(BaseImageProcessor):
         """
         size = get_size_dict(size)
         if "longest_edge" not in size:
-            raise ValueError(f"The `size` dictionary must contain the key `longest_edge`. Got {size.keys()}")
+            if "width" not in size or "height" not in size:
+                raise ValueError(f"The `size` dictionary must contain the key `longest_edge`, or `width` and `height`. Got {size.keys()}")
         input_size = get_image_size(image, channel_dim=input_data_format)
-        output_height, output_width = self._get_preprocess_shape(input_size, size["longest_edge"])
+        if "longest_edge" in size:
+            output_height, output_width = self._get_preprocess_shape(input_size, size["longest_edge"])
+        else:
+            output_height, output_width = size["height"], size["width"]
         return resize(
             image,
             size=(output_height, output_width),
@@ -498,7 +503,8 @@ class ImageProcessor(BaseImageProcessor):
         image_std = image_std if image_std is not None else self.image_std
         do_pad = do_pad if do_pad is not None else self.do_pad
         pad_size = pad_size if pad_size is not None else self.pad_size
-        pad_size = get_size_dict(pad_size, default_to_square=True)
+        if do_pad:
+            pad_size = get_size_dict(pad_size, default_to_square=True)
         do_convert_rgb = do_convert_rgb if do_convert_rgb is not None else self.do_convert_rgb
 
         images = make_list_of_images(images)
