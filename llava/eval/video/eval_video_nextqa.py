@@ -3,7 +3,16 @@ import argparse
 import json
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
-from pywsd.utils import lemmatize_sentence
+try:
+    from pywsd.utils import lemmatize_sentence
+except:
+    import nltk
+    nltk.download('averaged_perceptron_tagger')
+    nltk.download('wordnet')
+    nltk.download('punkt')
+    from pywsd.utils import lemmatize_sentence
+
+
 import numpy as np
 from tqdm import tqdm
 
@@ -102,7 +111,6 @@ def main():
     """
     # Parse arguments.
     args = parse_args()
-
     file = open(args.pred_path)
     new_pred_contents = [eval(i.strip()) for i in file.readlines()]
     file.close()

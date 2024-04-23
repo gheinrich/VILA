@@ -22,11 +22,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-shearedllama2.7b-r101 \
     --version v1 \
-    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+vflan+internvid_1300K+shot2story_shotonly+panda70m+scienceqa+wit_subset+math+sherlock \
+    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+vflan \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_vision_select_feature cls_patch \
     --mm_projector mlp_downsample \
-    --tune_vision_tower True \
+    --tune_vision_tower False \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
@@ -34,7 +34,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-shearedllama2.7b-r102 \
+    --output_dir ./checkpoints/vila-siglip-shearedllama2.7b-r103 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
@@ -43,7 +43,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --save_strategy "steps" \
     --save_steps 100 \
     --save_total_limit 1 \
-    --learning_rate 1e-5 \
+    --learning_rate 1e-4 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

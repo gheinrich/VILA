@@ -7,7 +7,7 @@ import json
 from tqdm import tqdm
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, IGNORE_INDEX
-from llava.conversation import conv_templates, SeparatorStyle
+from llava import conversation as conversation_lib
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
@@ -15,12 +15,8 @@ from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, Keyw
 from llava.data import preprocess
 from llava.mm_utils import process_images
 
-from PIL import Image
 import math
-import numpy as np
 
-from torchvision.transforms import Resize
-from pytorchvideo.data.encoded_video import EncodedVideo
 
 import signal
 
@@ -43,6 +39,9 @@ def get_chunk(lst, n, k):
 
 def get_model_option(model, image_processor, tokenizer, video_path, qs, options, args):
 
+    conversation_lib.default_conversation = conversation_lib.conv_templates[
+        args.conv_mode
+    ]
     num_video_frames = model.config.num_video_frames
     images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
     image_tensor = process_images(images, image_processor, model.config)

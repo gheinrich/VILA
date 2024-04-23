@@ -2,11 +2,11 @@
 
 model_path=$1
 CKPT_NAME=$2
-GPT_Zero_Shot_QA="~/workspace/VILA-Internal/eval/GPT_Zero_Shot_QA"
-NEXTQA="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa"
+GPT_Zero_Shot_QA="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/GPT_Zero_Shot_QA"
+NEXTQA="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/nextqa"
 video_dir="${NEXTQA}/NExTVideo"
 gt_file="${NEXTQA}/test_data_nextoe/test.csv"
-output_dir="${GPT_Zero_Shot_QA}/NextQA_Zero_Shot_QA/${CKPT_NAME}"
+output_dir="./eval_output/${CKPT_NAME}/NextQA_Zero_Shot_QA"
 
 
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
@@ -19,7 +19,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
     GPU_IDX1=$((IDX * 2))  # First GPU index
     GPU_IDX2=$((GPU_IDX1 + 1))  # Second GPU index
 
-    CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} llava/eval/model_vqa_nextqa.py \
+    CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python3 llava/eval/model_vqa_nextqa.py \
       --model-path ${model_path} \
       --video_dir ${video_dir} \
       --model_max_length 4096 \

@@ -141,14 +141,11 @@ def eval_model(args):
 
             if "Activitynet_Zero_Shot_QA" in args.video_dir:
                 temp_path = os.path.join(args.video_dir, f"{id.rsplit('_', 1)[0]}{fmt}")
-                if f"{id}" in cache_set:
-                    print(f"Skipping {id} because it is in the cache")
-                    continue
             else:
                 temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
-                if f"{video_name}" in cache_set:
-                    print(f"Skipping {video_name} because it is in the cache")
-                    continue
+            if f"{id}" in cache_set:
+                print(f"Skipping {id} because it is in the cache")
+                continue
             if os.path.exists(temp_path):
                 video_path = temp_path
                 # try:
