@@ -1488,8 +1488,7 @@ class LazyCCSWebDataset(Dataset):
 
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = VILAWebDataset(
-            data_path=osp.abspath(data_path),
-            meta_path=data_args.meta_path
+            data_path=osp.abspath(data_path)
         )
 
         t2 = time.time()
@@ -1642,6 +1641,7 @@ class LazyCoyoWebDataset(Dataset):
         print("[DEBUG] ", osp.abspath(data_path))
         self.dataset = VILAWebDataset(
             data_path=osp.abspath(data_path),
+            meta_path=data_args.meta_path
         )
 
         # None: use original caption
