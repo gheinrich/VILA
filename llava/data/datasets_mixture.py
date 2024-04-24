@@ -502,8 +502,11 @@ def register_datasets_mixtures():
     sharegpt_video = Dataset(
         dataset_name="sharegpt_video",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos",
         description="900K high quailty detailed video caption written by GPT-4V",
     )
     add_dataset(sharegpt_video)
