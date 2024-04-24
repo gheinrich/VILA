@@ -5,7 +5,7 @@
 #SBATCH --time=4:00:00
 #SBATCH -A nvr_lpr_aiagent
 #SBATCH --dependency=singleton
-#SBATCH --partition=grizzly,polar,grizzly2,polar2,polar3,polar4
+#SBATCH --partition=grizzly,polar,,polar2,polar3,polar4
 #SBATCH --output=eval-activitynet-score.log
 
 CKPT_NAME=vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e4

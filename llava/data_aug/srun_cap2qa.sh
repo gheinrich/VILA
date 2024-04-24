@@ -15,7 +15,7 @@ for f in captioner/coyo-25m-recap/*.json; do
   # Replace this with your actual command
   echo "Processing $task on $f and running jobs $(jobs -rp | wc -l)"; \
   srun --label -A nvr_elm_llm -N 1 \
-    -p polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3 \
+    -p polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3 \
     -t 4:00:00 \
     -J vila:cap2qa-$fname-$model --gpus-per-node 8 --exclusive \
     -e slurm-logs/dev-$task/$fname-$model.err \
@@ -28,7 +28,7 @@ for f in captioner/coyo-25m-recap/*.json; do
   # Replace this with your actual command
   echo "Processing $task on $f and running jobs $(jobs -rp | wc -l)"; \
   srun --label -A nvr_elm_llm -N 1 \
-    -p polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3 \
+    -p polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3 \
     -t 4:00:00 \
     -J vila:cap2qa-$fname-$model --gpus-per-node 8 --exclusive \
     -e slurm-logs/dev-$task/$fname-$model.err \
