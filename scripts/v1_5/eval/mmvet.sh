@@ -2,6 +2,7 @@
 MODEL_PATH=$1
 CKPT=$2
 
+
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/mm-vet/llava-mm-vet.jsonl \
@@ -10,7 +11,6 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --temperature 0 \
     --conv-mode vicuna_v1
 
-mkdir -p ./playground/data/eval/mm-vet/results
 
 python scripts/convert_mmvet_for_eval.py \
     --src ./eval_output/$CKPT/mm-vet/answers.json \

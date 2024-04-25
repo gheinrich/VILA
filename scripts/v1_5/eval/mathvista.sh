@@ -3,9 +3,8 @@ MODEL_PATH=$1
 CKPT=$2
 SPLIT=$3
 
-mkdir -p ./playground/data/eval/MathVista/answers/$CKPT
 
-CUDA_VISIBLE_DEVICES=0 python -m llava.eval.eval_mathvista \
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_mathvista \
     --model-path $MODEL_PATH \
     --split $SPLIT \
     --answers-file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json \

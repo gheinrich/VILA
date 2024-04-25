@@ -42,6 +42,7 @@
 MODEL_PATH=$1
 CKPT=$2
 
+
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_science \
     --model-path $MODEL_PATH \
     --question-file ./playground/data/eval/scienceqa/llava_test_CQM-A.json \
