@@ -75,13 +75,27 @@ def main(
 ):
     dist.init_process_group()
 
-    from llava.train.slurm_utils import (get_local_rank, get_rank,
-                                         get_world_size)
-
+    # from llava.train.slurm_utils import (get_local_rank, get_rank,
+    #                                      get_world_size)
     # local_rank, rank, world_size = get_local_rank(), get_rank(), get_world_size()
     # print(local_rank, rank, world_size, flush=True)
     local_rank = dist.get_rank()
 
+    dst = Cap2QADataset(data_path=data_path, task=task)
+    dloader = DataLoader(dst, batch_size=2, sampler=DistributedSampler(dst))
+
+    output_json = {}
+
+    save_folder = "captioner_bk"
+    save_folder = osp.join(save_folder, task, model_id.replace("/", "--"))
+    # output_path = osp.join(save_folder, data_path.replace(".json", f"-{rank}-of-{world_size}.json"))
+    output_path = osp.join(save_folder, osp.basename(data_path))
+    print("[DEBUG] ", data_path, "==>", output_path, flush=True)
+    os.makedirs(osp.dirname(output_path), exist_ok=True)
+    # print("[DEBUG]", output_path, output_json, flush=True)
+    output_json = safely_merge_info(output_path, output_json)
+    # return 0
+    
     pipe = pipeline(
         "text-generation",
         model=model_id,
@@ -93,20 +107,7 @@ def main(
         return_full_text=False,
         repetition_penalty=1.0,
     )
-
-    dst = Cap2QADataset(data_path=data_path, task=task)
-    dloader = DataLoader(dst, batch_size=2, sampler=DistributedSampler(dst))
-
-    output_json = {}
-
-    save_folder = "captioner_bk"
-    save_folder = osp.join(save_folder, task, model_id.replace("/", "--"))
-    # output_path = osp.join(save_folder, data_path.replace(".json", f"-{rank}-of-{world_size}.json"))
-    output_path = osp.join(save_folder, data_path)
-    os.makedirs(osp.dirname(output_path), exist_ok=True)
-
-    output_json = safely_merge_info(output_path, output_json)
-
+    
     for idx, (k, v) in enumerate(dloader):
         input_msg = v["cap2llm"]
 
