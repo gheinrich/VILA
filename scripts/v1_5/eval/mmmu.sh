@@ -3,7 +3,6 @@ MODEL_PATH=$1
 CKPT=$2
 SPLIT=$3
 
-mkdir -p ./playground/data/eval/MMMU/test_results
 
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_mmmu \
     --model_path $MODEL_PATH \

@@ -3,7 +3,6 @@ MODEL_PATH=$1
 CKPT=$2
 MMEDIR="./playground/data/eval/MME"
 
-mkdir -p ./playground/data/eval/MME/answers/$CKPT
 
 # TODO(yunhao,ligeng): change the following to the correct device
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
