@@ -8,8 +8,8 @@ cd ~/workspace/VILA-Internal
 # Prerequisite: 1. pip install -e ".[eval]"; 
 
 # Make sure partitions according to different clusters.
-PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
-#PARTITIONS="polar,grizzly"
+#PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
+PARTITIONS="polar,grizzly"
 #ACCOUNT='llmservice_nlp_fm'
 ACCOUNT='nvr_elm_llm'
 

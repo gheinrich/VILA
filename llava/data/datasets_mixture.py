@@ -439,7 +439,7 @@ def register_datasets_mixtures():
         # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
         # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json",
         # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/youcookii_clipped-v2.json",
+        data_path="/home/jasonlu/video_datasets/jason_filtered_youcook2.json",
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/video_data_clipped",
         description="YouCook2 (http://youcook2.eecs.umich.edu/): A large-scale video dataset with 11680 short but precise human written captions.",
     )
@@ -451,7 +451,7 @@ def register_datasets_mixtures():
         # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
         # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json",
         # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json",
+        data_path="/home/jasonlu/video_datasets/jason_filtered_vatex.json",
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/vatex/videos_clipped",
         description="VATEX dataset (https://eric-xw.github.io/vatex-website/about.html), 22703 video clips, 227030 precise short captions (human annotated). Note: all clips are 10s.",
     )
@@ -703,3 +703,11 @@ def register_datasets_mixtures():
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(osmo_shot2story_shotonly)
+
+    nv_sft = Dataset(
+        dataset_name="nv_sft",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets/nv_sft/project_539_torch.json",
+        image_path="/home/jasonlu/vlm_datasets/nv_sft"
+    )
+    add_dataset(nv_sft)

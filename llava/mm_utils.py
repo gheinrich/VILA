@@ -12,11 +12,13 @@ import tempfile
 from io import BytesIO
 
 
-def get_frame_from_vcap(vidcap, num_frames=10):
+def get_frame_from_vcap(vidcap, num_frames=10, fps=None, frame_count=None):
     import cv2
 
-    fps = vidcap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if fps == None or frame_count == None:
+        # if one of fps or frame_count is None, still recompute
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     if fps == 0 or frame_count == 0:
         print("Video file not found. return empty images.")
         return [
@@ -35,7 +37,7 @@ def get_frame_from_vcap(vidcap, num_frames=10):
     images = []
     count = 0
     success = True
-    frame_indices = np.linspace(0, frame_count - 1, num_frames, dtype=int)
+    frame_indices = np.linspace(0, frame_count - 2, num_frames, dtype=int)
 
     while success:
         # print("frame_count:", frame_count, "count:", count, "num_frames:", num_frames, "frame_interval:", frame_interval)
@@ -63,14 +65,10 @@ def get_frame_from_vcap(vidcap, num_frames=10):
                 return images
             else: 
                 break
-    print("Did not find enough frames in the video. return empty image.")
-          
-    return [
-        Image.new("RGB", (720, 720)),
-    ] * num_frames
+    raise ValueError("Did not find enough frames in the video. return empty image.")
 
 
-def opencv_extract_frames(vpath_or_bytesio, frames=6):
+def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=None, frame_count=None):
     """
     Extract frames from a video using OpenCV.
 
@@ -88,14 +86,14 @@ def opencv_extract_frames(vpath_or_bytesio, frames=6):
 
     if isinstance(vpath_or_bytesio, str):
         vidcap = cv2.VideoCapture(vpath_or_bytesio)
-        return get_frame_from_vcap(vidcap, frames)
+        return get_frame_from_vcap(vidcap, frames, fps=fps, frame_count=frame_count)
     elif isinstance(vpath_or_bytesio, (BytesIO,)):
         # assuming mp4
         with tempfile.NamedTemporaryFile(delete=True, suffix=".mp4") as temp_video:
             temp_video.write(vpath_or_bytesio.read())
             temp_video_name = temp_video.name
             vidcap = cv2.VideoCapture(temp_video_name)
-            return get_frame_from_vcap(vidcap, frames)
+            return get_frame_from_vcap(vidcap, frames, fps=fps, frame_count=frame_count)
     else:
         raise NotImplementedError(type(vpath_or_bytesio))
 

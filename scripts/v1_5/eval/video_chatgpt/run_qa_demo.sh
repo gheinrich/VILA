@@ -8,8 +8,8 @@ cd ~/workspace/VILA-Internal
 model_path=$1
 CKPT_NAME=$2
 PROMPT_TEMPLATE=$3
-DEMO_DIR="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/vila-captioner-avfm"
-video_dir="${DEMO_DIR}/videos"
+DEMO_DIR="/home/jasonlu/video_datasets/video_caption_annotation_examples"
+video_dir="${DEMO_DIR}"
 # gt_file="${NEXTQA}/test_data_nextoe/test.csv"
 output_dir="./eval_output/${CKPT_NAME}/Demo_Zero_Shot_QA/${CKPT_NAME}_${PROMPT_TEMPLATE}"
 # mkdir $output_dir

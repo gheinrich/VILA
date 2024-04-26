@@ -9,9 +9,10 @@ cd ~/workspace/VILA-Internal
 
 # Make sure partitions according to different clusters.
 #PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
-PARTITIONS="polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3"
+PARTITIONS="polar3,polar2,polar,batch_block1,grizzly,batch_block2,batch_block3"
 ACCOUNT="llmservice_nlp_fm"
 ACCOUNT="nvr_elm_llm"
+#ACCOUNT="nvr_lpr_llm"
 
 # Checkpoint path and model name (replace with your actual values)
 checkpoint_path=$1

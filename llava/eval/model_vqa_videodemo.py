@@ -92,7 +92,7 @@ def parse_caption_template(template_type):
     if "bin" in template_type:
         short_bin = template_type.split("_")[1]
         long_bin = template_type.split("_")[2]
-        short_question = "<video>\nElaborate on the visual and narrative elements of the video in detail."
+        short_question = "Elaborate on the visual and narrative elements of the video in detail."
         long_question = f"Summarize the visual content of the following video. Please write the caption with no more than {long_bin} words.\n<video>"
     else:
         raise ValueError(f"Invalid template type: {template_type}")

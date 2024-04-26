@@ -41,7 +41,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
-    --per_device_eval_batch_size 4 \
+    --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \

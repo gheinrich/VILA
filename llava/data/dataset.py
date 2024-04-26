@@ -737,7 +737,7 @@ class LazySupervisedDataset(Dataset):
 
     
     @staticmethod
-    def _load_video(video_path, num_video_frames, data_args, use_decord=True):
+    def _load_video(video_path, num_video_frames, data_args, fps=None, frame_count=None):
         from llava.mm_utils import opencv_extract_frames
         from torchvision import transforms
         video_loading_succeed = True
@@ -746,8 +746,9 @@ class LazySupervisedDataset(Dataset):
         else:
             image_size = data_args.image_processor.size["height"]
         try:
-            pil_imgs = opencv_extract_frames(video_path, num_video_frames)
+            pil_imgs = opencv_extract_frames(video_path, num_video_frames, fps, frame_count)
         except Exception as e:
+            video_loading_succeed = False
             print(f"bad data path {video_path}")
             print(f"[DEBUG] Error processing {video_path}: {e}")
             # video_outputs = torch.zeros(3, 8, image_size, image_size, dtype=torch.uint8)
@@ -765,17 +766,31 @@ class LazySupervisedDataset(Dataset):
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         if "image" in sources[0]:
             image_file = self.list_data_dict[i]["image"]
-            image = process_image(image_file, self.data_args, self.image_folder)
+            if isinstance(image_file, list):
+                image = torch.stack(
+                    [process_image(img, self.data_args, self.image_folder) for img in image_file]
+                )
+            else:
+                image = process_image(image_file, self.data_args, self.image_folder)
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         elif ("video" in sources[0]) or ("video_id" in sources[0]):
-            num_video_frames = 8
+            num_video_frames = self.data_args.num_video_frames
             if "video" in sources[0]:
                 video_file = sources[0]["video"]
             else:
                 video_file = sources[0]["video_id"] + ".mp4"
             video_folder = self.image_folder
             video_path = os.path.join(video_folder, video_file)
-            images, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args)
+            if 'fps' in sources[0]:
+                fps = sources[0]['fps']
+            else:
+                fps = None
+            if 'frame_count' in sources[0]:
+                frame_count = sources[0]['frame_count']
+            else:
+                frame_count = None
+
+            images, video_loading_succeed = self._load_video(video_path, num_video_frames, self.data_args, fps=fps, frame_count=frame_count)
 
             image_tensor = torch.stack(
                 [process_image(image, self.data_args, None) for image in images]
@@ -818,9 +833,14 @@ class LazySupervisedDataset(Dataset):
 
         # image exist in the data
         if "image" in self.list_data_dict[i]:
-            data_dict["image"] = image.unsqueeze(0)
+            if len(image.shape) == 4:
+                data_dict["image"] = image
+            else:
+                data_dict["image"] = image.unsqueeze(0)
         elif ("video" in self.list_data_dict[i]) or ("video_id" in self.list_data_dict[i]):
             data_dict["image"] = image_tensor
+            if not video_loading_succeed:
+                data_dict['labels'][:] = IGNORE_INDEX
         else:
             # llava 1.5 way
             # image does not exist in the data, but the model is multimodal
@@ -1610,8 +1630,11 @@ class LazyEvaluateDataset(LazySupervisedDataset):
         for d in dataset:
             sample = process_single_sample(d)
             processed_dict = construct_prompt(sample, self.config)
+
+            if '<image>' in processed_dict["gt_content"]:
+                processed_dict["gt_content"] = processed_dict["gt_content"].replace('<image>', 'image')
             sample["conversations"] = [
-                {"from": "human", "value": "<image>\n " + processed_dict["final_input_prompt"]},
+                {"from": "human", "value": processed_dict["final_input_prompt"]},
                 {"from": "gpt", "value": processed_dict["gt_content"]},
             ]
             processed_dataset.append(sample)
@@ -1818,7 +1841,7 @@ class LazyVideoWebDataset(Dataset):
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         ADD_TEXT_PROMPT = False
-        num_video_frames = 8
+        num_video_frames = self.data_args.num_video_frames
 
         info = self.dataset[i]
         
@@ -1829,11 +1852,7 @@ class LazyVideoWebDataset(Dataset):
             video_path = None
             caption = "Empty video."
 
-
-        if 'ego' in self.data_path:
-            images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args, use_decord=False)
-        else:
-            images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
+        images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
         
         if not video_loading_succeed:
             caption = "Empty video."
@@ -1900,7 +1919,7 @@ class DataCollatorForSupervisedDataset(object):
                 len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
             ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'.\
                 Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
-                Error input_ids: {_input_ids}"
+                Error input_ids: {_input_ids} {self.tokenizer.decode([x if x != -200 else 200 for x in _input_ids])}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id

@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/models/Nous-Hermes-2-Yi-34B \
     --version hermes-2 \
-    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en \
+    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+nv_sft \
     --vision_tower /home/jasonlu/models/InternViT-6B-448px-V1-2 \
     --mlp_path /home/jasonlu/models/InternViT-6B-448px-V1-2/mlp_projector.pth \
     --mm_projector mlp_downsample \
@@ -36,7 +36,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --drop_path_rate 0.4 \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_fix700 \
+    --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_fix797 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
