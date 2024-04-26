@@ -221,7 +221,7 @@ class LlavaMetaModel(ABC):
         '''
         if self.training:
             if self.get_llm() and not getattr(self.config, "tune_language_model", False):
-                self.get_llm().eval()
+                logging.warning("Caution: Your LLM is currently in training mode, ensuring accurate gradient computation. Please be vigilant, particularly regarding BatchNorm and Dropout operations.")
             if self.get_vision_tower() and not getattr(self.config, "tune_vision_tower", False):
                 self.get_vision_tower().eval()
             if self.get_mm_projector() and not getattr(self.config, "tune_mm_projector", False):
