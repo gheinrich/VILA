@@ -143,6 +143,18 @@ See [data_prepare/README.md](data_prepare/README.md) for more information about 
 
 You can follow [Llava1.5 eval](https://github.com/haotian-liu/LLaVA/blob/main/docs/Evaluation.md) to download all datasets. After downloading all datasets, please put them under `playground/data/eval`.
 
+Please make the following changes to the MME evaluation script. Please search for:
+
+```python
+data_path='MME_Benchmark_release_version'
+``` 
+
+and replace it with:
+
+```python
+data_path=os.path.join(script_dir, 'MME_Benchmark_release_version')
+```
+
 We provide a push-the-button script to perform evaluation on all 10 datasets that do not require GPT-assisted evaluation:
 
 ```bash
