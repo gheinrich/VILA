@@ -2,7 +2,12 @@
 MODEL_PATH=$1
 CKPT=$2
 MMEDIR="./playground/data/eval/MME"
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 
+mkdir -p ./playground/data/eval/MME/answers/$CKPT
 
 # TODO(yunhao,ligeng): change the following to the correct device
 CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
@@ -11,7 +16,7 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
     --image-folder ./playground/data/eval/MME/MME_Benchmark_release_version \
     --answers-file ./eval_output/$CKPT/MME/mme.jsonl \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode $CONV_MODE
 
 python $MMEDIR/convert_answer_to_mme.py --experiment ./eval_output/$CKPT/MME/mme.jsonl
 

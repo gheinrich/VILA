@@ -431,6 +431,19 @@ hermes_2 = Conversation(
 )
 
 llama_3 = Conversation(
+    system="A chat between a curious user and an artificial intelligence assistant. "
+    "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.LLAMA_3,
+    sep=" ",
+    sep2="<|end_of_text|>",
+)
+
+# Template added by Yukang. Note (kentang-mit@): sep is <|eot_id|> for official template.
+llama_3_chat = Conversation(
     system="<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful language and vision assistant. "
            "You are able to understand the visual content that the user provides, "
            "and assist the user with a variety of tasks using natural language.",
@@ -443,11 +456,12 @@ llama_3 = Conversation(
     sep="<|end_of_text|>",
 )
 
+
 default_conversation = conv_vicuna_v1
 conv_templates = {
     "default": conv_vicuna_v0,
     "hermes-2": hermes_2,
-    "llama_3": llama_3,
+    "llama_3": llama_3_chat,
     "v0": conv_vicuna_v0,
     "v1": conv_vicuna_v1,
     "vicuna_v1": conv_vicuna_v1,

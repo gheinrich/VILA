@@ -9,6 +9,10 @@ IFS=',' read -ra GPULIST <<< "$gpu_list"
 MODEL_PATH=$1
 CKPT=$2
 SPLIT=$3
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 4 ]; then
+    CONV_MODE="$4"
+fi
 # Input Validation
 if [[ "$SPLIT" != "validation" && "$SPLIT" != "test" ]]; then
     echo "Error: SPLIT must be either 'validation' or 'test'"
@@ -26,7 +30,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
   CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python -m llava.eval.model_vqa_mmmu_sharded \
     --model_path $MODEL_PATH \
     --data_path ./playground/data/eval/MMMU \
-    --conv-mode hermes-2 \
+    --conv-mode $CONV_MODE \
     --config_path llava/eval/mmmu_utils/configs/llava1.5.yaml \
     --output_path ./playground/data/eval/MMMU/${SPLIT}_results/$CKPT.json \
     --num-chunks $CHUNKS \
