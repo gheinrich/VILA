@@ -28,7 +28,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
     --data_path ./playground/data/eval/MMMU \
     --conv-mode hermes-2 \
     --config_path llava/eval/mmmu_utils/configs/llava1.5.yaml \
-    --output_path ./playground/data/eval/MMMU/${SPLIT}_results/$CKPT.json \
+    --output_path ./eval_output/$CKPT/MMMU/$SPLIT.json \
     --num-chunks $CHUNKS \
     --chunk-idx $IDX \
     --split $SPLIT &
@@ -36,8 +36,8 @@ done
 
 wait
 
-python llava/eval/mmmu_utils/merge_jsons.py --prediction-path ./playground/data/eval/MMMU/${SPLIT}_results/$CKPT --num-chunks $CHUNKS
+python llava/eval/mmmu_utils/merge_jsons.py --prediction-path ./eval_output/$CKPT/MMMU/$SPLIT --num-chunks $CHUNKS
 
 if [ "$SPLIT" = "validation" ]; then
-  python llava/eval/eval_mmmu.py  --output_path playground/data/eval/MMMU/${SPLIT}_results/$CKPT.json --answer_path llava/eval/mmmu_utils/answer_dict_val.json
+  python llava/eval/eval_mmmu.py  --output_path ./eval_output/$CKPT/MMMU/$SPLIT.json --answer_path llava/eval/mmmu_utils/answer_dict_val.json
 fi
