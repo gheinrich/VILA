@@ -14,8 +14,6 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa \
     --temperature 0 \
     --conv-mode $CONV_MODE
 
-mkdir -p ./playground/data/eval/mm-vet/results
-
 python scripts/convert_mmvet_for_eval.py \
     --src ./eval_output/$CKPT/mm-vet/answers.json \
     --dst ./eval_output/$CKPT/mm-vet/results.json
