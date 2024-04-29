@@ -3,6 +3,10 @@
 SPLIT="mmbench_dev_cn_20231003"
 MODEL_PATH=$1
 CKPT=$2
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 
 python -m llava.eval.model_vqa_mmbench \
     --model-path $MODEL_PATH \
@@ -11,7 +15,7 @@ python -m llava.eval.model_vqa_mmbench \
     --lang cn \
     --single-pred-prompt \
     --temperature 0 \
-    --conv-mode vicuna_v1
+    --conv-mode $CONV_MODE
 
 python scripts/convert_mmbench_for_submission.py \
     --annotation-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \

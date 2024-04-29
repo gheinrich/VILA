@@ -8,6 +8,10 @@ CHUNKS=$(( ${#GPULIST[@]} / 2 )) # Calculate chunks for 2 GPUs per chunk
 MODEL_PATH=$1
 CKPT=$2
 SPLIT=$3
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 4 ]; then
+    CONV_MODE="$4"
+fi
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     GPU_IDX1=$((IDX * 2))  # First GPU index

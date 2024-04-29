@@ -34,7 +34,6 @@ def compare_output(tokenizer, labels, sources):
     for expected, output in zip(expected_outputs, outputs):
         assert expected == output.lstrip()
 
-
 class TestVicunaPromptPreprocess(unittest.TestCase):
 
     def setUp(self):
@@ -57,14 +56,13 @@ class TestVicunaPromptPreprocess(unittest.TestCase):
             labels = processed_prompt['labels'][0]
             compare_output(self.tokenizer, labels, sources)
 
-
 class TestLlama3PromptPreprocess(unittest.TestCase):
 
     def setUp(self):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            '/home/ligengz/downloads/Meta-Llama-3-8B',
+            '/home/ligengz/downloads/Meta-Llama-3-8B-Instruct',
             cache_dir='',
-            model_max_length=4096,
+            model_max_length=8192,
             padding_side="right",
             use_fast=False,
             legacy=False
@@ -78,7 +76,7 @@ class TestLlama3PromptPreprocess(unittest.TestCase):
     @requires_lustre()
     def test_preprocess_v2_image(self):
         for sources in [TEST_SOURCE_IMAGE, TEST_SOURCE_IMAGE2, TEST_SOURCE_TEXT_ONLY]:
-            processed_prompt = dataset.preprocess_v2(sources, self.tokenizer, has_image=True, no_system_prompt=False)
+            processed_prompt = dataset.preprocess_llama_3(sources, self.tokenizer, has_image=True)
             labels = processed_prompt['labels'][0]
             compare_output(self.tokenizer, labels, sources)
 

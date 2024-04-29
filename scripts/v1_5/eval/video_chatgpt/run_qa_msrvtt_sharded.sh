@@ -2,6 +2,10 @@
 
 model_path=$1
 CKPT_NAME=$2
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 GPT_Zero_Shot_QA="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/GPT_Zero_Shot_QA"
 video_dir="${GPT_Zero_Shot_QA}/MSRVTT_Zero_Shot_QA/videos/all"
 gt_file_question="${GPT_Zero_Shot_QA}/MSRVTT_Zero_Shot_QA/test_q.json"
@@ -30,7 +34,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
       --output_name ${CHUNKS}_$((IDX)) \
       --num-chunks $CHUNKS \
       --chunk-idx $IDX \
-      --conv-mode hermes-2 \
+      --conv-mode $CONV_MODE \
       --temperature 0 &
 done
 

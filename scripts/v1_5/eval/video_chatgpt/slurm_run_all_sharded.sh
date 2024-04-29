@@ -16,18 +16,22 @@ ACCOUNT='llmservice_nlp_fm'
 # Checkpoint path and model name (replace with your actual values)
 checkpoint_path=$1
 model_name=$2
+conv_mode=hermes-2
+if [ "$#" -ge 3 ]; then
+    conv_mode="$3"
+fi
 
 mkdir -p eval_output/$model_name
 
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_activitynet_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.activitynet.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_activitynet_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msvd_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.msvd.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msvd_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_tgif_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.tgif.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_tgif_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_tgif_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.tgif.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_tgif_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_nextqa_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.nextqa.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_nextqa_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name &
-srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_activitynet_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.activitynet.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_activitynet_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msvd_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.msvd.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msvd_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_tgif_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.tgif.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_tgif_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_tgif_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.tgif.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_tgif_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_nextqa_sharded --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.nextqa.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_nextqa_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name $conv_mode &
