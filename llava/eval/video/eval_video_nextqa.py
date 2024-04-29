@@ -3,14 +3,12 @@ import argparse
 import json
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
-try:
-    from pywsd.utils import lemmatize_sentence
-except:
-    import nltk
-    nltk.download('averaged_perceptron_tagger')
-    nltk.download('wordnet')
-    nltk.download('punkt')
-    from pywsd.utils import lemmatize_sentence
+import nltk
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+nltk.download('wordnet')    # if you see error complaining "Resource wordnet not found.", even if you have already downloaded it, try unzip it by yourself. ref: https://github.com/nltk/nltk/issues/3028
+nltk.download('punkt')
+from pywsd.utils import lemmatize_sentence
 
 
 import numpy as np
