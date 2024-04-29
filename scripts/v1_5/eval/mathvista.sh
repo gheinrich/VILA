@@ -7,7 +7,7 @@ if [ "$#" -ge 4 ]; then
     CONV_MODE="$4"
 fi
 
-CUDA_VISIBLE_DEVICES=0 python -m llava.eval.eval_mathvista \
+CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_mathvista \
     --model-path $MODEL_PATH \
     --split $SPLIT \
     --answers-file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json \
