@@ -19,8 +19,6 @@ if [[ "$SPLIT" != "validation" && "$SPLIT" != "test" ]]; then
     exit 1 
 fi
 
-mkdir -p ./playground/data/eval/MMMU/${SPLIT}_results
-
 CHUNKS=$(( ${#GPULIST[@]} / 2 )) # Calculate chunks for 2 GPUs per chunk
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
