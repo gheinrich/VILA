@@ -15,7 +15,7 @@ ACCOUNT="nvr_elm_llm"
 # Checkpoint path and model name (replace with your actual values)
 checkpoint_path=$1
 model_name=$2
-conv_mode=vicuna_v1
+conv_mode=hermes-2
 if [ "$#" -ge 3 ]; then
     conv_mode="$3"
 fi
