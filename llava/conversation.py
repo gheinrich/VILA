@@ -430,17 +430,6 @@ hermes_2 = Conversation(
     version="hermes-2"
 )
 
-llama_3 = Conversation(
-    system="A chat between a curious user and an artificial intelligence assistant. "
-    "The assistant gives helpful, detailed, and polite answers to the user's questions.",
-    roles=("USER", "ASSISTANT"),
-    version="v1",
-    messages=(),
-    offset=0,
-    sep_style=SeparatorStyle.LLAMA_3,
-    sep=" ",
-    sep2="<|end_of_text|>",
-)
 
 # Template added by Yukang. Note (kentang-mit@): sep is <|eot_id|> for official template.
 llama_3_chat = Conversation(

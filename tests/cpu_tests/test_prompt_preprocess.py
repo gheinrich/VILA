@@ -60,7 +60,7 @@ class TestLlama3PromptPreprocess(unittest.TestCase):
 
     def setUp(self):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            '/home/ligengz/downloads/Meta-Llama-3-8B',
+            '/home/ligengz/downloads/Meta-Llama-3-8B-Instruct',
             cache_dir='',
             model_max_length=8192,
             padding_side="right",
