@@ -629,6 +629,14 @@ def register_datasets_mixtures():
     )
     add_dataset(synthdog_en)
 
+    idefics2_sft = Dataset(
+        dataset_name="idefics2_sft",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/idefics2-sft/new-vflan/idefics2_sft_train.jsonl",
+        image_path="/home/jasonlu/workspace/idefics2-sft/new-vflan",
+        description="",
+    )
+    add_dataset(idefics2_sft)
 
     test = Dataset(
         dataset_name="test",

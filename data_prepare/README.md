@@ -117,3 +117,22 @@ The ShareGPT data can be obtained [mit-han-lab/ShareGPT4V](https://huggingface.c
 ```bash
 huggingface-cli download mit-han-lab/ShareGPT4V --repo-type dataset --local-dir coyo-700m --local-dir-use-symlinks False
 ```
+
+### IDEFICS2-SFT dataset
+
+We also provide scripts to preprocess IDEFICS2-SFT dataset into llava-SFT like format. 
+
+Please first download [HuggingFaceM4/the_cauldron](https://huggingface.co/datasets/HuggingFaceM4/the_cauldron) to `/home/jasonlu/workspace/idefics2-sft/the_cauldron`. Then, run the following scripts:
+
+```bash
+python preprocess_idefics2.py
+python merge_idefics2.py
+```
+
+A sample in the preprocessed dataset file will look like this:
+
+```json
+{"id": 0, "images": ["images/chart2text/0_0.png"], "conversations": [{"from": "human", "value": "<image>\nPlease clarify the meaning conveyed by this graph."}, {"from": "gpt", "value": "This statistic presents the reach of the most popular social networks among female beauty consumers in the United States as of August 2016. During the survey period, 62 percent of respondents had an Instagram account."}]}
+```
+
+Haotian's Note: Datasets overlapping with VFLAN / ShareGPT4V-SFT are removed. I also remove `plotqa` since it is too large, `localized_narratives` seems to be a little bit overlapped with captioning efforts within VILA. `websight` and `datikz` are two datasets that target code generation. Since the output is very long, and including them might slow down training, I also temporarily removed these two datasets, but feel free to add them back.
