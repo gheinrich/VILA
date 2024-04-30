@@ -87,7 +87,7 @@ trtllm-build \
     --max_batch_size 2 \
     --max_input_len 2048 \
     --max_output_len 512 \
-    --max_multimodal_len 2916
+    --max_multimodal_len 4096
 ```
 
 2. Build TensorRT engines for visual components
@@ -97,11 +97,32 @@ python build_visual_engine.py --model_path tmp/hf_models/${MODEL_NAME} --model_t
 ```
 
 3. Run the example script
-```
+```bash
 python run.py  \
-    --max_new_tokens 30 \
+    --max_new_tokens 100 \
     --hf_model_dir tmp/hf_models/${MODEL_NAME} \
     --visual_engine_dir visual_engines/${MODEL_NAME} \
     --llm_engine_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
-    --input_text "Question: Please describe the traffic condition? Answer:"
+    --image_file=av.png,merlion.png \
+    --input_text="<image>\n<image>\n Please elaborate what you see in the images?" \
+    --run_profiling
+```
+
+4. (Optional) One can also use LLaVA/VILA with other quantization options, like SmoothQuant and INT4 AWQ, that are supported by LLaMA. Instructions in LLaMA README to enable SmoothQuant and INT4 AWQ can be re-used to generate quantized TRT engines for LLM component of LLaVA/VILA.
+```bash
+python quantize.py \
+     --model_dir tmp/hf_models/${MODEL_NAME} \
+     --output_dir tmp/trt_models/${MODEL_NAME}/int4_awq/1-gpu \
+     --dtype float16 \
+     --qformat int4_awq \
+     --calib_size 32
+
+ trtllm-build \
+     --checkpoint_dir tmp/trt_models/${MODEL_NAME}/int4_awq/1-gpu \
+     --output_dir trt_engines/${MODEL_NAME}/int4_awq/1-gpu \
+     --gemm_plugin float16 \
+     --max_batch_size 1 \
+     --max_input_len 2048 \
+     --max_output_len 512 \
+     --max_multimodal_len 4096
 ```
