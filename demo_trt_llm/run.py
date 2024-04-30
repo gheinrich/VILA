@@ -474,7 +474,7 @@ class MultimodalModelRunner:
 def load_images(image_files):
     def load_image(image_file):
         if image_file.startswith("http") or image_file.startswith("https"):
-            print("downloading image from url", args.video_file)
+            print("downloading image from url", args.image_file)
             response = requests.get(image_file)
             image = Image.open(BytesIO(response.content)).convert("RGB")
         else:

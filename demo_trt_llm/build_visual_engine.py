@@ -212,7 +212,7 @@ def build_llava_engine(args):
                      args.output_dir, args.max_batch_size)
 
 
-sys.path.append("/app/tensorrt_llm/examples/multimodal/tmp/hf_models/VILA")
+sys.path.append("../")
 from llava.model import *
 def build_vila_engine(args):
     # Note: VILA model is not in public HF model zoo yet. We need to explicitly import from the git repo
