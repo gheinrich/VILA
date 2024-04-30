@@ -30,22 +30,22 @@ pip install git+https://github.com/huggingface/transformers@v4.36.2
 ```
 ## Build TensorRT engine of VILA model
 
-
-
 ```bash
+# Enter the demo folder
+cd <VILA-repo>/demo_trt_llm
 export TRTLLM_EXAMPLE_ROOT=/app/tensorrt_llm/examples
 
 # clone original VILA repo
-# export VILA_PATH="tmp/hf_models/VILA"
 # TODO: Change this back
 mkdir -p tmp/hf_models/
 cp -r /scratch/weimingc/workspace/VILA-Internal ${VILA_PATH}
+# export VILA_PATH="tmp/hf_models/VILA"
 # git clone https://github.com/Efficient-Large-Model/VILA.git ${VILA_PATH}
 
 # download vila checkpoint
-# export MODEL_NAME="vila-2.7B"
 export MODEL_NAME="vila1.5-2.7b"
 cp -r /scratch_weiming/models/VILA1.5-2.7b tmp/hf_models/${MODEL_NAME}
+# export MODEL_NAME="vila-2.7B"
 # git clone https://huggingface.co/Efficient-Large-Model/${MODEL_NAME} tmp/hf_models/${MODEL_NAME}
 ```
 ```
@@ -61,6 +61,14 @@ if hf_config.model_type == "llava_llama":
     hf_config.llm_cfg["dtype"] = hf_config.llm_cfg["torch_dtype"]
     hf_config = PretrainedConfig.from_dict(hf_config.llm_cfg)
 
+sys.path.append("/app/tensorrt_llm/examples/multimodal/tmp/hf_models/VILA")
+from llava.model import *
+# register VILA model
+# if "vila" in model_dir:
+#     sys.path.append(model_dir + "/../VILA")
+#     from llava.model import LlavaConfig, LlavaLlamaForCausalLM
+#     AutoConfig.register("llava_llama", LlavaConfig)
+#     AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)
 ```
 1. TensorRT Engine building using `FP16` and inference
 
@@ -76,10 +84,10 @@ trtllm-build \
     --output_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
     --gemm_plugin float16 \
     --use_fused_mlp \
-    --max_batch_size 1 \
+    --max_batch_size 2 \
     --max_input_len 2048 \
     --max_output_len 512 \
-    --max_multimodal_len 1152
+    --max_multimodal_len 2916
 ```
 
 2. Build TensorRT engines for visual components
