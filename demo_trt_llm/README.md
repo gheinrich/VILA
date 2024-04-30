@@ -9,7 +9,6 @@ git lfs install
 
 git clone https://github.com/NVIDIA/TensorRT-LLM.git
 cd TensorRT-LLM
-git checkout c89653021e66ca78c55f02b366f404455bc12e8d
 git submodule update --init --recursive
 git lfs pull
 ```
@@ -20,90 +19,81 @@ make -C docker release_build
 Before starting the docker container, mount inference scripts and test image in the docker container as preparation:
 ```bash
 cd <this demo folder>
-cp -r llava.py test_vila.py av.png <TensorRT-LLM directory>/examples/multimodal/
+cp -r test_vila.py av.png <TensorRT-LLM directory>/examples/multimodal/
 ```
 
 Once the image is built, the Docker container can be executed using:
 ```bash
 make -C docker release_run
+pip install git+https://github.com/bfshi/scaling_on_scales.git
+pip install git+https://github.com/huggingface/transformers@v4.36.2
 ```
 ## Build TensorRT engine of VILA model
-In the docker container, checkout `examples/multimodal/` and Download Huggingface model weights:
+
+
+
 ```bash
-cd examples/multimodal/
-export MODEL_NAME="vila-7B"
-git clone https://huggingface.co/Efficient-Large-Model/${MODEL_NAME} tmp/hf_models/${MODEL_NAME}
+export TRTLLM_EXAMPLE_ROOT=/app/tensorrt_llm/examples
+
+# clone original VILA repo
+# export VILA_PATH="tmp/hf_models/VILA"
+# TODO: Change this back
+mkdir -p tmp/hf_models/
+cp -r /scratch/weimingc/workspace/VILA-Internal ${VILA_PATH}
+# git clone https://github.com/Efficient-Large-Model/VILA.git ${VILA_PATH}
+
+# download vila checkpoint
+# export MODEL_NAME="vila-2.7B"
+export MODEL_NAME="vila1.5-2.7b"
+cp -r /scratch_weiming/models/VILA1.5-2.7b tmp/hf_models/${MODEL_NAME}
+# git clone https://huggingface.co/Efficient-Large-Model/${MODEL_NAME} tmp/hf_models/${MODEL_NAME}
 ```
-Make modifications to `tmp/hf_models/${MODEL_NAME}/config.json`, change
-```bash
-"model_type": "llava",
 ```
-to
-```bash
-"model_type": "llama",
+# vison feature
+For siglip it should be 729*4 for 4 frames
+
+# convert
+# Before
+hf_config = LlavaConfig.from_pretrained(hf_model).text_config
+# After
+if hf_config.model_type == "llava_llama":
+    hf_config.llm_cfg["architecture"] = hf_config.llm_cfg["architectures"]
+    hf_config.llm_cfg["dtype"] = hf_config.llm_cfg["torch_dtype"]
+    hf_config = PretrainedConfig.from_dict(hf_config.llm_cfg)
+
 ```
 1. TensorRT Engine building using `FP16` and inference
 
 Build TensorRT engine for LLaMA part of VILA from HF checkpoint using `FP16`:
 ```bash
-python3 ../llama/build.py \
+python convert_checkpoint.py \
     --model_dir tmp/hf_models/${MODEL_NAME} \
-    --output_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
-    --dtype float16 \
-    --remove_input_padding \
-    --use_gpt_attention_plugin float16 \
-    --enable_context_fmha \
-    --use_gemm_plugin float16 \
-    --max_batch_size 1 \
-    --max_prompt_embedding_table_size 576
-
-```
-Run the inference script for demostration:
-```bash
-python3 test_vila.py \
-    --max_new_tokens 100 \
-    --input_text "Please describe the traffic condition." \
-    --hf_model_dir tmp/hf_models/${MODEL_NAME} \
-    --llm_engine_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
-    --decoder_llm \
-    --image-file "av.png"
-```
-2. TensorRT Engine building using `INT4 AWQ` and inference
-
-Weight quantization:
-```bash
-python3 ../quantization/quantize.py
-    --model_dir tmp/hf_models/${MODEL_NAME} \
-    --dtype float16 \
-    --qformat int4_awq \
-    --export_path ./quantized_int4-awq \
-    --calib_size 32 \
-    --quantize_lm_head
-```
-Build TensorRT engine for LLaMA part of VILA from HF checkpoint using `INT4 AWQ`:
-```bash
-python ../llama/build.py --model_dir tmp/hf_models/${MODEL_NAME}
-    --quant_ckpt_path ./quantized_int4-awq/llama_tp1_rank0.npz
+    --output_dir tmp/trt_models/${MODEL_NAME}/fp16/1-gpu \
     --dtype float16
-    --remove_input_padding
-    --use_gpt_attention_plugin float16
-    --enable_context_fmha
-    --use_gemm_plugin float16
-    --use_weight_only
-    --weight_only_precision int4_awq
-    --per_group
-    --quantize_lm_head
-    --output_dir trt_engines/${MODEL_NAME}_int4_AWQ/1-gpu/
-    --max_batch_size 1
-    --max_prompt_embedding_table_size 576
+
+trtllm-build \
+    --checkpoint_dir tmp/trt_models/${MODEL_NAME}/fp16/1-gpu \
+    --output_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
+    --gemm_plugin float16 \
+    --use_fused_mlp \
+    --max_batch_size 1 \
+    --max_input_len 2048 \
+    --max_output_len 512 \
+    --max_multimodal_len 1152
 ```
-Run the inference script for demonstration:
+
+2. Build TensorRT engines for visual components
+
 ```bash
-python test_vila.py \
-    --max_new_tokens 100 \
-    --input_text "Please describe the traffic condition." \
+python build_visual_engine.py --model_path tmp/hf_models/${MODEL_NAME} --model_type vila --vila_path ${VILA_PATH}
+```
+
+3. Run the example script
+```
+python run.py  \
+    --max_new_tokens 30 \
     --hf_model_dir tmp/hf_models/${MODEL_NAME} \
-    --llm_engine_dir trt_engines/${MODEL_NAME}_int4_AWQ/1-gpu \
-    --decoder_llm \
-    --image-file "demo_images/av.png"
+    --visual_engine_dir visual_engines/${MODEL_NAME} \
+    --llm_engine_dir trt_engines/${MODEL_NAME}/fp16/1-gpu \
+    --input_text "Question: Please describe the traffic condition? Answer:"
 ```
