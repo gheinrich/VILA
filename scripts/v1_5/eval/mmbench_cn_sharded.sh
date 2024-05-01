@@ -21,7 +21,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python -m llava.eval.model_vqa_mmbench \
         --model-path $MODEL_PATH \
         --question-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \
-        --answers-file ./eval_output/$CKPT/mmbench_cn/$SPLIT.jsonl \
+        --answers-file ./eval_output/$CKPT/mmbench_cn/${CHUNKS}_${IDX}.jsonl \
         --lang cn \
         --single-pred-prompt \
         --temperature 0 \
