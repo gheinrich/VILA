@@ -32,7 +32,6 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
-    --drop_path_rate 0.4 \
     --bf16 True \
     --output_dir ./checkpoints/vila-intern-yi-34b-r401 \
     --num_train_epochs 1 \
