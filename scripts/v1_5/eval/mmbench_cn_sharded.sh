@@ -10,7 +10,10 @@ CHUNKS=$(( ${#GPULIST[@]} / 2 )) # Calculate chunks for 2 GPUs per chunk
 
 MODEL_PATH=$1
 CKPT=$2
-
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     GPU_IDX1=$((IDX * 2))  # First GPU index
@@ -18,13 +21,13 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python -m llava.eval.model_vqa_mmbench \
         --model-path $MODEL_PATH \
         --question-file ./playground/data/eval/mmbench_cn/$SPLIT.tsv \
-        --answers-file ./eval_output/$CKPT/mmbench_cn/$SPLIT.jsonl \
+        --answers-file ./eval_output/$CKPT/mmbench_cn/${CHUNKS}_${IDX}.jsonl \
         --lang cn \
         --single-pred-prompt \
         --temperature 0 \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
-        --conv-mode hermes-2  &
+        --conv-mode $CONV_MODE  &
 done
 
 wait

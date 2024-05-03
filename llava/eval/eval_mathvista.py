@@ -1,7 +1,7 @@
 
 import json
 from argparse import ArgumentParser
-from .mathvista_utils.calculate_score import simple_calculate_score
+from llava.eval.mathvista_utils.calculate_score import simple_calculate_score
 
 if __name__ == '__main__':
     parser = ArgumentParser()

@@ -7,6 +7,11 @@ CHUNKS=${#GPULIST[@]}
 
 MODEL_PATH=$1
 CKPT=$2
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
+
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python -m llava.eval.evaluate_vqa \
@@ -16,6 +21,6 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --answers-file ./playground/data/eval/docvqa/answers/$CKPT/${CHUNKS}_${IDX}.jsonl \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
-        --conv-mode vicuna_v1    
+        --conv-mode $CONV_MODE    
 done
 wait

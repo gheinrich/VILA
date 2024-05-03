@@ -94,6 +94,7 @@ def eval_model(args):
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
+    args.image_processor = image_processor
 
     gt_questions = json.load(open(os.path.expanduser(args.gt_file_question), "r"))
     gt_questions = get_chunk(gt_questions, args.num_chunks, args.chunk_idx)
@@ -143,14 +144,11 @@ def eval_model(args):
 
             if "Activitynet_Zero_Shot_QA" in args.video_dir:
                 temp_path = os.path.join(args.video_dir, f"{id.rsplit('_', 1)[0]}{fmt}")
-                if f"{id}" in cache_set:
-                    print(f"Skipping {id} because it is in the cache")
-                    continue
             else:
                 temp_path = os.path.join(args.video_dir, f"{video_name}{fmt}")
-                if f"{video_name}" in cache_set:
-                    print(f"Skipping {video_name} because it is in the cache")
-                    continue
+            if f"{id}" in cache_set:
+                print(f"Skipping {id} because it is in the cache")
+                continue
             if os.path.exists(temp_path):
                 video_path = temp_path
                 # try:

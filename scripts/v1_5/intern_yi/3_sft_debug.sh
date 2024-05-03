@@ -16,7 +16,7 @@ echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
-#rm -r ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40
+rm -r ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
@@ -24,7 +24,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/models/Nous-Hermes-2-Yi-34B \
     --version hermes-2 \
-    --data_mixture sharegpt4v_gpt4_100k \
+    --data_mixture internvid_1300K+shot2story_shotonly+jukinmedia+panda70m \
     --vision_tower /home/jasonlu/models/InternViT-6B-448px-V1-2 \
     --mlp_path /home/jasonlu/models/InternViT-6B-448px-V1-2/mlp_projector.pth \
     --mm_projector mlp_downsample \
@@ -41,11 +41,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_test40 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
-    --per_device_eval_batch_size 4 \
+    --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 1 \
+    --save_steps 100 \
     --save_total_limit 1 \
     --learning_rate 1e-5 \
     --weight_decay 0.05 \

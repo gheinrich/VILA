@@ -3,7 +3,14 @@ import argparse
 import json
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
+import nltk
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+nltk.download('wordnet')    # if you see error complaining "Resource wordnet not found.", even if you have already downloaded it, try unzip it by yourself. ref: https://github.com/nltk/nltk/issues/3028
+nltk.download('punkt')
 from pywsd.utils import lemmatize_sentence
+
+
 import numpy as np
 from tqdm import tqdm
 
@@ -102,7 +109,6 @@ def main():
     """
     # Parse arguments.
     args = parse_args()
-
     file = open(args.pred_path)
     new_pred_contents = [eval(i.strip()) for i in file.readlines()]
     file.close()

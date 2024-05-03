@@ -6,6 +6,7 @@ class Dataset:
     dataset_name: str
     dataset_type: str = field(default="torch")
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    meta_path: str = field(default=None, metadata={"help": "Path to the meta data for webdataset."})
     image_path: str = field(default=None, metadata={"help": "Path to the training image data."})
     description: str = field(
         default=None,
@@ -103,6 +104,24 @@ def register_datasets_mixtures():
         description="See coyo. Relabel coyo w/ VILA captioner, long Image - Text pair.",
     )
     add_dataset(coyo_webds_vila_recaption)
+    
+    coyo_webds_vila_recaption_5_subset = Dataset(
+        dataset_name="coyo_25m_wds_recap_5_subset",
+        dataset_type="coyo-wds-recap",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila/wids-meta-5-subset.json",
+        description="5% subset of coyo_webds_vila_recaption.",
+    )
+    add_dataset(coyo_webds_vila_recaption_5_subset)
+    
+    coyo_webds_vila_recaption_10_subset = Dataset(
+        dataset_name="coyo_25m_wds_recap_10_subset",
+        dataset_type="coyo-wds-recap",
+        data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila/wids-meta-10-subset.json",
+        description="5% subset of coyo_webds_vila_recaption.",
+    )
+    add_dataset(coyo_webds_vila_recaption_10_subset)
 
     # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-700m_full_webdata',
     # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
@@ -113,6 +132,25 @@ def register_datasets_mixtures():
         description="See coyo. Convert coyo to webds format.",
     )
     add_dataset(coyo_25m_wds)
+    
+    coyo_25m_wds_5_subset = Dataset(
+        dataset_name="coyo_25m_wds_5_subset",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-5-subset.json",
+        description="5% subset of coyo_25m_wds.",
+    )
+    add_dataset(coyo_25m_wds_5_subset)
+    
+    coyo_25m_wds_10_subset = Dataset(
+        dataset_name="coyo_25m_wds_10_subset",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-10-subset.json",
+        description="10% subset of coyo_25m_wds.",
+    )
+    add_dataset(coyo_25m_wds_10_subset)
+    
     coyo_webds_full = Dataset(
         dataset_name="coyowebds_full",
         dataset_type="coyo-wds",
@@ -147,6 +185,14 @@ def register_datasets_mixtures():
     )
     add_dataset(mmc4core)
 
+    mmc4core_10_subset = Dataset(
+        dataset_name="mmc4core_10_subset",
+        dataset_type="mmc4",
+        data_path="/home/yunhaof/workspace/datasets/subsets/mmc4core_subset",
+        description="10% subset of mmc4core.",
+    )
+    add_dataset(mmc4core_10_subset)
+    
     mmc4core_test = Dataset(
         dataset_name="mmc4core_test",
         dataset_type="mmc4",
@@ -390,9 +436,11 @@ def register_datasets_mixtures():
     youcook2 = Dataset(
         dataset_name="youcook2",
         dataset_type="torch",
-        # TODO: move to nvr_elm_llm
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/youcookii_clipped-v2.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/youcook2/video_data_clipped",
+        data_path="/home/jasonlu/video_datasets/jason_filtered_youcook2.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/video_data_clipped",
         description="YouCook2 (http://youcook2.eecs.umich.edu/): A large-scale video dataset with 11680 short but precise human written captions.",
     )
     add_dataset(youcook2)
@@ -400,9 +448,11 @@ def register_datasets_mixtures():
     vatex = Dataset(
         dataset_name="vatex",
         dataset_type="torch",
-        # TODO: move to nvr_elm_llm
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/vatex_training_processed_filtered-v2.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/vatex/videos_clipped",
+        data_path="/home/jasonlu/video_datasets/jason_filtered_vatex.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/vatex/videos_clipped",
         description="VATEX dataset (https://eric-xw.github.io/vatex-website/about.html), 22703 video clips, 227030 precise short captions (human annotated). Note: all clips are 10s.",
     )
     add_dataset(vatex)
@@ -452,8 +502,11 @@ def register_datasets_mixtures():
     sharegpt_video = Dataset(
         dataset_name="sharegpt_video",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos",
         description="900K high quailty detailed video caption written by GPT-4V",
     )
     add_dataset(sharegpt_video)
@@ -650,3 +703,11 @@ def register_datasets_mixtures():
         description="48K high quality video clips with 48K short or long high-qualiy captions.",
     )
     add_dataset(osmo_shot2story_shotonly)
+
+    nv_sft = Dataset(
+        dataset_name="nv_sft",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets/nv_sft/project_539_torch.json",
+        image_path="/home/jasonlu/vlm_datasets/nv_sft"
+    )
+    add_dataset(nv_sft)

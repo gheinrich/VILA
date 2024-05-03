@@ -3,6 +3,7 @@
 import argparse
 import re
 from io import BytesIO
+import os, os.path as osp
 
 import requests
 import torch
@@ -25,6 +26,7 @@ def image_parser(args):
 
 def load_image(image_file):
     if image_file.startswith("http") or image_file.startswith("https"):
+        print("downloading image from url", args.video_file)
         response = requests.get(image_file)
         image = Image.open(BytesIO(response.content)).convert("RGB")
     else:
@@ -39,11 +41,23 @@ def load_images(image_files):
         out.append(image)
     return out
 
-
 def eval_model(args):
     # Model
     disable_torch_init()
-
+    if args.video_file is None:
+        image_files = image_parser(args)
+        images = load_images(image_files)
+    else:
+        if args.video_file.startswith("http") or args.video_file.startswith("https"):
+            print("downloading video from url", args.video_file)
+            response = requests.get(args.video_file)
+            video_file = BytesIO(response.content)
+        else:
+            assert osp.exists(args.video_file), "video file not found"
+            video_file = args.video_file
+        from llava.mm_utils import opencv_extract_frames
+        images = opencv_extract_frames(video_file, args.num_video_frames)
+        
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, model_name, args.model_base)
 
@@ -59,9 +73,9 @@ def eval_model(args):
             print("no <image> tag found in input. Automatically append one at the beginning of text.")
             # do not repeatively append the prompt.
             if model.config.mm_use_im_start_end:
-                qs = image_token_se + "\n" + qs
+                qs = (image_token_se + "\n") * len(images) + qs
             else:
-                qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
+                qs = (DEFAULT_IMAGE_TOKEN + "\n") * len(images) + qs
     print("input: ", qs)
 
     if "llama-2" in model_name.lower():
@@ -87,10 +101,10 @@ def eval_model(args):
     conv.append_message(conv.roles[1], None)
     prompt = conv.get_prompt()
 
-    image_files = image_parser(args)
-    images = load_images(image_files)
+    
+        
+        
     images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
-
     input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
 
     stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
@@ -125,7 +139,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA-2.7b")
     parser.add_argument("--model-base", type=str, default=None)
-    parser.add_argument("--image-file", type=str, required=True)
+    parser.add_argument("--image-file", type=str, default=None)
+    parser.add_argument("--video-file", type=str, default=None)
+    parser.add_argument("--num-video-frames", type=int, default=6)
     parser.add_argument("--query", type=str, required=True)
     parser.add_argument("--conv-mode", type=str, default=None)
     parser.add_argument("--sep", type=str, default=",")

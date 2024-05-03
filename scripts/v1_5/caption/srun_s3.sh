@@ -5,7 +5,7 @@
 
 # cs
 # SLURM_ACCOUNT=${SLURM_ACCOUNT:-"nvr_elm_llm"}
-# SLURM_PARTITION=${SLURM_PARTITION:-"polar4,polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
+# SLURM_PARTITION=${SLURM_PARTITION:-"polar4,polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3"}
 ########################################################
 
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}

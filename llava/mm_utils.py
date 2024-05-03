@@ -1,3 +1,19 @@
+# Copyright 2024 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from PIL import Image
 from io import BytesIO
 import base64
@@ -12,12 +28,14 @@ import tempfile
 from io import BytesIO
 
 
-def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0):
-    # Always return fixed number of frames.
+
+def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_count=None):
     import cv2
 
-    fps = vidcap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if fps == None or frame_count == None:
+        # if one of fps or frame_count is None, still recompute
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     if fps == 0 or frame_count == 0:
         print("Video file not found. return empty images.")
         return [
@@ -36,7 +54,7 @@ def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0):
     images = []
     count = 0
     success = True
-    frame_indices = np.linspace(0, frame_count - 1, num_frames, dtype=int)
+    frame_indices = np.linspace(0, frame_count - 2, num_frames, dtype=int)
 
     while success:
         # print("frame_count:", frame_count, "count:", count, "num_frames:", num_frames, "frame_interval:", frame_interval)
@@ -71,14 +89,22 @@ def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0):
     ] * num_frames, 0
 
 
-def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0):
-    # return fixed number of frames if the video is long enough.
-    # but if the video is not too long, we return frames based on fps.
+def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_count=None):
+    """
+    num_frames is the max number of frames the model can support.
+    frame_count is the number of frames in the input video.
+    max_fps is the max FPS of the model can support.
+    fps is the fps of the input video.
+    """
+
     import cv2
     import random
 
-    fps = vidcap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if fps == None or frame_count == None:
+        # if one of fps or frame_count is None, still recompute
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+
     if fps == 0 or frame_count == 0:
         print("Video file not found. return empty images.")
         empty_video_frames = int(random.uniform(2, num_frames))
@@ -164,7 +190,8 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0):
         Image.new("RGB", (720, 720)),
     ] * empty_video_frames, 0
 
-def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=0.0):
+
+def opencv_extract_frames(vpath_or_bytesio, frames=6, max_fps=0.0, fps=None, frame_count=None):
     """
     Extract frames from a video using OpenCV.
 
@@ -183,18 +210,18 @@ def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=0.0):
 
     if isinstance(vpath_or_bytesio, str):
         vidcap = cv2.VideoCapture(vpath_or_bytesio)
-        if fps > 0.0:
-            return get_frame_from_vcap_with_fps(vidcap, frames, fps)
-        return get_frame_from_vcap(vidcap, frames, fps)
+        if max_fps > 0.0:
+            return get_frame_from_vcap_with_fps(vidcap, frames, max_fps)
+        return get_frame_from_vcap(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
     elif isinstance(vpath_or_bytesio, (BytesIO,)):
         # assuming mp4
         with tempfile.NamedTemporaryFile(delete=True, suffix=".mp4") as temp_video:
             temp_video.write(vpath_or_bytesio.read())
             temp_video_name = temp_video.name
             vidcap = cv2.VideoCapture(temp_video_name)
-            if fps > 0.0:
-                return get_frame_from_vcap_with_fps(vidcap, frames, fps)
-            return get_frame_from_vcap(vidcap, frames, fps)
+            if max_fps > 0.0:
+                return get_frame_from_vcap_with_fps(vidcap, frames, max_fps)
+            return get_frame_from_vcap(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
     else:
         raise NotImplementedError(type(vpath_or_bytesio))
 

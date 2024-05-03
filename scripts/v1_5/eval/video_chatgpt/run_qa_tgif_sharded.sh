@@ -2,11 +2,15 @@
 
 model_path=$1
 CKPT_NAME=$2
-GPT_Zero_Shot_QA="~/workspace/VILA-Internal/eval/GPT_Zero_Shot_QA"
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
+GPT_Zero_Shot_QA="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/GPT_Zero_Shot_QA"
 video_dir="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/mp4"
 gt_file_question="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/test_q.json"
 gt_file_answers="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/test_a.json"
-output_dir="${GPT_Zero_Shot_QA}/TGIF_Zero_Shot_QA/${CKPT_NAME}"
+output_dir="./eval_output/${CKPT_NAME}/TGIF_Zero_Shot_QA"
 
 
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
@@ -29,7 +33,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
       --output_name ${CHUNKS}_${IDX} \
       --num-chunks $CHUNKS \
       --chunk-idx $IDX \
-      --conv-mode hermes-2 \
+      --conv-mode $CONV_MODE \
       --temperature 0 &
 done
 

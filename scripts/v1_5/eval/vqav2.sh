@@ -8,6 +8,10 @@ CHUNKS=${#GPULIST[@]}
 SPLIT="llava_vqav2_mscoco_test-dev2015"
 MODEL_PATH=$1
 CKPT=$2
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
     CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python -m llava.eval.model_vqa_loader \
@@ -18,7 +22,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
         --temperature 0 \
-        --conv-mode vicuna_v1 &
+        --conv-mode $CONV_MODE &
 done
 
 wait

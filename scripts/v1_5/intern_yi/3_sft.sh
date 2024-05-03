@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-yi-34b-intern-6b-alignment_fix710 \
     --version hermes-2 \
-    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en \
+    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock \
     --vision_tower /home/jasonlu/models/InternViT-6B-448px-V1-2 \
     --mm_projector mlp_downsample \
     --tune_vision_tower True \

@@ -17,7 +17,7 @@ def has_tokenizer(path):
     if (
         osp.exists(osp.join(path, "special_tokens_map.json"))
         and osp.exists(osp.join(path, "tokenizer_config.json"))
-        and osp.exists(osp.join(path, "tokenizer.model"))
+        and (osp.exists(osp.join(path, "tokenizer.model")) or osp.exists(osp.join(path, "tokenizer.json")))
     ):
         # print("[has_tokenizer]", path, True)
         return True
@@ -32,7 +32,7 @@ def has_tokenizer(path):
         valid_hf_repo
         and file_exists(path, "special_tokens_map.json")
         and file_exists(path, "tokenizer_config.json")
-        and file_exists(path, "tokenizer.model")
+        and (file_exists(path, "tokenizer.model") or file_exists(path, "tokenizer.json"))
     ):
         # print("[has_tokenizer]", path, True)
         return True

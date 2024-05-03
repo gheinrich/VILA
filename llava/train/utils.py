@@ -63,7 +63,7 @@ def get_checkpoint_path(
 
 
 def prepare_config_for_training(
-    config: PretrainedConfig, model_args: dataclass, training_args: dataclass
+    config: PretrainedConfig, model_args: dataclass, training_args: dataclass, data_args: dataclass
 ) -> None:
     assert model_args.vision_tower is not None, "requires vision tower"
     ## set module configurations
@@ -80,6 +80,8 @@ def prepare_config_for_training(
     config.tune_language_model = training_args.tune_language_model
     config.tune_vision_tower = training_args.tune_vision_tower
     config.tune_mm_projector = training_args.tune_mm_projector
+    ## set data args
+    config.image_aspect_ratio = data_args.image_aspect_ratio
     ## extra vision tower configuration
     if getattr(config, "vision_tower_cfg", None) is not None:
         config.mm_vision_select_layer = model_args.mm_vision_select_layer

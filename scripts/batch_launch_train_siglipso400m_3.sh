@@ -7,7 +7,7 @@
 #SBATCH --partition=grizzly,polar,polar2,polar3,polar4
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
-#SBATCH --output=7b-internvid-10m-training-4-ctx16frames.out
+#SBATCH --output=7b-internvid-10m-training-4-fixedfps.out
 
 
 # srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/2_train_pretraining_vilavideo7b_v03.sh
