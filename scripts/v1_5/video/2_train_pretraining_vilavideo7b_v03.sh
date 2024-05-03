@@ -22,11 +22,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vilavideo-projector-7b-v02 \
+    --model_name_or_path ./checkpoints/vilavideo-projector-7b-v032 \
     --version v1 \
     --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain+internvid_10M \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector mlp2x_gelu \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
@@ -35,7 +35,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio resize \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo-pretrain-7b-v02 \
+    --output_dir ./checkpoints/vilavideo-pretrain-7b-v032 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
@@ -50,8 +50,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --model_max_length 8192 \
+    --model_max_length 10240 \
+    --num_video_frames 48 \
+    --fps 2.0 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 6 \
     --lazy_preprocess True \
     --report_to wandb

@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:0
 #SBATCH --time=1:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=cpu,interactive,grizzly,polar,grizzly2,polar2,polar3,polar4
+#SBATCH --partition=cpu,interactive,grizzly,polar,polar2,polar3,polar4
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-nextqa-score.out
 

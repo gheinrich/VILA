@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:8
 #SBATCH --time=4:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=interactive,grizzly,polar,grizzly2,polar2,polar3,polar4
+#SBATCH --partition=interactive,grizzly,polar,polar2,polar3,polar4
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-msvd-inference.out

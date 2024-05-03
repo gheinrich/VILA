@@ -4,12 +4,13 @@
 #SBATCH --gres=gpu:8
 #SBATCH --time=1:00:00
 #SBATCH -A nvr_lpr_aiagent
-#SBATCH --partition=interactive,grizzly,polar,grizzly2,polar2,polar3,polar4
+#SBATCH --partition=interactive,grizzly,polar,polar2,polar3,polar4
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-demo-inference.out
     
-CKPT_NAME=vila-video-13b-fix
+CKPT_NAME=vilavideo-sft-7b-v032-fixedfps
+# vilavideo-sft-7b-v032
 model_path=./checkpoints/${CKPT_NAME} 
 PROMPT_TEMPLATE=bin_20_80
 

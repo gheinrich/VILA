@@ -28,7 +28,7 @@ output_dir="${GPT_Zero_Shot_QA}/Demo_Zero_Shot_QA/${CKPT_NAME}_${PROMPT_TEMPLATE
 python3 llava/eval/model_vqa_videodemo.py \
     --model-path ${model_path} \
     --video_dir ${video_dir} \
-    --model_max_length 8192 \
+    --model_max_length 10240 \
     --output_dir ${output_dir} \
     --prompt_template ${PROMPT_TEMPLATE} \
     --conv-mode vicuna_v1 \
