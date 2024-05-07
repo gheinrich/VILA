@@ -141,6 +141,7 @@ def generate_wids_meta(tar_list, data_path, cache_dir, idx=0, total=0):
 
 
 def prepare_wids_meta(data_path, cache_dir="~/datasets/vila-webds-meta-2", idx=0, total=0):
+    cache_dir = osp.expanduser(cache_dir)
     # TODO(ligeng): speedup the generation
     #   1. parallelize the meta file generation
     #   2. add options for meta file
@@ -167,7 +168,6 @@ def prepare_wids_meta(data_path, cache_dir="~/datasets/vila-webds-meta-2", idx=0
 
     assert len(tar_list) > 0, f"no tar was found in the repository {data_path} !"
     print(f"generating meta for total {len(tar_list)} files.")
-    cache_dir = osp.expanduser(cache_dir)
     generate_wids_meta(tar_list, data_path, cache_dir, idx=idx, total=total)
 
 
@@ -181,7 +181,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
     ):
         self.data_path = osp.expanduser(data_path)
         self.meta_path = osp.expanduser(meta_path) if meta_path is not None else None
-        self.max_shards_to_load = max_shards_to_load
+        # self.max_shards_to_load = max_shards_to_load
 
         _local_meta_path = osp.join(self.data_path, "wids-meta.json")
         if meta_path is None and osp.exists(_local_meta_path):
@@ -196,7 +196,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
 
         assert osp.exists(
             self.meta_path
-        ), f"meta path not found in {self.meta_path} {_local_meta_path}:{osp.exists(_local_meta_path)}"
+        ), f"meta path not found in [{self.meta_path}] or [{_local_meta_path}]"
         print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
@@ -268,14 +268,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_path", nargs="?", type=str)  # , default=COYO_25M_VILA)
     parser.add_argument("-o", "--overwrite", action="store_true")
-    parser.add_argument("--idx", type=int, default=0)
+    parser.add_argument("--shards", type=int, default=0)
     parser.add_argument("--total", type=int, default=0)
     parser.add_argument("--test-all", action="store_true")
     args = parser.parse_args()
 
     print("Data path: ", args.data_path)
-    prepare_wids_meta(args.data_path, idx=args.idx, total=args.total)
+    prepare_wids_meta(args.data_path, idx=args.shards, total=args.total)
 
+    if args.total > 0:
+        print("building meta information only")
+        exit(0)
+        
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )

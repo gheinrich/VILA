@@ -15,7 +15,7 @@
 # PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
 # llmservice_nlp_fm / nvr_elm_llm
 SLURM_ACCOUNT=${SLURM_ACCOUNT:-"llmservice_nlp_fm"} 
-PARTITIONS=${SLURM_PARTITION:-"interactive,polar4,polar3,polar2,polar,batch_block1,grizzly,grizzly2,batch_block2,batch_block3"}
+PARTITIONS=${SLURM_PARTITION:-"interactive,polar4,polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3"}
 echo "Submitting jobs to $PARTITIONS"
 
 # Checkpoint path and model name (replace with your actual values)

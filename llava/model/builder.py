@@ -160,38 +160,26 @@ def load_pretrained_model(
             config.resume_path = model_path
             prepare_config_for_eval(config, kwargs)
             if "mpt" in model_name.lower():
-                # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
                 model = LlavaMPTForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
             elif "mistral" in model_name.lower() or "mixtral" in model_name.lower():
-                # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
                 model = LlavaMistralForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
             elif "gemma" in model_name.lower():
-                # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
                 model = LlavaGemmaForCausalLM.from_pretrained(
                     model_path, config=config, low_cpu_mem_usage=True, **kwargs
                 )
             else:
                 # kentang-mit@: llama-2 model
                 # config._attn_implementation = "flash_attention_2"
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False, legacy=False
-                )
                 model = LlavaLlamaModel(
                     config=config,
                     low_cpu_mem_usage=True,
                     **kwargs
                 )
+            tokenizer = model.tokenizer
     else:
         # Load language model
         if model_base is not None:
@@ -221,7 +209,7 @@ def load_pretrained_model(
                 model = AutoModelForCausalLM.from_pretrained(
                     model_path, low_cpu_mem_usage=True, **kwargs
                 )
-
+    model.eval()
     image_processor = None
     if is_mm_model(model_path):
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)

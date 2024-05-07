@@ -17,7 +17,7 @@ import torch
 from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.mm_utils import tokenizer_image_token
 from llava.model import LlavaLlamaConfig, LlavaLlamaModel
-from llava.train.args import ModelArguments, TrainingArguments
+from llava.train.args import ModelArguments, TrainingArguments, DataArguments
 from llava.train.utils import prepare_config_for_training
 from transformers import AutoTokenizer
 from PIL import Image
@@ -37,9 +37,10 @@ def build_model():
         mm_vision_select_layer=-2,
         mm_use_im_patch_token=False,
     )
+    data_args = DataArguments()
     training_args = TrainingArguments(output_dir="")
     config = LlavaLlamaConfig.from_pretrained(model_name_or_path)
-    prepare_config_for_training(config, model_args, training_args)
+    prepare_config_for_training(config, model_args, training_args, data_args)
     print("Initializing tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,

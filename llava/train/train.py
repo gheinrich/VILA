@@ -17,16 +17,19 @@
 import os
 import logging
 from typing import Dict, Optional, Sequence, List
+import warnings
 
 import torch
 import transformers
 
 from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
 from transformers.modeling_utils import unwrap_model
+from transformers import set_seed
 
 from torch.utils.data import Dataset
 from llava.train.llava_trainer import LLaVATrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
+from llava.train.callbacks.autoresume_callback import AutoResumeCallback
 
 from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module
@@ -36,16 +39,15 @@ from llava.train.utils import (
     prepare_config_for_training,
     vision_resolution_elevation,
     unit_test_rope_scaling,
+    mprint,
 )
 
 
 local_rank = None
-os.environ["WANDB_PROJECT"] = "VILA"
 
-
-def rank0_print(*args):
-    if local_rank == 0:
-        print(*args)
+if "WANDB_PROJECT" not in os.environ:
+    # Default to WANDB project "VILA".
+    os.environ["WANDB_PROJECT"] = "VILA"
 
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -205,7 +207,14 @@ def train():
             )
         )
 
-    resume_path = get_checkpoint_path(training_args.output_dir)
+    set_seed(training_args.seed)
+
+    resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
+
+    if not continue_training:
+        print(f"Models has been ready under {training_args.output_dir}. Skipp training")
+        exit(0)
+
     if resume_path:
         resume_from_checkpoint = True
         config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -239,8 +248,12 @@ def train():
                 model_args.model_name_or_path,
                 resume=resume_from_checkpoint
             )
+        if getattr(config, "resume_path", None) is not None:
+            config.resume_path = model_args.model_name_or_path
+    
     ## extra configurations
-    prepare_config_for_training(config, model_args, training_args)
+    prepare_config_for_training(config, model_args, training_args, data_args)
+
     model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",
@@ -248,14 +261,34 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
+
+    if not resume_path:
+        if model_args.mlp_path is not None:
+            state_dict = torch.load(model_args.mlp_path, map_location='cpu')
+            state_dict_new = {}
+            for k, v in state_dict.items():
+                if k == '0.weight':
+                    state_dict_new['layers.1.weight'] = v
+                if k == '0.bias':
+                    state_dict_new['layers.1.bias'] = v
+                if k == '1.weight':
+                    state_dict_new['layers.2.weight'] = v
+                if k == '1.bias':
+                    state_dict_new['layers.2.bias'] = v
+                if k == '3.weight':
+                    state_dict_new['layers.4.weight'] = v
+                if k == '3.bias':
+                    state_dict_new['layers.4.bias'] = v
+            model.get_mm_projector().load_state_dict(state_dict_new)
+
     vision_resolution_elevation(model, config)
     # This is an empty func.
     # It would be overwritten by unit test script.
-    if unit_test_rope_scaling(model, config, training_args):
+    if unit_test_rope_scaling(model, model.llm.config, training_args):
         return
 
     # Take a look on model architecture.
-    print(model)
+    mprint(model)
 
     model.llm.config.use_cache = False
     ## set tunnable parameters
@@ -263,13 +296,16 @@ def train():
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
     model.get_llm().requires_grad_(training_args.tune_language_model)
-    print(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
+    mprint(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
     if model.get_vision_tower():
         model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
         model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
-        print(f"vision tower {training_args.tune_vision_tower}")
-        print(f"mm projector {training_args.tune_mm_projector}")
-
+        mprint(f"vision tower {training_args.tune_vision_tower}")
+        mprint(f"mm projector {training_args.tune_mm_projector}")
+    if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
+        logging.warning(
+            "You are not tuning any part of the model. Please check if this is intended."
+        )
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
             if (
@@ -323,26 +359,11 @@ def train():
                 model.to(torch.bfloat16)
             if training_args.fp16:
                 model.to(torch.float16)
-        rank0_print("Adding LoRA adapters...")
+        mprint("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
-
-    if "mpt" in model_args.model_name_or_path:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            cache_dir=training_args.cache_dir,
-            model_max_length=training_args.model_max_length,
-            padding_side="right",
-        )
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            cache_dir=training_args.cache_dir,
-            model_max_length=training_args.model_max_length,
-            padding_side="right",
-            use_fast=False,
-            legacy=False,
-        )
-
+    # @yunhao: tokenizer instantiation is moved into build_llm
+    tokenizer = model.tokenizer
+    # @yunhao: may move this block into method "build_llm"
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(
@@ -354,6 +375,12 @@ def train():
         tokenizer.pad_token = tokenizer.unk_token
     else:
         tokenizer.pad_token = tokenizer.unk_token
+        if tokenizer.pad_token is None:
+            smart_tokenizer_and_embedding_resize(
+                special_tokens_dict=dict(pad_token="[PAD]"),
+                tokenizer=tokenizer,
+                model=model.llm,
+            )
         if model_args.version in conversation_lib.conv_templates:
             conversation_lib.default_conversation = conversation_lib.conv_templates[
                 model_args.version
@@ -375,6 +402,7 @@ def train():
         data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
 
+        model.config.num_video_frames = data_args.num_video_frames
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
             model_args.mm_use_im_start_end
@@ -403,8 +431,13 @@ def train():
         data_args=data_args,
         training_args=training_args,
     )
+
+    # Add a training step_end callback to check whether to autosuspend.
+    callbacks = [AutoResumeCallback()]
+
     trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module
+        model=model, tokenizer=tokenizer, args=training_args,
+        callbacks=callbacks, **data_module
     )
     print(
         "length of dataloader:",
@@ -418,6 +451,7 @@ def train():
         flush=True,
     )
 
+    # print(resume_from_checkpoint); input("DEBUG")
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()
 

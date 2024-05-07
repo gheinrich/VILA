@@ -10,6 +10,10 @@ SPLIT="llava_gqa_testdev_balanced"
 GQADIR="./playground/data/eval/gqa"
 MODEL_PATH=$1
 CKPT=$2
+CONV_MODE=vicuna_v1
+if [ "$#" -ge 3 ]; then
+    CONV_MODE="$3"
+fi
 
 mkdir ./eval_output/$CKPT/gqa
 
@@ -22,7 +26,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
         --temperature 0 \
-        --conv-mode vicuna_v1 &
+        --conv-mode $CONV_MODE &
 done
 
 wait

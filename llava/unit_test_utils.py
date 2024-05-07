@@ -1,3 +1,19 @@
+# Copyright 2024 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from unittest.case import _id as __id, skip as __skip
 
 def requires_gpu(reason=None):
@@ -27,11 +43,11 @@ def requires_lustre_nvr_datataset(reason=None):
 def test_make_supervised_data_module(dataset_name, max_samples=-1, batch_size=32, num_workers=16, skip_before=0):
     import torch
     import transformers
-    from transformers.models.siglip import SiglipImageProcessor
     
     from llava import conversation as conversation_lib
     from llava.data.dataset import make_supervised_data_module
     from llava.train.args import DataArguments, TrainingArguments
+    from llava.model.multimodal_encoder.siglip.image_processing_siglip import SiglipImageProcessor
     
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(

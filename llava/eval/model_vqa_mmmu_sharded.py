@@ -11,6 +11,7 @@ from tqdm import tqdm
 from datasets import load_dataset, concatenate_datasets
 from llava.model.builder import load_pretrained_model
 from llava.mm_utils import get_model_name_from_path
+from llava.mm_utils import process_images
 
 from argparse import ArgumentParser
 
@@ -143,9 +144,7 @@ def main():
 
         sample = construct_prompt(sample, args.config)
         if sample["image"]:
-            sample["image"] = vis_process_func(sample["image"], vis_processors).to(
-                device
-            )
+            sample['image'] = process_images([image.convert("RGB") for image in sample['image']], vis_processors, model.config)
         samples.append(sample)
 
     # run ex

@@ -1,9 +1,11 @@
 pyfile=${1:-tests/cpu_tests/success.py}
 report_file=${2:-dev/tmp.md}
+cmd_entry=${3:-python}
 
 pylog=${pyfile//\//\-\-}
 
-python $pyfile; 
+$cmd_entry $pyfile; 
+
 if [ $? -eq 0 ]; then
     msg="[succeeded] $pyfile "
 else

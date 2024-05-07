@@ -7,7 +7,7 @@ class Panda70mTesting(unittest.TestCase):
     def test_dataloader_panda70m(self):
         print("cpu cores: ", os.cpu_count())
         workers = os.cpu_count() // 4
-        test_make_supervised_data_module(dataset_name="panda70m", batch_size=workers * 2, num_workers=workers)
+        test_make_supervised_data_module(dataset_name="panda70m", batch_size=2, num_workers=workers)
 
 
 if __name__ == "__main__":

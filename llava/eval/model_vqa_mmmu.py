@@ -18,6 +18,9 @@ from llava.eval.mmmu_utils.model_utils import (call_llava_engine_df,
                                                llava_image_processor)
 from llava.mm_utils import get_model_name_from_path
 from llava.model.builder import load_pretrained_model
+from llava.mm_utils import process_images
+
+
 
 
 def run_model(args, samples, model, call_model_engine_fn=None, tokenizer=None, processor=None, conv_version=None):
@@ -95,10 +98,7 @@ def main():
 
         sample = construct_prompt(sample, args.config)
         if sample["image"]:
-            sample["image"] = [
-                vis_process_func(image_file, vis_processors).to(device) for image_file in sample["image"]
-            ]
-            sample["image"] = torch.stack(sample["image"])
+            sample['image'] = process_images([image.convert("RGB") for image in sample['image']], vis_processors, model.config)
         samples.append(sample)
 
     # run ex

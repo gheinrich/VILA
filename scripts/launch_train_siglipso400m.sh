@@ -1,4 +1,4 @@
-TOTAL_RUNS=6
+TOTAL_RUNS=18
 for i in $(seq 1 $TOTAL_RUNS); do
     sbatch ~/workspace/VILA-Internal/scripts/batch_launch_train_siglipso400m.sh
 done

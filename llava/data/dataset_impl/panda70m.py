@@ -113,7 +113,8 @@ class VILAPanda70m(Dataset):
         self.dataset = VILAWebDataset(
             # data_path="~/nvr_elm_llm/dataset/panda70m/webdataset",
             # data_path="~/nvr_elm_llm/dataset/panda70m/wds-testing",
-            data_path="~/nvr_elm_llm/dataset/panda70m/wds-training_2m",
+            # data_path="~/nvr_elm_llm/dataset/panda70m/wds-training_2m",
+            data_path=data_path,
             # meta_path="~/nvr_elm_llm/dataset/panda70m/webdataset/wids-mini.json",
         )
 

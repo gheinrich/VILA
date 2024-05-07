@@ -40,7 +40,8 @@ def get_checkpoint_path(
     pathlib_dir = pathlib.Path(output_dir)
 
     if list(pathlib_dir.glob("config.json")):
-        return output_dir
+        # training has been finished
+        return output_dir, False
     else:
         try:
             ordering_and_checkpoint_path = []
@@ -56,18 +57,19 @@ def get_checkpoint_path(
                         (int(regex_match.groups()[0]), path)
                     )
             checkpoints_sorted = sorted(ordering_and_checkpoint_path)
-            return checkpoints_sorted[-1][1]
+            return checkpoints_sorted[-1][1], True
         except:
-            return None
+            return None, True
 
 
 def prepare_config_for_training(
-    config: PretrainedConfig, model_args: dataclass, training_args: dataclass
+    config: PretrainedConfig, model_args: dataclass, training_args: dataclass, data_args: dataclass
 ) -> None:
+    assert model_args.vision_tower is not None, "requires vision tower"
     ## set module configurations
     if getattr(config, "llm_cfg", None) is None:
         config.llm_cfg = model_args.model_name_or_path
-    if getattr(config, "vision_tower_cfg", None) is None or "radio" in model_args.vision_tower.lower():
+    if getattr(config, "vision_tower_cfg", None) is None:
         config.vision_tower_cfg = model_args.vision_tower
     if getattr(config, "mm_projector_cfg", None) is None:
         config.mm_projector_cfg = model_args.mm_projector
@@ -78,6 +80,8 @@ def prepare_config_for_training(
     config.tune_language_model = training_args.tune_language_model
     config.tune_vision_tower = training_args.tune_vision_tower
     config.tune_mm_projector = training_args.tune_mm_projector
+    ## set data args
+    config.image_aspect_ratio = data_args.image_aspect_ratio
     ## extra vision tower configuration
     if getattr(config, "vision_tower_cfg", None) is not None:
         config.mm_vision_select_layer = model_args.mm_vision_select_layer
@@ -85,6 +89,10 @@ def prepare_config_for_training(
         ## vision tower configurations
         config.vision_resolution = model_args.vision_resolution
         config.interpolate_mode = model_args.interpolate_mode
+        config.drop_path_rate = model_args.drop_path_rate
+        config.s2 = model_args.s2
+        config.s2_scales = model_args.s2_scales
+        config.s2_max_split_size = model_args.s2_max_split_size
 
 
 def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig):

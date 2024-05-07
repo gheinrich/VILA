@@ -28,7 +28,7 @@ class DataArguments:
     is_multimodal: bool = False
     image_folder: Optional[str] = field(default=None)
     image_aspect_ratio: str = "square"
-    data_mixture: str = "coyo_25m_mmc4core"
+    data_mixture: str = "llava_1_5_mm_align"
     eval_data_mixture: str = None
     vflan_no_system_prompt: bool = False
     downsample_video: bool = False
@@ -41,14 +41,20 @@ class DataArguments:
 class ModelArguments:
     version: Optional[str] = field(default="v0")
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
-    vision_tower: Optional[str] = field(default=None)
-    mm_projector: Optional[str] = field(default=None)
+    vision_tower: Optional[str] = field(default="google/siglip-so400m-patch14-384")
+    mm_projector: Optional[str] = field(default="mlp2x_gelu")
     mm_use_im_start_end: bool = field(default=False)
     mm_use_im_patch_token: bool = field(default=True)
     mm_vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
     mm_vision_select_feature: Optional[str] = field(default="patch")
     vision_resolution: Optional[int] = field(default=-1)
     interpolate_mode: Optional[str] = field(default="linear")
+    drop_path_rate: Optional[float] = field(default=0.)
+    mlp_path: Optional[str] = field(default=None)
+    s2: bool = field(default=False)
+    s2_scales: Optional[str] = field(default="336,672,1008")
+    s2_max_split_size: int = field(default=336)
+
 
 
 @dataclass
