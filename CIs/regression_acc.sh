@@ -17,7 +17,7 @@ CKPT3_video=$WORKDIR/CIs-reproduce-stage3-video
 wait
 
 echo "[$SLURM_ACCOUNT] working directory $WORKDIR"
-mkdir -p slurm-logs/regression
+mkdir -p slurm-logs/regression-$dtime-$suffix
 
 # ALIGN_DATASET=llava_1_5_mm_align bash scripts/reproduce/1_mm_align.sh $CKPT1
 # PT_DATASET=sharegpt4v_pretrain bash scripts/reproduce/2_pretrain.sh $CKPT1 $CKPT2
@@ -28,7 +28,7 @@ export ACC_STEP=16
 
 jname=stage1-$suffix
 srun -A $SLURM_ACCOUNT \
-    -N 1 \
+    -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
     -J vila:CI-acc-regression-$suffix \
     --dependency singleton \
@@ -37,9 +37,11 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/1_mm_align.sh llava_1_5_mm_align $CKPT1 &
 
+wait 
+
 jname=stage2-$suffix
 srun -A $SLURM_ACCOUNT \
-    -N 1 \
+    -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
     -J vila:CI-acc-regression-$suffix \
     --dependency singleton \
@@ -48,10 +50,11 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/2_pretrain.sh sharegpt4v_pretrain $CKPT1 $CKPT2 &
 
+wait 
 # Image SFT
 jname=stage3-$suffix
 srun -A $SLURM_ACCOUNT \
-    -N 1 \
+    -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
     -J vila:CI-acc-regression-$suffix \
     --dependency singleton \
@@ -60,6 +63,7 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/3_sft_captioner.sh sharegpt4v_sft $CKPT2 $CKPT3 &
 
+wait 
 # Video SFT
 jname=stage3-$suffix
 # for i in $(seq 1 5); do
