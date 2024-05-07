@@ -22,7 +22,7 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${1:-llava_1_5_mm_align}
-
+export SEED=${SEED:-42}
 
 global_bs=${BATCH_SIZE:-128}
 ACC_STEP=${ACC_STEP:-1}
@@ -59,7 +59,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --seed 42 \
+    --seed $SEED \
     --output_dir $OUTPUT_STEP1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \

@@ -23,6 +23,7 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 export PT_DATASET=${1:-sharegpt4v_pretrain}
+export SEED=${SEED:-42}
 
 global_bs=${BATCH_SIZE:-128}
 acc_step=${ACC_STEP:-1}
@@ -67,7 +68,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --image_aspect_ratio resize \
     --group_by_modality_length True \
     --bf16 True \
-    --seed 42 \
+    --seed $SEED \
     --output_dir $OUTPUT_STEP2 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \

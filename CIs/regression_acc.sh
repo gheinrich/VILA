@@ -74,7 +74,6 @@ jname=stage3-$suffix
 # wait 
 wait 
 
-exit 0
 bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/eval_output
 wait 
 
