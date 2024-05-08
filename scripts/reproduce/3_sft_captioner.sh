@@ -24,7 +24,8 @@ export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
 export PT_DATASET=${PT_DATASET:-sharegpt4v_pretrain}
-export SFT_DATASET=${SFT_DATASET:-sharegpt4v_sft+vflan}
+export SFT_DATASET=${1:-sharegpt4v_sft+vflan}
+export SEED=${SEED:-42}
 
 sort_and_join() {
     local original_string=$1
@@ -64,8 +65,8 @@ export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 # OUTPUT_STEP1=${1:-"$MNAME-$VISION_TOWER-align-$ALIGN_DATASET"}
-OUTPUT_STEP2=${1:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
-OUTPUT_STEP3=${2:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT-$SFT_DATASET"}
+OUTPUT_STEP2=${2:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET"}
+OUTPUT_STEP3=${3:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET-pretrain-$PT_DATASET-SFT-$SFT_DATASET"}
 
 echo "[vision] $VISION_TOWER \n[loading] from $OUTPUT_STEP2, \n[saving] to $OUTPUT_STEP3"
 
@@ -88,9 +89,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
-    --image_aspect_ratio pad \
+    --image_aspect_ratio resize \
     --group_by_modality_length True \
     --bf16 True \
+    --seed $SEED \
     --output_dir $OUTPUT_STEP3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
