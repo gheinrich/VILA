@@ -30,7 +30,7 @@ jname=stage1-$suffix
 srun -A $SLURM_ACCOUNT \
     -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
-    -J vila:CI-acc-regression-$suffix \
+    -J vila:CI-acc-regression-$jname \
     --dependency singleton \
     -e slurm-logs/regression-$dtime-$suffix/eval-$jname.err \
     -o slurm-logs/regression-$dtime-$suffix/eval-$jname.out \
@@ -40,37 +40,42 @@ srun -A $SLURM_ACCOUNT \
 wait 
 
 jname=stage2-$suffix
+for i in $(seq 1 5); do
 srun -A $SLURM_ACCOUNT \
     -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
-    -J vila:CI-acc-regression-$suffix \
+    -J vila:CI-acc-regression-$jname \
     --dependency singleton \
     -e slurm-logs/regression-$dtime-$suffix/eval-$jname.err \
     -o slurm-logs/regression-$dtime-$suffix/eval-$jname.out \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/2_pretrain.sh sharegpt4v_pretrain $CKPT1 $CKPT2 &
-
+done
 wait 
+
 # Image SFT
-jname=stage3-$suffix
+jname=stage3-image-$suffix
+
+for i in $(seq 1 5); do
 srun -A $SLURM_ACCOUNT \
     -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
-    -J vila:CI-acc-regression-$suffix \
+    -J vila:CI-acc-regression-$jname \
     --dependency singleton \
     -e slurm-logs/regression-$dtime-$suffix/eval-$jname.err \
     -o slurm-logs/regression-$dtime-$suffix/eval-$jname.out \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/3_sft_captioner.sh sharegpt4v_sft $CKPT2 $CKPT3 &
-
+done
 wait 
+
 # Video SFT
-jname=stage3-$suffix
+# jname=stage3-video-$suffix
 # for i in $(seq 1 5); do
 # srun -A $SLURM_ACCOUNT \
 #     -N 16 \
 #     -p $SLURM_PARTITION -t 4:00:00 \
-#     -J vila:CI-acc-regression-$suffix \
+#     -J vila:CI-acc-regression-$jname \
 #     --dependency singleton \
 #     --gpus-per-node 16 --exclusive \
 #     SFT_DATASET=vflan+sharegpt4v_sft+video_chatgpt+shot2story_shotonly bash scripts/reproduce/3_sft_captioner.sh $CKPT2 $CKPT3 &
