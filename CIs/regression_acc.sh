@@ -40,7 +40,7 @@ srun -A $SLURM_ACCOUNT \
 wait 
 
 jname=stage2-$suffix
-for i in $(seq 1 5); do
+for i in $(seq 1 6); do
 srun -A $SLURM_ACCOUNT \
     -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
@@ -56,7 +56,7 @@ wait
 # Image SFT
 jname=stage3-image-$suffix
 
-for i in $(seq 1 5); do
+for i in $(seq 1 6); do
 srun -A $SLURM_ACCOUNT \
     -N 4 \
     -p $SLURM_PARTITION -t 4:00:00 \
