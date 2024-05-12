@@ -13,7 +13,7 @@ from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
-from llava.mm_utils import process_images
+from llava.mm_utils import process_images, process_image
 
 from PIL import Image
 import math
@@ -42,12 +42,27 @@ def get_chunk(lst, n, k):
 
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
+    if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
+        num_video_frames = model.config.num_video_frames 
+    else:
+        num_video_frames = 8
 
-    num_video_frames = model.config.num_video_frames
-    images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
-    image_tensor = process_images(images, image_processor, model.config)
+    if hasattr(model.config, 'fps') and model.config.fps is not None:
+        fps = model.config.fps
+    else:
+        fps = 0.0
 
-    qs = '<image>\n' * num_video_frames + qs
+    # print(fps)
+    images, frames_loaded = LazySupervisedDataset._load_video(video_path, num_video_frames, fps, args)
+    # image_tensor = process_images(images, image_processor, model.config)
+    image_tensor = torch.stack(
+        [process_image(image, args, None) for image in images]
+    )
+    num_frames_loaded_successfully = len(images)
+    # print(f"Number of frames loaded successfully: {num_frames_loaded_successfully}")
+    qs = qs.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
+    qs = qs.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
+    qs = '<image>\n' * num_frames_loaded_successfully + qs
 
     conv = conv_templates[args.conv_mode].copy()
     conv.append_message(conv.roles[0], qs)
@@ -82,6 +97,12 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     # if n_diff_input_output > 0:
     #     print(f'[Warning] {n_diff_input_output} output_ids are not the same as the input_ids')
     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+    outputs_2 = tokenizer.batch_decode(output_ids)[0]
+    # print("raw input:", tokenizer.batch_decode(input_ids)[0])
+    print("num frames loaded successfully:", num_frames_loaded_successfully)
+    print("raw output 1:", outputs)
+    # print("raw output 2:", outputs_2)
+    # print("batched output 2," , tokenizer.batch_decode(output_ids))
     outputs = outputs.strip()
     if outputs.endswith(stop_str):
         outputs = outputs[:-len(stop_str)]
@@ -93,7 +114,7 @@ def parse_caption_template(template_type):
         short_bin = template_type.split("_")[1]
         long_bin = template_type.split("_")[2]
         short_question = "Elaborate on the visual and narrative elements of the video in detail."
-        long_question = f"Summarize the visual content of the following video. Please write the caption with no more than {long_bin} words.\n<video>"
+        long_question = f"Summarize the visual content of the following video. Please write the caption with no more than {long_bin} words."
     else:
         raise ValueError(f"Invalid template type: {template_type}")
 
@@ -143,6 +164,12 @@ def eval_model(args):
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
     args.image_processor = image_processor
 
+
+    if hasattr(model.config, 'image_aspect_ratio') and model.config.image_aspect_ratio is not None:
+        args.image_aspect_ratio = model.config.image_aspect_ratio
+    else:
+        raise ValueError("image_aspect_ratio is not found in the model config")
+
     # Iterate over each sample in the ground truth file
     index = 0
     for sample in tqdm(gt_questions):
@@ -160,6 +187,7 @@ def eval_model(args):
                 question = short_question if question_type == 'short' else long_question
                 output = get_model_output(model, image_processor, tokenizer, video_path, question, args)
                 print('question:', question)
+                print('output:', output)
                 if question_type == 'short':
                     short_caption_file.write(f"{video_name}: {output}\n")
                 elif question_type == 'long':

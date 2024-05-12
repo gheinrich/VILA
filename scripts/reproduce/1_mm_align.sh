@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# are you ok?
 export NCCL_IB_SL=1
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 #export NCCL_DEBUG=INFO
@@ -21,8 +21,8 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 VTOWER=$(echo $VISION_TOWER | rev | cut -d "/" -f 1 | rev)
 # GLOBAL bs: 128 * 8
-export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}
-
+export ALIGN_DATASET=${1:-llava_1_5_mm_align}
+export SEED=${SEED:-42}
 
 global_bs=${BATCH_SIZE:-128}
 ACC_STEP=${ACC_STEP:-1}
@@ -36,14 +36,13 @@ fi
 
 export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Llama-2-7b-hf"}
 MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
-OUTPUT_STEP1=${1:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET"}
-
+OUTPUT_STEP1=${2:-"./checkpoints/$MNAME-$VTOWER-align-$ALIGN_DATASET"}
 
 echo "number of nodes:" $n_node
 echo "per device batch size: $bs | global batch size $global_bs | base model: $BASE_MODEL_PATH"
 echo "node rank:" $SLURM_PROCID
 echo "ALIGN: $ALIGN_DATASET "
-
+echo "from $BASE_MODEL_PATH to $OUTPUT_STEP1"
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
@@ -58,7 +57,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
+    --image_aspect_ratio resize \
     --bf16 True \
+    --seed $SEED \
     --output_dir $OUTPUT_STEP1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \

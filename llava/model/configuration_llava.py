@@ -15,6 +15,7 @@ class LlavaConfig(PretrainedConfig):
         mm_hidden_size=None,
         image_aspect_ratio=None,
         num_video_frames=None,
+        fps=None,
         mm_vision_select_layer=None,
         mm_vision_select_feature=None,
         mm_use_im_start_end=False,
@@ -38,6 +39,7 @@ class LlavaConfig(PretrainedConfig):
         self.mm_hidden_size = mm_hidden_size
         self.image_aspect_ratio = image_aspect_ratio
         self.num_video_frames = num_video_frames
+        self.fps = fps
         self.mm_vision_select_layer = mm_vision_select_layer
         self.mm_vision_select_feature = mm_vision_select_feature
         self.mm_use_im_start_end = mm_use_im_start_end

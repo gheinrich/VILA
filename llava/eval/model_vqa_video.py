@@ -43,7 +43,10 @@ def get_chunk(lst, n, k):
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
 
-    num_video_frames = model.config.num_video_frames
+    if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
+        num_video_frames = model.config.num_video_frames 
+    else:
+        num_video_frames =  8
     images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
     image_tensor = process_images(images, image_processor, model.config)
 

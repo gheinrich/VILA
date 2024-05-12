@@ -14,8 +14,9 @@ git pull
 which python
 bash CIs/continual_local.sh "ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com"
 
+# every 3 days
 while true; do
-    if [ "$SECONDS" -gt "28800" ]; then
+    if [ "$SECONDS" -gt "259200" ]; then
         SECONDS=0
         break
     else
