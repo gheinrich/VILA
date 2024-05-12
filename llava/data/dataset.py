@@ -660,6 +660,13 @@ class DummyDataset(Dataset):
             image_file = self.list_data_dict[i]["image"]
             image = process_image(image_file, self.data_args, self.image_folder)
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
+        elif "images" in sources[0]:
+            all_images = []
+            for image_file in self.list_data_dict[i]["images"]:
+                image = process_image(image_file, self.data_args, self.image_folder)
+                all_images.append(image)
+            image_tensor = torch.stack(all_images)
+            sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
 
@@ -668,6 +675,7 @@ class DummyDataset(Dataset):
             self.tokenizer,
             has_image=(
                 "image" in self.list_data_dict[i]
+                or "images" in self.list_data_dict[i]
                 or "video" in self.list_data_dict[i]
                 or "video_id" in self.list_data_dict[i]
             ),
@@ -678,6 +686,8 @@ class DummyDataset(Dataset):
         # image exist in the data
         if "image" in self.list_data_dict[i]:
             data_dict["image"] = image.unsqueeze(0)
+        elif ("images" in self.list_data_dict[i]):
+            data_dict["image"] = image_tensor
         else:
             data_dict["image"] = None
         return data_dict
@@ -776,6 +786,13 @@ class LazySupervisedDataset(Dataset):
             else:
                 image = process_image(image_file, self.data_args, self.image_folder)
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
+        elif "images" in sources[0]:
+            all_images = []
+            for image_file in self.list_data_dict[i]["images"]:
+                image = process_image(image_file, self.data_args, self.image_folder)
+                all_images.append(image)
+            image_tensor = torch.stack(all_images)
+            sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         elif ("video" in sources[0]) or ("video_id" in sources[0]):
             # num_video_frames = self.data_args.num_video_frames
             if "video" in sources[0]:
@@ -831,6 +848,7 @@ class LazySupervisedDataset(Dataset):
             self.tokenizer,
             has_image=(
                 "image" in self.list_data_dict[i]
+                or "images" in self.list_data_dict[i]
                 or "video" in self.list_data_dict[i]
                 or "video_id" in self.list_data_dict[i]
             ),
@@ -844,6 +862,8 @@ class LazySupervisedDataset(Dataset):
                 data_dict["image"] = image
             else:
                 data_dict["image"] = image.unsqueeze(0)
+        elif ("images" in self.list_data_dict[i]):
+            data_dict["image"] = image_tensor
         elif ("video" in self.list_data_dict[i]) or ("video_id" in self.list_data_dict[i]):
             data_dict["image"] = image_tensor
             if frames_loaded == 0:

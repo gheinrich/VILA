@@ -195,7 +195,7 @@ def construct_prompt(sample, config):
         else:
             res_dict["final_input_prompt"] = empty_prompt
 
-        res_dict["gt_content"] = options[ord(sample["answer"].upper()) - ord("A")]
+        res_dict["gt_content"] = sample["answer"]
     else:
         empty_prompt_sample_structure = config["short_ans_example_format"]
         empty_prompt = empty_prompt_sample_structure.format(question)

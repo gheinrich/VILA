@@ -163,7 +163,7 @@ def register_datasets_mixtures():
     coyo_25m = Dataset(
         dataset_name="coyo_25m",
         dataset_type="coyo",
-        data_path="/home/jasonlu/datasets/coyo-700m/pkl02-split",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/coyo-700m/pkl02-split",
         description="Original data source: https://github.com/kakaobrain/coyo-dataset that contains 700M samples, ranked according to CLIP score (per shard) and choose the top 25M. Short Image - Text pairs.",
     )
     add_dataset(coyo_25m)
@@ -179,8 +179,8 @@ def register_datasets_mixtures():
     mmc4core = Dataset(
         dataset_name="mmc4core",
         dataset_type="mmc4",
-        # data_path='/home/jasonlu/datasets/mmc4-core/pkl-core',
-        data_path="/home/jasonlu/datasets/mmc4-core/pkl-core",
+        # data_path='/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/mmc4-core/pkl-core',
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/mmc4-core/pkl-core",
         description="Original data source: https://github.com/allenai/mmc4 mmc4-core that contains 29.9M images, interleaved Image - Text data.",
     )
     add_dataset(mmc4core)
@@ -212,7 +212,7 @@ def register_datasets_mixtures():
     ccs_recaptioned = Dataset(
         dataset_name="ccs_recaptioned",
         dataset_type="wds",
-        data_path="/home/jasonlu/datasets/ccs_recaptioned",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/ccs_recaptioned",
         description="TODO dannyy",
     )
     add_dataset(ccs_recaptioned)
@@ -220,7 +220,7 @@ def register_datasets_mixtures():
     ccs_recaptioned_test = Dataset(
         dataset_name="ccs_recaptioned_test",
         dataset_type="wds",
-        data_path="/home/jasonlu/datasets/ccs_recaptioned_test",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/ccs_recaptioned_test",
         description="See ccs_recaptioned, A subset of ccs_recaptioned (16 shards) that could be used for test purposes.",
     )
     add_dataset(ccs_recaptioned_test)
@@ -228,7 +228,7 @@ def register_datasets_mixtures():
     vflan = Dataset(
         dataset_name="vflan",
         dataset_type="vflan",
-        data_path="/home/jasonlu/datasets/vlm-flan-clean-text1m-nosqa",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/vlm-flan-clean-text1m-nosqa",
     )
     add_dataset(vflan)
 
@@ -629,6 +629,14 @@ def register_datasets_mixtures():
     )
     add_dataset(synthdog_en)
 
+    idefics2_sft = Dataset(
+        dataset_name="idefics2_sft",
+        dataset_type="torch",
+        data_path="/home/jasonlu/workspace/idefics2-sft/new-vflan/idefics2_sft_train.jsonl",
+        image_path="/home/jasonlu/workspace/idefics2-sft/new-vflan",
+        description="",
+    )
+    add_dataset(idefics2_sft)
 
     test = Dataset(
         dataset_name="test",
