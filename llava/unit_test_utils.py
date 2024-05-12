@@ -26,7 +26,7 @@ def requires_gpu(reason=None):
 
 def requires_lustre(reason=None):
     import os.path as osp
-    if not osp.isdir("/lustre"):
+    if not (osp.isdir("/lustre") or osp.isdir("/mnt")):
         reason = "lustre path is not avaliable." if reason is None else reason
         return __skip(reason)
     return __id

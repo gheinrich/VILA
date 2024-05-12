@@ -53,35 +53,51 @@ def get_frame_from_vcap(vidcap, num_frames=10, fps=None, frame_count=None):
     images = []
     count = 0
     success = True
-    frame_indices = np.linspace(0, frame_count - 2, num_frames, dtype=int)
-
+    frame_indices = np.linspace(0, frame_count - 1, num_frames, dtype=int)
     while success:
         # print("frame_count:", frame_count, "count:", count, "num_frames:", num_frames, "frame_interval:", frame_interval)
         if frame_count >= num_frames:
             success, frame = vidcap.read()
             if count in frame_indices:
-                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                im_pil = Image.fromarray(img)
-                images.append(im_pil)
+                try:
+                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    im_pil = Image.fromarray(img)
+                    images.append(im_pil)
+                except:
+                    # print("Failed to read frame:", count)
+                    continue
                 if len(images) >= num_frames:
+                    # print("Successed! num frames:", len(images), "total frames:", frame_count)
                     return images
             count += 1
         else:
             # Left padding frames if the video is not long enough
             success, frame = vidcap.read()
             if success:
-                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                im_pil = Image.fromarray(img)
-                images.append(im_pil)
+                try:
+                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    im_pil = Image.fromarray(img)
+                    images.append(im_pil)
+                except:
+                    # print("Failed to read frame:", count)
+                    continue
                 count += 1
             elif count >= 1:
                 width, height = images[-1].size
-                images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
                 print("padding frames:", (num_frames - len(images)))
+                images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
                 return images
             else: 
                 break
-    raise ValueError("Did not find enough frames in the video. return empty image.")
+    # print("failed after reading length:", len(images), "total frames:", frame_count)
+    # raise ValueError("Did not find enough frames in the video. return empty image.")
+    # TODO: tmp workaround -> padding with the empty frames if the video is corrupted
+    if len(images) == 0:
+        raise ValueError("Did not find enough frames in the video. return empty image.")
+
+    width, height = images[-1].size
+    images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
+    return images
 
 
 def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=None, frame_count=None):
