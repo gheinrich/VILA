@@ -17,9 +17,12 @@
 
 
 import os
+import random
 from typing import List, Optional
 
 import torch
+import torch.distributed as dist
+from torch import nn
 from torch.utils.data import (ConcatDataset, Dataset, DistributedSampler,
                               RandomSampler, Sampler)
 from transformers import PreTrainedModel, Trainer
@@ -28,6 +31,7 @@ from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
 from transformers.trainer import (get_parameter_names, has_length,
                                   is_sagemaker_mp_enabled, logger)
 from collections import OrderedDict
+from llava.train.sequence_parallel import get_pg_manager
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -129,10 +133,6 @@ class VILADistributedSampler(DistributedSampler):
         sample_len_list=None,
         force_accumulation=True,
     ) -> None:
-        import math
-
-        import torch.distributed as dist
-
         if num_replicas is None:
             if not dist.is_available():
                 raise RuntimeError("Requires distributed package to be available")
@@ -176,15 +176,8 @@ class VILADistributedSampler(DistributedSampler):
         self.force_accumulation = force_accumulation
 
     def __iter__(self):
-        import random
 
         indices = list(range(len(self.dataset)))
-
-        indices_list = []
-        for i in range(len(self.org_sample_len_list)):
-            indices_list.append(
-                indices[sum(self.org_sample_len_list[:i]) : sum(self.org_sample_len_list[:i]) + self.total_samples[i]]
-            )
 
         # 1. split the full indices first (note: without drop last at this moment)
         indices_list = []
@@ -223,6 +216,19 @@ class VILADistributedSampler(DistributedSampler):
         assert -1 not in all_indices
 
         return iter(all_indices)
+
+    # # (Qinghao): Implementation for validating accuracy of SP
+    # def __iter__(self):
+    #     iterator = super().__iter__()
+    #     indices = list(iterator)
+    #     indices = indices[self.start_index :]
+    #     return iter(indices)
+
+    # def __len__(self) -> int:
+    #     return self.num_samples - self.start_index
+
+    # def set_start_index(self, start_index: int) -> None:
+    #     self.start_index = start_index
 
 
 class LengthGroupedSampler(Sampler):
@@ -271,30 +277,41 @@ class LLaVATrainer(Trainer):
         # Always using Jason's sampler.
         sample_len_list = self.args.sample_lens
         seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
+        num_replicas = self.args.world_size
+        rank = self.args.process_index
+        
+        # Consider sequence parallelism
+        sp_degree = self.args.seq_parallel_size
+        if sp_degree > 1:  # Sequence Parallelism is enabled
+            num_replicas = num_replicas // sp_degree
+            PROCESS_GROUP_MANAGER = get_pg_manager()
+            rank = PROCESS_GROUP_MANAGER.dp_rank
+            # rank = dist.get_rank() // sp_degree
+            
         return VILADistributedSampler(
             self.train_dataset,
-            num_replicas=self.args.world_size,
-            rank=self.args.process_index,
+            num_replicas=num_replicas,
+            rank=rank,
             seed=seed,
             batch_size=self.args.train_batch_size,
             sample_len_list=sample_len_list,
         )
 
-        if self.args.group_by_modality_length:
-            if not isinstance(self.train_dataset, ConcatDataset):
-                lengths = self.train_dataset.modality_lengths
-            else:
-                lengths = []
-                for d in self.train_dataset.datasets:
-                    lengths += d.modality_lengths
-            return LengthGroupedSampler(
-                self.args.train_batch_size,
-                world_size=self.args.world_size * self.args.gradient_accumulation_steps,
-                lengths=lengths,
-                group_by_modality=True,
-            )
-        else:
-            return super()._get_train_sampler()
+        # if self.args.group_by_modality_length:
+        #     if not isinstance(self.train_dataset, ConcatDataset):
+        #         lengths = self.train_dataset.modality_lengths
+        #     else:
+        #         lengths = []
+        #         for d in self.train_dataset.datasets:
+        #             lengths += d.modality_lengths
+        #     return LengthGroupedSampler(
+        #         self.args.train_batch_size,
+        #         world_size=self.args.world_size * self.args.gradient_accumulation_steps,
+        #         lengths=lengths,
+        #         group_by_modality=True,
+        #     )
+        # else:
+        #     return super()._get_train_sampler()
 
     def _get_eval_sampler(self, eval_dataset: Dataset) -> Optional[torch.utils.data.Sampler]:
         if self.eval_dataset is None or not has_length(self.eval_dataset):

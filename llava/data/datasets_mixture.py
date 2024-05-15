@@ -39,6 +39,14 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(panda70m_testing)
+
+    panda70m_longseq = Dataset(
+        dataset_name="panda70m_longseq",
+        dataset_type="panda70m_sp",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/panda70m/wds-training_2m",
+        description="See panda70m.",
+    )
+    add_dataset(panda70m_longseq)
     
     panda70m = Dataset(
         dataset_name="panda70m",
