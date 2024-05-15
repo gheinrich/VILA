@@ -26,22 +26,21 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
+from flash_attn import flash_attn_func, flash_attn_varlen_func
+from flash_attn.bert_padding import (index_first_axis, pad_input,  # noqa
+                                     unpad_input)
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 from ...activations import ACT2FN
-from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast
+from ...modeling_outputs import (BaseModelOutputWithPast,
+                                 CausalLMOutputWithPast,
+                                 SequenceClassifierOutputWithPast)
 from ...modeling_utils import PreTrainedModel
-from ...utils import (
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    logging,
-    replace_return_docstrings,
-)
+from ...utils import (add_start_docstrings,
+                      add_start_docstrings_to_model_forward, logging,
+                      replace_return_docstrings)
 from .configuration_mistral import MistralConfig
-
-from flash_attn import flash_attn_func, flash_attn_varlen_func
-from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
 
 _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
 
@@ -68,6 +67,7 @@ def _get_unpad_data(attention_mask, seqlens_in_batch):
         cu_seqlens,
         max_seqlen_in_batch,
     )
+
 
 # Copied from transformers.models.llama.modeling_llama.LlamaRMSNorm with Llama->Mistral
 class MistralRMSNorm(nn.Module):
@@ -459,7 +459,7 @@ class MistralFlashAttention2(MistralAttention):
             q_len,
             dropout=dropout_rate,
             use_sliding_windows=use_sliding_windows,
-            seqlens_in_batch=seqlens_in_batch
+            seqlens_in_batch=seqlens_in_batch,
         )
 
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_size).contiguous()
@@ -580,15 +580,15 @@ class MistralFlashAttention2(MistralAttention):
             attention_mask_num_tokens = attention_mask.shape[-1]
             attention_mask = attention_mask[:, attention_mask_num_tokens - kv_seq_len :]
 
-        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
+        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(
+            attention_mask, seqlens_in_batch=seqlens_in_batch
+        )
 
         key_layer = index_first_axis(key_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
         value_layer = index_first_axis(value_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
 
         if query_length == kv_seq_len:
-            query_layer = index_first_axis(
-                query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k
-            )
+            query_layer = index_first_axis(query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
             cu_seqlens_q = cu_seqlens_k
             max_seqlen_in_batch_q = max_seqlen_in_batch_k
             indices_q = indices_k
@@ -1011,7 +1011,7 @@ class MistralModel(MistralPreTrainedModel):
                     past_key_values,
                     output_attentions,
                     use_cache,
-                    seqlens_in_batch
+                    seqlens_in_batch,
                 )
             else:
                 layer_outputs = decoder_layer(
@@ -1021,7 +1021,7 @@ class MistralModel(MistralPreTrainedModel):
                     past_key_value=past_key_values,
                     output_attentions=output_attentions,
                     use_cache=use_cache,
-                    seqlens_in_batch=seqlens_in_batch
+                    seqlens_in_batch=seqlens_in_batch,
                 )
 
             hidden_states = layer_outputs[0]

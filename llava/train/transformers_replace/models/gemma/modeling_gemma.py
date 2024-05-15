@@ -26,27 +26,25 @@ from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 from ...activations import ACT2FN
 from ...cache_utils import Cache, DynamicCache, StaticCache
-from ...modeling_attn_mask_utils import (
-    _prepare_4d_causal_attention_mask,
-)
-from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast
+from ...modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
+from ...modeling_outputs import (BaseModelOutputWithPast,
+                                 CausalLMOutputWithPast,
+                                 SequenceClassifierOutputWithPast)
 from ...modeling_utils import PreTrainedModel
-from ...pytorch_utils import ALL_LAYERNORM_LAYERS, is_torch_greater_or_equal_than_1_13
-from ...utils import (
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    is_flash_attn_2_available,
-    is_flash_attn_greater_or_equal_2_10,
-    logging,
-    replace_return_docstrings,
-)
+from ...pytorch_utils import (ALL_LAYERNORM_LAYERS,
+                              is_torch_greater_or_equal_than_1_13)
+from ...utils import (add_start_docstrings,
+                      add_start_docstrings_to_model_forward,
+                      is_flash_attn_2_available,
+                      is_flash_attn_greater_or_equal_2_10, logging,
+                      replace_return_docstrings)
 from ...utils.import_utils import is_torch_fx_available
 from .configuration_gemma import GemmaConfig
 
-
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
-    from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
+    from flash_attn.bert_padding import (index_first_axis, pad_input,  # noqa
+                                         unpad_input)
 
 
 # This makes `_prepare_4d_causal_attention_mask` a leaf function in the FX graph.
@@ -78,6 +76,7 @@ def _get_unpad_data(attention_mask, seqlens_in_batch):
         cu_seqlens,
         max_seqlen_in_batch,
     )
+
 
 class GemmaRMSNorm(nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
@@ -390,7 +389,15 @@ class GemmaFlashAttention2(GemmaAttention):
         return attn_output, attn_weights, past_key_value
 
     def _flash_attention_forward(
-        self, query_states, key_states, value_states, attention_mask, query_length, dropout=0.0, softmax_scale=None, seqlens_in_batch=None
+        self,
+        query_states,
+        key_states,
+        value_states,
+        attention_mask,
+        query_length,
+        dropout=0.0,
+        softmax_scale=None,
+        seqlens_in_batch=None,
     ):
         """
         Calls the forward method of Flash Attention - if the input hidden states contain at least one padding token
@@ -449,7 +456,9 @@ class GemmaFlashAttention2(GemmaAttention):
         return attn_output
 
     def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch):
-        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
+        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(
+            attention_mask, seqlens_in_batch=seqlens_in_batch
+        )
         batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
 
         key_layer = index_first_axis(
@@ -986,9 +995,7 @@ class GemmaModel(GemmaPreTrainedModel):
         if self.config._attn_implementation == "sdpa":
             is_tracing = torch.jit.is_tracing() or isinstance(input_tensor, torch.fx.Proxy)
             if not is_tracing and attention_mask is not None and torch.any(attention_mask != 1):
-                causal_mask = causal_mask.mul(~torch.all(causal_mask == causal_mask.min(), dim=-1)[..., None]).to(
-                    dtype
-                )
+                causal_mask = causal_mask.mul(~torch.all(causal_mask == causal_mask.min(), dim=-1)[..., None]).to(dtype)
 
         return causal_mask
 
@@ -1167,9 +1174,7 @@ class GemmaForCausalLM(GemmaPreTrainedModel):
         # same goes for position ids. Could also help with continued generation.
         cache_position = kwargs.get("cache_position", None)
         if cache_position is None:
-            cache_position = torch.arange(
-                past_length, past_length + position_ids.shape[-1], device=position_ids.device
-            )
+            cache_position = torch.arange(past_length, past_length + position_ids.shape[-1], device=position_ids.device)
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
         if inputs_embeds is not None and past_key_values is None:

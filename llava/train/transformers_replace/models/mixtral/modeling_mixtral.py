@@ -18,36 +18,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ PyTorch Mixtral model."""
-from dataclasses import dataclass
 import inspect
 import math
 import warnings
+from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
+from flash_attn import flash_attn_func, flash_attn_varlen_func
+from flash_attn.bert_padding import (index_first_axis, pad_input,  # noqa
+                                     unpad_input)
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 from ...activations import ACT2FN
-from ...modeling_outputs import (
-    ModelOutput,
-    SequenceClassifierOutputWithPast,
-)
+from ...modeling_outputs import ModelOutput, SequenceClassifierOutputWithPast
 from ...modeling_utils import PreTrainedModel
-from ...utils import (
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    logging,
-    replace_return_docstrings,
-)
+from ...utils import (add_start_docstrings,
+                      add_start_docstrings_to_model_forward, logging,
+                      replace_return_docstrings)
 from ...utils.import_utils import is_torch_fx_available
 from .configuration_mixtral import MixtralConfig
-
-
-from flash_attn import flash_attn_func, flash_attn_varlen_func
-from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
 
 _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
 
@@ -106,6 +99,7 @@ class MoeCausalLMOutputWithPast(ModelOutput):
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     router_logits: Optional[Tuple[torch.FloatTensor]] = None
 
+
 @dataclass
 class MoeModelOutputWithPast(ModelOutput):
     """
@@ -146,8 +140,6 @@ class MoeModelOutputWithPast(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     router_logits: Optional[Tuple[torch.FloatTensor]] = None
-
-
 
 
 def load_balancing_loss_func(gate_logits: torch.Tensor, num_experts: torch.Tensor = None, top_k=2) -> float:
@@ -590,7 +582,7 @@ class MixtralFlashAttention2(MixtralAttention):
             q_len,
             dropout=dropout_rate,
             use_sliding_windows=use_sliding_windows,
-            seqlens_in_batch=seqlens_in_batch
+            seqlens_in_batch=seqlens_in_batch,
         )
 
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_size).contiguous()
@@ -611,7 +603,7 @@ class MixtralFlashAttention2(MixtralAttention):
         dropout=0.0,
         softmax_scale=None,
         use_sliding_windows=False,
-        seqlens_in_batch=None
+        seqlens_in_batch=None,
     ):
         """
         Calls the forward method of Flash Attention - if the input hidden states contain at least one padding token
@@ -711,15 +703,15 @@ class MixtralFlashAttention2(MixtralAttention):
             attention_mask_num_tokens = attention_mask.shape[-1]
             attention_mask = attention_mask[:, attention_mask_num_tokens - kv_seq_len :]
 
-        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
+        indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(
+            attention_mask, seqlens_in_batch=seqlens_in_batch
+        )
 
         key_layer = index_first_axis(key_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
         value_layer = index_first_axis(value_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
 
         if query_length == kv_seq_len:
-            query_layer = index_first_axis(
-                query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k
-            )
+            query_layer = index_first_axis(query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
             cu_seqlens_q = cu_seqlens_k
             max_seqlen_in_batch_q = max_seqlen_in_batch_k
             indices_q = indices_k
@@ -1220,7 +1212,6 @@ class MixtralModel(MixtralPreTrainedModel):
 
         # 2d mask is passed through the layers
         attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
-       
 
         hidden_states = inputs_embeds
 
@@ -1244,7 +1235,7 @@ class MixtralModel(MixtralPreTrainedModel):
                     output_attentions,
                     output_router_logits,
                     use_cache,
-                    seqlens_in_batch
+                    seqlens_in_batch,
                 )
             else:
                 layer_outputs = decoder_layer(
@@ -1255,7 +1246,7 @@ class MixtralModel(MixtralPreTrainedModel):
                     output_attentions=output_attentions,
                     output_router_logits=output_router_logits,
                     use_cache=use_cache,
-                    seqlens_in_batch=seqlens_in_batch
+                    seqlens_in_batch=seqlens_in_batch,
                 )
 
             hidden_states = layer_outputs[0]

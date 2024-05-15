@@ -17,6 +17,7 @@
 
 
 import os
+from collections import OrderedDict
 from typing import List, Optional
 
 import torch
@@ -27,7 +28,7 @@ from transformers.modeling_utils import unwrap_model
 from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
 from transformers.trainer import (get_parameter_names, has_length,
                                   is_sagemaker_mp_enabled, logger)
-from collections import OrderedDict
+
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -410,7 +411,6 @@ class LLaVATrainer(Trainer):
                     logger.info(f"skipped: {skipped/2**20}M params")
 
         return self.optimizer
-
 
     def save_model(self, output_dir: Optional[str], _internal_call: bool):
         ## save tuned model separately
