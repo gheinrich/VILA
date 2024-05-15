@@ -103,12 +103,3 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": "Time to terminate the task inadvance (minutes), saveing checkpoints needs time."
         },
     )
-    seq_parallel_size: int = field(
-        default=-1, metadata={"help": "The degree of sequence parallelism (SP). SP is disabled by default (value: -1). "}
-    )
-    seq_parallel_ring_size: int = field(
-        default=-1,
-        metadata={
-            "help": "The communication process group size using optimized Ring Attention approach in SP, where `seq_parallel_size` = `seq_parallel_ring_size` x `seq_parallel_ulysses_size` (determined by other two terms). Ring Attention approach is disabled by default in SP. This setting is adjustable only when `seq_parallel_size` > 1."
-        },
-    )

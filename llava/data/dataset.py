@@ -52,7 +52,6 @@ from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token, opencv_ext
 from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
 from llava.train.llava_trainer import LLaVATrainer
-from llava.train.sequence_parallel import get_pg_manager, extract_local_from_list, extract_local_input_ids
 
 # torch.backends.cudnn.enabled = False
 
@@ -1231,167 +1230,6 @@ class LazyCoyoDataset(Dataset):
 
         return dict(input_ids=input_ids, labels=targets, image=image_list)
 
-class LazyCoyoDataset_LONGSEQ(Dataset):
-    """Dataset for supervised fine-tuning, with sequence parallelism support.
-    This class is implemented by Dacheng Li."""
-
-    num_image_tokens = 576
-
-    def __init__(
-        self,
-        data_path: str,
-        image_folder: str,
-        tokenizer: transformers.PreTrainedTokenizer,
-        data_args: DataArguments,
-        training_args: TrainingArguments,
-        # kentang-mit@: balance the total number of tokens for Coyo and MMC4.
-        n_samples_per_idx=4,
-    ):
-        super().__init__()
-
-        import pickle
-        from llava.train.llama_dpsp_attn_monkey_patch import get_sequence_parallel_rank, get_sequence_parallel_size
-
-        self.sequence_parallel_size = get_sequence_parallel_size()
-        self.sequence_parallel_rank = get_sequence_parallel_rank()
-
-        n_samples = []
-        # actually shards and stats info
-        n_shards = len(os.listdir(data_path)) // 2
-        # n_shards = 100
-        count_info_list = sorted([f for f in os.listdir(data_path) if f.endswith(".count")])[:n_shards]
-        n_samples = [int(open(os.path.join(data_path, f), "r").read().strip()) for f in count_info_list]
-
-        print("total COYO samples", sum(n_samples))
-
-        rank = training_args.process_index  # int(os.environ["RANK"])
-        world_size = training_args.world_size // self.sequence_parallel_size  # int(os.environ["WORLD_SIZE"])
-        shared_size = n_shards // world_size
-
-        gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) // n_samples_per_idx for i in range(world_size)]
-        self.n_samples = min(gpu_samples) * world_size  # total size
-        self.idx_offset = (rank // self.sequence_parallel_size) * min(gpu_samples)
-
-        shard_start, shard_end = rank * shared_size, (rank + 1) * shared_size
-        print(f" * loading data from shard {shard_start}-{shard_end}")
-
-        shard_names = [d.replace(".count", ".pkl") for d in count_info_list]
-        shard_names = shard_names[shard_start:shard_end]
-
-        full_data_list = []
-        # now load data
-        for shard_name in shard_names:
-            # load shard
-            with open(os.path.join(data_path, shard_name), "rb") as f:
-                shard_data = pickle.load(f)
-                random.seed(42)
-                if "mmc4" in data_path:
-                    random.shuffle(shard_data)  # shuffle for MMC4cap only
-                full_data_list.extend(shard_data)
-
-        print("* loaded totally {} samples".format(len(full_data_list)))
-
-        # now pack the samples into groups
-        n_groups = len(full_data_list) // n_samples_per_idx
-        full_data_list = [full_data_list[i : i + n_samples_per_idx] for i in range(0, len(full_data_list), n_samples_per_idx)]
-        if len(full_data_list[-1]) < n_samples_per_idx:
-            full_data_list = full_data_list[:-1]
-        assert len(full_data_list) == n_groups
-        print("split into {} groups".format(n_groups))
-
-        self.data_list = full_data_list
-
-        self.tokenizer = tokenizer
-        self.data_args = data_args
-        self.image_folder = image_folder
-
-    def __len__(self):
-        # return len(self.data_list)
-        return self.n_samples
-
-    @property
-    def modality_lengths(self):
-        # Estimate the number of tokens after tokenization, used for length-grouped sampling
-        length_list = []
-        for samples in self.data_list:
-            cur_len = sum([len(conv["text" if "text" in conv else "caption"].split()) for conv in samples])
-            # The unit of cur_len is "words". We assume 1 word = 2 tokens.
-            cur_len = cur_len + len(samples) * self.num_image_tokens // 2
-            length_list.append(cur_len)
-        return length_list
-
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        CONCAT_SAMPLES = False
-        info_list = self.data_list[i - self.idx_offset]
-
-        text_list = []
-        image_list = []
-
-        for sample in info_list:
-            caption_key = (
-                "text" if "text" in sample else "caption"
-            )  # kentang-mit@: remove existing <image> tokens in the sentences
-            # kentang-mit@: remove existing <image> token.
-            # if this is an html tag, we still preserve its semantic meaning
-            sample[caption_key] = sample[caption_key].replace("<image>", "<IMAGE>")
-            text_list.append(DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token)
-            if "image" in sample:
-                image_base64 = sample["image"]
-                rawbytes = base64.b64decode(image_base64)
-            else:
-                rawbytes = sample["rawbytes"]
-            image = Image.open(io.BytesIO(rawbytes)).convert("RGB")
-            image_list.append(image)
-
-        image_list = torch.stack(
-            [LazySupervisedDataset._process_image(image, self.data_args, self.image_folder) for image in image_list]
-        )
-
-        if CONCAT_SAMPLES:
-            # into <image>cap<eos><image>cap<eos>...
-            text_list = "".join(text_list)
-
-            input_ids = self.tokenizer(
-                text_list,
-                return_tensors="pt",
-                padding="longest",
-                max_length=self.tokenizer.model_max_length,
-                truncation=True,
-            ).input_ids  # 4, seq_len
-
-            input_ids = input_ids[0]
-
-        else:
-            input_ids = [
-                tokenizer_image_token(
-                    prompt,
-                    self.tokenizer,
-                    return_tensors="pt",
-                )
-                for prompt in text_list
-            ]
-            # print([x.shape[0] for x in input_ids], [len(x.split()) for x in text_list], [len(re.findall(r"<image[^>]*>", x)) for x in text_list])
-
-            # input_ids = torch.nn.utils.rnn.pad_sequence(
-            #     input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-            # )
-
-        targets = copy.deepcopy(input_ids)
-        # mask image tokens is unnecessary for llava-1.5
-        # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
-        for i in range(len(targets)):
-            targets[i][targets[i] == self.tokenizer.pad_token_id] = IGNORE_INDEX
-
-        # input_ids shape: (batch_size, sequence_length)
-        subsequence_length = len(input_ids[0]) // self.sequence_parallel_size
-        input_ids = input_ids[
-            :, self.sequence_parallel_rank * subsequence_length : (self.sequence_parallel_rank + 1) * subsequence_length
-        ].contiguous()
-        targets = targets[
-            :, self.sequence_parallel_rank * subsequence_length : (self.sequence_parallel_rank + 1) * subsequence_length
-        ].contiguous()
-
-        return dict(input_ids=input_ids, labels=targets, image=image_list)
 
 class LazyWDSDataset(Dataset):
     """Dataset for supervised fine-tuning.
@@ -2054,94 +1892,6 @@ class LazyVideoWebDataset(Dataset):
 
         return data_dict
 
-class VILAPanda70m_LongSeq(Dataset):
-    """Dataset for training on video dataset, with sequence parallelism support.
-    This class is implemented by Qinghao Hu."""
-
-    def __init__(
-        self,
-        data_path,
-        image_folder,
-        tokenizer,
-        data_args: DataArguments,
-        training_args: TrainingArguments,
-    ) -> None:
-        super().__init__()
-
-        from llava.data.simple_vila_webdataset import VILAWebDataset
-
-        data_path = osp.expanduser(data_path)
-        self.dataset = VILAWebDataset(data_path=data_path)
-        self.data_path = data_path
-        self.tokenizer = tokenizer
-        self.data_args = data_args
-        self.num_video_frames = data_args.num_video_frames if hasattr(data_args, "num_video_frames") else 8
-
-        PROCESS_GROUP_MANAGER = get_pg_manager()
-
-        self.sp_degree = training_args.seq_parallel_size
-        assert self.sp_degree > 1, "Please use this class only when sequence parallelism is enabled."
-        assert self.sp_degree < self.num_video_frames, "Sequence parallelism degree should be smaller than the frames."
-        # assert (
-        #     self.num_video_frames % self.sp_degree == 0
-        # ), f"num_video_frames ({self.num_video_frames}) % sp_degree ({self.sp_degree}) != 0. Currently, we only support sequence evenly split across images (`IMAGE_TOKEN_INDEX`)."
-        self.sp_rank = PROCESS_GROUP_MANAGER.sp_rank
-
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, index):
-        data = self.dataset[index]
-
-        # TODO: we shall make sure no key is missing in panda70m.
-        try:
-            video_path = data[".mp4"]
-        except KeyError:
-            video_path = None
-            print("bad data", data)
-
-        if ".json" in data:
-            jinfo = data[".json"]
-            caption = jinfo["caption"]
-        else:
-            caption = "This is a sample video from Youtube."
-
-        imgs = opencv_extract_frames(video_path, self.num_video_frames)
-        cap = caption
-        # print(imgs.shape, cap, secs)
-        # num_video_frames = self.num_video_frames
-        if len(imgs) < self.num_video_frames:
-            # pad the video to be consistent
-            # print(imgs)
-            imgs = [
-                imgs[0],
-            ] * self.num_video_frames
-        prompt = "<image>\n" * self.num_video_frames + cap
-
-        processor = self.data_args.image_processor
-        image_tensor = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in imgs]
-
-        local_image_tensor = extract_local_from_list(image_tensor, self.sp_rank, self.sp_degree)
-
-        image_tensor = torch.stack(local_image_tensor)
-
-        input_ids = tokenizer_image_token(
-            prompt,
-            self.tokenizer,
-            return_tensors="pt",
-        )
-
-        # Split for sequence parallelism
-        image_token_indices = torch.where(input_ids == IMAGE_TOKEN_INDEX)[0].tolist()
-        local_input_indices = extract_local_from_list(image_token_indices, self.sp_rank, self.sp_degree)
-        local_input_ids = extract_local_input_ids(input_ids, local_input_indices, self.sp_rank, self.sp_degree, self.tokenizer.bos_token_id)
-
-        targets = copy.deepcopy(local_input_ids)
-        data_dict = dict(input_ids=local_input_ids, labels=targets, image=image_tensor)
-
-        return data_dict
-
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):
@@ -2317,8 +2067,6 @@ def build_datasets(
             dataset_cls = DummyDataset
             if hasattr(dataset, "image_path"):
                 image_folder = dataset.image_path
-        elif dataset_type == "panda70m_sp":
-            dataset_cls = VILAPanda70m_LongSeq
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)
