@@ -15,25 +15,22 @@ CONV_MODE=vicuna_v1
 if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi
-GPT_Zero_Shot_QA="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/GPT_Zero_Shot_QA"
-DATA_DIR="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/perception_test/perception_test"
-video_dir="${DATA_DIR}/videos"
-gt_file="${DATA_DIR}/mc_question_valid.json"
-output_dir="./eval_output/${CKPT_NAME}/PerceptionTest_Zero_Shot_QA"
-
-
-gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
-IFS=',' read -ra GPULIST <<< "$gpu_list"
+GPT_Zero_Shot_QA="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/GPT_Zero_Shot_QA/GPT_Zero_Shot_QA"
+video_dir="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/all_test"
+gt_file_question="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/test_q.json"
+gt_file_answers="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/test_a.json"
+output_dir="./eval_output/${CKPT_NAME}/Activitynet_Zero_Shot_QA"
 
 CHUNKS=8
 
 
 for IDX in $(seq 0 $((CHUNKS-1))); do
-  CUDA_VISIBLE_DEVICES=$IDX python3 llava/eval/model_vqa_videoperception.py \
+  CUDA_VISIBLE_DEVICES=$IDX python3 llava/eval/model_vqa_video.py \
       --model-path ${model_path} \
       --video_dir ${video_dir} \
       --model_max_length 8192 \
-      --gt_file ${gt_file} \
+      --gt_file_question ${gt_file_question} \
+      --gt_file_answers ${gt_file_answers} \
       --output_dir ${output_dir} \
       --output_name ${CHUNKS}_${IDX} \
       --num-chunks $CHUNKS \
@@ -50,6 +47,7 @@ output_file=${output_dir}/merge.jsonl
 if [ -f "$output_file" ]; then
     > "$output_file"
 fi
+
 
 # Loop through the indices and concatenate each file.
 for IDX in $(seq 0 $((CHUNKS-1))); do

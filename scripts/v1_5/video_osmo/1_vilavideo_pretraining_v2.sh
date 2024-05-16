@@ -18,11 +18,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vilavideo7b_pretraining_v023_fixedctx32 \
+    --model_name_or_path ./checkpoints/vilavideo7b_align_v032 \
     --version v1 \
-    --data_mixture osmo_vflan+osmo_sharegpt4v_sft+osmo_video_chatgpt+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_sharegpt_video \
+    --data_mixture osmo_coyo_25m+osmo_mmc4core+osmo_internvid_10M+osmo_sharegpt4v_pretrain+osmo_panda70m \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector mlp2x_gelu \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
@@ -31,14 +31,14 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo7b_sft_v023_fixedctx32 \
+    --output_dir ./checkpoints/vilavideo7b_pretraining_v0321 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 50 \
+    --save_steps 200 \
     --save_total_limit 2 \
     --learning_rate 5e-5 \
     --weight_decay 0. \
@@ -46,8 +46,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --model_max_length 8192 \
+    --model_max_length 16384 \
+    --num_video_frames 48 \
+    --fps 2.0 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 10 \
     --lazy_preprocess True \
     --report_to wandb
