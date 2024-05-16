@@ -18,6 +18,13 @@ class TestStringMethods(unittest.TestCase):
             raise Exception("No lustre or mnt path found")
         
 
+        if osp.isdir("/lustre"):
+            test_make_supervised_data_module(dataset_name="sharegpt_video_qa", batch_size=workers * 2, num_workers=workers, max_samples=100)
+        elif osp.isdir("/mnt"):
+            test_make_supervised_data_module(dataset_name="osmo_sharegpt_video_qa", batch_size=workers * 2, num_workers=workers, max_samples=100)
+        else:
+            raise Exception("No lustre or mnt path found")
+
 
 if __name__ == "__main__":
     unittest.main()

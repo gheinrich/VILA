@@ -9,7 +9,8 @@ cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
-bs=$((64 / n_node))
+seq_parallel_size=4
+bs=$((64 / n_node * seq_parallel_size))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
