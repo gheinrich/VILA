@@ -510,6 +510,19 @@ def register_datasets_mixtures():
         description="900K high quailty detailed video caption written by GPT-4V",
     )
     add_dataset(sharegpt_video)
+
+    sharegpt_video_qa = Dataset(
+        dataset_name="sharegpt_video_qa",
+        dataset_type="torch",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/chatgpt_qa_900k.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos",
+        description="900K high quailty detailed video caption written by GPT-4V",
+    )
+    add_dataset(sharegpt_video_qa)
+
     # Video Pretraining Datasets added by Fuzhao
     internvid_test = Dataset(
         dataset_name="internvid_test",
@@ -805,6 +818,18 @@ def register_datasets_mixtures():
     )
     add_dataset(osmo_sharegpt_video)
 
+    osmo_sharegpt_video_qa = Dataset(
+        dataset_name="osmo_sharegpt_video_qa",
+        dataset_type="torch",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sharegpt_video/sharegpt_video/chatgpt_qa_900k.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sharegpt_video/sharegpt_video/videos",
+        description="900K high quailty detailed video caption written by GPT-4V",
+    )
+    add_dataset(osmo_sharegpt_video_qa)
+
     osmo_video_chatgpt = Dataset(
         dataset_name="osmo_video_chatgpt",
         dataset_type="torch",
@@ -863,3 +888,43 @@ def register_datasets_mixtures():
     )
     add_dataset(osmo_vflan)
 
+    osmo_llava_1_5_mm_align = Dataset(
+        dataset_name="osmo_llava_1_5_mm_align",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/image_datasets/LLaVA-CC3M-Pretrain-595K/chat.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/image_datasets/LLaVA-CC3M-Pretrain-595K/images",
+    )
+    add_dataset(osmo_llava_1_5_mm_align)
+
+    osmo_activitynet_qa = Dataset(
+        dataset_name="osmo_activitynet_qa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/video_chatgpt/video_chatgpt_caption/train-processed-filtered-v2.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/video_chatgpt/video_chatgpt_videos/activitynet_videos",
+        description="28250 human-annotated QA pairs on 2825 videos derived from the popular ActivityNet dataset.",
+    )
+    add_dataset(osmo_activitynet_qa)
+    osmo_ivqa = Dataset(
+        dataset_name="osmo_ivqa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/ivqa/ivqa/train-processed-filtered.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/ivqa/ivqa/video_data_clipped",
+        description="iVQA dataset, 5378 videos with 5378 QA pairs. The 5378 QA pairs are from various domains.",
+    )
+    add_dataset(osmo_ivqa)
+    osmo_nextqa = Dataset(
+        dataset_name="osmo_nextqa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/train-processed.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/NExTVideo",
+        description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
+    )
+    add_dataset(osmo_nextqa)
+    osmo_msrvttqa = Dataset(
+        dataset_name="osmo_msrvttqa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/msrvttqa/msr_vtt/train-processed-qa-v2.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/msrvttqa/msr_vtt/train_val_videos/TrainValVideo",
+        description="6321 videos with 6321 rewritten QA-pairs based on the rewritten captions. (The typos in captions have been fixed by GPT-3.5-turbo)",
+    )
+    add_dataset(osmo_msrvttqa)

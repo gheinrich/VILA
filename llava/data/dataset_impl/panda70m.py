@@ -122,6 +122,7 @@ class VILAPanda70m(Dataset):
         self.tokenizer = tokenizer
         self.data_args = data_args
         self.num_video_frames = data_args.num_video_frames if hasattr(data_args, "num_video_frames") else 8
+        self.loader_fps = data_args.fps if hasattr(data_args, "fps") else 0.0
 
     def __len__(self):
         return len(self.dataset)
@@ -141,29 +142,14 @@ class VILAPanda70m(Dataset):
             caption = jinfo["caption"]
         else:
             caption = "This is a sample video from Youtube."
-            # jinfo = {
-            #     "caption": "This is a sample video from Youtube.",
-            #     "timestamp": None,
-            #     "duration": None,
-            # }
-            
-        # if "shortest_edge" in self.data_args.image_processor.size:
-        #     image_size = self.data_args.image_processor.size["shortest_edge"]
-        # else:
-        #     image_size = self.data_args.image_processor.size["height"]
-        # imgs, cap = load_video(video_path, jinfo=jinfo, image_size=image_size)
         from llava.mm_utils import opencv_extract_frames
-        imgs = opencv_extract_frames(video_path, self.num_video_frames)
+        imgs, frames_loaded = opencv_extract_frames(video_path, self.num_video_frames, self.loader_fps)
         cap = caption
-        # print(imgs.shape, cap, secs)
-        # num_video_frames = self.num_video_frames
-        if len(imgs) < self.num_video_frames:
-            # pad the video to be consistent
-            # print(imgs)
-            imgs = [imgs[0], ] * self.num_video_frames
-        prompt = "<image>\n" * self.num_video_frames + cap
-        # image_tensor = LazySupervisedDataset._load_video(video_path, num_video_frames, self.data_args)
-        # image_tensor = imgs
+        if frames_loaded == 0:
+            cap = "Empty video."
+        frames_loaded_successfully = len(imgs)
+
+        prompt = "<image>\n" * frames_loaded_successfully + cap
         processor = self.data_args.image_processor
         image_tensor = [
             # processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)

@@ -25,6 +25,8 @@ def annotate(prediction_set, caption_files, output_dir, args):
     Returns a score for correctness.
     """
     # Set the OpenAI API key.
+    print("Going to print key")
+    print("Key", os.environ['OPENAI_API_KEY'][:-5])
     openai.api_key = os.environ['OPENAI_API_KEY']
     for file in caption_files:
         key = file[:-5] # Strip file extension

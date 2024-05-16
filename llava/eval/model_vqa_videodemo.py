@@ -9,6 +9,7 @@ import shortuuid
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.conversation import conv_templates, SeparatorStyle
+from llava import conversation as conversation_lib
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
@@ -42,6 +43,9 @@ def get_chunk(lst, n, k):
 
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
+    conversation_lib.default_conversation = conversation_lib.conv_templates[
+        args.conv_mode
+    ]
     if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
         num_video_frames = model.config.num_video_frames 
     else:

@@ -79,14 +79,12 @@ def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_coun
                     im_pil = Image.fromarray(img)
                     images.append(im_pil)
                 except:
-                    # print("Failed to read frame:", count)
                     continue
                 count += 1
             elif count >= 1:
                 width, height = images[-1].size
                 print("padding frames:", (num_frames - len(images)))
                 images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
-                print("padding frames:", (num_frames - len(images)))
                 return images, num_frames
             else: 
                 break
@@ -96,6 +94,7 @@ def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_coun
     width, height = images[-1].size
     images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
     return images, num_frames
+
 
 def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_count=None):
     """
@@ -115,12 +114,13 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
 
     if fps == 0 or frame_count == 0:
         print("Video file not found. return empty images.")
-        empty_video_frames = int(random.uniform(2, num_frames))
+        empty_video_frames = int(random.uniform(2, 8*max_fps))
         return [
             Image.new("RGB", (720, 720)),
         ] * empty_video_frames, 0
     
     duration = frame_count / fps
+    # print("duration:", duration, "frames:", frame_count, "fps:", fps, "num_frames:", num_frames, "max_fps:", max_fps)
     # If the video is too long (longer than max_fps and num_frames can support),
     # we will use lower fps to sample frames.
     if duration >= num_frames/max_fps:
@@ -129,7 +129,7 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
         # If the video is too short, we will skip the video if there is only one frame.
         if frame_interval == 0 and frame_count <= 1:
             print("frame_interval is equal to 0. return empty image.")
-            empty_video_frames = int(random.uniform(2, num_frames))
+            empty_video_frames = int(random.uniform(2, 8*max_fps))
             return [
                 Image.new("RGB", (720, 720)),
             ] * empty_video_frames, 0
@@ -143,9 +143,13 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
             if frame_count >= num_frames:
                 success, frame = vidcap.read()
                 if count in frame_indices:
-                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    im_pil = Image.fromarray(img)
-                    images.append(im_pil)
+                    try:
+                        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        im_pil = Image.fromarray(img)
+                        images.append(im_pil)
+                    except:
+                        # print("Failed to read frame:", count)
+                        continue
                     if len(images) >= num_frames:
                         return images, num_frames
                 count += 1
@@ -153,9 +157,13 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
                 # Left padding frames if the video is not long enough
                 success, frame = vidcap.read()
                 if success:
-                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    im_pil = Image.fromarray(img)
-                    images.append(im_pil)
+                    try:
+                        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        im_pil = Image.fromarray(img)
+                        images.append(im_pil)
+                    except:
+                        # print("Failed to read frame:", count)
+                        continue
                     count += 1
                 elif count >= 1:
                     width, height = images[-1].size
@@ -166,16 +174,15 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
                     break
     else:
         frames_required = int(duration * max_fps)
-        # frame_interval = num_frames // frames_required
         frame_indices = np.linspace(0, frame_count - 1, frames_required, dtype=int)
-        # frame_interval = int(max_fps)
-        # if frame_interval < 1 or frame_count <= 1:
-        if frames_required <= 1:
-            print("frames_required is equal to 0. return empty image.")
-            empty_video_frames = int(random.uniform(2, num_frames))
+        if frames_required == 0:
+            print(f"frames_required is fewer than 2. Duration {duration}, return empty image.")
+            empty_video_frames = int(random.uniform(2, 8*max_fps))
             return [
                 Image.new("RGB", (720, 720)),
             ] * empty_video_frames, 0
+        elif frames_required == 1:
+            frame_indices = np.linspace(0, frame_count - 1, 2, dtype=int)
         images = []
         count = 0
         looked = 0
@@ -184,21 +191,25 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
         while success:
             success, frame = vidcap.read()
             if success and (looked in frame_indices):
-                # print("looked:", looked, "count:", count)
-                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                im_pil = Image.fromarray(img)
-                images.append(im_pil)
+                try:
+                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    im_pil = Image.fromarray(img)
+                    images.append(im_pil)
+                except:
+                    continue
                 count += 1
             looked += 1
-        if count >= frames_required:
-            return images, count
-    # print("Did not find enough frames in the video. return empty image.")
-    empty_video_frames = int(random.uniform(2, num_frames))
-    return [
-        Image.new("RGB", (720, 720)),
-    ] * empty_video_frames, 0
 
-def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=None, frame_count=None):
+    if len(images) == 0:
+        empty_video_frames = int(random.uniform(2, 8*max_fps))
+        return [
+            Image.new("RGB", (720, 720)),
+        ] * empty_video_frames, 0
+    else:
+        return images, len(images)
+    
+
+def opencv_extract_frames(vpath_or_bytesio, frames=6, max_fps=0.0, fps=None, frame_count=None):
     """
     Extract frames from a video using OpenCV.
 
@@ -218,7 +229,7 @@ def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=None, frame_count=None
     if isinstance(vpath_or_bytesio, str):
         vidcap = cv2.VideoCapture(vpath_or_bytesio)
         if max_fps > 0.0:
-            return get_frame_from_vcap_with_fps(vidcap, frames, max_fps)
+            return get_frame_from_vcap_with_fps(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
         return get_frame_from_vcap(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
     elif isinstance(vpath_or_bytesio, (BytesIO,)):
         # assuming mp4
@@ -227,7 +238,7 @@ def opencv_extract_frames(vpath_or_bytesio, frames=6, fps=None, frame_count=None
             temp_video_name = temp_video.name
             vidcap = cv2.VideoCapture(temp_video_name)
             if max_fps > 0.0:
-                return get_frame_from_vcap_with_fps(vidcap, frames, max_fps)
+                return get_frame_from_vcap_with_fps(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
             return get_frame_from_vcap(vidcap, frames, max_fps, fps=fps, frame_count=frame_count)
     else:
         raise NotImplementedError(type(vpath_or_bytesio))

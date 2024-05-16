@@ -9,6 +9,7 @@ import shortuuid
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.conversation import conv_templates, SeparatorStyle
+from llava import conversation as conversation_lib
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
@@ -43,11 +44,21 @@ def get_chunk(lst, n, k):
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
 
+    conversation_lib.default_conversation = conversation_lib.conv_templates[
+        args.conv_mode
+    ]
     if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
         num_video_frames = model.config.num_video_frames 
     else:
-        num_video_frames =  8
-    images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, args)
+        num_video_frames = 8
+
+    if hasattr(model.config, 'fps') and model.config.fps is not None:
+        fps = model.config.fps
+    else:
+        fps = 0.0
+
+    # print(fps)
+    images, frames_loaded = LazySupervisedDataset._load_video(video_path, num_video_frames, fps, args)
     image_tensor = process_images(images, image_processor, model.config)
 
     qs = '<image>\n' * num_video_frames + qs
