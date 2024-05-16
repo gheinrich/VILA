@@ -1,12 +1,13 @@
 import os
-import pathlib
 import re
-from dataclasses import dataclass
-
+import copy
 import torch
-from accelerate.hooks import add_hook_to_module
+import torch.distributed as dist
+import pathlib
+from dataclasses import dataclass
 from transformers import PretrainedConfig, PreTrainedModel
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
+from accelerate.hooks import add_hook_to_module
 
 
 def rprint(*args, **kwargs):
@@ -34,7 +35,9 @@ def is_local(model_name_or_path: str) -> bool:
     return os.path.isdir(model_name_or_path)
 
 
-def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") -> str | None:
+def get_checkpoint_path(
+    output_dir: str, checkpoint_prefix: str = "checkpoint"
+) -> str | None:
     output_dir = os.path.abspath(output_dir)
     pathlib_dir = pathlib.Path(output_dir)
 
@@ -45,12 +48,16 @@ def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") 
         try:
             ordering_and_checkpoint_path = []
             glob_checkpoints = [
-                str(x) for x in pathlib.Path(output_dir).glob(f"{checkpoint_prefix}-*") if os.path.isdir(x)
+                str(x)
+                for x in pathlib.Path(output_dir).glob(f"{checkpoint_prefix}-*")
+                if os.path.isdir(x)
             ]
             for path in glob_checkpoints:
                 regex_match = re.match(f".*{checkpoint_prefix}-([0-9]+)", path)
                 if regex_match is not None and regex_match.groups() is not None:
-                    ordering_and_checkpoint_path.append((int(regex_match.groups()[0]), path))
+                    ordering_and_checkpoint_path.append(
+                        (int(regex_match.groups()[0]), path)
+                    )
             checkpoints_sorted = sorted(ordering_and_checkpoint_path)
             return checkpoints_sorted[-1][1], True
         except:
@@ -92,7 +99,10 @@ def prepare_config_for_training(
 
 def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig):
     vision_tower = model.get_vision_tower()
-    if vision_tower is not None and "radio" not in vision_tower.__class__.__name__.lower():
+    if (
+        vision_tower is not None
+        and "radio" not in vision_tower.__class__.__name__.lower()
+    ):
         vision_tower._maybe_resize_pos_embeds(
             model=vision_tower.vision_tower,
             image_processor=vision_tower.image_processor,
@@ -101,5 +111,20 @@ def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig
         )
 
 
-def unit_test_rope_scaling(model: PreTrainedModel, config: PretrainedConfig, training_args: dataclass):
+def unit_test_rope_scaling(
+    model: PreTrainedModel, config: PretrainedConfig, training_args: dataclass
+):
     return False
+
+
+def calculate_loss_weight(shift_labels, ignore_index=-100):
+    # (Qinghao): Weighted loss based on num_active_elements
+    # To achieve accurate sequence parallel loss calculation, we need to get
+    # the real active_elements of each sequence partitions.
+    # For data parallelism, the loss almost remains the same (also more accurate).
+    padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
+    num_active_elements = padding_mask.numel() - padding_mask.long().sum()
+    global_active_sum = copy.deepcopy(num_active_elements)
+    dist.all_reduce(global_active_sum)
+    loss_weight = num_active_elements / global_active_sum * dist.get_world_size()
+    return loss_weight
