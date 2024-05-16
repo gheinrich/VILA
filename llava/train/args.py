@@ -15,15 +15,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Sequence
+
 import transformers
-from typing import Dict, Optional, Sequence, List
 
 
 @dataclass
 class DataArguments:
-    data_path: str = field(
-        default=None, metadata={"help": "Path to the training data."}
-    )
+    data_path: str = field(default=None, metadata={"help": "Path to the training data."})
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     image_folder: Optional[str] = field(default=None)
@@ -50,12 +49,11 @@ class ModelArguments:
     mm_vision_select_feature: Optional[str] = field(default="patch")
     vision_resolution: Optional[int] = field(default=-1)
     interpolate_mode: Optional[str] = field(default="linear")
-    drop_path_rate: Optional[float] = field(default=0.)
+    drop_path_rate: Optional[float] = field(default=0.0)
     mlp_path: Optional[str] = field(default=None)
     s2: bool = field(default=False)
     s2_scales: Optional[str] = field(default="336,672,1008")
     s2_max_split_size: int = field(default=336)
-
 
 
 @dataclass
@@ -70,21 +68,15 @@ class TrainingArguments(transformers.TrainingArguments):
     model_dtype: str = field(default="torch.bfloat16")
     model_max_length: int = field(
         default=512,
-        metadata={
-            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        },
+        metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
     )
     double_quant: bool = field(
         default=True,
-        metadata={
-            "help": "Compress the quantization statistics through double quantization."
-        },
+        metadata={"help": "Compress the quantization statistics through double quantization."},
     )
     quant_type: str = field(
         default="nf4",
-        metadata={
-            "help": "Quantization data type to use. Should be one of `fp4` or `nf4`."
-        },
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."},
     )
     bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
@@ -95,12 +87,8 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_bias: str = "none"
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
-    total_time_limit: int = field(
-        default=-1, metadata={"help": "Timeout limit for this job (in minutes)."}
-    )
+    total_time_limit: int = field(default=-1, metadata={"help": "Timeout limit for this job (in minutes)."})
     pre_terminate_time: int = field(
         default=10,
-        metadata={
-            "help": "Time to terminate the task inadvance (minutes), saveing checkpoints needs time."
-        },
+        metadata={"help": "Time to terminate the task inadvance (minutes), saveing checkpoints needs time."},
     )

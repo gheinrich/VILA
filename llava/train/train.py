@@ -14,34 +14,28 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os
 import logging
-from typing import Dict, Optional, Sequence, List
+import os
 import warnings
+from typing import Dict, List, Optional, Sequence
 
 import torch
 import transformers
-
-from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
-from transformers.modeling_utils import unwrap_model
-from transformers import set_seed
-
 from torch.utils.data import Dataset
-from llava.train.llava_trainer import LLaVATrainer
-from llava.train.args import TrainingArguments, ModelArguments, DataArguments
-from llava.train.callbacks.autoresume_callback import AutoResumeCallback
+from transformers import (AutoConfig, AutoTokenizer, HfArgumentParser,
+                          LlamaForCausalLM, set_seed)
+from transformers.modeling_utils import unwrap_model
 
 from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module
 from llava.model import *
-from llava.train.utils import (
-    get_checkpoint_path,
-    prepare_config_for_training,
-    vision_resolution_elevation,
-    unit_test_rope_scaling,
-    mprint,
-)
-
+from llava.train.args import DataArguments, ModelArguments, TrainingArguments
+from llava.train.callbacks.autoresume_callback import AutoResumeCallback
+from llava.train.llava_trainer import LLaVATrainer
+from llava.train.utils import (get_checkpoint_path, mprint,
+                               prepare_config_for_training,
+                               unit_test_rope_scaling,
+                               vision_resolution_elevation)
 
 local_rank = None
 
@@ -57,9 +51,7 @@ def maybe_zero_3(param, ignore_status=False, name=None):
     if hasattr(param, "ds_id"):
         if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
             if not ignore_status:
-                logging.warning(
-                    f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}"
-                )
+                logging.warning(f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}")
         with zero.GatheredParameters([param]):
             param = param.data.detach().cpu().clone()
     else:
@@ -97,21 +89,13 @@ def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
     if require_grad_only:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 
 def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
-    to_return = {
-        k: t
-        for k, t in named_params
-        if any(key_match in k for key_match in keys_to_match)
-    }
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
+    to_return = {k: t for k, t in named_params if any(key_match in k for key_match in keys_to_match)}
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 
@@ -161,12 +145,8 @@ def smart_tokenizer_and_embedding_resize(
         input_embeddings = model.get_input_embeddings().weight.data
         output_embeddings = model.get_output_embeddings().weight.data
 
-        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
-            dim=0, keepdim=True
-        )
-        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(
-            dim=0, keepdim=True
-        )
+        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
 
         input_embeddings[-num_new_tokens:] = input_embeddings_avg
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
@@ -179,11 +159,7 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     training_args.run_name = training_args.output_dir.split("/")[-1]
     local_rank = training_args.local_rank
-    compute_dtype = (
-        torch.float16
-        if training_args.fp16
-        else (torch.bfloat16 if training_args.bf16 else torch.float32)
-    )
+    compute_dtype = torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
 
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
@@ -224,9 +200,7 @@ def train():
         ## first time training
         resume_from_checkpoint = False
         if "mpt" in model_args.model_name_or_path:
-            config = AutoConfig.from_pretrained(
-                model_args.model_name_or_path, trust_remote_code=True
-            )
+            config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
             config.attn_config["attn_impl"] = training_args.mpt_attn_impl
             model_cls = LlavaMPTForCausalLM
         elif "mistral" in model_args.model_name_or_path.lower():
@@ -244,13 +218,10 @@ def train():
         else:
             ## llm and default multimodal model
             model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig.from_pretrained(
-                model_args.model_name_or_path,
-                resume=resume_from_checkpoint
-            )
+            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
         if getattr(config, "resume_path", None) is not None:
             config.resume_path = model_args.model_name_or_path
-    
+
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
 
@@ -264,21 +235,21 @@ def train():
 
     if not resume_path:
         if model_args.mlp_path is not None:
-            state_dict = torch.load(model_args.mlp_path, map_location='cpu')
+            state_dict = torch.load(model_args.mlp_path, map_location="cpu")
             state_dict_new = {}
             for k, v in state_dict.items():
-                if k == '0.weight':
-                    state_dict_new['layers.1.weight'] = v
-                if k == '0.bias':
-                    state_dict_new['layers.1.bias'] = v
-                if k == '1.weight':
-                    state_dict_new['layers.2.weight'] = v
-                if k == '1.bias':
-                    state_dict_new['layers.2.bias'] = v
-                if k == '3.weight':
-                    state_dict_new['layers.4.weight'] = v
-                if k == '3.bias':
-                    state_dict_new['layers.4.bias'] = v
+                if k == "0.weight":
+                    state_dict_new["layers.1.weight"] = v
+                if k == "0.bias":
+                    state_dict_new["layers.1.bias"] = v
+                if k == "1.weight":
+                    state_dict_new["layers.2.weight"] = v
+                if k == "1.bias":
+                    state_dict_new["layers.2.bias"] = v
+                if k == "3.weight":
+                    state_dict_new["layers.4.weight"] = v
+                if k == "3.bias":
+                    state_dict_new["layers.4.bias"] = v
             model.get_mm_projector().load_state_dict(state_dict_new)
 
     vision_resolution_elevation(model, config)
@@ -303,15 +274,11 @@ def train():
         mprint(f"vision tower {training_args.tune_vision_tower}")
         mprint(f"mm projector {training_args.tune_mm_projector}")
     if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
-        logging.warning(
-            "You are not tuning any part of the model. Please check if this is intended."
-        )
+        logging.warning("You are not tuning any part of the model. Please check if this is intended.")
+
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
-            if (
-                generation_config.temperature is not None
-                and generation_config.temperature != 1.0
-            ):
+            if generation_config.temperature is not None and generation_config.temperature != 1.0:
                 return True
             if generation_config.top_p is not None and generation_config.top_p != 1.0:
                 return True
@@ -325,9 +292,7 @@ def train():
         from peft import prepare_model_for_kbit_training
 
         model.llm.config.torch_dtype = (
-            torch.float32
-            if training_args.fp16
-            else (torch.bfloat16 if training_args.bf16 else torch.float32)
+            torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
         )
         model.llm = prepare_model_for_kbit_training(
             model.llm, use_gradient_checkpointing=training_args.gradient_checkpointing
@@ -382,13 +347,9 @@ def train():
                 model=model.llm,
             )
         if model_args.version in conversation_lib.conv_templates:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[
-                model_args.version
-            ]
+            conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
         else:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[
-                "vicuna_v1"
-            ]
+            conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.llm.pad_token_id = tokenizer.pad_token_id
@@ -413,9 +374,7 @@ def train():
             model.config.fps =  0.0
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
-        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
-            model_args.mm_use_im_start_end
-        )
+        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
@@ -444,10 +403,7 @@ def train():
     # Add a training step_end callback to check whether to autosuspend.
     callbacks = [AutoResumeCallback()]
 
-    trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args,
-        callbacks=callbacks, **data_module
-    )
+    trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
     print(
         "length of dataloader:",
         len(trainer.get_train_dataloader()),
@@ -468,12 +424,8 @@ def train():
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
     ## TODO handle lora for new initialization
     if training_args.lora_enable:
-        state_dict = get_peft_state_maybe_zero_3(
-            model.named_parameters(), training_args.lora_bias
-        )
-        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-            model.named_parameters()
-        )
+        state_dict = get_peft_state_maybe_zero_3(model.named_parameters(), training_args.lora_bias)
+        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(model.named_parameters())
         if training_args.local_rank == 0 or training_args.local_rank == -1:
             model.config.save_pretrained(training_args.output_dir)
             model.save_pretrained(training_args.output_dir, state_dict=state_dict)
@@ -482,9 +434,7 @@ def train():
                 os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
             )
     else:
-        safe_save_model_for_hf_trainer(
-            trainer=trainer, output_dir=training_args.output_dir
-        )
+        safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
 
 if __name__ == "__main__":

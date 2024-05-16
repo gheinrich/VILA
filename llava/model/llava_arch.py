@@ -12,59 +12,47 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os, sys, os.path as osp
+import logging
+import os
+import os.path as osp
+import sys
 import warnings
 from abc import ABC, abstractmethod
-
-import torch, logging
-
-from transformers import (
-    AutoTokenizer,
-    AutoModel,
-    AutoModelForCausalLM,
-    AutoConfig,
-    BitsAndBytesConfig,
-    PretrainedConfig,
-    PreTrainedModel,
-)
-
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_PATCH_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
-
-from llava.train.utils import (
-    get_checkpoint_path,
-    prepare_config_for_training,
-    vision_resolution_elevation,
-    unit_test_rope_scaling,
-)
-
 from collections import OrderedDict
-from llava.model.utils import get_model_config
+
+import torch
+from transformers import (AutoConfig, AutoModel, AutoModelForCausalLM,
+                          AutoTokenizer, BitsAndBytesConfig, PretrainedConfig,
+                          PreTrainedModel)
+from transformers.modeling_utils import ContextManagers, no_init_weights
+
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_PATCH_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
+from llava.model.configuration_llava import LlavaConfig
 from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
-from llava.model.configuration_llava import LlavaConfig
+from llava.model.utils import get_model_config
+from llava.train.utils import (get_checkpoint_path,
+                               prepare_config_for_training,
+                               unit_test_rope_scaling,
+                               vision_resolution_elevation)
 
-from transformers.modeling_utils import ContextManagers, no_init_weights
 
 ## TODO decide whether should we use metaclass
 class LlavaMetaModel(ABC):
     def init_vlm(self, config: PreTrainedModel = None, *args, **kwargs):
         # TODO(ligeng): figure out how from_config and from_pretrained works in HF implementation.
-        if hasattr(self, "llm") or hasattr(self, "vision_tower")  or hasattr(self, "mm_projector"):
+        if hasattr(self, "llm") or hasattr(self, "vision_tower") or hasattr(self, "mm_projector"):
             # already initialized, skipped
-            return 
-        
+            return
+
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
-        
+
         # print("init_vlm(): config", config); input("DEBUG init_vlm")
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
@@ -83,11 +71,11 @@ class LlavaMetaModel(ABC):
         assert (
             self.llm is not None or self.vision_tower is not None or self.mm_projector is not None
         ), "At least one of the components must be instantiated."
-    
+
     @classmethod
     def load_from_config(cls, model_path_or_config, *args, **kwargs):
         pass
-    
+
     ## FIXME we will use this function to load model in the future
     @classmethod
     def load_pretrained(cls, model_path_or_config, *args, **kwargs):
@@ -98,14 +86,16 @@ class LlavaMetaModel(ABC):
         elif isinstance(model_path_or_config, LlavaConfig):
             config = model_path_or_config
         else:
-            raise NotImplementedError(f"wrong type, {type(model_path_or_config)} \
-                                      {isinstance(model_path_or_config, LlavaConfig)}")
+            raise NotImplementedError(
+                f"wrong type, {type(model_path_or_config)} \
+                                      {isinstance(model_path_or_config, LlavaConfig)}"
+            )
 
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
-        
+
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
@@ -113,14 +103,18 @@ class LlavaMetaModel(ABC):
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
 
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained")
-        with ContextManagers([no_init_weights(_enable=True),]):
+        with ContextManagers(
+            [
+                no_init_weights(_enable=True),
+            ]
+        ):
             vlm = cls(config, *args, **kwargs)
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained finish")
-        
-        if hasattr(vlm, "llm") or hasattr(vlm, "vision_tower")  or hasattr(vlm, "mm_projector"):
+
+        if hasattr(vlm, "llm") or hasattr(vlm, "vision_tower") or hasattr(vlm, "mm_projector"):
             if vlm.is_loaded:
                 return vlm
-        
+
         vlm.llm, vlm.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
@@ -133,14 +127,14 @@ class LlavaMetaModel(ABC):
             vlm.llm is not None or vlm.vision_tower is not None or vlm.mm_projector is not None
         ), "At least one of the components must be instantiated."
         return vlm
-    
+
     ## FIXME we will use this function to save the model in the future
     def save_pretrained(self, output_dir, state_dict=None):
         if state_dict is None:
             # other wise fetch from deepspeed
             # state_dict = accelerator.get_state_dict(is_deepspeed_enabled)
             state_dict = self.state_dict()
-        
+
         if getattr(self, "tokenizer", None):
             self.tokenizer.save_pretrained(osp.join(output_dir, "llm"))
 
@@ -163,8 +157,8 @@ class LlavaMetaModel(ABC):
             )
             self.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
             self.config.vision_tower_cfg = self.vision_tower.config
-            if hasattr(self.config.vision_tower_cfg, 'auto_map'):
-                delattr(self.config.vision_tower_cfg, 'auto_map')
+            if hasattr(self.config.vision_tower_cfg, "auto_map"):
+                delattr(self.config.vision_tower_cfg, "auto_map")
 
         if self.get_mm_projector():
             print(f"saving mm_projector to {osp.join(output_dir, 'mm_projector')}")
@@ -181,7 +175,6 @@ class LlavaMetaModel(ABC):
         self.config._name_or_path = output_dir
         self.config.architectures = [self.__class__.__name__]
         self.config.save_pretrained(output_dir)
-   
 
     def get_llm(self):
         llm = getattr(self, "llm", None)
@@ -216,22 +209,24 @@ class LlavaMetaModel(ABC):
             self.config.mm_projector_cfg = self.mm_projector.config
 
     def freezed_module_patch(self):
-        '''
+        """
         Huggingface will call model.train() at each training_step. To ensure the expected behaviors for modules like dropout, batchnorm, etc., we need to call model.eval() for the freezed modules.
-        '''
+        """
         if self.training:
             if self.get_llm() and not getattr(self.config, "tune_language_model", False):
-                logging.warning("Caution: Your LLM is currently in training mode, ensuring accurate gradient computation. Please be vigilant, particularly regarding BatchNorm and Dropout operations.")
+                logging.warning(
+                    "Caution: Your LLM is currently in training mode, ensuring accurate gradient computation. Please be vigilant, particularly regarding BatchNorm and Dropout operations."
+                )
             if self.get_vision_tower() and not getattr(self.config, "tune_vision_tower", False):
                 self.get_vision_tower().eval()
             if self.get_mm_projector() and not getattr(self.config, "tune_mm_projector", False):
                 self.get_mm_projector().eval()
-    
+
     def encode_images(self, images):
         image_features = self.get_vision_tower()(images)
         image_features = self.get_mm_projector()(image_features)
         return image_features
-    
+
     ## @yunhao: is there a better way to handle function call and attributes for llm?
     ## support beam search
     def _temporary_reorder_cache(self, past_key_values, sorted_idx):
@@ -246,7 +241,6 @@ class LlavaMetaModel(ABC):
     def resize_token_embeddings(self, embed_size):
         self.get_llm().resize_token_embeddings(embed_size)
 
-    
 
 class LlavaMetaForCausalLM(ABC):
     """This class is originally implemented by the LLaVA team and
