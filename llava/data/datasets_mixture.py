@@ -599,8 +599,7 @@ def register_datasets_mixtures():
         dataset_name="lvis_instruct",
         dataset_type="torch",
         data_path="/home/yunhaof/workspace/datasets/LVIS-Instruct4V/lvis_instruct4v_220k.json",
-        image_path="/home/yunhaof/workspace/datasets"
-        image_path="/home/yunhaof/workspace/datasets"
+        image_path="/home/yunhaof/workspace/datasets",
     )
     add_dataset(lvis_instruct)
     
@@ -740,8 +739,7 @@ def register_datasets_mixtures():
         dataset_name="wit_subset",
         dataset_type="torch",
         data_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/wit_processed_538k.json",
-        image_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/images"
-        image_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/images"
+        image_path="/home/yunhaof/workspace/datasets/WIT/wit_1_8m/images",
     )
     add_dataset(wit_subset)
 

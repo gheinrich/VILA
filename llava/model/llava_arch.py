@@ -428,6 +428,7 @@ class LlavaMetaForCausalLM(ABC):
                     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
                     cur_new_labels.append(cur_labels_noim[i])
                     if i < num_images:
+                        # print(cur_image_idx, image_features.shape)
                         cur_image_features = image_features[cur_image_idx]
                         cur_image_idx += 1
                         cur_new_input_embeds.append(cur_image_features)
@@ -535,6 +536,17 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
+        # We will not use packing here when sequence parallelism is enabled.
+        if PROCESS_GROUP_MANAGER is not None:
+            return (
+                None,
+                _position_ids,
+                _attention_mask,
+                past_key_values,
+                new_input_embeds,
+                new_labels,
+            )
+
         return (
             None,
             position_ids,
@@ -555,12 +567,25 @@ class LlavaMetaForCausalLM(ABC):
     ):
         # Handle sequence parallelism
         PROCESS_GROUP_MANAGER = get_pg_manager()
-        if PROCESS_GROUP_MANAGER is None:
-            sp_degree = -1
-            sp_rank = -1
-        else:
-            sp_degree = PROCESS_GROUP_MANAGER.sp_degree
-            sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+        # if PROCESS_GROUP_MANAGER is None:
+        #     sp_degree = -1
+        #     sp_rank = -1
+        # else:
+        #     sp_degree = PROCESS_GROUP_MANAGER.sp_degree
+        #     sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+
+
+        # We will not use packing here when sequence parallelism is enabled.
+        if PROCESS_GROUP_MANAGER is not None:
+            return (
+                None,
+                position_ids,
+                attention_mask,
+                key_values,
+                inputs_embeds,
+                labels,
+                attention_mask.sum(dim=-1, dtype=torch.int32)
+            )
 
         # kentang-mit@: reorder and repack (reduce computation overhead)
         # requires transformers replacement.
@@ -630,24 +655,24 @@ class LlavaMetaForCausalLM(ABC):
 
         # Handle sequence parallelism: Calculate the position ids for sequence parallelism
         # NOTE: This implementation only works for [<bos>, <img>, ..., <img>, <caption>] pattern
-        if sp_degree > 1 and sp_rank > 0:
-            cur_len = new_position_ids.shape[-1]
-            if sp_rank < sp_degree - 1:  # Intermediate ranks
-                offset = cur_len * sp_rank + 1
-                new_position_ids = new_position_ids + offset
-            elif sp_rank == sp_degree - 1:  # The last rank
-                assert new_labels[0, -1] != IGNORE_INDEX, "The first sequence should be longest one."
-                last_img_token_index = torch.where(new_labels[0] == IGNORE_INDEX)[0][-1]
-                # print(f"last_img_token_index, {last_img_token_index}")
-                # if sp_degree == 2: # Handle SP=2, because of bos_token
-                #     offset = last_img_token_index + 3
-                # else:
-                #     offset = (last_img_token_index + 2) * sp_rank + 1
-                offset = (last_img_token_index + 1) * sp_rank + 1
-                offset_mask = new_position_ids != -1
-                new_position_ids[offset_mask] += offset
-            else:
-                raise ValueError(f"sp_rank {sp_rank} is out of range {sp_degree}")
+        # if sp_degree > 1 and sp_rank > 0:
+        #     cur_len = new_position_ids.shape[-1]
+        #     if sp_rank < sp_degree - 1:  # Intermediate ranks
+        #         offset = cur_len * sp_rank + 1
+        #         new_position_ids = new_position_ids + offset
+        #     elif sp_rank == sp_degree - 1:  # The last rank
+        #         assert new_labels[0, -1] != IGNORE_INDEX, "The first sequence should be longest one."
+        #         last_img_token_index = torch.where(new_labels[0] == IGNORE_INDEX)[0][-1]
+        #         # print(f"last_img_token_index, {last_img_token_index}")
+        #         # if sp_degree == 2: # Handle SP=2, because of bos_token
+        #         #     offset = last_img_token_index + 3
+        #         # else:
+        #         #     offset = (last_img_token_index + 2) * sp_rank + 1
+        #         offset = (last_img_token_index + 1) * sp_rank + 1
+        #         offset_mask = new_position_ids != -1
+        #         new_position_ids[offset_mask] += offset
+        #     else:
+        #         raise ValueError(f"sp_rank {sp_rank} is out of range {sp_degree}")
 
         return (
             None,
