@@ -22,14 +22,14 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --version v1 \
     --data_mixture osmo_vflan+osmo_sharegpt4v_sft+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_ivqa+osmo_msrvttqa+osmo_sharegpt_video_qa+osmo_sharegpt_video \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector mlp2x_gelu \
+    --image_aspect_ratio resize \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
     --mm_vision_select_feature cls_patch \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
-    --image_aspect_ratio resize \
     --bf16 True \
     --output_dir ./checkpoints/vilavideo7b_sft_v0244_fixedctx32 \
     --num_train_epochs 1 \

@@ -9,8 +9,8 @@ cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
-seq_parallel_size=4
-bs=$((64 / n_node * seq_parallel_size))
+# seq_parallel_size=4
+bs=$((256 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
@@ -23,7 +23,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --version llama_3 \
     --data_mixture osmo_ccs_recaptioned+osmo_internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --image_aspect_ratio mlp_downsample \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model False \
     --mm_vision_select_layer -2 \
@@ -32,11 +32,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_v011 \
+    --output_dir ./checkpoints/vilavideo8b_align_v013 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 200 \
@@ -53,4 +53,4 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --gradient_checkpointing True \
     --dataloader_num_workers 10 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \

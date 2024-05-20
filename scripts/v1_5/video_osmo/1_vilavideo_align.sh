@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --version v1 \
     --data_mixture osmo_ccs_recaptioned+osmo_internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --image_aspect_ratio mlp_downsample \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model False \
     --mm_vision_select_layer -2 \
@@ -31,7 +31,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo7b_align_v032 \
+    --output_dir ./checkpoints/vilavideo7b_align_v035 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
