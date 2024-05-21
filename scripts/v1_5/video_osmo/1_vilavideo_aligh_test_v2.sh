@@ -8,21 +8,19 @@ which python
 cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
-# export CUDA_LAUNCH_BLOCKING=1
 n_node=$WORLD_SIZE
-seq_parallel_size=4
-bs=$((4 * seq_parallel_size / n_node))
+bs=$((4 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
-    llava/train/train_hybrid.py \
+    llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
-    --data_mixture osmo_internvid_1300K \
+    --data_mixture osmo_ccs_recaptioned+osmo_internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
@@ -33,7 +31,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v2 \
+    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v1 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
@@ -54,5 +52,4 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --gradient_checkpointing True \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --report_to wandb \
-    --seq_parallel_size $seq_parallel_size
+    --report_to wandb

@@ -134,8 +134,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-        if new_inputs_embeds.shape[0] == 1:
-            print("new_inputs_embeds", new_inputs_embeds.shape, new_attention_mask is None)
         # print("new_inputs_embeds", new_inputs_embeds.shape, new_attention_mask is None)
         outputs = self.llm.forward(
             input_ids=new_input_ids,

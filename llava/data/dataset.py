@@ -2505,7 +2505,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         combined = sorted(
             zip(input_ids, labels, images),
             key=lambda x: len(x[0]), 
-            reverse=True
+            # reverse=True
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
         max_seq_length =  self.tokenizer.model_max_length # len(sorted_ids[0])
@@ -2526,6 +2526,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             current_batch_images = []
             current_num_images = 0
             current_len = 0
+            current_num_samples = 0
 
             # Pack a few samples into one sample
             while i < len(sorted_ids):
@@ -2543,6 +2544,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 if current_len + num_incoming_tokens <= max_seq_length:
                     current_num_images += num_images
                     current_len += num_incoming_tokens
+                    current_num_samples += 1
                     current_position_ids = torch.cat(
                         (
                             current_position_ids,
@@ -2563,12 +2565,23 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 else:
                     break
 
-            # Drop the samples that do not have enough image tokens
+            # # Drop the samples that do not have enough images
+            # while current_num_images < self.sp_degree and current_len < max_seq_length:
+            #     print(
+            #         f"Warning: Padding one packed sample with only {current_num_images} images to {2*current_num_images}"
+            #     )
+            #     current_batch = torch.cat([current_batch, current_batch], dim=0)
+            #     current_label_batch = torch.cat([current_label_batch, current_label_batch], dim=0)
+            #     seqlens_in_batch.extend(seqlens_in_batch)
+            #     current_position_ids = torch.cat([current_position_ids, current_position_ids], dim=0)
+            #     current_batch_images.extend(current_batch_images)
+            #     current_num_images = len(current_batch_images)
+            #     current_len = current_position_ids.size(-1)
             if current_num_images < self.sp_degree:
                 print(
-                    f"Warning: Skipping one packed sample with only {current_num_images} images,\
-                    please consider increase seq len."
+                    f"Warning: Skipping one packed sample with {current_num_images}"
                 )
+                seqlens_in_batch = seqlens_in_batch[:-current_num_samples]
                 continue
 
             batches.append(current_batch)

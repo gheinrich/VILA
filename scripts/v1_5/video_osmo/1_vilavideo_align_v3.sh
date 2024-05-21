@@ -17,7 +17,7 @@ echo "node rank:" $NODE_RANK
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
-    llava/train/train_mem.py \
+    llava/train/train_hybrid.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
