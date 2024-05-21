@@ -24,10 +24,11 @@ from llava.train.transformer_normalize_monkey_patch import patched_normalize
 from llava.train.sequence_parallel.monkey_patch import (
     new_flash_attn_forward,
     new_decoder_forward,
+    new_llamamodel_forward,
     _flash_attention_forward,
     __init__,
     flash_attn_varlen_func_helper,
-    _upad_input
+    _upad_input,
 )
 
 
@@ -50,6 +51,7 @@ if __name__ == "__main__":
         #     "transformers.models.llama.modeling_llama.LlamaDecoderLayer.forward",
         #     new=new_decoder_forward,
         # ),
+        mock.patch("transformers.models.llama.modeling_llama.LlamaModel.forward", new=new_llamamodel_forward),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2._upad_input", new=_upad_input),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2.flash_attn_varlen_func_helper", new=flash_attn_varlen_func_helper),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2.__init__", new=__init__),

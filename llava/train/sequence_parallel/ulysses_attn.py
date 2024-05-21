@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # DeepSpeed Team
-
+import copy
 import torch
 
 from typing import Any, Tuple
@@ -125,7 +125,7 @@ class UlyssesAttention(torch.nn.Module):
         k = SeqAllToAll4D.apply(self.spg, key, self.scatter_idx, self.gather_idx)
         v = SeqAllToAll4D.apply(self.spg, value, self.scatter_idx, self.gather_idx)
         if attention_mask is not None:
-            local_attention_mask = attention_mask
+            local_attention_mask = copy.deepcopy(attention_mask)
             shard_seqlen = local_attention_mask.size(1)
             ulysess_seq_len = get_ulysess_seq_len()
             max_global_length = max(ulysess_seq_len)
@@ -153,7 +153,9 @@ class UlyssesAttention(torch.nn.Module):
                     )
 
             global_attention_mask = torch.stack(global_attention_mask_list, dim=0)
+            # print("Before all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
             torch_dist.all_reduce(global_attention_mask, group=self.spg)
+            # print("After all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
             torch_dist.barrier(group=self.spg)
             new_global_attention_mask_list = list(torch.unbind(global_attention_mask, dim=0))
             # Unpad the global attention mask list and concatenate them
