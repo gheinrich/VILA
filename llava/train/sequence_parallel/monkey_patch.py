@@ -5,7 +5,7 @@ from torch import nn
 
 import transformers
 from transformers import LlamaConfig
-from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, LlamaAttention
+from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, LlamaAttention, _get_unpad_data
 from einops import rearrange
 
 from flash_attn import flash_attn_func, flash_attn_varlen_func
@@ -52,6 +52,90 @@ def new_flash_attn_forward(
     return attn_output
 
 
+def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch):
+    indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
+    batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
+
+    num_query_heads = query_layer.shape[2]
+    key_layer = index_first_axis(
+        key_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
+    )
+    value_layer = index_first_axis(
+        value_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
+    )
+    if query_length == kv_seq_len:
+        query_layer = index_first_axis(
+            query_layer.reshape(batch_size * kv_seq_len, num_query_heads, head_dim), indices_k
+        )
+        cu_seqlens_q = cu_seqlens_k
+        max_seqlen_in_batch_q = max_seqlen_in_batch_k
+        indices_q = indices_k
+    elif query_length == 1:
+        max_seqlen_in_batch_q = 1
+        cu_seqlens_q = torch.arange(
+            batch_size + 1, dtype=torch.int32, device=query_layer.device
+        )  # There is a memcpy here, that is very bad.
+        indices_q = cu_seqlens_q[:-1]
+        query_layer = query_layer.squeeze(1)
+    else:
+        # The -q_len: slice assumes left padding.
+        attention_mask = attention_mask[:, -query_length:]
+        query_layer, indices_q, cu_seqlens_q, max_seqlen_in_batch_q = unpad_input(query_layer, attention_mask)
+
+    return (
+        query_layer,
+        key_layer,
+        value_layer,
+        indices_q,
+        (cu_seqlens_q, cu_seqlens_k),
+        (max_seqlen_in_batch_q, max_seqlen_in_batch_k),
+    )
+
+
+
+def flash_attn_varlen_func_helper(
+    self,
+    query_states,
+    key_states,
+    value_states,
+    query_length,
+    attention_mask=None,
+    dropout_p=0.0,
+    softmax_scale=None,
+    seqlens_in_batch=None,
+    causal=None,
+):
+    batch_size = query_states.shape[0]
+    assert attention_mask.shape[1] == query_states.shape[1]
+    
+    # overwrite query_length with the actual length of the sequence after seq parallel communciation
+    query_length = attention_mask.shape[1]
+    # print('Before unpad attention_mask', attention_mask.shape, "query_states", query_states.shape, "query_length", query_length)
+    query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
+        query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=seqlens_in_batch
+    )
+
+    cu_seqlens_q, cu_seqlens_k = cu_seq_lens
+    max_seqlen_in_batch_q, max_seqlen_in_batch_k = max_seq_lens
+
+    # print("batch_size", batch_size, "cu_seqlens_q", cu_seqlens_q.shape, "cu_seqlens_k", cu_seqlens_k.shape, "query_states", query_states.shape)
+    attn_output_unpad = flash_attn_varlen_func(
+        query_states,
+        key_states,
+        value_states,
+        cu_seqlens_q=cu_seqlens_q,
+        cu_seqlens_k=cu_seqlens_k,
+        max_seqlen_q=max_seqlen_in_batch_q,
+        max_seqlen_k=max_seqlen_in_batch_k,
+        dropout_p=dropout_p,
+        softmax_scale=softmax_scale,
+        causal=self.is_causal,
+    )
+
+    attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
+    return attn_output
+
+
 def __init__(self, config: LlamaConfig):
     nn.Module.__init__(self)
     self.config = config
@@ -78,7 +162,7 @@ def __init__(self, config: LlamaConfig):
     self._init_rope()
 
     # wrap two potential "local-attention" up with DeepSpeed Ulysses logic.
-    self.ulysses_attn_varlen_func = UlyssesAttention(flash_attn_varlen_func, get_ulysess_sp_pg())
+    self.ulysses_attn_varlen_func = UlyssesAttention(self.flash_attn_varlen_func_helper, get_ulysess_sp_pg())
     self.ulysses_attn_func = UlyssesAttention(flash_attn_func, get_ulysess_sp_pg())
 
 
@@ -112,85 +196,27 @@ def _flash_attention_forward(
         softmax_scale (`float`, *optional*):
             The scaling of QK^T before applying softmax. Default to 1 / sqrt(head_dim)
     """
-    # bs, seq, nh, hdim
-    # print(f"Input shape to _flash_attention_forward: {query_states.shape}")
-    # query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    # key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    # value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    # query_states = query_states[:, :1000, :, :]
-    # key_states = key_states[:, :1000, :, :]
-    # value_states = value_states[:, :1000, :, :]
+    # Contains at least one padding token in the sequence
+    print("attention_mask", attention_mask.shape)
+    if attention_mask is not None:
+        attn_output = self.ulysses_attn_varlen_func(
+            query_states,
+            key_states,
+            value_states,
+            query_length,
+            attention_mask=attention_mask,
+            dropout_p=dropout,
+            softmax_scale=softmax_scale,
+            seqlens_in_batch=seqlens_in_batch,
+            # casual=self.is_causal,
+        )
+    else:
+        attn_output = self.ulysses_attn_func(
+            query_states, key_states, value_states, dropout_p=dropout, softmax_scale=softmax_scale, causal=self.is_causal
+        )
 
-    attn_output = self.ulysses_attn_func(
-        query_states, key_states, value_states, dropout_p=dropout, softmax_scale=softmax_scale, causal=self.is_causal
-    )
-    # # reshape it back to b, s, nh, hdim
-    # query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    # key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    # value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    # attn_output = attn_output.permute(1, 0, 2, 3).contiguous()
     return attn_output
 
-    # # Contains at least one padding token in the sequence
-    # if attention_mask is not None:
-    #     # Shape: b, s, nh, hdim
-    #     print(f"Input shape to _flash_attention_forward: {query_states.shape}")
-    #     batch_size = query_states.shape[0]
-    #     query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
-    #         query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=seqlens_in_batch
-    #     )
-
-    #     cu_seqlens_q, cu_seqlens_k = cu_seq_lens
-    #     max_seqlen_in_batch_q, max_seqlen_in_batch_k = max_seq_lens
-
-    #     # Reshape it to s, b, hh, hdim to use DeepSpeed
-    #     # DL: Alternatively, we can also modify the permuting dimensions of DeepSpeed backend.
-    #     # But this may decrease the portability of the code.
-
-    #     print(
-    #         f"Input shape after _upad_input: q {query_states.shape}, cu_seqlens_q {cu_seqlens_q}, max_seqlen_in_batch_q {max_seqlen_in_batch_q}"
-    #     )
-
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output_unpad = self.ulysses_attn_varlen_func(
-    #         query_states,
-    #         key_states,
-    #         value_states,
-    #         cu_seqlens_q,
-    #         cu_seqlens_k,
-    #         max_seqlen_in_batch_q,
-    #         max_seqlen_in_batch_k,
-    #         dropout_p=dropout,
-    #         softmax_scale=softmax_scale,
-    #         causal=self.is_causal,
-    #     )
-
-    #     # reshape it back to b, s, nh, hdim
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    #     attn_output_unpad = attn_output_unpad.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
-    # else:
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output = self.ulysses_attn_func(
-    #         query_states, key_states, value_states, dropout, softmax_scale=softmax_scale, causal=self.is_causal
-    #     )
-
-    #     # reshape it back to b, s, nh, hdim
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    #     attn_output = attn_output.permute(1, 0, 2, 3).contiguous()
-
-    # return attn_output
 
 
 def new_decoder_forward(

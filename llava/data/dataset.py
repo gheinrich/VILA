@@ -1058,8 +1058,15 @@ class LazyMMC4Dataset(Dataset):
 
         print("total MMC4 samples", sum(n_samples))  # 10,881,869
 
-        rank = training_args.process_index  # int(os.environ["RANK"])
-        world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
+        PROCESS_GROUP_MANAGER = get_pg_manager()
+        if PROCESS_GROUP_MANAGER is not None:
+            import torch.distributed as dist
+            sequence_parallel_size = training_args.seq_parallel_size    
+        else:
+            sequence_parallel_size = 1
+        print("sequence_parallel_size", sequence_parallel_size)
+        rank = training_args.process_index // sequence_parallel_size  # int(os.environ["RANK"])
+        world_size = training_args.world_size // sequence_parallel_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
 
         gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) for i in range(world_size)]
@@ -1251,8 +1258,15 @@ class LazyCoyoDataset(Dataset):
 
         print("total COYO samples", sum(n_samples))
 
-        rank = training_args.process_index  # int(os.environ["RANK"])
-        world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
+        PROCESS_GROUP_MANAGER = get_pg_manager()
+        if PROCESS_GROUP_MANAGER is not None:
+            import torch.distributed as dist
+            sequence_parallel_size = training_args.seq_parallel_size    
+        else:
+            sequence_parallel_size = 1
+        print("sequence_parallel_size", sequence_parallel_size)
+        rank = training_args.process_index // sequence_parallel_size  # int(os.environ["RANK"])
+        world_size = training_args.world_size // sequence_parallel_size  # int(os.environ["WORLD_SIZE"])
         shared_size = n_shards // world_size
 
         gpu_samples = [
@@ -1407,6 +1421,8 @@ class LazyCoyoDataset_LONGSEQ(Dataset):
         n_samples_per_idx=4,
     ):
         super().__init__()
+
+        raise ValueError(f"This class LazyCoyoDataset_LONGSEQ has deprecated. You can use naive dataset directly for supporting seq parallel")
 
         import pickle
         from llava.train.llama_dpsp_attn_monkey_patch import get_sequence_parallel_rank, get_sequence_parallel_size
@@ -1576,6 +1592,7 @@ class LazyWDSDataset(Dataset):
         
         PROCESS_GROUP_MANAGER = get_pg_manager()
         if PROCESS_GROUP_MANAGER is not None:
+            import torch.distributed as dist
             sequence_parallel_size = training_args.seq_parallel_size    
         else:
             sequence_parallel_size = 1
@@ -1598,8 +1615,15 @@ class LazyWDSDataset(Dataset):
             tmp_path = "/tmp/ccs{}".format(tar)
             tar_path = os.path.join(data_path, tar)
 
-            os.makedirs(tmp_path, exist_ok=True)
-            os.system(f"tar -xkf {tar_path} -C {tmp_path}")
+            if PROCESS_GROUP_MANAGER is not None: 
+                dist.barrier()
+                if PROCESS_GROUP_MANAGER.sp_rank == 0:
+                    os.makedirs(tmp_path, exist_ok=True)
+                    os.system(f"tar -xkf {tar_path} -C {tmp_path}")
+                dist.barrier()
+            else:
+                os.makedirs(tmp_path, exist_ok=True)
+                os.system(f"tar -xkf {tar_path} -C {tmp_path}")
 
             txt_list = [f for f in os.listdir(tmp_path) if f.endswith(".txt")]
 
@@ -1706,8 +1730,15 @@ class LazyVFlanDataset(Dataset):
             self.n_samples = sum(n_samples)
             print("total VFlan samples", sum(n_samples))  # 10,881,869
 
-            rank = training_args.process_index  # int(os.environ["RANK"])
-            world_size = training_args.world_size  # int(os.environ["WORLD_SIZE"])
+            PROCESS_GROUP_MANAGER = get_pg_manager()
+            if PROCESS_GROUP_MANAGER is not None:
+                import torch.distributed as dist
+                sequence_parallel_size = training_args.seq_parallel_size    
+            else:
+                sequence_parallel_size = 1
+            print("sequence_parallel_size", sequence_parallel_size)
+            rank = training_args.process_index // sequence_parallel_size  # int(os.environ["RANK"])
+            world_size = training_args.world_size // sequence_parallel_size  # int(os.environ["WORLD_SIZE"])
             shared_size = n_shards // world_size
 
             gpu_samples = [sum(n_samples[i * shared_size : (i + 1) * shared_size]) for i in range(world_size)]
@@ -2021,8 +2052,17 @@ class LazyCoyoWebDataset(Dataset):
         self.data_path = data_path
 
         print("total samples", len(self.dataset))
-        rank = int(os.environ["RANK"])
-        world_size = int(os.environ["WORLD_SIZE"])
+        PROCESS_GROUP_MANAGER = get_pg_manager()
+        if PROCESS_GROUP_MANAGER is not None:
+            import torch.distributed as dist
+            sequence_parallel_size = training_args.seq_parallel_size
+            sequence_parallel_rank = PROCESS_GROUP_MANAGER.sp_rank   
+        else:
+            sequence_parallel_size = 1
+        print("sequence_parallel_size", sequence_parallel_size)
+        rank = training_args.process_index // sequence_parallel_size if "RANK" in os.environ else 2 # int(os.environ["RANK"])
+        world_size = training_args.world_size // sequence_parallel_size if "WORLD_SIZE" in os.environ else 32 # int(os.environ["WORLD_SIZE"])
+        print("rank", rank, "world_size", world_size,)
 
         self.n_samples_per_idx = n_samples_per_idx
         # self.n_samples = len(self.dataset) // n_samples_per_idx
@@ -2170,8 +2210,20 @@ class LazyVideoWebDataset(Dataset):
 
         print("total samples", len(self.dataset))
         # InternVid: TODO
-        rank = int(os.environ["RANK"]) if "RANK" in os.environ else 2
-        world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 32
+        PROCESS_GROUP_MANAGER = get_pg_manager()
+        if PROCESS_GROUP_MANAGER is not None:
+            import torch.distributed as dist
+            sequence_parallel_size = training_args.seq_parallel_size
+            sequence_parallel_rank = PROCESS_GROUP_MANAGER.sp_rank   
+        else:
+            sequence_parallel_size = 1
+        print("sequence_parallel_size", sequence_parallel_size)
+        rank = training_args.process_index // sequence_parallel_size if "RANK" in os.environ else 2 # int(os.environ["RANK"])
+        world_size = training_args.world_size // sequence_parallel_size if "WORLD_SIZE" in os.environ else 32 # int(os.environ["WORLD_SIZE"])
+        print("rank", rank, "world_size", world_size,)
+        self.rank = rank
+        # rank = int(os.environ["RANK"]) if "RANK" in os.environ else 2
+        # world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 32
 
         self.tokenizer = tokenizer
         self.data_args = data_args
@@ -2241,6 +2293,8 @@ class VILAPanda70m_LongSeq(Dataset):
         training_args: TrainingArguments,
     ) -> None:
         super().__init__()
+        
+        raise ValueError(f"This class VILAPanda70m_LongSeq has deprecated. You can use naive dataset directly for supporting seq parallel")
 
         from llava.data.simple_vila_webdataset import VILAWebDataset
 
@@ -2454,53 +2508,61 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             reverse=True
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
-        max_seq_length = len(sorted_ids[0])
+        max_seq_length =  self.tokenizer.model_max_length # len(sorted_ids[0])
 
         batches = []
         label_batches = []
-        global_seqlens_in_batch = []
         position_ids = []
         batch_images = []
+        seqlens_in_batch = []
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
         NUM_TOKENS_PER_IMAGE = 196
-        while sorted_ids:
+        i = 0
+        while i < len(sorted_ids):
             current_batch = torch.tensor([], dtype=torch.int32)
             current_label_batch = torch.tensor([], dtype=torch.int32)
             current_position_ids = torch.tensor([], dtype=torch.int32)
+            current_batch_images = []
             current_num_images = 0
             current_len = 0
 
-            i = 0
+            # Pack a few samples into one sample
             while i < len(sorted_ids):
-                num_images = (input_ids[i] == IMAGE_TOKEN_INDEX).sum().item()
-                current_num_images += num_images
+                num_images = (sorted_ids[i] == IMAGE_TOKEN_INDEX).sum().item()
                 num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-                num_incoming_tokens = sorted_ids[i].ne(
-                    self.tokenizer.pad_token_id).sum() + num_image_tokens_added
+                num_incoming_tokens = sorted_ids[i].size(-1) + num_image_tokens_added
+                if num_incoming_tokens > max_seq_length:
+                    print(
+                        f"Warning: Skipping one packed sample with {num_incoming_tokens} tokens,\
+                        please consider increase max seq len {model_max_length}."
+                    )
+                    i += 1
+                    continue
+
                 if current_len + num_incoming_tokens <= max_seq_length:
+                    current_num_images += num_images
                     current_len += num_incoming_tokens
                     current_position_ids = torch.cat(
                         (
                             current_position_ids,
                             torch.arange(
-                                start=0, end=len(sorted_ids[i]) + num_image_tokens_added
+                                start=0, end=num_incoming_tokens
                             )
                         ), dim=0
                     )
                     current_batch = torch.cat((current_batch, sorted_ids[i]), dim=0)
                     current_label_batch = torch.cat((current_label_batch, sorted_labels[i]), dim=0)
-                    sorted_ids = sorted_ids[:i] + sorted_ids[i+1:]
-                    sorted_labels = sorted_labels[:i] + sorted_labels[i+1:]
-
+                    seqlens_in_batch.append(num_incoming_tokens)
                     if sorted_images[i] is not None:
-                        batch_images.append(sorted_images[i])
-                    sorted_images = sorted_images[:i] + sorted_images[i+1:]
-                else:
+                        current_batch_images.extend(sorted_images[i])
+                    else:
+                        current_batch_images.extend([])
                     i += 1
-            global_seqlens_in_batch.append(
-                current_len + global_seqlens_in_batch[-1] if global_seqlens_in_batch else current_len
-            )
+                    assert current_num_images == len(current_batch_images)
+                else:
+                    break
+
             # Drop the samples that do not have enough image tokens
             if current_num_images < self.sp_degree:
                 print(
@@ -2512,171 +2574,89 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             batches.append(current_batch)
             label_batches.append(current_label_batch)
             position_ids.append(current_position_ids)
-
+            batch_images.append(current_batch_images)
 
         # Split for sequence parallelism
+        # seqlens_in_batch = []
         for i in range(len(batches)):
             image_token_indices = torch.where(
                 batches[i] == IMAGE_TOKEN_INDEX)[0].tolist()
             image_ids = torch.arange(
                 0, len(image_token_indices), dtype=torch.int32)
-            local_input_indices = extract_local_from_list(
-                image_token_indices, self.sp_rank, self.sp_degree)
             batches[i] = extract_local_input_ids(
-                batches[i], local_input_indices, self.sp_rank, self.sp_degree, self.tokenizer.bos_token_id)
+                batches[i], 
+                image_token_indices, 
+                self.sp_rank, 
+                self.sp_degree, 
+                self.tokenizer.bos_token_id
+            )
             label_batches[i] = copy.deepcopy(batches[i])
-            batch_images[i] = extract_local_from_list(batch_images[i], self.sp_rank, self.sp_degree)
-            num_images = len(batch_images[i])
-            num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-            seqlens_in_batch.append(
-                batches[i].ne(self.tokenizer.pad_token_id).sum() + num_image_tokens_added
-            )
-            position_ids[i] = extract_local_position_ids(
-                position_ids[i], local_input_indices, image_ids, self.sp_rank, self.sp_degree, NUM_TOKENS_PER_IMAGE + 2
-            )
-            
 
+            batch_images[i] = torch.concat(extract_local_from_list(batch_images[i], self.sp_rank, self.sp_degree), dim=0)
+            H, W = batch_images[i].size(-2), batch_images[i].size(-1)
+            batch_images[i] = batch_images[i].reshape(-1, 3, W, H)
+            num_images = len(batch_images[i])
+            
+            try:
+                assert num_images == len(torch.where(batches[i] == IMAGE_TOKEN_INDEX)[0].tolist())
+            except AssertionError:
+                print(f"Error num_images on {self.sp_rank}", num_images)
+                print("batches[i]", batches[i])
+                print(f"Error len(torch.where(batches[i] == IMAGE_TOKEN_INDEX)[0].tolist() on {self.sp_rank}:", len(torch.where(batches[i] == IMAGE_TOKEN_INDEX)[0].tolist()))
+                print(f"Error batch_images[i] on {self.sp_rank}:", batch_images[i].shape)
+                raise AssertionError
+            # num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
+            # seqlens_in_batch.append(
+            #     batches[i].size(-1) + num_image_tokens_added
+            # )
+            position_ids[i] = extract_local_position_ids(
+                position_ids[i],
+                image_token_indices, 
+                image_ids,
+                self.sp_rank,
+                self.sp_degree, 
+                NUM_TOKENS_PER_IMAGE - 1
+            )
+            # assert seqlens_in_batch[-1] == position_ids[i].size(-1)
+            
+        
         input_ids = torch.nn.utils.rnn.pad_sequence(
             batches, batch_first=True, padding_value=self.tokenizer.pad_token_id
         )
         labels = torch.nn.utils.rnn.pad_sequence(
             label_batches, batch_first=True, padding_value=IGNORE_INDEX
         )
+        seqlens_in_batch = [torch.tensor(x) for x in seqlens_in_batch]
         seqlens_in_batch = torch.stack(seqlens_in_batch, axis=0)
+        seqlens_in_batch = seqlens_in_batch.flatten()
         position_ids = torch.nn.utils.rnn.pad_sequence(
             position_ids, batch_first=True, padding_value=-1
         )
 
-
+        # print("Padding samples on rank {} with sp_rank {}...".format(self.training_args.process_index//self.sp_degree, self.sp_rank))
         if batch_images:
             flat_batch_images = torch.concat(batch_images, dim=0)
         else:
             flat_batch_images = None
-
-        assert seqlens_in_batch.sum() == input_ids.ne(self.tokenizer.pad_token_id).flatten().sum()
+        # try:
+        #     assert seqlens_in_batch.sum() == input_ids.ne(self.tokenizer.pad_token_id).flatten().sum()
+        # except AssertionError:
+        #     print("seqlens_in_batch.sum():", seqlens_in_batch.sum())
+        #     print("input_ids.ne(self.tokenizer.pad_token_id).flatten().sum():", input_ids.ne(self.tokenizer.pad_token_id).flatten().sum())
+        #     print("flat_batch_images:", flat_batch_images.shape)
+        #     raise AssertionError
 
         batch = dict(
             input_ids=input_ids,
             labels=labels,
             # notice that we inject attention mask here
-            attention_mask=position_ids.ne(-1),
+            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
             seqlens_in_batch=seqlens_in_batch,
             images = flat_batch_images,
             position_ids=position_ids
         )
 
         return batch
-
-        # # Getting Sequence Length for each sample
-
-        # # NUM_TOKENS_PER_IMAGETOKEN = 3
-        # seq_lengths = []
-        # for i in range(len(input_ids)):
-        #     num_images = (input_ids[ix] == IMAGE_TOKEN_INDEX).sum().item()
-        #     num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-        #     num_text_tokens = input_ids[i].shape[0]
-        #     seq_lengths.append(num_text_tokens + num_image_tokens_added)
-        # # Get the sorted indices of the sequence lengths
-        # sorted_indices = np.argsort(seq_lengths)
-
-        # # Packing for sequence parallelism
-        # max_length = self.tokenizer.model_max_length
-
-        # # Prepare the packed input_ids, labels, images
-        # label_batches = []
-        # seqlens_in_batch = []
-        # position_ids = []
-        # batch_images = []
-        # cum_seq_len = 0
-        # while i < len(sorted_indices):
-        #     idx = sorted_indices[i]
-        #     cur_seq_len = seq_lengths[idx]
-        #     if cum_seq_len + cur_seq_len < max_length:
-                
-        #         # i += 1
-
-        # batches = []
-        # label_batches = []
-        # seqlens_in_batch = []
-        # position_ids = []
-        # batch_images = []
-
-
-        # while sorted_ids:
-        #     current_batch = torch.tensor([], dtype=torch.int32)
-        #     current_label_batch = torch.tensor([], dtype=torch.int32)
-        #     current_position_ids = torch.tensor([], dtype=torch.int32)
-        #     i = 0
-        #     while i < len(sorted_ids):
-        #         if len(current_batch) + len(sorted_ids[i]) <= max_seq_length:
-        #             seqlens_in_batch.append(sorted_ids[i].ne(self.tokenizer.pad_token_id).sum())
-        #             current_position_ids = torch.cat((current_position_ids, torch.arange(start=0, end=len(sorted_ids[i]))), dim=0)
-        #             current_batch = torch.cat((current_batch, sorted_ids[i]), dim=0)
-        #             current_label_batch = torch.cat((current_label_batch, sorted_labels[i]), dim=0)
-        #             sorted_ids = sorted_ids[:i] + sorted_ids[i+1:]
-        #             sorted_labels = sorted_labels[:i] + sorted_labels[i+1:]
-
-        #             if sorted_images[i] is not None:
-        #                 batch_images.append(sorted_images[i])
-        #             sorted_images = sorted_images[:i] + sorted_images[i+1:]
-        #         else:
-        #             i += 1
-
-        #     batches.append(current_batch)
-        #     label_batches.append(current_label_batch)
-        #     position_ids.append(current_position_ids)
-
-
-        # # ========================================================================
-
-        # for i in sorted_indices:
-        #     sample_len = seq_lengths[i]
-        #     if cur_len + sample_len < max_length:
-        #         packed_input_ids.append(input_ids[i])
-        #         packed_labels.append(labels[i])
-        #         packed_images.append(images[i])
-        #         cur_len += sample_len
-        #     else:
-        #         packed_input_ids = []
-        #         packed_labels = []
-        #         packed_images = []
-        #         cur_len = 0
-        # input_ids = torch.nn.utils.rnn.pad_sequence(
-        #     packed_input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-        # )
-        # labels = torch.nn.utils.rnn.pad_sequence(
-        #     packed_labels, batch_first=True, padding_value=IGNORE_INDEX)
-        # # input_ids = input_ids[:, : self.tokenizer.model_max_length]
-        # # labels = labels[:, : self.tokenizer.model_max_length]
-        # batch = dict(
-        #     input_ids=input_ids,
-        #     labels=labels,
-        #     attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
-        #     position_ids=position_ids,
-        # )
-
-        # new_images = []
-        # # kentang-mit@: it is possible that some <image> tokens get removed
-        # # after truncation. It is important to also remove corresponding images.
-        # # otherwise, text and image will mismatch in the model.
-        # for ix in range(len(input_ids)):
-        #     num_images = (input_ids[ix] == IMAGE_TOKEN_INDEX).sum().item()
-        #     cur_images = images[ix]
-        #     cur_images = cur_images[:num_images]
-        #     if len(cur_images) > 0:
-        #         new_images.append(cur_images)
-        # if len(new_images) > 0:
-        #     batch["images"] = torch.cat(new_images, dim=0)
-        # else:
-        #     # the entire batch is text-only
-        #     if hasattr(self.data_args.image_processor, "crop_size"):
-        #         crop_size = self.data_args.image_processor.crop_size
-        #     else:
-        #         crop_size = self.data_args.image_processor.size
-        #     # we still need 1 dummy image for the vision tower
-        #     batch["images"] = torch.zeros(1, 3, crop_size["height"], crop_size["width"])
-
-        # return batch
 
 
 def make_supervised_data_module(
