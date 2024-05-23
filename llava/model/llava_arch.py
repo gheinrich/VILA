@@ -433,6 +433,8 @@ class LlavaMetaForCausalLM(ABC):
             new_labels = [x[:tokenizer_model_max_length] for x in new_labels]
         # Combine them
         max_len = max(x.shape[0] for x in new_input_embeds)
+        # max_len = tokenizer_model_max_length
+        # print("Warning: using max_len as tokenizer_model_max_length")
         batch_size = len(new_input_embeds)
 
         new_input_embeds_padded = []
@@ -573,6 +575,8 @@ class LlavaMetaForCausalLM(ABC):
         seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
         sorted_seqlens_in_batch, sorted_idx = torch.sort(seqlens_in_batch, descending=True)
         max_seqlen = inputs_embeds.shape[1]
+        # max_seqlen = getattr(self.llm.config, "tokenizer_model_max_length", None)
+        # print("Warning: using max_len as tokenizer_model_max_length")
 
         cur_inputs_embeds = []
         cur_position_ids = []
@@ -609,6 +613,8 @@ class LlavaMetaForCausalLM(ABC):
                     )
                 ]
                 cur_labels = [labels[sorted_idx[i]][attention_mask[sorted_idx[i]]]]
+            # Mask the first token in the labels for every sample
+            # cur_labels[-1][0] = IGNORE_INDEX
 
         if len(cur_inputs_embeds):
             new_inputs_embeds.append(torch.cat(cur_inputs_embeds, 0))

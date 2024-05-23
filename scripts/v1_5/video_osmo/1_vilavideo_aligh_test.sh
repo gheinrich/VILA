@@ -22,7 +22,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
-    --data_mixture osmo_internvid_1300K \
+    --data_mixture osmo_sharegpt4v_sft+osmo_sharegpt_video_qa+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_sharegpt_video \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
@@ -33,7 +33,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v2 \
+    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v7 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

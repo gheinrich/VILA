@@ -2469,6 +2469,11 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         #                           for key in ("input_ids", "labels"))
         input_ids, labels, images = [], [], []
         for instance in instances:
+
+            # Skip samples without images
+            if instance["image"] is None or len(instance["image"]) == 0:
+                continue
+
             if not isinstance(instance["input_ids"], list):
                 input_ids.append(instance["input_ids"])
             else:
@@ -2494,6 +2499,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         # kentang-mit@: we need to make sure these two lists have
         # the same length. We will use input_ids to filter out images corresponding
         # to truncated <image> tokens later.
+        max_num_images = max([len(_images) for _images in images])
         for _images, _input_ids in zip(images, input_ids):
             assert (
                 len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
@@ -2504,7 +2510,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
 
         combined = sorted(
             zip(input_ids, labels, images),
-            key=lambda x: len(x[0]), 
+            key=lambda x: len(x[2]), 
             # reverse=True
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
@@ -2541,7 +2547,9 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                     i += 1
                     continue
 
-                if current_len + num_incoming_tokens <= max_seq_length:
+                if ((current_num_images == 0) or (current_num_images < self.sp_degree) \
+                    or (current_num_images < max_num_images)) and \
+                        (current_len + num_incoming_tokens < max_seq_length):
                     current_num_images += num_images
                     current_len += num_incoming_tokens
                     current_num_samples += 1
@@ -2554,32 +2562,59 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                         ), dim=0
                     )
                     current_batch = torch.cat((current_batch, sorted_ids[i]), dim=0)
+                    sorted_labels[i][0] = IGNORE_INDEX
                     current_label_batch = torch.cat((current_label_batch, sorted_labels[i]), dim=0)
                     seqlens_in_batch.append(num_incoming_tokens)
-                    if sorted_images[i] is not None:
-                        current_batch_images.extend(sorted_images[i])
-                    else:
-                        current_batch_images.extend([])
+                    # if sorted_images[i] is not None:
+                    current_batch_images.extend(sorted_images[i])
+                    # else:
+                    #     current_batch_images.extend([])
                     i += 1
                     assert current_num_images == len(current_batch_images)
                 else:
                     break
 
-            # # Drop the samples that do not have enough images
-            # while current_num_images < self.sp_degree and current_len < max_seq_length:
-            #     print(
-            #         f"Warning: Padding one packed sample with only {current_num_images} images to {2*current_num_images}"
-            #     )
-            #     current_batch = torch.cat([current_batch, current_batch], dim=0)
-            #     current_label_batch = torch.cat([current_label_batch, current_label_batch], dim=0)
-            #     seqlens_in_batch.extend(seqlens_in_batch)
-            #     current_position_ids = torch.cat([current_position_ids, current_position_ids], dim=0)
-            #     current_batch_images.extend(current_batch_images)
-            #     current_num_images = len(current_batch_images)
-            #     current_len = current_position_ids.size(-1)
+            # print("current_num_images", current_num_images)
+            # Padding the sample with the longest length in the batch, if there are no enough images
+            if current_num_images < self.sp_degree and current_len < max_seq_length:
+                j = len(sorted_ids) - 1
+                print(
+                    f"Warning: Padding one packed sample with only {current_num_images} images by the long samples in the batch"
+                )
+                while j >= 0:
+                    num_images = (sorted_ids[j] == IMAGE_TOKEN_INDEX).sum().item()
+                    num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
+                    num_incoming_tokens = sorted_ids[j].size(-1) + num_image_tokens_added
+                    if current_len + num_incoming_tokens > max_seq_length:
+                        j -= 1
+                        continue
+                    if current_num_images >= self.sp_degree:
+                        break
+                    current_num_images += num_images
+                    current_len += num_incoming_tokens
+                    current_num_samples += 1
+                    current_position_ids = torch.cat(
+                        (
+                            current_position_ids,
+                            torch.arange(
+                                start=0, end=num_incoming_tokens
+                            )
+                        ), dim=0
+                    )
+                    current_batch = torch.cat((current_batch, sorted_ids[j]), dim=0)
+                    sorted_labels[j][0] = IGNORE_INDEX
+                    current_label_batch = torch.cat((current_label_batch, sorted_labels[j]), dim=0)
+                    seqlens_in_batch.append(num_incoming_tokens)
+                    # if sorted_images[j] is not None:
+                    current_batch_images.extend(sorted_images[j])
+                    # else:
+                    #     current_batch_images.extend([])
+                    j -= 1
+
+            # Drop the samples that do not have enough images
             if current_num_images < self.sp_degree:
                 print(
-                    f"Warning: Skipping one packed sample with {current_num_images}"
+                    f"Warning: Skipping one packed sample with {current_num_images} images"
                 )
                 seqlens_in_batch = seqlens_in_batch[:-current_num_samples]
                 continue
@@ -2603,8 +2638,13 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 self.sp_degree, 
                 self.tokenizer.bos_token_id
             )
-            label_batches[i] = copy.deepcopy(batches[i])
-
+            label_batches[i] = extract_local_input_ids(
+                label_batches[i], 
+                image_token_indices, 
+                self.sp_rank, 
+                self.sp_degree, 
+                self.tokenizer.bos_token_id
+            )
             batch_images[i] = torch.concat(extract_local_from_list(batch_images[i], self.sp_rank, self.sp_degree), dim=0)
             H, W = batch_images[i].size(-2), batch_images[i].size(-1)
             batch_images[i] = batch_images[i].reshape(-1, 3, W, H)

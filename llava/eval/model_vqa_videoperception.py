@@ -56,7 +56,12 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
     images, frames_loaded = LazySupervisedDataset._load_video(video_path, num_video_frames, fps, args)
     image_tensor = process_images(images, image_processor, model.config)
 
-    qs = '<image>\n' * num_video_frames + qs
+    num_frames_loaded_successfully = len(images)
+    # print(f"Number of frames loaded successfully: {num_frames_loaded_successfully}")
+    qs = qs.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
+    qs = qs.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
+    qs = '<image>\n' * num_frames_loaded_successfully + qs
+    
     loss_list = []
     for id, option in enumerate(options):
 

@@ -9,7 +9,7 @@ cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
-bs=$((4 / n_node))
+bs=$((32 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
@@ -20,7 +20,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
-    --data_mixture osmo_ccs_recaptioned+osmo_internvid_1300K \
+    --data_mixture osmo_sharegpt4v_sft \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
@@ -31,7 +31,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v1 \
+    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v72 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
