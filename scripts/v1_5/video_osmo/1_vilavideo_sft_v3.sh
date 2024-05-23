@@ -21,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path ./checkpoints/vilavideo7b_pretraining_v035 \
     --version v1 \
-    --data_mixture osmo_sharegpt_video_qa+osmo_sharegpt_video \
+    --data_mixture osmo_sharegpt4v_sft+osmo_sharegpt_video_qa+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_sharegpt_video \
     --vision_tower google/siglip-so400m-patch14-384 \
     --image_aspect_ratio mlp_downsample \
     --tune_mm_projector True \
@@ -41,7 +41,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --save_strategy "steps" \
     --save_steps 200 \
     --save_total_limit 1 \
-    --learning_rate 1e-3 \
+    --learning_rate 5e-5 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

@@ -101,10 +101,11 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     # if n_diff_input_output > 0:
     #     print(f'[Warning] {n_diff_input_output} output_ids are not the same as the input_ids')
     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
-    outputs_2 = tokenizer.batch_decode(output_ids)[0]
-    # print("raw input:", tokenizer.batch_decode(input_ids)[0])
-    print("num frames loaded successfully:", num_frames_loaded_successfully)
-    print("raw output 1:", outputs)
+    # outputs_2 = tokenizer.batch_decode(output_ids)[0]
+    print("========================================")
+    print("Input:", qs)
+    # print("num frames loaded successfully:", num_frames_loaded_successfully)
+    print("Output 1:", outputs)
     # print("raw output 2:", outputs_2)
     # print("batched output 2," , tokenizer.batch_decode(output_ids))
     outputs = outputs.strip()
@@ -206,7 +207,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
-    parser.add_argument("--model_max_length", type=int, required=False, default=2048)
     parser.add_argument('--video_dir', help='Directory containing video files.', required=True)
     parser.add_argument('--output_dir', help='Directory to save the model results JSON.', required=True)
     parser.add_argument("--conv-mode", type=str, default="llava_v1")

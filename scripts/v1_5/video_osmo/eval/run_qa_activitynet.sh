@@ -11,7 +11,7 @@ cd ~/VILA
 
 model_path=$1
 CKPT_NAME=$2
-CONV_MODE=vicuna_v1
+CONV_MODE=llama_3
 if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi
@@ -28,7 +28,6 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
   CUDA_VISIBLE_DEVICES=$IDX python3 llava/eval/model_vqa_video.py \
       --model-path ${model_path} \
       --video_dir ${video_dir} \
-      --model_max_length 8192 \
       --gt_file_question ${gt_file_question} \
       --gt_file_answers ${gt_file_answers} \
       --output_dir ${output_dir} \
