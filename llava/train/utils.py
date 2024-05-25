@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from transformers import PretrainedConfig, PreTrainedModel
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 from accelerate.hooks import add_hook_to_module
-
+from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysess_sp_pg
 
 def rprint(*args, **kwargs):
     rank = int(os.environ.get("RANK", 0))
@@ -122,9 +122,12 @@ def calculate_loss_weight(shift_labels, ignore_index=-100):
     # To achieve accurate sequence parallel loss calculation, we need to get
     # the real active_elements of each sequence partitions.
     # For data parallelism, the loss almost remains the same (also more accurate).
+    PROCESS_GROUP_MANAGER = get_pg_manager()
+    if PROCESS_GROUP_MANAGER is None:
+        return 1.0
     padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
     num_active_elements = padding_mask.numel() - padding_mask.long().sum()
     global_active_sum = copy.deepcopy(num_active_elements)
-    dist.all_reduce(global_active_sum)
-    loss_weight = num_active_elements / global_active_sum * dist.get_world_size()
+    dist.all_reduce(global_active_sum, group=get_ulysess_sp_pg())
+    loss_weight = num_active_elements / global_active_sum * PROCESS_GROUP_MANAGER.sp_degree
     return loss_weight

@@ -66,14 +66,11 @@ class LlavaMetaModel(ABC):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
         
-        # print("init_vlm(): config", config); input("DEBUG init_vlm")
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
-        # print("init_vlm():", cfgs); input("DEBUG init_vlm")
-        # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG init_vlm")
         self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
@@ -345,7 +342,6 @@ class LlavaMetaForCausalLM(ABC):
         new_labels = []
         cur_image_idx = 0
 
-        # print("BEFORE BATCH LOOP:", len(input_ids), input_ids[0].shape, input_ids[0].device, [(x == IMAGE_TOKEN_INDEX).sum() for x in input_ids])
 
         # kentang-mit@: If some part of the model is executed in the loop, the the loop length needs to be a constant.
         for batch_idx, cur_input_ids in enumerate(input_ids):
@@ -353,13 +349,11 @@ class LlavaMetaForCausalLM(ABC):
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             if num_images == 0:
                 cur_image_features = image_features[0]
-                # cur_input_embeds_1 = self.get_llm().embed_tokens(cur_input_ids)
                 cur_input_embeds_1 = input_embeds_1[batch_idx]
                 cur_input_embeds = torch.cat([cur_input_embeds_1, cur_image_features[0:0]], dim=0)
                 new_input_embeds.append(cur_input_embeds)
                 new_labels.append(labels[batch_idx])
                 # kenang-mit@: we do not have placeholdr image for text-only data now.
-                # cur_image_idx += 1
                 continue
 
             cur_input_embeds = input_embeds_1[batch_idx]
@@ -372,79 +366,64 @@ class LlavaMetaForCausalLM(ABC):
             cur_input_embeds_no_im = []
             for i in range(len(image_token_indices) - 1):
                 if sp_degree > 1 and i == 0 and sp_rank != 0:  # Handle sequence parallelism
+                    cur_input_ids_noim.append(cur_input_ids[0:0])
+                    cur_labels_noim.append(cur_labels[0:0])
+                    cur_input_embeds_no_im.append(cur_input_embeds[0:0])
                     continue
                 cur_input_ids_noim.append(cur_input_ids[image_token_indices[i] + 1 : image_token_indices[i + 1]])
                 cur_labels_noim.append(cur_labels[image_token_indices[i] + 1 : image_token_indices[i + 1]])
                 cur_input_embeds_no_im.append(cur_input_embeds[image_token_indices[i] + 1 : image_token_indices[i + 1]])
 
-            # split_sizes = [x.shape[0] for x in cur_labels_noim]
-            # cur_input_embeds = self.get_llm().embed_tokens(torch.cat(cur_input_ids_noim))
-            # cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
             cur_new_input_embeds = []
             cur_new_labels = []
-            if sp_degree > 1 and sp_rank == sp_degree - 1:  # Handle sequence parallelism
-                last_tensor = cur_labels_noim.pop()
-                last_embed = cur_input_embeds_no_im.pop()
-                cur_labels_noim.extend([last_tensor[:2], last_tensor[2:]])
-                cur_input_embeds_no_im.extend([last_embed[:2], last_embed[2:]])
-
-            if sp_degree > 1:  # Handle sequence parallelism
-                for i in range(num_images + 1):
-                    if sp_rank == 0:
-                        cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                        cur_new_labels.append(cur_labels_noim[i])
-                        if i < num_images:
-                            cur_image_features = image_features[cur_image_idx]
-                            cur_image_idx += 1
-                            cur_new_input_embeds.append(cur_image_features)
-                            cur_new_labels.append(
-                                torch.full(
-                                    (cur_image_features.shape[0],),
-                                    IGNORE_INDEX,
-                                    device=cur_labels.device,
-                                    dtype=cur_labels.dtype,
-                                )
-                            )
-                    else:
-                        if i < num_images:
-                            cur_image_features = image_features[cur_image_idx]
-                            cur_image_idx += 1
-                            cur_new_input_embeds.append(cur_image_features)
-                            cur_new_labels.append(
-                                torch.full(
-                                    (cur_image_features.shape[0],),
-                                    IGNORE_INDEX,
-                                    device=cur_labels.device,
-                                    dtype=cur_labels.dtype,
-                                )
-                            )
-                            cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                            cur_new_labels.append(cur_labels_noim[i])
-                    if i == num_images and sp_rank == sp_degree - 1:
-                        cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                        cur_new_labels.append(cur_labels_noim[i])
-            else:
-                for i in range(num_images + 1):
-                    cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                    cur_new_labels.append(cur_labels_noim[i])
-                    if i < num_images:
-                        cur_image_features = image_features[cur_image_idx]
-                        cur_image_idx += 1
-                        cur_new_input_embeds.append(cur_image_features)
-                        cur_new_labels.append(
-                            torch.full(
-                                (cur_image_features.shape[0],),
-                                IGNORE_INDEX,
-                                device=cur_labels.device,
-                                dtype=cur_labels.dtype,
-                            )
+            for i in range(num_images + 1):
+                cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                cur_new_labels.append(cur_labels_noim[i])
+                if i < num_images:
+                    cur_image_features = image_features[cur_image_idx]
+                    cur_image_idx += 1
+                    cur_new_input_embeds.append(cur_image_features)
+                    cur_new_labels.append(
+                        torch.full(
+                            (cur_image_features.shape[0],),
+                            IGNORE_INDEX,
+                            device=cur_labels.device,
+                            dtype=cur_labels.dtype,
                         )
+                    )
+                # if sp_degree <= 1 or (sp_degree > 1 and i < num_images):  # Handle sequence parallelism
+                #     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                #     cur_new_labels.append(cur_labels_noim[i])
+                # if i < num_images:
+                #     cur_image_features = image_features[cur_image_idx]
+                #     cur_image_idx += 1
+                #     cur_new_input_embeds.append(cur_image_features)
+                #     cur_new_labels.append(
+                #         torch.full(
+                #             (cur_image_features.shape[0],),
+                #             IGNORE_INDEX,
+                #             device=cur_labels.device,
+                #             dtype=cur_labels.dtype,
+                #         )
+                #     )
+                # if sp_degree > 1 and i == num_images:
+                #     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+                #     cur_new_labels.append(cur_labels_noim[i])
+            
+            # if sp_degree > 1 and sp_rank == 0:
+            #     for i in range(len(cur_new_input_embeds)):
+            #         print(f'embedding {i}: {cur_new_input_embeds[i].shape} on rank {sp_rank}')
+                # print(f'cur_new_input_embeds len: {len(cur_new_input_embeds)} {cur_new_input_embeds[0].shape} {cur_new_input_embeds[1].shape}, position_ids: {position_ids[batch_idx].shape}, cur_new_labels: {cur_new_labels}')
             cur_new_input_embeds = torch.cat(cur_new_input_embeds)
+            # if sp_degree > 1 and sp_rank == 0:
+            #     print(f'cur_new_input_embeds: {cur_new_input_embeds.shape}, position_ids: {position_ids[batch_idx].shape[0]}, num_images: {num_images}, input_ids: {input_ids[batch_idx].shape}on rank {sp_rank}')
+            #     assert cur_new_input_embeds.shape[0] == position_ids[batch_idx].shape[0]
             cur_new_labels = torch.cat(cur_new_labels)
 
             new_input_embeds.append(cur_new_input_embeds)
             new_labels.append(cur_new_labels)
 
+        # print("BEFORE BATCH LOOP:", input_ids[0].shape, (input_ids[0] == IMAGE_TOKEN_INDEX).sum(), "AFTER BATCH LOOP:", new_input_embeds[0].shape)
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.llm.config, "tokenizer_model_max_length", None)
         if tokenizer_model_max_length is not None:
@@ -454,6 +433,8 @@ class LlavaMetaForCausalLM(ABC):
             new_labels = [x[:tokenizer_model_max_length] for x in new_labels]
         # Combine them
         max_len = max(x.shape[0] for x in new_input_embeds)
+        # max_len = tokenizer_model_max_length
+        # print("Warning: using max_len as tokenizer_model_max_length")
         batch_size = len(new_input_embeds)
 
         new_input_embeds_padded = []
@@ -535,6 +516,17 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
+        # We will not use packing here when sequence parallelism is enabled.
+        if PROCESS_GROUP_MANAGER is not None:
+            return (
+                None,
+                _position_ids,
+                attention_mask,
+                past_key_values,
+                new_input_embeds,
+                new_labels,
+            )
+
         return (
             None,
             position_ids,
@@ -555,12 +547,25 @@ class LlavaMetaForCausalLM(ABC):
     ):
         # Handle sequence parallelism
         PROCESS_GROUP_MANAGER = get_pg_manager()
-        if PROCESS_GROUP_MANAGER is None:
-            sp_degree = -1
-            sp_rank = -1
-        else:
-            sp_degree = PROCESS_GROUP_MANAGER.sp_degree
-            sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+        # if PROCESS_GROUP_MANAGER is None:
+        #     sp_degree = -1
+        #     sp_rank = -1
+        # else:
+        #     sp_degree = PROCESS_GROUP_MANAGER.sp_degree
+        #     sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+
+
+        # We will not use packing here when sequence parallelism is enabled.
+        if PROCESS_GROUP_MANAGER is not None:
+            return (
+                None,
+                position_ids,
+                attention_mask,
+                past_key_values,
+                inputs_embeds,
+                labels,
+                None, # sorted_seqlens_in_batch set as None for sequence parallelism
+            )
 
         # kentang-mit@: reorder and repack (reduce computation overhead)
         # requires transformers replacement.
@@ -569,14 +574,14 @@ class LlavaMetaForCausalLM(ABC):
         new_labels = []
         seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
         sorted_seqlens_in_batch, sorted_idx = torch.sort(seqlens_in_batch, descending=True)
-        # print(sorted_seqlens_in_batch)
         max_seqlen = inputs_embeds.shape[1]
+        # max_seqlen = getattr(self.llm.config, "tokenizer_model_max_length", None)
+        # print("Warning: using max_len as tokenizer_model_max_length")
 
         cur_inputs_embeds = []
         cur_position_ids = []
         cur_labels = []
         cur_batch_len = 0
-        # print(sorted_seqlens_in_batch.device, len(sorted_seqlens_in_batch), max_seqlen)
         for i in range(len(sorted_seqlens_in_batch)):
             cur_seqlen = sorted_seqlens_in_batch[i].item()
             if cur_seqlen + cur_batch_len <= max_seqlen:
@@ -608,14 +613,14 @@ class LlavaMetaForCausalLM(ABC):
                     )
                 ]
                 cur_labels = [labels[sorted_idx[i]][attention_mask[sorted_idx[i]]]]
+            # Mask the first token in the labels for every sample
+            # cur_labels[-1][0] = IGNORE_INDEX
 
         if len(cur_inputs_embeds):
             new_inputs_embeds.append(torch.cat(cur_inputs_embeds, 0))
             new_position_ids.append(torch.cat(cur_position_ids, 0))
             new_labels.append(torch.cat(cur_labels, 0))
 
-        # print(new_position_ids[0].device, [x.shape for x in new_inputs_embeds], [x.shape for x in new_labels], [x.shape for x in new_position_ids])
-        # assert 0
         new_inputs_embeds = torch.nn.utils.rnn.pad_sequence(
             new_inputs_embeds, batch_first=True, padding_value=self.llm.pad_token_id
         )
@@ -630,24 +635,24 @@ class LlavaMetaForCausalLM(ABC):
 
         # Handle sequence parallelism: Calculate the position ids for sequence parallelism
         # NOTE: This implementation only works for [<bos>, <img>, ..., <img>, <caption>] pattern
-        if sp_degree > 1 and sp_rank > 0:
-            cur_len = new_position_ids.shape[-1]
-            if sp_rank < sp_degree - 1:  # Intermediate ranks
-                offset = cur_len * sp_rank + 1
-                new_position_ids = new_position_ids + offset
-            elif sp_rank == sp_degree - 1:  # The last rank
-                assert new_labels[0, -1] != IGNORE_INDEX, "The first sequence should be longest one."
-                last_img_token_index = torch.where(new_labels[0] == IGNORE_INDEX)[0][-1]
-                # print(f"last_img_token_index, {last_img_token_index}")
-                # if sp_degree == 2: # Handle SP=2, because of bos_token
-                #     offset = last_img_token_index + 3
-                # else:
-                #     offset = (last_img_token_index + 2) * sp_rank + 1
-                offset = (last_img_token_index + 1) * sp_rank + 1
-                offset_mask = new_position_ids != -1
-                new_position_ids[offset_mask] += offset
-            else:
-                raise ValueError(f"sp_rank {sp_rank} is out of range {sp_degree}")
+        # if sp_degree > 1 and sp_rank > 0:
+        #     cur_len = new_position_ids.shape[-1]
+        #     if sp_rank < sp_degree - 1:  # Intermediate ranks
+        #         offset = cur_len * sp_rank + 1
+        #         new_position_ids = new_position_ids + offset
+        #     elif sp_rank == sp_degree - 1:  # The last rank
+        #         assert new_labels[0, -1] != IGNORE_INDEX, "The first sequence should be longest one."
+        #         last_img_token_index = torch.where(new_labels[0] == IGNORE_INDEX)[0][-1]
+        #         # print(f"last_img_token_index, {last_img_token_index}")
+        #         # if sp_degree == 2: # Handle SP=2, because of bos_token
+        #         #     offset = last_img_token_index + 3
+        #         # else:
+        #         #     offset = (last_img_token_index + 2) * sp_rank + 1
+        #         offset = (last_img_token_index + 1) * sp_rank + 1
+        #         offset_mask = new_position_ids != -1
+        #         new_position_ids[offset_mask] += offset
+        #     else:
+        #         raise ValueError(f"sp_rank {sp_rank} is out of range {sp_degree}")
 
         return (
             None,

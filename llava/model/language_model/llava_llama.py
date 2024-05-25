@@ -83,6 +83,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
         past_key_values: Optional[List[torch.FloatTensor]] = None,
+        seqlens_in_batch: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
@@ -91,6 +92,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         self.freezed_module_patch()
+        # print("input_ids", input_ids.shape, attention_mask is None)
         if inputs_embeds is None:
             (
                 input_ids,
@@ -103,6 +105,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
         # Note (kentang-mit@): we have a unit test for this function.
+        # print("inputs_embeds", inputs_embeds.shape, attention_mask is None)
         if self.training:
             (
                 _,
@@ -120,6 +123,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 inputs_embeds,
                 labels,
             )
+            if sorted_seqlens_in_batch is None:
+                sorted_seqlens_in_batch = seqlens_in_batch
             new_input_ids = None
             past_key_values = None
         else:
@@ -129,7 +134,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-
+        # print("new_inputs_embeds", new_inputs_embeds.shape, new_attention_mask is None)
         outputs = self.llm.forward(
             input_ids=new_input_ids,
             attention_mask=new_attention_mask,

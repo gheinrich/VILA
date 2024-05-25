@@ -409,7 +409,16 @@ def train():
         data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
 
-        model.config.num_video_frames = data_args.num_video_frames
+        if hasattr(data_args, "num_video_frames") and data_args.num_video_frames != None:
+            model.config.num_video_frames = data_args.num_video_frames 
+        else:
+            model.config.num_video_frames =  8
+
+        if hasattr(data_args, "fps"):
+            model.config.fps = data_args.fps 
+        else:
+            model.config.fps =  0.0
+
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
             model_args.mm_use_im_start_end

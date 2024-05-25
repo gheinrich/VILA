@@ -2,20 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # DeepSpeed Team
-
+import copy
 import torch
 
 from typing import Any, Tuple
 from torch import Tensor
 from torch.nn import Module
 
-# import torch.distributed as dist
+import torch.distributed as torch_dist
 
 import deepspeed.comm as dist
 from flash_attn import flash_attn_func
-from .all_to_all import SeqAllToAll4D, SeqAllToAll5D
+from .all_to_all import SeqAllToAll4D, SeqAllToAll5D, SeqAllGather
 
-from llava.train.sequence_parallel.globals import get_ulysess_sp_size, get_ulysess_sp_rank
+from llava.train.sequence_parallel.globals import get_ulysess_sp_size, get_ulysess_sp_rank, get_ulysess_seq_len
 
 
 # def single_all_to_all(input, scatter_idx, gather_idx, group):
@@ -94,8 +94,10 @@ class UlyssesAttention(torch.nn.Module):
         key: Tensor,
         value: Tensor,
         *args: Any,
+        attention_mask=None,
         dropout_p=0.0,
         softmax_scale=None,
+        seqlens_in_batch=None,
         causal=False,
         window_size=(-1, -1),
         alibi_slopes=None,
@@ -122,21 +124,69 @@ class UlyssesAttention(torch.nn.Module):
         q = SeqAllToAll4D.apply(self.spg, query, self.scatter_idx, self.gather_idx)
         k = SeqAllToAll4D.apply(self.spg, key, self.scatter_idx, self.gather_idx)
         v = SeqAllToAll4D.apply(self.spg, value, self.scatter_idx, self.gather_idx)
+        if attention_mask is not None:
+            local_attention_mask = copy.deepcopy(attention_mask)
+            shard_seqlen = local_attention_mask.size(1)
+            ulysess_seq_len = get_ulysess_seq_len()
+            max_global_length = max(ulysess_seq_len)
+            global_attention_mask_list = []
+            for i in range(get_ulysess_sp_size()):
+                if i == get_ulysess_sp_rank():
+                    global_attention_mask_list.append(
+                        torch.cat(
+                            [
+                                local_attention_mask, 
+                                torch.zeros(
+                                    (local_attention_mask.size(0), max_global_length - shard_seqlen), 
+                                    dtype=local_attention_mask.dtype, 
+                                    device=local_attention_mask.device)
+                            ], 
+                            dim=1
+                        )
+                    )
+                else:
+                    global_attention_mask_list.append(
+                        torch.zeros(
+                            (local_attention_mask.size(0), max_global_length), 
+                            dtype=local_attention_mask.dtype, 
+                            device=local_attention_mask.device)
+                    )
 
-        context_layer = self.local_attn(
-            q,
-            k,
-            v,
-            *args,
-            dropout_p=dropout_p,
-            softmax_scale=softmax_scale,
-            causal=causal,
-            window_size=window_size,
-            alibi_slopes=alibi_slopes,
-            deterministic=deterministic,
-            return_attn_probs=return_attn_probs,
-        )
-
+            global_attention_mask = torch.stack(global_attention_mask_list, dim=0)
+            # print("Before all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
+            torch_dist.all_reduce(global_attention_mask, group=self.spg)
+            # print("After all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
+            torch_dist.barrier(group=self.spg)
+            new_global_attention_mask_list = list(torch.unbind(global_attention_mask, dim=0))
+            # Unpad the global attention mask list and concatenate them
+            for i in range(len(new_global_attention_mask_list)):
+                new_global_attention_mask_list[i] = new_global_attention_mask_list[i][:, :ulysess_seq_len[i]]
+            global_attention_mask = torch.cat(new_global_attention_mask_list, dim=1)
+            context_layer = self.local_attn(
+                q,
+                k,
+                v,
+                *args,
+                attention_mask=global_attention_mask,
+                dropout_p=dropout_p,
+                softmax_scale=softmax_scale,
+                seqlens_in_batch=seqlens_in_batch,
+                causal=causal,
+            )
+        else:
+            context_layer = self.local_attn(
+                q,
+                k,
+                v,
+                *args,
+                dropout_p=dropout_p,
+                softmax_scale=softmax_scale,
+                causal=causal,
+                # window_size=window_size,
+                # alibi_slopes=alibi_slopes,
+                # deterministic=deterministic,
+                # return_attn_probs=return_attn_probs,
+            )
         if isinstance(context_layer, tuple):
             context_layer = context_layer[0]
 

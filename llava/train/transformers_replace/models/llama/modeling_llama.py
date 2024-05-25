@@ -509,6 +509,9 @@ class LlamaFlashAttention2(LlamaAttention):
 
         return attn_output, attn_weights, past_key_value
 
+    def flash_attn_varlen_func_helper(self):
+        raise NotImplementedError("This method should be used after being mocked, for supporting seq parallel.")
+
     def _flash_attention_forward(
         self, query_states, key_states, value_states, attention_mask, query_length, dropout=0.0, softmax_scale=None, seqlens_in_batch=None
     ):
@@ -565,7 +568,7 @@ class LlamaFlashAttention2(LlamaAttention):
     def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch):
         indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
         batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
-
+        
         key_layer = index_first_axis(
             key_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
         )

@@ -258,3 +258,20 @@ class SeqAllToAll5D(torch.autograd.Function):
             None,
             None,
         )
+
+
+class SeqAllGather(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx: Any, group: dist.ProcessGroup, input: Any) -> Tensor:
+        # ctx.group = group
+        ctx.save_for_backward(input[0])
+        all_gather_list = input[0]
+        all_gather_tensor = input[1]
+        dist.all_gather(all_gather_list, all_gather_tensor, group=group)
+        # torch.concat
+        return torch.stack(all_gather_list, dim=0)
+
+    @staticmethod
+    def backward(ctx: Any, grad_output: Tensor) -> Tuple[None, Tensor]:
+        tensor, = ctx.saved_tensors
+        return None, (None, tensor)

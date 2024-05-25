@@ -1,11 +1,12 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import nn
 
 import transformers
 from transformers import LlamaConfig
-from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, LlamaAttention
+from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, LlamaAttention, _get_unpad_data
+from transformers.modeling_outputs import BaseModelOutputWithPast
 from einops import rearrange
 
 from flash_attn import flash_attn_func, flash_attn_varlen_func
@@ -52,6 +53,90 @@ def new_flash_attn_forward(
     return attn_output
 
 
+def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch):
+    indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
+    batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
+
+    num_query_heads = query_layer.shape[2]
+    key_layer = index_first_axis(
+        key_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
+    )
+    value_layer = index_first_axis(
+        value_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
+    )
+    if query_length == kv_seq_len:
+        query_layer = index_first_axis(
+            query_layer.reshape(batch_size * kv_seq_len, num_query_heads, head_dim), indices_k
+        )
+        cu_seqlens_q = cu_seqlens_k
+        max_seqlen_in_batch_q = max_seqlen_in_batch_k
+        indices_q = indices_k
+    elif query_length == 1:
+        max_seqlen_in_batch_q = 1
+        cu_seqlens_q = torch.arange(
+            batch_size + 1, dtype=torch.int32, device=query_layer.device
+        )  # There is a memcpy here, that is very bad.
+        indices_q = cu_seqlens_q[:-1]
+        query_layer = query_layer.squeeze(1)
+    else:
+        # The -q_len: slice assumes left padding.
+        attention_mask = attention_mask[:, -query_length:]
+        query_layer, indices_q, cu_seqlens_q, max_seqlen_in_batch_q = unpad_input(query_layer, attention_mask)
+
+    return (
+        query_layer,
+        key_layer,
+        value_layer,
+        indices_q,
+        (cu_seqlens_q, cu_seqlens_k),
+        (max_seqlen_in_batch_q, max_seqlen_in_batch_k),
+    )
+
+
+
+def flash_attn_varlen_func_helper(
+    self,
+    query_states,
+    key_states,
+    value_states,
+    query_length,
+    attention_mask=None,
+    dropout_p=0.0,
+    softmax_scale=None,
+    seqlens_in_batch=None,
+    causal=None,
+):
+    batch_size = query_states.shape[0]
+    assert attention_mask.shape[1] == query_states.shape[1]
+    
+    # overwrite query_length with the actual length of the sequence after seq parallel communciation
+    query_length = attention_mask.shape[1]
+    # print('Before unpad attention_mask', attention_mask.shape, "query_states", query_states.shape, "query_length", query_length)
+    query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
+        query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=seqlens_in_batch
+    )
+
+    cu_seqlens_q, cu_seqlens_k = cu_seq_lens
+    max_seqlen_in_batch_q, max_seqlen_in_batch_k = max_seq_lens
+
+    # print("batch_size", batch_size, "cu_seqlens_q", cu_seqlens_q.shape, "cu_seqlens_k", cu_seqlens_k.shape, "query_states", query_states.shape)
+    attn_output_unpad = flash_attn_varlen_func(
+        query_states,
+        key_states,
+        value_states,
+        cu_seqlens_q=cu_seqlens_q,
+        cu_seqlens_k=cu_seqlens_k,
+        max_seqlen_q=max_seqlen_in_batch_q,
+        max_seqlen_k=max_seqlen_in_batch_k,
+        dropout_p=dropout_p,
+        softmax_scale=softmax_scale,
+        causal=self.is_causal,
+    )
+
+    attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
+    return attn_output
+
+
 def __init__(self, config: LlamaConfig):
     nn.Module.__init__(self)
     self.config = config
@@ -78,7 +163,7 @@ def __init__(self, config: LlamaConfig):
     self._init_rope()
 
     # wrap two potential "local-attention" up with DeepSpeed Ulysses logic.
-    self.ulysses_attn_varlen_func = UlyssesAttention(flash_attn_varlen_func, get_ulysess_sp_pg())
+    self.ulysses_attn_varlen_func = UlyssesAttention(self.flash_attn_varlen_func_helper, get_ulysess_sp_pg())
     self.ulysses_attn_func = UlyssesAttention(flash_attn_func, get_ulysess_sp_pg())
 
 
@@ -112,85 +197,32 @@ def _flash_attention_forward(
         softmax_scale (`float`, *optional*):
             The scaling of QK^T before applying softmax. Default to 1 / sqrt(head_dim)
     """
-    # bs, seq, nh, hdim
-    # print(f"Input shape to _flash_attention_forward: {query_states.shape}")
-    # query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    # key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    # value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    # query_states = query_states[:, :1000, :, :]
-    # key_states = key_states[:, :1000, :, :]
-    # value_states = value_states[:, :1000, :, :]
+    # Contains at least one padding token in the sequence
+    try:
+        assert attention_mask is not None
+    except AssertionError:
+        print("attention_mask is None", "query_states", query_states.shape, "query_length", query_length, "seqlens_in_batch", seqlens_in_batch)
+        print(asd)
+    
+    if attention_mask is not None:
+        attn_output = self.ulysses_attn_varlen_func(
+            query_states,
+            key_states,
+            value_states,
+            query_length,
+            attention_mask=attention_mask,
+            dropout_p=dropout,
+            softmax_scale=softmax_scale,
+            seqlens_in_batch=seqlens_in_batch,
+            # casual=self.is_causal,
+        )
+    else:
+        attn_output = self.ulysses_attn_func(
+            query_states, key_states, value_states, dropout_p=dropout, softmax_scale=softmax_scale, causal=self.is_causal
+        )
 
-    attn_output = self.ulysses_attn_func(
-        query_states, key_states, value_states, dropout_p=dropout, softmax_scale=softmax_scale, causal=self.is_causal
-    )
-    # # reshape it back to b, s, nh, hdim
-    # query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    # key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    # value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    # attn_output = attn_output.permute(1, 0, 2, 3).contiguous()
     return attn_output
 
-    # # Contains at least one padding token in the sequence
-    # if attention_mask is not None:
-    #     # Shape: b, s, nh, hdim
-    #     print(f"Input shape to _flash_attention_forward: {query_states.shape}")
-    #     batch_size = query_states.shape[0]
-    #     query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
-    #         query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=seqlens_in_batch
-    #     )
-
-    #     cu_seqlens_q, cu_seqlens_k = cu_seq_lens
-    #     max_seqlen_in_batch_q, max_seqlen_in_batch_k = max_seq_lens
-
-    #     # Reshape it to s, b, hh, hdim to use DeepSpeed
-    #     # DL: Alternatively, we can also modify the permuting dimensions of DeepSpeed backend.
-    #     # But this may decrease the portability of the code.
-
-    #     print(
-    #         f"Input shape after _upad_input: q {query_states.shape}, cu_seqlens_q {cu_seqlens_q}, max_seqlen_in_batch_q {max_seqlen_in_batch_q}"
-    #     )
-
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output_unpad = self.ulysses_attn_varlen_func(
-    #         query_states,
-    #         key_states,
-    #         value_states,
-    #         cu_seqlens_q,
-    #         cu_seqlens_k,
-    #         max_seqlen_in_batch_q,
-    #         max_seqlen_in_batch_k,
-    #         dropout_p=dropout,
-    #         softmax_scale=softmax_scale,
-    #         causal=self.is_causal,
-    #     )
-
-    #     # reshape it back to b, s, nh, hdim
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    #     attn_output_unpad = attn_output_unpad.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
-    # else:
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-
-    #     attn_output = self.ulysses_attn_func(
-    #         query_states, key_states, value_states, dropout, softmax_scale=softmax_scale, causal=self.is_causal
-    #     )
-
-    #     # reshape it back to b, s, nh, hdim
-    #     query_states = query_states.permute(1, 0, 2, 3).contiguous()
-    #     key_states = key_states.permute(1, 0, 2, 3).contiguous()
-    #     value_states = value_states.permute(1, 0, 2, 3).contiguous()
-    #     attn_output = attn_output.permute(1, 0, 2, 3).contiguous()
-
-    # return attn_output
 
 
 def new_decoder_forward(
@@ -243,6 +275,121 @@ def new_decoder_forward(
         outputs += (present_key_value,)
 
     return outputs
+
+
+def new_llamamodel_forward(
+    self,
+    input_ids: torch.LongTensor = None,
+    attention_mask: Optional[torch.Tensor] = None,
+    position_ids: Optional[torch.LongTensor] = None,
+    past_key_values: Optional[List[torch.FloatTensor]] = None,
+    inputs_embeds: Optional[torch.FloatTensor] = None,
+    use_cache: Optional[bool] = None,
+    output_attentions: Optional[bool] = None,
+    output_hidden_states: Optional[bool] = None,
+    return_dict: Optional[bool] = None,
+    seqlens_in_batch: Optional[torch.LongTensor] = None,
+) -> Union[Tuple, BaseModelOutputWithPast]:
+    output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
+    output_hidden_states = (
+        output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+    )
+    use_cache = use_cache if use_cache is not None else self.config.use_cache
+
+    return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+
+    # retrieve input_ids and inputs_embeds
+    if input_ids is not None and inputs_embeds is not None:
+        raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+    elif input_ids is not None:
+        batch_size, seq_length = input_ids.shape[:2]
+    elif inputs_embeds is not None:
+        batch_size, seq_length = inputs_embeds.shape[:2]
+    else:
+        raise ValueError("You have to specify either input_ids or inputs_embeds")
+
+    past_key_values_length = 0
+    if past_key_values is not None:
+        past_key_values_length = past_key_values[0][0].shape[2]
+
+    if position_ids is None:
+        device = input_ids.device if input_ids is not None else inputs_embeds.device
+        position_ids = torch.arange(
+            past_key_values_length, seq_length + past_key_values_length, dtype=torch.long, device=device
+        )
+        position_ids = position_ids.unsqueeze(0)
+
+    if inputs_embeds is None:
+        inputs_embeds = self.embed_tokens(input_ids)
+
+    # attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
+
+    # embed positions
+    hidden_states = inputs_embeds
+
+    if self.gradient_checkpointing and self.training:
+        if use_cache:
+            logger.warning_once(
+                "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`..."
+            )
+            use_cache = False
+
+    # decoder layers
+    all_hidden_states = () if output_hidden_states else None
+    all_self_attns = () if output_attentions else None
+    next_decoder_cache = () if use_cache else None
+
+    for idx, decoder_layer in enumerate(self.layers):
+        if output_hidden_states:
+            all_hidden_states += (hidden_states,)
+
+        past_key_value = past_key_values[idx] if past_key_values is not None else None
+
+        if self.gradient_checkpointing and self.training:
+            layer_outputs = torch.utils.checkpoint.checkpoint(
+                decoder_layer.__call__,
+                hidden_states,
+                attention_mask,
+                position_ids,
+                past_key_value,
+                output_attentions,
+                use_cache,
+                seqlens_in_batch
+            )
+        else:
+            layer_outputs = decoder_layer(
+                hidden_states,
+                attention_mask=attention_mask,
+                position_ids=position_ids,
+                past_key_value=past_key_value,
+                output_attentions=output_attentions,
+                use_cache=use_cache,
+                seqlens_in_batch=seqlens_in_batch
+            )
+
+        hidden_states = layer_outputs[0]
+
+        if use_cache:
+            next_decoder_cache += (layer_outputs[2 if output_attentions else 1],)
+
+        if output_attentions:
+            all_self_attns += (layer_outputs[1],)
+
+    hidden_states = self.norm(hidden_states)
+
+    # add hidden states from the last decoder layer
+    if output_hidden_states:
+        all_hidden_states += (hidden_states,)
+
+    next_cache = next_decoder_cache if use_cache else None
+    if not return_dict:
+        return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
+    return BaseModelOutputWithPast(
+        last_hidden_state=hidden_states,
+        past_key_values=next_cache,
+        hidden_states=all_hidden_states,
+        attentions=all_self_attns,
+    )
 
 
 def apply_hybrid_attn_monkey_patch_llama():
