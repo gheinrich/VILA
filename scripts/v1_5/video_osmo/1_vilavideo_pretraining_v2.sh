@@ -31,8 +31,8 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_pretraining_v013 \
-    --num_train_epochs 1 \
+    --output_dir ./checkpoints/vilavideo8b_pretraining_v013-epoch3 \
+    --num_train_epochs 3 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \

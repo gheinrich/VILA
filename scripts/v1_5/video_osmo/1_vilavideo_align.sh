@@ -10,7 +10,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
 seq_parallel_size=4
-bs=$((256 * seq_parallel_size / n_node))
+bs=$((512 * seq_parallel_size / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
@@ -36,12 +36,12 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 200 \
     --save_total_limit 1 \
-    --learning_rate 1e-3 \
+    --learning_rate 2e-4 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
