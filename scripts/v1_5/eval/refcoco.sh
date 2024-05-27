@@ -43,6 +43,7 @@ for IDX in 0 1 2 3 4 5 6 7; do
         --use-wandb False \
         --vis_interval 100 \
         --run_name ${CKPT} \
+        --box_format vila \
         --conv-mode ${CONV_MODE} &
 done
 
