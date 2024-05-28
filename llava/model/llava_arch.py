@@ -266,7 +266,7 @@ class LlavaMetaForCausalLM(ABC):
             sp_rank = PROCESS_GROUP_MANAGER.sp_rank
 
         vision_tower = self.get_vision_tower()
-        if vision_tower is None or images is None or input_ids.shape[1] == 1:
+        if vision_tower is None or images is None or (input_ids.shape[1] == 1 and PROCESS_GROUP_MANAGER is None):
             if (
                 past_key_values is not None
                 and vision_tower is not None

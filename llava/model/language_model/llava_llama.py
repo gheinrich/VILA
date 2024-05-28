@@ -92,7 +92,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         self.freezed_module_patch()
-        # print("input_ids", input_ids.shape, attention_mask is None)
         if inputs_embeds is None:
             (
                 input_ids,
@@ -105,7 +104,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
         # Note (kentang-mit@): we have a unit test for this function.
-        # print("inputs_embeds", inputs_embeds.shape, attention_mask is None)
         if self.training:
             (
                 _,

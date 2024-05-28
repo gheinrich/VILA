@@ -1,4 +1,4 @@
-# import torch
+import torch
 
 
 def extract_local_from_list(vaule_list, sp_rank, sp_size):
