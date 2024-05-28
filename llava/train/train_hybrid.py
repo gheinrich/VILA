@@ -29,6 +29,7 @@ from llava.train.sequence_parallel.monkey_patch import (
     __init__,
     flash_attn_varlen_func_helper,
     _upad_input,
+    # _create_zero_param_parallel_group_vila,
 )
 
 
@@ -51,6 +52,7 @@ if __name__ == "__main__":
         #     "transformers.models.llama.modeling_llama.LlamaDecoderLayer.forward",
         #     new=new_decoder_forward,
         # ),
+        # mock.patch("deepspeed.utils.groups._create_zero_param_parallel_group", new=_create_zero_param_parallel_group_vila),
         mock.patch("transformers.models.llama.modeling_llama.LlamaModel.forward", new=new_llamamodel_forward),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2._upad_input", new=_upad_input),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2.flash_attn_varlen_func_helper", new=flash_attn_varlen_func_helper),

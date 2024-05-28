@@ -145,6 +145,13 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
                 if data_args.mm_use_im_start_end:
                     replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
                 sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
+            # ensure every DEFAULT_IMAGE_TOKEN is followed by a newline character.
+            # If it has one already, we don't add another one.
+            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n")
+                sentence["value"] = sentence["value"].replace(f"{DEFAULT_IMAGE_TOKEN}\n\n", f"{DEFAULT_IMAGE_TOKEN}\n")
+            
+
 
     return sources
 
@@ -1156,7 +1163,7 @@ class LazyMMC4Dataset(Dataset):
 
         # preprocess and tokenize text
         for ix in sentence_ixs:
-            sentences[ix] = f"<image>{sentences[ix]}"
+            sentences[ix] = f"<image>\n{sentences[ix]}"
 
         if self.image_following_text_only:
             # use pad tokens to divide sentence pieces
@@ -1339,7 +1346,7 @@ class LazyCoyoDataset(Dataset):
             # kentang-mit@: remove existing <image> token.
             # if this is an html tag, we still preserve its semantic meaning
             sample[caption_key] = sample[caption_key].replace("<image>", "<IMAGE>")
-            text_list.append(DEFAULT_IMAGE_TOKEN + sample[caption_key] + self.tokenizer.eos_token)
+            text_list.append(DEFAULT_IMAGE_TOKEN + "\n" + sample[caption_key] + self.tokenizer.eos_token)
             if "image" in sample:
                 image_base64 = sample["image"]
                 rawbytes = base64.b64decode(image_base64)
@@ -2488,6 +2495,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 cur_image = instance["image"]
                 assert len(cur_image.shape) == 4
                 # n_images, 3, size, size
+                if cur_image.shape[0] == 0:
+                    warnings.warn("loaded one sample without images.")
                 if not isinstance(instance["input_ids"], list):
                     # datasets other than coyo, not packing >1 samples together
                     images.append(cur_image)
@@ -2495,6 +2504,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                     # coyo-like datasets
                     images.extend(cur_image.chunk(cur_image.size(0), 0))
             else:
+                warnings.warn("loaded one sample without images.")
                 images.append([])
         # kentang-mit@: we need to make sure these two lists have
         # the same length. We will use input_ids to filter out images corresponding
@@ -2542,14 +2552,14 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 if num_incoming_tokens > max_seq_length:
                     print(
                         f"Warning: Skipping one packed sample with {num_incoming_tokens} tokens,\
-                        please consider increase max seq len {model_max_length}."
+                        please consider increase max seq len {max_seq_length}."
                     )
                     i += 1
                     continue
 
                 if ((current_num_images == 0) or (current_num_images < self.sp_degree) \
                     or (current_num_images < max_num_images)) and \
-                        (current_len + num_incoming_tokens < max_seq_length):
+                        (current_len + num_incoming_tokens <= max_seq_length):
                     current_num_images += num_images
                     current_len += num_incoming_tokens
                     current_num_samples += 1
@@ -2574,17 +2584,19 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 else:
                     break
 
-            # print("current_num_images", current_num_images)
             # Padding the sample with the longest length in the batch, if there are no enough images
+            MAX_RETRY = 64
             if current_num_images < self.sp_degree and current_len < max_seq_length:
+                # if num_retry >= max_num_retry:
+                #     break
                 j = len(sorted_ids) - 1
-                print(
-                    f"Warning: Padding one packed sample with only {current_num_images} images by the long samples in the batch"
-                )
-                while j >= 0:
-                    num_images = (sorted_ids[j] == IMAGE_TOKEN_INDEX).sum().item()
+                while j >= (0 - MAX_RETRY):
+                    # print(
+                    #     f"Warning: Padding one packed sample with only {current_num_images} images by the long samples in the batch, Tried {len(sorted_ids) - 1 -j} times."
+                    # )
+                    num_images = (sorted_ids[j%len(sorted_ids)] == IMAGE_TOKEN_INDEX).sum().item()
                     num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-                    num_incoming_tokens = sorted_ids[j].size(-1) + num_image_tokens_added
+                    num_incoming_tokens = sorted_ids[j%len(sorted_ids)].size(-1) + num_image_tokens_added
                     if current_len + num_incoming_tokens > max_seq_length:
                         j -= 1
                         continue
@@ -2601,15 +2613,15 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                             )
                         ), dim=0
                     )
-                    current_batch = torch.cat((current_batch, sorted_ids[j]), dim=0)
-                    sorted_labels[j][0] = IGNORE_INDEX
-                    current_label_batch = torch.cat((current_label_batch, sorted_labels[j]), dim=0)
+                    current_batch = torch.cat((current_batch, sorted_ids[j%len(sorted_ids)]), dim=0)
+                    # sorted_labels[j%len(sorted_ids)][0] = IGNORE_INDEX
+                    current_label_masked = copy.deepcopy(sorted_labels[j%len(sorted_ids)])
+                    current_label_masked[:] = IGNORE_INDEX
+                    current_label_batch = torch.cat((current_label_batch, current_label_masked), dim=0)
                     seqlens_in_batch.append(num_incoming_tokens)
-                    # if sorted_images[j] is not None:
-                    current_batch_images.extend(sorted_images[j])
-                    # else:
-                    #     current_batch_images.extend([])
+                    current_batch_images.extend(sorted_images[j%len(sorted_ids)])
                     j -= 1
+                # num_retry += 1
 
             # Drop the samples that do not have enough images
             if current_num_images < self.sp_degree:
@@ -2625,7 +2637,6 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             batch_images.append(current_batch_images)
 
         # Split for sequence parallelism
-        # seqlens_in_batch = []
         for i in range(len(batches)):
             image_token_indices = torch.where(
                 batches[i] == IMAGE_TOKEN_INDEX)[0].tolist()
@@ -2658,10 +2669,6 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 print(f"Error len(torch.where(batches[i] == IMAGE_TOKEN_INDEX)[0].tolist() on {self.sp_rank}:", len(torch.where(batches[i] == IMAGE_TOKEN_INDEX)[0].tolist()))
                 print(f"Error batch_images[i] on {self.sp_rank}:", batch_images[i].shape)
                 raise AssertionError
-            # num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-            # seqlens_in_batch.append(
-            #     batches[i].size(-1) + num_image_tokens_added
-            # )
             position_ids[i] = extract_local_position_ids(
                 position_ids[i],
                 image_token_indices, 
@@ -2691,13 +2698,6 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             flat_batch_images = torch.concat(batch_images, dim=0)
         else:
             flat_batch_images = None
-        # try:
-        #     assert seqlens_in_batch.sum() == input_ids.ne(self.tokenizer.pad_token_id).flatten().sum()
-        # except AssertionError:
-        #     print("seqlens_in_batch.sum():", seqlens_in_batch.sum())
-        #     print("input_ids.ne(self.tokenizer.pad_token_id).flatten().sum():", input_ids.ne(self.tokenizer.pad_token_id).flatten().sum())
-        #     print("flat_batch_images:", flat_batch_images.shape)
-        #     raise AssertionError
 
         batch = dict(
             input_ids=input_ids,
