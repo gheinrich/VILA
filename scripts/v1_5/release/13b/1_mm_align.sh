@@ -1,26 +1,29 @@
 #!/bin/bash
 
-source ~/.bashrc
-conda activate vila
-which python
-
-cd ~/workspace/VILA-Internal
-
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-export MASTER_ADDR=$master_addr
-echo "MASTER_ADDR="$MASTER_ADDR
+export MASTER_ADDR=${master_addr:-"127.0.0.1"}
+export CURRENT_RANK=${SLURM_PROCID:-"0"}
+worker_list=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | tr '\n' ' ')
+n_node=${SLURM_JOB_NUM_NODES:-1}
 
-n_node=$SLURM_JOB_NUM_NODES
-bs=$((128 / n_node))
-echo "number of nodes:" $n_node
-echo "per device batch size:" $bs
-echo "node rank:" $SLURM_PROCID
+echo "MASTER_ADDR="$MASTER_ADDR
+echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
+
+bs=${BATCH_SIZE:-32}
+acc_step=${ACC_STEP:-1}
+
+# for example, lmsys/vicuna-7b-v1.5
+BASE_MODEL_PATH=${1:-"lmsys/vicuna-13b-v1.5"}
+# for example, llava-v1.5-7b-mm-align
+OUTPUT=${2:-"vila-v1.5-mm-align"}
+
+MNAME=$(echo $BASE_MODEL_PATH | rev | cut -d "/" -f 1 | rev)
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
-    --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
+    --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
-    --model_name_or_path /home/jasonlu/models/vicuna-1.5/vicuna-13b-v1.5 \
+    --model_name_or_path $BASE_MODEL_PATH \
     --version plain \
     --data_mixture llava_1_5_mm_align \
     --vision_tower google/siglip-so400m-patch14-384 \
@@ -34,7 +37,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-vicuna-13b-r300 \
+    --output_dir ./checkpoints/$OUTPUT \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

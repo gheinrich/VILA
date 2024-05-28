@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source /lustre/fsw/portfolios/nvr/users/${USER}/anaconda3/bin/activate
-conda init
 source ~/.bashrc
 conda activate vila
 which python
@@ -10,8 +8,8 @@ cd ~/workspace/VILA-Internal
 # Prerequisite: 1. pip install -e ".[eval]"; 2.Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
 
 # Make sure partitions according to different clusters.
-# PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
-PARTITIONS="polar,grizzly"
+PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
+#PARTITIONS="polar,grizzly"
 
 ACCOUNT="llmservice_nlp_fm"
 ACCOUNT="nvr_elm_llm"
@@ -25,8 +23,8 @@ if [ "$#" -ge 3 ]; then
 fi
 
 ACCOUNT="llmservice_nlp_fm"
-ACCOUNT="nvr_elm_llm"
-ACCOUNT="nvr_lpr_aiagent"
+#ACCOUNT="nvr_elm_llm"
+#ACCOUNT="nvr_lpr_aiagent"
 
 # Create output directory if it doesn't exist
 mkdir -p eval_output/$model_name

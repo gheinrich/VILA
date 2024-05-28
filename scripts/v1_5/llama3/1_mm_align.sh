@@ -11,34 +11,35 @@ export MASTER_ADDR=$master_addr
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((128 / n_node))
+bs=$((128 * 4 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
-    llava/train/train_mem.py \
+    llava/train/train_hybrid.py \
     --deepspeed ./scripts/zero2.json \
-    --model_name_or_path /home/ligengz/downloads/Meta-Llama-3-8B \
+    --model_name_or_path /home/ligengz/downloads/Meta-Llama-3-8B-Instruct \
     --version plain \
     --data_mixture llava_1_5_mm_align \
     --vision_tower google/siglip-so400m-patch14-384 \
-    --mm_projector mlp2x_gelu \
+    --mm_vision_select_feature cls_patch \
+    --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-llama3-8b-align_r1 \
+    --output_dir /lustre/fs8/portfolios/nvr/users/jasonlu/workspace/checkpoints/vila-siglip-llama3-8b-align_sp4_r526 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 24000 \
+    --save_steps 200 \
     --save_total_limit 1 \
     --learning_rate 1e-3 \
     --weight_decay 0. \
@@ -50,4 +51,5 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --gradient_checkpointing True \
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \
+    --seq_parallel_size 4
