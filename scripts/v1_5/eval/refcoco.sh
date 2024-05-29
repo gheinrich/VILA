@@ -12,8 +12,8 @@ mkdir -p ${YOUR_ANSWER_PATH}
 BSIZE=1      # batch size per job 
 CHUNKS=8     # number of parallel jobs 
 
-image_path='/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coco'
-ann_path='/home/yunhaof/workspace/datasets/REC/minigpt_eval_annotations'
+image_path='/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coco/train2014/'
+ann_path='/home/yunhaof/workspace/datasets/REC/minigpt_eval_annotations/'
  
 # your LLM inference parameters 
 top_p=0.2
