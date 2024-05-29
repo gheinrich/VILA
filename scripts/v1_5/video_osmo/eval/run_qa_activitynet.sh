@@ -11,7 +11,7 @@ cd ~/VILA
 
 model_path=$1
 CKPT_NAME=$2
-CONV_MODE=llama_3
+CONV_MODE=v1
 if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi

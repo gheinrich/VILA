@@ -2478,8 +2478,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         for instance in instances:
 
             # Skip samples without images
-            if instance["image"] is None or len(instance["image"]) == 0:
-                continue
+            # if instance["image"] is None or len(instance["image"]) == 0:
+            #     continue
 
             if not isinstance(instance["input_ids"], list):
                 input_ids.append(instance["input_ids"])
@@ -2521,7 +2521,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         combined = sorted(
             zip(input_ids, labels, images),
             key=lambda x: len(x[2]), 
-            # reverse=True
+            reverse=True, # Padding with the shortest sequence first 
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
         max_seq_length =  self.tokenizer.model_max_length # len(sorted_ids[0])
