@@ -1239,15 +1239,15 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
         if is_deepspeed_zero3_enabled():
             import deepspeed
-
-            logger.info("Detected DeepSpeed ZeRO-3: activating zero.init() for this model")
             # this immediately partitions the model across all gpus, to avoid the overhead in time
             # and memory copying it on CPU or each GPU first
-            print("deepspeed config: ", deepspeed_config())
-            if getattr(deepspeed_config()["zero_optimization"], "mics_shard_size", -1) > 1:
+            if "mics_shard_size" in deepspeed_config()['zero_optimization'] and \
+                deepspeed_config()['zero_optimization']['mics_shard_size'] > 1:
+                print("Detected DeepSpeed ZeRO-3 with MiCS: activating zero.MiCS_Init() for this model")
                 with deepspeed.zero.MiCS_Init(config_dict_or_path=deepspeed_config()):
                     model = cls(config, **kwargs)
             else:
+                print("Detected DeepSpeed ZeRO-3: activating zero.init() for this model")
                 with deepspeed.zero.Init(config_dict_or_path=deepspeed_config()):
                     model = cls(config, **kwargs)
         else:
@@ -3439,8 +3439,8 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
         if is_deepspeed_zero3_enabled():
             import deepspeed
-            print("DeepSpeed Config: {}".format(deepspeed_config()))
-            if getattr(deepspeed_config()["zero_optimization"], "mics_shard_size", -1) > 1:
+            if "mics_shard_size" in deepspeed_config()['zero_optimization'] and \
+                deepspeed_config()['zero_optimization']['mics_shard_size'] > 1:
                 print("Detected DeepSpeed ZeRO-3 with MiCS: activating zero.MiCS_Init() for this model")
                 init_contexts = [deepspeed.zero.MiCS_Init(config_dict_or_path=deepspeed_config())] + init_contexts
             else:
