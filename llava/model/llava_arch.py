@@ -71,6 +71,16 @@ class LlavaMetaModel(ABC):
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
         else:
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
+
+        # print("Before init in Config")
+        # if hasattr(config, "deepspeed") and "mics" in config.deepspeed:
+        #     print("Using MiCS_Init")
+        #     import deepspeed
+        #     with deepspeed.zero.MiCS_Init():
+        #         self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
+        #         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
+        #         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
+        # else:
         self.llm, self.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
@@ -111,7 +121,13 @@ class LlavaMetaModel(ABC):
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
 
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained")
-        with ContextManagers([no_init_weights(_enable=True),]):
+        init_context = [no_init_weights(_enable=True),]
+        # print("Before Init Context")
+        # if hasattr(config, "deepspeed") and "mics" in config.deepspeed:
+        #     print("Using MiCS_Init")
+        #     import deepspeed
+        #     init_context.append(deepspeed.zero.MiCS_Init(config_dict_or_path=config.deepspeed))
+        with ContextManagers(init_context):
             vlm = cls(config, *args, **kwargs)
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained finish")
         
