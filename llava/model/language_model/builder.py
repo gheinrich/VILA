@@ -84,13 +84,19 @@ def build_llm_and_tokenizer(
         llm_path = osp.join(llm_path, "llm")
     
     # TODO(ligeng): use LLM class to judge to better compability.
-    if "mpt" in model_name_or_path:
+    try:
+        llm_arch = getattr(llm_cfg, "architectures")[0].lower()
+    except:
+        warnings.warn(f"Cannot find LLM architecture, please check the \"config.json\" under \"{llm_path}\".")
+    if "mpt" in llm_arch:
         tokenizer = AutoTokenizer.from_pretrained(
             llm_path, 
             model_max_length=llm_cfg.model_max_length,
             padding_side="right",
         )
-    elif "yi" in model_name_or_path.lower():
+    elif "yi" in llm_path or \
+        (getattr(llm_cfg, "num_hidden_layers", -1) == 60 \
+         and getattr(llm_cfg, "num_attention_heads", -1) == 56):
         tokenizer = AutoTokenizer.from_pretrained(
             llm_path,
             model_max_length=llm_cfg.model_max_length,
