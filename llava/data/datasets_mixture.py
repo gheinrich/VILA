@@ -760,7 +760,7 @@ def register_datasets_mixtures():
     add_dataset(nv_sft)
 
     nv_sft2 = Dataset(
-        dataset_name="nv_sft",
+        dataset_name="nv_sft2",
         dataset_type="torch",
         data_path="/home/jasonlu/vlm_datasets/nv_sft/project_539_10k_torch.json",
         image_path="/home/jasonlu/vlm_datasets/nv_sft"
