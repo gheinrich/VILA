@@ -407,39 +407,13 @@ class LlavaMetaForCausalLM(ABC):
                             dtype=cur_labels.dtype,
                         )
                     )
-                # if sp_degree <= 1 or (sp_degree > 1 and i < num_images):  # Handle sequence parallelism
-                #     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                #     cur_new_labels.append(cur_labels_noim[i])
-                # if i < num_images:
-                #     cur_image_features = image_features[cur_image_idx]
-                #     cur_image_idx += 1
-                #     cur_new_input_embeds.append(cur_image_features)
-                #     cur_new_labels.append(
-                #         torch.full(
-                #             (cur_image_features.shape[0],),
-                #             IGNORE_INDEX,
-                #             device=cur_labels.device,
-                #             dtype=cur_labels.dtype,
-                #         )
-                #     )
-                # if sp_degree > 1 and i == num_images:
-                #     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                #     cur_new_labels.append(cur_labels_noim[i])
-            
-            # if sp_degree > 1 and sp_rank == 0:
-            #     for i in range(len(cur_new_input_embeds)):
-            #         print(f'embedding {i}: {cur_new_input_embeds[i].shape} on rank {sp_rank}')
-                # print(f'cur_new_input_embeds len: {len(cur_new_input_embeds)} {cur_new_input_embeds[0].shape} {cur_new_input_embeds[1].shape}, position_ids: {position_ids[batch_idx].shape}, cur_new_labels: {cur_new_labels}')
+                
             cur_new_input_embeds = torch.cat(cur_new_input_embeds)
-            # if sp_degree > 1 and sp_rank == 0:
-            #     print(f'cur_new_input_embeds: {cur_new_input_embeds.shape}, position_ids: {position_ids[batch_idx].shape[0]}, num_images: {num_images}, input_ids: {input_ids[batch_idx].shape}on rank {sp_rank}')
-            #     assert cur_new_input_embeds.shape[0] == position_ids[batch_idx].shape[0]
             cur_new_labels = torch.cat(cur_new_labels)
 
             new_input_embeds.append(cur_new_input_embeds)
             new_labels.append(cur_new_labels)
 
-        # print("BEFORE BATCH LOOP:", input_ids[0].shape, (input_ids[0] == IMAGE_TOKEN_INDEX).sum(), "AFTER BATCH LOOP:", new_input_embeds[0].shape)
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.llm.config, "tokenizer_model_max_length", None)
         if tokenizer_model_max_length is not None:
@@ -591,8 +565,6 @@ class LlavaMetaForCausalLM(ABC):
         seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
         sorted_seqlens_in_batch, sorted_idx = torch.sort(seqlens_in_batch, descending=True)
         max_seqlen = inputs_embeds.shape[1]
-        # max_seqlen = getattr(self.llm.config, "tokenizer_model_max_length", None)
-        # print("Warning: using max_len as tokenizer_model_max_length")
 
         cur_inputs_embeds = []
         cur_position_ids = []
@@ -605,7 +577,6 @@ class LlavaMetaForCausalLM(ABC):
                 # each item: num_tokens x num_channels
                 # remove padding on-the-fly
                 cur_inputs_embeds.append(inputs_embeds[sorted_idx[i]][attention_mask[sorted_idx[i]]])
-                # each item: num_tokens
                 cur_position_ids.append(
                     torch.arange(
                         cur_inputs_embeds[-1].shape[0],

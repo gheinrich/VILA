@@ -12,8 +12,9 @@ from typing import List
 import deepspeed
 import torch
 from deepspeed import comm as dist
+from deepspeed.runtime.zero.utils import is_zero_param
 from deepspeed.runtime.zero.mics_utils import (MiCS_CommGroups, create_mics_comm_groups, scale_tensors)
-from deepspeed.runtime.zero.parameter_offload import (DeepSpeedZeRoOffload, is_zero_param)
+from deepspeed.runtime.zero.parameter_offload import DeepSpeedZeRoOffload
 from deepspeed.runtime.zero.partition_parameters import Init, AllGatherCoalescedHandle, ZeroParamStatus
 from deepspeed.runtime.zero.stage3 import DeepSpeedZeroOptimizer_Stage3
 from deepspeed.utils import instrument_w_nvtx, log_dist
@@ -27,6 +28,7 @@ def has_hierarchical_all_gather_groups(comm_groups: MiCS_CommGroups):
     if comm_groups.param_intra_node_group is not None and comm_groups.param_inter_node_shard_group is not None:
         result = True
     return result
+
 
 def _dist_allgather_fn(input_tensor: Tensor, output_tensor: Tensor, group=None):
     return instrument_w_nvtx(dist.allgather_fn)(output_tensor, input_tensor, group=group, async_op=True)
@@ -44,7 +46,15 @@ class MiCS_AllGatherCoalescedHandle(AllGatherCoalescedHandle):
         """
         """
         # let the current stream to op
-        instrument_w_nvtx(self.allgather_handle.wait)()
+        try:
+            # print("HANDLE", self.allgather_handle)
+            instrument_w_nvtx(self.allgather_handle.wait)()
+        except (ValueError, RuntimeError) as e:
+            log_dist(
+                f"WARNING: Runtime Error while waiting the collective all-gather, possibly due to the _IllegalWork",
+                ranks=[0])
+            log_dist(f"Error message: {e}", ranks=[0])
+
         if self.complete:
             return
 
@@ -60,6 +70,7 @@ class MiCS_Init(Init):
     def __init__(self,
                  module=None,
                  data_parallel_group=None,
+                 sequence_data_parallel_group=None,
                  mem_efficient_linear=True,
                  remote_device=None,
                  pin_memory=False,
@@ -141,9 +152,21 @@ class MiCS_Init(Init):
         if not dist.is_initialized():
             dist.init_distributed()
             assert dist.is_initialized(), "Parameters cannot be scattered without initializing deepspeed.comm"
+
+        if data_parallel_group is None and sequence_data_parallel_group is None:
+            ds_process_group = dist.get_world_group()
+        elif sequence_data_parallel_group is not None:
+            ds_process_group = sequence_data_parallel_group
+        elif data_parallel_group is not None:
+            ds_process_group = data_parallel_group
+        else:  # both given
+            raise ValueError(
+                "Both 'data_parallel_group' and 'sequence_data_parallel_group' were specified. Please provide only one of these arguments."
+            )
+
         self.mics_comm_groups = create_mics_comm_groups(
             _ds_config.mics_shard_size,
-            data_parallel_group,
+            ds_process_group,
             hierarchical_allgather=_ds_config.mics_hierarchial_params_gather,
             mpu=mpu)
 
@@ -159,7 +182,7 @@ class MiCS_Init(Init):
         # so that we can fallback later
         old_all_gather_coalesced = param.all_gather_coalesced
 
-        def _param_all_gather_coalesced(params, safe_mode=False, param_buffers=None):
+        def _param_all_gather_coalesced(params, param_buffers=None, **kwargs):
             """"""
             mics_comm_groups: MiCS_CommGroups = params[0].comm
             hierarchical_all_gather = has_hierarchical_all_gather_groups(mics_comm_groups)
@@ -168,7 +191,7 @@ class MiCS_Init(Init):
             elif dist.has_coalescing_manager():
                 return self._flat_all_gather_with_coalescing_manager(params, param_buffers)
             else:
-                return old_all_gather_coalesced(params, safe_mode)
+                return old_all_gather_coalesced(params, **kwargs)
 
         # change the all_gather_coalesced method
         param.all_gather_coalesced = _param_all_gather_coalesced
@@ -200,27 +223,24 @@ class MiCS_Init(Init):
         partition_sz = sum(p.ds_tensor.ds_numel for p in params)
 
 
-        # output_tensors = []
-        # input_tensors = []
-        # for i, p in enumerate(params):
-        #     t_size = p.ds_tensor.ds_numel * param_shard_size
-        #     if params_buffers is not None and params_buffers[i] is not None:
-        #         assert params_buffers[i].numel(
-        #         ) == t_size, f'params_to_gather_buffers[{i}] size {params_buffers[i].numel()} does not match with t_size {t_size}'
-        #         flat_out = params_buffers[i]
-        #     else:
-        #         flat_out = torch.empty(t_size, dtype=p.dtype, device=self.local_device, requires_grad=False).view(-1)
-        #         # flat_out = torch.zeros(t_size, dtype=p.dtype, device=self.local_device).view(-1)
-        #     output_tensors.append(flat_out)
-        #     _flat_input = p.ds_tensor.data.view(-1)
-        #     input_tensors.append(_flat_input)
+        output_tensors = []
+        input_tensors = []
+        for i, p in enumerate(params):
+            t_size = p.ds_tensor.ds_numel * param_shard_size
+            if params_buffers is not None and params_buffers[i] is not None:
+                assert params_buffers[i].numel(
+                ) == t_size, f'params_to_gather_buffers[{i}] size {params_buffers[i].numel()} does not match with t_size {t_size}'
+                flat_out = params_buffers[i]
+            else:
+                flat_out = torch.empty(t_size, dtype=p.dtype, device=self.local_device, requires_grad=False).view(-1)
+                # flat_out = torch.zeros(t_size, dtype=p.dtype, device=self.local_device).view(-1)
+            output_tensors.append(flat_out)
+            _flat_input = p.ds_tensor.data.view(-1)
+            input_tensors.append(_flat_input)
 
 
-        # input_tensor = torch.cat(input_tensors, dim=0)
-        # flat_tensor = torch.cat(output_tensors, dim=0)
-        flat_tensor = torch.empty(partition_sz * param_shard_size, dtype=params[0].dtype, device=self.local_device,
-                                  requires_grad=False).view(-1)
-        
+        input_tensor = torch.cat(input_tensors, dim=0)
+        flat_tensor = torch.cat(output_tensors, dim=0)
         partitions: List[Parameter] = []
         for i in range(param_shard_size):
             partitions.append(flat_tensor.narrow(0, partition_sz * i, partition_sz))
@@ -240,16 +260,86 @@ class MiCS_Init(Init):
             world_size=param_shard_size,
         )
 
+        # flat_tensor = torch.empty(partition_sz * world_size,
+        #                             dtype=dtype,
+        #                             device=get_accelerator().current_device_name(),
+        #                             requires_grad=False)
+
+
+        # # must have to change the status of the param
+        # # and ensure they are on the device
+        # params, params_buffers = self._pre_all_gather(params, params_buffers)
+
+        # mics_comm_groups: MiCS_CommGroups = params[0].comm
+        # param_shard_size = mics_comm_groups.param_shard_size
+
+        # output_tensors = []
+        # input_tensors = []
+        # for i, p in enumerate(params):
+        #     t_size = p.ds_tensor.ds_numel * param_shard_size
+        #     if params_buffers is not None and params_buffers[i] is not None:
+        #         assert params_buffers[i].numel(
+        #         ) == t_size, f'params_to_gather_buffers[{i}] size {params_buffers[i].numel()} does not match with t_size {t_size}'
+        #         flat_out = params_buffers[i]
+        #     else:
+        #         # flat_out = torch.empty(t_size, dtype=p.dtype, device=self.local_device, requires_grad=False).view(-1)
+        #         flat_out = torch.zeros(t_size, dtype=p.dtype, device=self.local_device).view(-1)
+        #     output_tensors.append(flat_out)
+        #     _flat_input = p.ds_tensor.data.view(-1)
+        #     input_tensors.append(_flat_input)
+
+        # # all_gather_handle = dist.all_gather_coalesced(output_tensors,
+        # #                                               input_tensors,
+        # #                                               group=mics_comm_groups.param_shard_group,
+        # #                                               async_op=True)
+        # # print("ALL GATHER COALESCED: output_tensors shape", torch.cat(output_tensors, dim=0).shape, "input_tensors shape", torch.cat(input_tensors, dim=0))
+        # input_tensor = torch.cat(input_tensors, dim=0)
+        # flat_tensor = torch.cat(output_tensors, dim=0)
+        # partition_sz = sum(p.ds_tensor.ds_numel for p in params)
+        # # flat_tensor = torch.empty(partition_sz * param_shard_size,
+        # #                             dtype=dtype,
+        # #                             device=get_accelerator().current_device_name(),
+        # #                             requires_grad=False)
+        # partitions: List[Parameter] = []
+        # for i in range(param_shard_size):
+        #     partitions.append(flat_tensor.narrow(0, partition_sz * i, partition_sz))
+
+        # all_gather_handle = dist.all_gather_into_tensor(
+        #     input_tensor,
+        #     flat_tensor,
+        #     group=mics_comm_groups.param_shard_group,
+        #     async_op=True)
+
+        # for idx, param in enumerate(params):
+        #     param.data = output_tensors[idx].narrow(0, 0, param.ds_numel).view(param.ds_shape).data
+
+        # # return MiCS_AllGatherCoalescedHandle(allgather_handle=all_gather_handle,
+        # #                                      params=params,
+        # #                                      partitions=[],
+        # #                                      world_size=param_shard_size)
+
+        # return AllGatherCoalescedHandle(allgather_handle=all_gather_handle,
+        #                                      params=params,
+        #                                      partitions=partitions,
+        #                                      world_size=param_shard_size)
+
     def _hierarchical_all_gather_params(self, params, params_buffers=None):
         """"""
-        raise NotImplementedError("Hierarchical all-gather is not implemented yet")
+
+        # NOTE: This function is not used in the current implementation. Buggy.
         params, params_buffers = self._pre_all_gather(params, params_buffers)
 
         mics_comm_groups: MiCS_CommGroups = params[0].comm
-        local_rank = dist.get_rank(group=mics_comm_groups.param_intra_node_group)
         inter_node_comm_group = mics_comm_groups.param_inter_node_shard_group
         intra_node_comm_group = mics_comm_groups.param_intra_node_group
+        local_rank = dist.get_rank(group=mics_comm_groups.param_intra_node_group)
+        inter_rank = dist.get_rank(group=mics_comm_groups.param_inter_node_shard_group)
+        intra_rank = dist.get_rank(group=mics_comm_groups.param_intra_node_group)
+
         param_shard_size = mics_comm_groups.param_shard_size
+        # rank_in_group = mics_comm_groups.param_shard_rank
+        partition_sz = sum(p.ds_tensor.ds_numel for p in params)
+
 
         inter_node_size = dist.get_world_size(group=inter_node_comm_group)
         intra_node_size = dist.get_world_size(group=intra_node_comm_group)
@@ -264,6 +354,7 @@ class MiCS_Init(Init):
                 param_tensor = torch.empty(param_size, dtype=p.dtype, device=self.local_device,
                                            requires_grad=False).view(-1)
             param_tensors.append(param_tensor)
+        # param_tensor = torch.cat(param_tensors, dim=0)
 
         # inter node all-gather
         inter_outputs = []
@@ -273,8 +364,19 @@ class MiCS_Init(Init):
             _out = param_tensors[i].narrow(0, local_rank * inter_size, inter_size)
             inter_outputs.append(_out)
             inter_inputs.append(p.ds_tensor.data.view(-1).to(self.local_device))
+        # inter_partition = sum(p.ds_tensor.ds_numel for p in params)
+
+        inter_input_tensor = torch.cat(inter_inputs, dim=0)
+        inter_output_tensor = torch.cat(inter_outputs, dim=0)
+        inter_partitions: List[Parameter] = []
+        # inter_partitions = inter_inputs
+        # print("inter_rank", inter_rank, "inter_node_size", inter_node_size, "intra_rank", intra_rank, "intra_node_size", intra_node_size, "partition_sz", partition_sz,)
+        for i in range(inter_node_size):
+            inter_partitions.append(inter_output_tensor.narrow(0, partition_sz * i, partition_sz))
+        instrument_w_nvtx(torch.cat)([p.ds_tensor.to(get_accelerator().current_device_name()) for p in params],
+                                        out=inter_partitions[inter_rank])
         # sync enqueue
-        dist.all_gather_coalesced(inter_outputs, inter_inputs, group=inter_node_comm_group, async_op=False)
+        dist.allgather_fn(inter_output_tensor, inter_partitions[inter_rank], group=inter_node_comm_group, async_op=True)
 
         # intra node all-gather
         intra_outputs = []
@@ -287,7 +389,7 @@ class MiCS_Init(Init):
             # each chunk is an intra-node output
             param_chunk = param_tensors[i].view(
                 (inter_node_size, intra_node_size, p.ds_tensor.ds_numel)).narrow(1, local_rank, 1)
-            param_chunk.copy_(inter_outputs[i].detach().clone().view(param_chunk.size()))
+            param_chunk.copy_(inter_output_list[i].detach().clone().view(param_chunk.size()))
             output_chunks = torch.chunk(param_tensors[i], inter_node_size)
             for j, _out in enumerate(output_chunks):
                 intra_chunk_size = intra_node_size * p.ds_tensor.ds_numel
@@ -296,19 +398,100 @@ class MiCS_Init(Init):
                 intra_outputs.append(_out)
                 intra_inputs.append(_in)
 
-        all_gather_handle = dist.all_gather_coalesced(intra_outputs,
-                                                      intra_inputs,
-                                                      group=intra_node_comm_group,
-                                                      async_op=True)
-        for i, param in enumerate(params):
-            param.data = param_tensors[i].narrow(0, 0, param.ds_numel).view(param.ds_shape).data
+        intra_input_tensor = torch.cat(intra_inputs, dim=0)
+        intra_output_tensor = torch.cat(intra_outputs, dim=0)
+        intra_partitions: List[Parameter] = []
+        for i in range(intra_node_size):
+            intra_partitions.append(intra_output_tensor.narrow(0, partition_sz * inter_node_size * i, partition_sz * inter_node_size))
+        # for i in range(intra_node_size):
+        #     intra_partitions.append(intra_output_tensor.narrow(0, partition_sz * inter_node_size * i, partition_sz * inter_node_size))
+        # instrument_w_nvtx(torch.cat)([p.ds_tensor.to(get_accelerator().current_device_name()) for p in params],
+        #                                 out=intra_partitions[intra_rank])
 
-        return MiCS_AllGatherCoalescedHandle(
-            allgather_handle=all_gather_handle,
+        assert intra_partitions[intra_rank].numel() * intra_node_size == intra_output_tensor.numel() 
+        handle = _dist_allgather_fn(intra_partitions[intra_rank], intra_output_tensor, intra_node_comm_group)
+
+        return AllGatherCoalescedHandle(
+            allgather_handle=handle,
             params=params,
-            partitions=[],
-            world_size=param_shard_size,
+            partitions=intra_partitions,
+            world_size=intra_node_size,
         )
+
+
+        # for i, param in enumerate(params):
+        #     param.data = param_tensors[i].narrow(0, 0, param.ds_numel).view(param.ds_shape).data
+
+        # return MiCS_AllGatherCoalescedHandle(
+        #     allgather_handle=all_gather_handle,
+        #     params=params,
+        #     partitions=[],
+        #     world_size=param_shard_size,
+        # )
+
+        # inter_node_size = dist.get_world_size(group=inter_node_comm_group)
+        # intra_node_size = dist.get_world_size(group=intra_node_comm_group)
+        # param_tensors = []
+        # for i, p in enumerate(params):
+        #     param_size = p.ds_tensor.ds_numel * param_shard_size
+        #     if params_buffers is not None and params_buffers[i] is not None:
+        #         assert params_buffers[i].numel(
+        #         ) == param_size, f'param_buffers[{i}] size {params_buffers[i].numel()} does not match with param_size {param_size}'
+        #         param_tensor = params_buffers[i]
+        #     else:
+        #         param_tensor = torch.empty(param_size, dtype=p.dtype, device=self.local_device,
+        #                                    requires_grad=False).view(-1)
+        #     param_tensors.append(param_tensor)
+
+        # # inter node all-gather
+        # inter_outputs = []
+        # inter_inputs = []
+        # for i, p in enumerate(params):
+        #     inter_size = p.ds_tensor.ds_numel * inter_node_size
+        #     _out = param_tensors[i].narrow(0, local_rank * inter_size, inter_size)
+        #     inter_outputs.append(_out)
+        #     inter_inputs.append(p.ds_tensor.data.view(-1).to(self.local_device))
+        # # sync enqueue
+        # # dist.all_gather_coalesced(inter_outputs, inter_inputs, group=inter_node_comm_group, async_op=False)
+        # dist.all_gather(inter_outputs, inter_inputs, group=inter_node_comm_group, async_op=False)
+
+        # # intra node all-gather
+        # intra_outputs = []
+        # intra_inputs = []
+        # for i, p in enumerate(params):
+        #     # partition param into multiple chunks for allgather
+        #     # because inter-node all-gather outputs are in a continues memory
+        #     # while in param memory, those inter-node data are placed in different
+        #     # location.
+        #     # each chunk is an intra-node output
+        #     param_chunk = param_tensors[i].view(
+        #         (inter_node_size, intra_node_size, p.ds_tensor.ds_numel)).narrow(1, local_rank, 1)
+        #     param_chunk.copy_(inter_outputs[i].detach().clone().view(param_chunk.size()))
+        #     output_chunks = torch.chunk(param_tensors[i], inter_node_size)
+        #     for j, _out in enumerate(output_chunks):
+        #         intra_chunk_size = intra_node_size * p.ds_tensor.ds_numel
+        #         local_offset = local_rank * p.ds_tensor.ds_numel
+        #         _in = param_tensors[i].narrow(0, j * intra_chunk_size + local_offset, p.ds_tensor.ds_numel)
+        #         intra_outputs.append(_out)
+        #         intra_inputs.append(_in)
+
+        # # all_gather_handle = dist.all_gather_coalesced(intra_outputs,
+        # #                                               intra_inputs,
+        # #                                               group=intra_node_comm_group,
+        # #                                               async_op=True)
+        # all_gather_handle = dist.all_gather(intra_outputs,
+        #                                               intra_inputs,
+        #                                               group=intra_node_comm_group,
+        #                                               async_op=True)
+        # for i, param in enumerate(params):
+        #     param.data = param_tensors[i].narrow(0, 0, param.ds_numel).view(param.ds_shape).data
+
+        # return MiCS_AllGatherCoalescedHandle(
+        #     allgather_handle=all_gather_handle,
+        #     params=params,
+        #     partitions=[],
+        #     world_size=param_shard_size,
+        # )
 
     def get_partition_dp_group(self, param):
         return param.comm.param_shard_group
@@ -324,22 +507,6 @@ class MiCS_Init(Init):
 class MiCS_Offload(DeepSpeedZeRoOffload):
     """ Wrapper to change the behavior for parameter sharding
     """
-
-    def __init__(self,
-                 module,
-                 timers,
-                 ds_config,
-                 overlap_comm=True,
-                 prefetch_bucket_size=50000000,
-                 max_reuse_distance=1000000000,
-                 max_live_parameters=1000000000,
-                 param_persistence_threshold=100000,
-                 model_persistence_threshold=sys.maxsize,
-                 offload_param_config=None,
-                 mpu=None):
-        super().__init__(module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                         max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                         offload_param_config, mpu)
 
     def _convert_to_zero_parameters(self, ds_config, module, mpu):
         """ overload the parent class function for convert the parameters
@@ -392,8 +559,10 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
                  offload_optimizer_config=None,
                  offload_param_config=None,
                  sub_group_size=1000000000000,
+                 offload_ratio=0.0,
                  mpu=None,
                  clip_grad=0,
+                 gradient_accumulation_dtype=torch.float16,
                  communication_data_type=torch.float16,
                  postscale_gradients=True,
                  gradient_predivide_factor=1,
@@ -406,9 +575,9 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
                          dynamic_loss_args, verbose, contiguous_gradients, reduce_bucket_size, prefetch_bucket_size,
                          max_reuse_distance, max_live_parameters, param_persistence_threshold,
                          model_persistence_threshold, dp_process_group, reduce_scatter, overlap_comm,
-                         offload_optimizer_config, offload_param_config, sub_group_size, mpu, clip_grad,
-                         communication_data_type, postscale_gradients, gradient_predivide_factor,
-                         gradient_accumulation_steps, elastic_checkpoint, aio_config)
+                         offload_optimizer_config, offload_param_config, sub_group_size, offload_ratio, mpu, clip_grad,
+                         gradient_accumulation_dtype, communication_data_type, postscale_gradients,
+                         gradient_predivide_factor, gradient_accumulation_steps, elastic_checkpoint, aio_config)
         first_param = next(module.parameters())
         # overload the dp_process_group and partition_count
         assert hasattr(first_param, "comm"), " ".join([
@@ -419,12 +588,12 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
         self.dp_process_group = first_param.comm.param_shard_group
         self.partition_count = first_param.comm.param_shard_size
 
-    def initialize_ds_offload(self, module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                              max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                              offload_param_config, mpu):
-        return MiCS_Offload(module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                            max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                            offload_param_config, mpu)
+    def initialize_ds_offload(
+        self,
+        *args,
+        **kwargs,
+    ):
+        return MiCS_Offload(*args, **kwargs)
 
     def partition_grads(self, params_to_release: List[Parameter], grad_partitions: List[Tensor]) -> None:
         grad_buffers = super().partition_grads(params_to_release, grad_partitions)
@@ -447,7 +616,7 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
 
         if param_repli_size is None or param_repli_size <= 1:
             return
-        if not partitioned_grads_buffers[0].is_cuda:
+        if not get_accelerator().on_accelerator(partitioned_grads_buffers[0]):
             raise RuntimeError("Local sharding has no support for CPU offloading")
 
         if dist.has_all_reduce_coalesced():
@@ -467,7 +636,8 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
                         state_dict_list,
                         load_optimizer_states=True,
                         load_from_fp32_weights=False,
-                        checkpoint_folder=None):
+                        checkpoint_folder=None,
+                        load_serial=None):
         r""" Loading the ZeRO-3/MiCS partitioned checkpoints
         Because the self.dp_process_group is replaced with the communicator for
         partition group we can call the load_state_dict logic from ZeRO-3.

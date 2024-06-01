@@ -145,8 +145,8 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
                 if data_args.mm_use_im_start_end:
                     replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
                 sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
-            # ensure every DEFAULT_IMAGE_TOKEN is followed by a newline character.
-            # If it has one already, we don't add another one.
+            # # ensure every DEFAULT_IMAGE_TOKEN is followed by a newline character.
+            # # If it has one already, we don't add another one.
             if DEFAULT_IMAGE_TOKEN in sentence["value"]:
                 sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n")
                 sentence["value"] = sentence["value"].replace(f"{DEFAULT_IMAGE_TOKEN}\n\n", f"{DEFAULT_IMAGE_TOKEN}\n")
@@ -2459,6 +2459,8 @@ class DataCollatorForSupervisedDataset(object):
 
         return batch
 
+
+
 @dataclass
 class DataCollatorForSupervisedDatasetSeqParallel(object):
     """Collate examples for supervised fine-tuning.
@@ -2533,8 +2535,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         seqlens_in_batch = []
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        # NUM_TOKENS_PER_IMAGE = 196
-        NUM_TOKENS_PER_IMAGE = 256
+        NUM_TOKENS_PER_IMAGE = 196
+        # NUM_TOKENS_PER_IMAGE = 256
         i = 0
         while i < len(sorted_ids):
             current_batch = torch.tensor([], dtype=torch.int32)
