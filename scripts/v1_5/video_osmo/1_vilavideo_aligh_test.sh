@@ -22,12 +22,12 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
     --data_mixture osmo_sharegpt4v_sft+osmo_sharegpt_video_qa \
-    --vision_tower google/siglip-so400m-patch14-384 \
+    --vision_tower /mnt/amlfs-01/home/fuzhaox/checkpoints/InternViT-6B-448px-V1-2 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
     --tune_language_model True \
     --mm_vision_select_layer -2 \
-    --mm_vision_select_feature cls_patch \
+    --mm_vision_select_feature patch \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \

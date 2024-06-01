@@ -7,10 +7,10 @@ which python
 
 cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
-
+# export CUDA_LAUNCH_BLOCKING=1
 n_node=$WORLD_SIZE
-seq_parallel_size=4
-bs=$((512 * seq_parallel_size / n_node))
+seq_parallel_size=8
+bs=$((128 * seq_parallel_size / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
@@ -18,30 +18,30 @@ echo "node rank:" $NODE_RANK
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
     llava/train/train_hybrid.py \
-    --deepspeed ./scripts/zero3.json \
+    --deepspeed ./scripts/zero3_mics.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-70B-Instruct \
     --version llama_3 \
-    --data_mixture osmo_ccs_recaptioned+osmo_internvid_1300K \
-    --vision_tower google/siglip-so400m-patch14-384 \
+    --data_mixture osmo_coyo_25m+osmo_mmc4core+osmo_internvid_10M+osmo_sharegpt4v_pretrain+osmo_panda70m \
+    --vision_tower /mnt/amlfs-01/home/fuzhaox/checkpoints/InternViT-6B-448px-V1-2 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
-    --tune_language_model False \
+    --tune_language_model True \
     --mm_vision_select_layer -2 \
-    --mm_vision_select_feature cls_patch \
+    --mm_vision_select_feature patch \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo70b_align_v013 \
+    --output_dir ./checkpoints/vilavideo70b_pretraining_benchmarking_v2 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 4 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 200 \
-    --save_total_limit 1 \
-    --learning_rate 2e-4 \
+    --save_steps 100 \
+    --save_total_limit 2 \
+    --learning_rate 5e-5 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

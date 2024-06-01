@@ -51,7 +51,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --num_video_frames 48 \
     --fps 2.0 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 10 \
+    --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
     --seq_parallel_size $seq_parallel_size

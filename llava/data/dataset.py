@@ -2533,7 +2533,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         seqlens_in_batch = []
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        NUM_TOKENS_PER_IMAGE = 196
+        # NUM_TOKENS_PER_IMAGE = 196
+        NUM_TOKENS_PER_IMAGE = 256
         i = 0
         while i < len(sorted_ids):
             current_batch = torch.tensor([], dtype=torch.int32)
