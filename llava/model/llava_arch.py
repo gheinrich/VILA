@@ -17,6 +17,7 @@ import warnings
 from abc import ABC, abstractmethod
 
 import torch, logging
+import torch.distributed as dist
 
 from transformers import (
     AutoTokenizer,
@@ -51,7 +52,12 @@ from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.configuration_llava import LlavaConfig
 
 from transformers.modeling_utils import ContextManagers, no_init_weights
+
 from llava.train.sequence_parallel import get_pg_manager
+from llava.train.sequence_parallel.globals import (
+    get_ulysess_sp_pg,
+)
+
 
 ## TODO decide whether should we use metaclass
 class LlavaMetaModel(ABC):
@@ -546,14 +552,160 @@ class LlavaMetaForCausalLM(ABC):
 
 
         # We will not use packing here when sequence parallelism is enabled.
+        # However, we do resharding here to ensure the sequence length is the same across all ranks.
         if PROCESS_GROUP_MANAGER is not None:
+            
+            sp_degree = PROCESS_GROUP_MANAGER.sp_degree
+            sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+            sp_group = PROCESS_GROUP_MANAGER.ulysses_pg
+            bs, shard_seqlen = position_ids.shape
+            ulysess_seq_len = [torch.zeros(1, dtype=torch.int64, device=position_ids.device) for _ in range(sp_degree)]
+            dist.all_gather(ulysess_seq_len, torch.tensor(shard_seqlen, device=position_ids.device), group=sp_group)
+            # global_seq_len = torch.sum(torch.cat(ulysess_seq_len, dim=0)).item()
+
+
+            # Gather attention_mask and reshard it evenly
+            attention_mask_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=attention_mask.dtype, device=attention_mask.device) for i in range(sp_degree)]
+            dist.all_gather(attention_mask_list, attention_mask, group=sp_group)
+            effective_seqlen_list = [attention_mask_list[i].sum(dim=-1) for i in range(sp_degree)]
+            effective_seqlen = torch.stack(effective_seqlen_list, dim=-1)
+            effective_seqlen_batch_list = torch.unbind(effective_seqlen, dim=0)
+
+            global_attention_mask_list = []
+            for i in range(bs):
+                global_attention_mask_batch_list = []
+                for j in range(sp_degree):
+                    global_attention_mask_batch_list.append(attention_mask_list[j][i, :effective_seqlen_batch_list[i][j]])
+                global_attention_mask_list.append(torch.cat(global_attention_mask_batch_list, dim=0))
+            global_attention_mask = torch.nn.utils.rnn.pad_sequence(global_attention_mask_list, batch_first=True, padding_value=False)
+
+            # Hyperparameters for sequence parallelism resharding
+            global_seq_len = global_attention_mask.shape[-1]
+            seq_len_sharded = global_seq_len // sp_degree
+            start_idx_reshard = seq_len_sharded * sp_rank
+            end_idx_reshard = start_idx_reshard + seq_len_sharded if sp_rank < sp_degree - 1 else global_seq_len
+            # if sp_rank == 0:
+            #     start_idx = 0
+            # else:
+            #     start_idx = torch.sum(torch.cat(ulysess_seq_len[:sp_rank], dim=0)).item()
+
+            new_attention_mask = torch.narrow(global_attention_mask, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+            # Gather position_ids and reshard it evenly
+            position_ids_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=position_ids.dtype, device=position_ids.device) for i in range(sp_degree)]
+            dist.all_gather(position_ids_list, position_ids, group=sp_group)
+            global_position_ids_list = []
+            for i in range(bs):
+                global_position_ids_batch_list = []
+                for j in range(sp_degree):
+                    global_position_ids_batch_list.append(position_ids_list[j][i, :effective_seqlen_batch_list[i][j]])
+                global_position_ids_list.append(torch.cat(global_position_ids_batch_list, dim=0))
+            global_position_ids = torch.nn.utils.rnn.pad_sequence(global_position_ids_list, batch_first=True, padding_value=-1)
+            new_position_ids = torch.narrow(global_position_ids, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+            # Gather labels and reshard it evenly
+            labels_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=labels.dtype, device=labels.device) for i in range(sp_degree)]
+            dist.all_gather(labels_list, labels, group=sp_group)
+            global_labels_list = []
+            for i in range(bs):
+                global_labels_batch_list = []
+                for j in range(sp_degree):
+                    global_labels_batch_list.append(labels_list[j][i, :effective_seqlen_batch_list[i][j]])
+                global_labels_list.append(torch.cat(global_labels_batch_list, dim=0))
+            global_labels = torch.nn.utils.rnn.pad_sequence(global_labels_list, batch_first=True, padding_value=IGNORE_INDEX)
+            new_labels = torch.narrow(global_labels, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+            # Gather inputs_embeds and reshard it evenly
+            inputs_embeds_list = [torch.zeros((bs, ulysess_seq_len[i], inputs_embeds.shape[-1]), dtype=inputs_embeds.dtype, device=inputs_embeds.device, requires_grad=True) for i in range(sp_degree)]
+            dist.all_gather(inputs_embeds_list, inputs_embeds, group=sp_group)
+            global_inputs_embeds_list = []
+            for i in range(bs):
+                global_inputs_embeds_batch_list = []
+                for j in range(sp_degree):
+                    global_inputs_embeds_batch_list.append(inputs_embeds_list[j][i, :effective_seqlen_batch_list[i][j]])
+                global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
+            global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
+            new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+            # # Gather inputs_embeds and reshard it evenly
+            # global_inputs_embeds = torch.zeros(
+            #     (bs, global_seq_len, inputs_embeds.shape[-1]), 
+            #     dtype=inputs_embeds.dtype, 
+            #     device=inputs_embeds.device,
+            # )
+            # if sp_rank == 0:
+            #     start_idx = 0
+            # else:
+            #     start_idx = torch.sum(torch.cat(ulysess_seq_len[:sp_rank], dim=0)).item()
+            # global_inputs_embeds[:, start_idx:start_idx+shard_seqlen] += inputs_embeds
+            # dist.all_reduce(global_inputs_embeds, group=sp_group)
+            # global_inputs_embeds_list = []
+            # for i in range(bs):
+            #     global_inputs_embeds_batch_list = []
+            #     for j in range(sp_degree):
+            #         local_start_idx = shard_seqlen * j
+            #         local_end_idx = local_start_idx + effective_seqlen_batch_list[i][j] if j < sp_degree - 1 else global_seq_len
+            #         global_inputs_embeds_batch_list.append(global_inputs_embeds[i, local_start_idx, :local_end_idx])
+            #     global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
+            # global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
+
+
+
+
+            # new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+
+            # global_attention_mask = torch.cat(attention_mask_list, dim=1)
+            # global_attention_mask[:, start_idx:start_idx+shard_seqlen] += attention_mask
+            # dist.all_reduce(global_attention_mask, group=sp_group)
+            # new_attention_mask = torch.narrow(global_attention_mask, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+
+            # # Gather attention_mask and reshard it evenly
+            # global_attention_mask = torch.zeros((bs, global_seq_len), dtype=attention_mask.dtype, device=attention_mask.device)
+            # global_attention_mask[:, start_idx:start_idx+shard_seqlen] += attention_mask
+            # dist.all_reduce(global_attention_mask, group=sp_group)
+            # new_attention_mask = torch.narrow(global_attention_mask, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+            # print(f"reshard: from {start_idx_reshard}, to {end_idx_reshard}. Total {global_seq_len}. Old len {shard_seqlen}")
+            # Gather position_ids and reshard it evenly
+            # global_position_ids = torch.zeros((bs, global_seq_len), dtype=position_ids.dtype, device=position_ids.device)
+            # global_position_ids[:, start_idx:start_idx+shard_seqlen] += position_ids
+            # dist.all_reduce(global_position_ids, group=sp_group)
+            # new_position_ids = torch.narrow(global_position_ids, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+
+
+            # # Gather inputs_embeds and reshard it evenly
+            # global_inputs_embeds = torch.zeros(
+            #     (bs, global_seq_len, inputs_embeds.shape[-1]), 
+            #     dtype=inputs_embeds.dtype, 
+            #     device=inputs_embeds.device,
+            # )
+            # global_inputs_embeds[:, start_idx:start_idx+shard_seqlen] += inputs_embeds
+            # dist.all_reduce(global_inputs_embeds, group=sp_group)
+            # new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+
+            # # Gather labels and reshard it evenly
+            # global_labels = torch.zeros((bs, global_seq_len), dtype=labels.dtype, device=labels.device)
+            # global_labels[:, start_idx:start_idx+shard_seqlen] = labels
+            # dist.all_reduce(global_labels, group=sp_group)
+            # dist.barrier(group=sp_group)
+            # new_labels = torch.narrow(global_labels, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+            
             return (
                 None,
-                position_ids,
-                attention_mask,
+                new_position_ids,
+                new_attention_mask,
                 past_key_values,
-                inputs_embeds,
-                labels,
+                new_inputs_embeds,
+                new_labels,
                 None, # sorted_seqlens_in_batch set as None for sequence parallelism
             )
 

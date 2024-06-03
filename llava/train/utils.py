@@ -132,6 +132,7 @@ def calculate_loss_weight(shift_labels, ignore_index=-100):
     padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
     num_active_elements = padding_mask.numel() - padding_mask.long().sum()
     global_active_sum = copy.deepcopy(num_active_elements)
+    # dist.barrier(group=get_ulysess_sp_pg())
     dist.all_reduce(global_active_sum, group=get_ulysess_sp_pg())
     loss_weight = num_active_elements / global_active_sum * PROCESS_GROUP_MANAGER.sp_degree
     return loss_weight

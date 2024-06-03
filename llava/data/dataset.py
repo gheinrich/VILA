@@ -2520,13 +2520,37 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 Error input_ids: {_input_ids} {self.tokenizer.decode([x if x != -200 else 200 for x in _input_ids])}"
 
 
+        # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
+        NUM_TOKENS_PER_IMAGE = 196
+        # NUM_TOKENS_PER_IMAGE = 256
+
+        # Init the padding sample
+        seq_id = 0
+        while seq_id < len(input_ids):
+            # Skip the samples without images
+            if len(images[seq_id]) == 0:
+                seq_id += 1
+                continue
+            dummy_image = torch.zeros_like(images[seq_id][:1])
+            # dummy input_ids include one bos, one image token, and one eos
+            dummy_input_ids = copy.deepcopy(input_ids[seq_id][:3])
+            dummy_input_ids[1] = IMAGE_TOKEN_INDEX
+            dummy_input_ids[2] = input_ids[seq_id][-1]
+            dummy_labels = copy.deepcopy(dummy_input_ids)
+            dummy_labels[:] = IGNORE_INDEX
+            dummy_seqlen = NUM_TOKENS_PER_IMAGE + 2
+            dummy_position_ids = torch.arange(start=0, end=dummy_seqlen, dtype=torch.int32)
+            break
+
+        # Sort with the real length of the sequence
         combined = sorted(
             zip(input_ids, labels, images),
-            key=lambda x: len(x[2]), 
-            reverse=True, # Padding with the shortest sequence first 
+            key=lambda x: len(x[2]) * (NUM_TOKENS_PER_IMAGE - 1) + x[0].size(-1), 
+            reverse=True, # Start Packing from the sequence with most images. 
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
         max_seq_length =  self.tokenizer.model_max_length # len(sorted_ids[0])
+        max_sample_len = 0
 
         batches = []
         label_batches = []
@@ -2534,9 +2558,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
         batch_images = []
         seqlens_in_batch = []
 
-        # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        NUM_TOKENS_PER_IMAGE = 196
-        # NUM_TOKENS_PER_IMAGE = 256
+
         i = 0
         while i < len(sorted_ids):
             current_batch = torch.tensor([], dtype=torch.int32)
@@ -2560,8 +2582,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                     i += 1
                     continue
 
-                if ((current_num_images == 0) or (current_num_images < self.sp_degree) \
-                    or (current_num_images < max_num_images)) and \
+                if ( (current_num_images == 0) or (current_num_images < self.sp_degree) \
+                    or ((current_num_images + num_images <= max_num_images) and (current_len + num_incoming_tokens <= max_sample_len))) and \
                         (current_len + num_incoming_tokens <= max_seq_length):
                     current_num_images += num_images
                     current_len += num_incoming_tokens
@@ -2587,44 +2609,66 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 else:
                     break
 
-            # Padding the sample with the longest length in the batch, if there are no enough images
+            # Padding the sample with the dummy image sample, if there are no enough images
             MAX_RETRY = 64
-            if current_num_images < self.sp_degree and current_len < max_seq_length:
-                # if num_retry >= max_num_retry:
-                #     break
-                j = len(sorted_ids) - 1
-                while j >= (0 - MAX_RETRY):
-                    # print(
-                    #     f"Warning: Padding one packed sample with only {current_num_images} images by the long samples in the batch, Tried {len(sorted_ids) - 1 -j} times."
-                    # )
-                    num_images = (sorted_ids[j%len(sorted_ids)] == IMAGE_TOKEN_INDEX).sum().item()
-                    num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
-                    num_incoming_tokens = sorted_ids[j%len(sorted_ids)].size(-1) + num_image_tokens_added
-                    if current_len + num_incoming_tokens > max_seq_length:
-                        j -= 1
-                        continue
-                    if current_num_images >= self.sp_degree:
-                        break
-                    current_num_images += num_images
-                    current_len += num_incoming_tokens
-                    current_num_samples += 1
-                    current_position_ids = torch.cat(
-                        (
-                            current_position_ids,
-                            torch.arange(
-                                start=0, end=num_incoming_tokens
-                            )
-                        ), dim=0
-                    )
-                    current_batch = torch.cat((current_batch, sorted_ids[j%len(sorted_ids)]), dim=0)
-                    # sorted_labels[j%len(sorted_ids)][0] = IGNORE_INDEX
-                    current_label_masked = copy.deepcopy(sorted_labels[j%len(sorted_ids)])
-                    current_label_masked[:] = IGNORE_INDEX
-                    current_label_batch = torch.cat((current_label_batch, current_label_masked), dim=0)
-                    seqlens_in_batch.append(num_incoming_tokens)
-                    current_batch_images.extend(sorted_images[j%len(sorted_ids)])
-                    j -= 1
-                # num_retry += 1
+            num_retry = 0
+            while current_num_images < self.sp_degree and current_len < max_seq_length and num_retry < MAX_RETRY:
+                current_num_images += dummy_image.size(0)
+                current_len += dummy_seqlen
+                current_num_samples += 1
+                current_position_ids = torch.cat(
+                    (
+                        current_position_ids,
+                        dummy_position_ids
+                    ), dim=0
+                )
+                current_batch = torch.cat((current_batch, dummy_input_ids), dim=0)
+                current_label_batch = torch.cat((current_label_batch, dummy_labels), dim=0)
+                seqlens_in_batch.append(dummy_seqlen)
+                current_batch_images.extend(dummy_image)
+                num_retry += 1
+                
+
+            # if current_num_images < self.sp_degree and current_len < max_seq_length:
+            #     # if num_retry >= max_num_retry:
+            #     #     break
+            #     j = len(sorted_ids) - 1
+            #     # j = 0
+            #     while j >= (0 - MAX_RETRY):
+            #     # while j <= MAX_RETRY:
+            #         # print(
+            #         #     f"Warning: Padding one packed sample with only {current_num_images} images by the long samples in the batch, Tried {len(sorted_ids) - 1 -j} times."
+            #         # )
+            #         num_images = (sorted_ids[j%len(sorted_ids)] == IMAGE_TOKEN_INDEX).sum().item()
+            #         num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
+            #         num_incoming_tokens = sorted_ids[j%len(sorted_ids)].size(-1) + num_image_tokens_added
+            #         if current_len + num_incoming_tokens > max_seq_length or num_images == 0:
+            #             j -= 1
+            #             # j += 1
+            #             continue
+            #         if current_num_images >= self.sp_degree:
+            #             break
+            #         current_num_images += num_images
+            #         current_len += num_incoming_tokens
+            #         current_num_samples += 1
+            #         current_position_ids = torch.cat(
+            #             (
+            #                 current_position_ids,
+            #                 torch.arange(
+            #                     start=0, end=num_incoming_tokens
+            #                 )
+            #             ), dim=0
+            #         )
+            #         current_batch = torch.cat((current_batch, sorted_ids[j%len(sorted_ids)]), dim=0)
+            #         # sorted_labels[j%len(sorted_ids)][0] = IGNORE_INDEX
+            #         current_label_masked = copy.deepcopy(sorted_labels[j%len(sorted_ids)])
+            #         current_label_masked[:] = IGNORE_INDEX
+            #         current_label_batch = torch.cat((current_label_batch, current_label_masked), dim=0)
+            #         seqlens_in_batch.append(num_incoming_tokens)
+            #         current_batch_images.extend(sorted_images[j%len(sorted_ids)])
+            #         j -= 1
+            #         # j += 1
+            #     # num_retry += 1
 
             # Drop the samples that do not have enough images
             if current_num_images < self.sp_degree:
@@ -2634,6 +2678,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 seqlens_in_batch = seqlens_in_batch[:-current_num_samples]
                 continue
 
+            max_sample_len = max(max_sample_len, current_len)
             batches.append(current_batch)
             label_batches.append(current_label_batch)
             position_ids.append(current_position_ids)
@@ -2701,14 +2746,14 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             flat_batch_images = torch.concat(batch_images, dim=0)
         else:
             flat_batch_images = None
-
+        # print("position_ids", position_ids.size(), "seqlens_in_batch and its size", seqlens_in_batch.size(), seqlens_in_batch)
         batch = dict(
             input_ids=input_ids,
             labels=labels,
             # notice that we inject attention mask here
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
             seqlens_in_batch=seqlens_in_batch,
-            images = flat_batch_images,
+            images=flat_batch_images,
             position_ids=position_ids
         )
 

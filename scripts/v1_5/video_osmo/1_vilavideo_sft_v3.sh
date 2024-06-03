@@ -9,7 +9,7 @@ cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
-seq_parallel_size=4
+seq_parallel_size=8
 bs=$((256 * seq_parallel_size / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
@@ -18,7 +18,7 @@ echo "node rank:" $NODE_RANK
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
     llava/train/train_hybrid.py \
-    --deepspeed ./scripts/zero3pp.json \
+    --deepspeed ./scripts/zero3_mics_mini_fixed.json \
     --model_name_or_path ./checkpoints/vilavideo7b_pretraining_v035 \
     --version v1 \
     --data_mixture osmo_sharegpt4v_sft+osmo_sharegpt_video_qa+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_sharegpt_video \
@@ -32,7 +32,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo7b_sft_v0351_sp2_zeropp_qz \
+    --output_dir ./checkpoints/vilavideo7b_sft_v0351_sp8_mics64 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
