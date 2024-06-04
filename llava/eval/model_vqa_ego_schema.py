@@ -71,7 +71,10 @@ def eval_model(args):
         images = process_images(images, image_processor, model.config)
         # ipdb.set_trace()
         # qs = generate_video_prompt(num_video_frames, video_key_frame_interval=video_key_frame_interval)+question
-        qs = deal_with_prompt(question, model.config.mm_use_im_start_end)
+        # qs = deal_with_prompt(question, model.config.mm_use_im_start_end)
+        prompts = [f"{DEFAULT_IMAGE_TOKEN}\n" for _ in range(num_video_frames)]
+        qs = "".join(prompts) + question
+        
 
         conv = conv_templates[args.conv_mode].copy()
         conv.append_message(conv.roles[0], qs)
