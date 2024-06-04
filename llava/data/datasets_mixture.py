@@ -799,6 +799,18 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_sft2)
 
+    dpo = Dataset(
+        dataset_name="dpo",
+        dataset_type="torch",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/home/jasonlu/video_datasets/dpo/sft_dpo_17k.jsonl",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos",
+        description="17k preference data",
+    )
+    add_dataset(dpo)
+
 
     # ========================================================
     # datasets for osmo storage
