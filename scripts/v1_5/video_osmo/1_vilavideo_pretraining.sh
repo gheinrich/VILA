@@ -18,8 +18,8 @@ echo "node rank:" $NODE_RANK
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --master_addr $MASTER_ADDR --node_rank=$NODE_RANK \
     llava/train/train_hybrid.py \
-    --deepspeed ./scripts/zero3_mics.json \
-    --model_name_or_path ./checkpoints/vilavideo70b_align_v013 \
+    --deepspeed ./scripts/zero3_mics_mini_fixed.json \
+    --model_name_or_path ./checkpoints/vilavideo70b_align_v0135 \
     --version llama_3 \
     --data_mixture osmo_coyo_25m+osmo_mmc4core+osmo_internvid_10M+osmo_sharegpt4v_pretrain+osmo_panda70m \
     --vision_tower google/siglip-so400m-patch14-384 \
@@ -32,7 +32,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo70b_pretraining_v0134 \
+    --output_dir ./checkpoints/vilavideo70b_pretraining_v0135 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

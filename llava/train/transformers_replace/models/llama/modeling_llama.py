@@ -940,6 +940,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         self.model = LlamaModel(config)
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+        self.forward_step_id = 0
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1024,35 +1025,73 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         )
 
         hidden_states = outputs[0]
-        if self.config.pretraining_tp > 1:
-            lm_head_slices = self.lm_head.weight.split(self.vocab_size // self.config.pretraining_tp, dim=0)
-            logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.config.pretraining_tp)]
-            logits = torch.cat(logits, dim=-1)
-        else:
-            logits = self.lm_head(hidden_states)
-        logits = logits.float()
 
-        loss = None
-        if labels is not None:
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
+        from llava.train.sequence_parallel.globals import get_pg_manager
+        sp_manager = get_pg_manager() 
+
+        # if seq parallel is enabled, we need to reshard the hidden_states based on non-ignore-index
+        if sp_manager is None:
+            if self.config.pretraining_tp > 1:
+                lm_head_slices = self.lm_head.weight.split(self.vocab_size // self.config.pretraining_tp, dim=0)
+                logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.config.pretraining_tp)]
+                logits = torch.cat(logits, dim=-1)
+            else:
+                logits = self.lm_head(hidden_states)
+            logits = logits.float()
+
+            loss = None
+            if labels is not None:
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                # Flatten the tokens
+                loss_fct = CrossEntropyLoss()
+                shift_logits = shift_logits.view(-1, self.config.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Enable model parallelism
+                shift_labels = shift_labels.to(shift_logits.device)
+                loss = loss_fct(shift_logits, shift_labels)
+        else:
+            from llava.train.utils import reshard_hiddne_states_and_labels, sp_loss_rescale
+
+            shift_hidden_states, shift_labels = reshard_hiddne_states_and_labels(hidden_states, labels)
+            shift_logits = self.lm_head(shift_hidden_states)
+            logits = shift_logits.float()
             loss_fct = CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, self.config.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Enable model parallelism
-            shift_labels = shift_labels.to(shift_logits.device)
             loss = loss_fct(shift_logits, shift_labels)
+            backup_loss = loss.item()
+            loss = sp_loss_rescale(shift_labels, loss)
+            from llava.train.sequence_parallel.globals import get_pg_manager
+            # import torch.distributed as dist
+            SP_PG = get_pg_manager()
+            
+            # dist.all_reduce(loss, group=SP_PG)
+            # if SP_PG is not None:
+            #     print(f"Rank: {SP_PG.sp_rank}, Backup Loss: {backup_loss}, Loss: {loss}, Step: {self.forward_step_id}")
+            # self.forward_step_id += 1
+            
+
 
             # (Qinghao): Weighted loss based on num_active_elements
             # To achieve accurate sequence parallel loss calculation, we need to get
             # the real active_elements of each sequence partitions.
             # For data parallelism, the loss almost remains the same (also more accurate).
-            from llava.train.utils import calculate_loss_weight
+            # from llava.train.utils import calculate_loss_weight
+            # from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysess_sp_pg, get_sequence_parallel_size
+            # import torch.distributed as dist
+            # loss_backup = loss.item()
+            # loss_weight = calculate_loss_weight(shift_labels)
+            # loss *= loss_weight
+            # if get_pg_manager() is not None:
+            #     # Handle Nan loss
+            #     if torch.isnan(loss):
+            #         loss = torch.tensor(0.0, device=loss.device, requires_grad=True)
+            #     # All reduce loss
+            #     dist.all_reduce(loss, group=get_ulysess_sp_pg()) 
+            #     loss /= get_sequence_parallel_size()
 
-            loss_weight = calculate_loss_weight(shift_labels)
-            loss *= loss_weight
+            # print(f"Step: {self.forward_step_id} Loss Backup: {loss_backup}, Loss Weight: {loss_weight}, Loss Scaled: {loss}")
+            # self.forward_step_id += 1
 
         if not return_dict:
             output = (logits,) + outputs[1:]
