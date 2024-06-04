@@ -260,7 +260,6 @@ def train():
     
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
-
     model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",

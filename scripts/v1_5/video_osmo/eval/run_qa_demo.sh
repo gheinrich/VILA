@@ -30,7 +30,7 @@ python3 llava/eval/model_vqa_videodemo.py \
     --video_dir ${video_dir} \
     --output_dir ${output_dir} \
     --prompt_template ${PROMPT_TEMPLATE} \
-    --conv-mode llama_3 \
+    --conv-mode v1 \
     --temperature 0
 # done
 

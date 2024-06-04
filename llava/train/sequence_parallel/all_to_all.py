@@ -45,6 +45,7 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
         # (Dacheng): This will trigger for each attention to make sure the second a2a is correct.
         # (TODO) Maybe can optimize to per forward call.
         ulysess_seq_len = [torch.zeros(1, dtype=torch.int64, device=input.device) for _ in range(get_ulysess_sp_size())]
+        dist.barrier(group=get_ulysess_sp_pg())
         dist.all_gather(ulysess_seq_len, torch.tensor(shard_seqlen, device=input.device), group=get_ulysess_sp_pg())
         set_ulysess_seq_len(ulysess_seq_len)
 
@@ -66,6 +67,7 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
 
         output = torch.empty_like(input_t)
         # https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all_single
+        dist.barrier(group=group)
         dist.all_to_all_single(output, input_t, group=group)
 
         # if scattering the seq-dim, transpose the heads back to the original dimension
@@ -116,6 +118,7 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
         output = torch.empty_like(input_t)
         # https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all_single
         # (P, bs x hc/P, seqlen/P, hs) scatter seqlen -all2all-> (P, bs x seq_len/P, hc/P, hs) scatter head
+        dist.barrier(group=group)
         dist.all_to_all_single(output, input_t, group=group)
 
         # if scattering the seq-dim, transpose the heads back to the original dimension
@@ -192,6 +195,7 @@ def all_to_all_5D(input: torch.tensor, scatter_idx: int = 3, gather_idx: int = 1
         output = torch.empty_like(input_t)
         # https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all_single
         # (P, seq_len/P, 3, bs, hc/P, hs) scatter seqlen -all2all-> (P, seq_len/P, 3, bs, hc/P, hs) scatter head
+        dist.barrier(group=group)
         dist.all_to_all_single(output, input_t, group=group)
 
         # if scattering the seq-dim, transpose the heads back to the original dimension
@@ -221,6 +225,7 @@ def all_to_all_5D(input: torch.tensor, scatter_idx: int = 3, gather_idx: int = 1
         output = torch.empty_like(input_t)
         # https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all_single
         # (P, bs x hc/P, seqlen/P, hs) scatter seqlen -all2all-> (P, bs x seq_len/P, hc/P, hs) scatter head
+        dist.barrier(group=group)
         dist.all_to_all_single(output, input_t, group=group)
 
         # if scattering the seq-dim, transpose the heads back to the original dimension
