@@ -245,6 +245,13 @@ def register_datasets_mixtures():
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/vlm-flan-clean-text1m-nosqa",
     )
     add_dataset(vflan)
+    
+    vflan_fix = Dataset(
+        dataset_name="vflan_fix",
+        dataset_type="vflan",
+        data_path="/home/yunhaof/workspace/datasets/clean/vflan",
+    )
+    add_dataset(vflan_fix)
 
     llava_1_5_mm_align = Dataset(
         dataset_name="llava_1_5_mm_align",
@@ -280,6 +287,15 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ 655K llava_1_5_sft data relablled w/ ShareGPT4V captioner.",
     )
     add_dataset(sharegpt4v_sft)
+    
+    sharegpt4v_sft_fix = Dataset(
+        dataset_name="sharegpt4v_sft_fix",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/clean/sharegpt4v_anns_box_corrected.json",
+        image_path="/home/jasonlu/vlm_datasets/ShareGPT4V/data",
+        description="Original data source: https://sharegpt4v.github.io/ 655K llava_1_5_sft data relablled w/ ShareGPT4V captioner.",
+    )
+    add_dataset(sharegpt4v_sft_fix)
 
     sharegpt4v_gpt4_100k = Dataset(
         dataset_name="sharegpt4v_gpt4_100k",
@@ -689,6 +705,22 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(idefics2_sft)
+    
+    idefics2_sft_wo_table = Dataset(
+        dataset_name="idefics2_sft_wo_table",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/idefics2-sft/processed/idefics2_sft_wo_table.jsonl",
+        image_path="/home/yunhaof/workspace/datasets/idefics2-sft",
+    )
+    add_dataset(idefics2_sft_wo_table)
+    
+    clevr_math = Dataset(
+        dataset_name="clevr_math",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/clevr_math/processed/clevr_math_70k.json",
+        image_path="/home/yunhaof/workspace/datasets/clevr_math/CLEVR_v1.0/images",
+    )
+    add_dataset(clevr_math)
 
     test = Dataset(
         dataset_name="test",
