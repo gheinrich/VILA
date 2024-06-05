@@ -83,10 +83,15 @@ wait
 # wait 
 wait 
 
-bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/eval_output
-wait 
-
+# bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/eval_output
+# wait 
+'''
+pip install fire markdown
+'''
+_VILA_CI_RECIPIENTS=ligengz@nvidia.com
+_VILA_CI_RECIPIENTS=ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com
+BASE=/home/ligengz/workspace/VILA-internal-ci/checkpoints/vila-regression
 python CIs/send_email.py \
-    --title="[VILA] Regression Test Report" \
+    --title="VILA Regression Test Report" \
     --recipients $_VILA_CI_RECIPIENTS \
-    --pure_text "Regression Test Finish at $WORKDIR/eval_output"
+    --markdown_text "####Regression Test Finish at \n\n* $BASE/May_27-42 \n* $BASE/May_27-43 \n* $BASE/May_27-44\n\n please eval (cs cluster)"

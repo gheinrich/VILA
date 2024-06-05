@@ -1,0 +1,124 @@
+import tempfile
+from io import BytesIO
+import os, os.path as osp
+
+# from PIL import Image
+from llava.mm_utils import opencv_extract_frames
+import glob
+import json
+
+import base64
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, FinishReason
+from vertexai.generative_models import Image as vertextaiImage
+import vertexai.preview.generative_models as generative_models
+
+import time
+
+vertexai.init(project="gemini-pro-15-420722", location="us-central1")
+mname = "gemini-1.5-pro-preview-0409"
+model = GenerativeModel("gemini-1.5-pro-preview-0409")
+# model = GenerativeModel("gemini-1.5-flash-001")
+
+responses = model.generate_content(
+    ["how are you today?"],
+    stream=True,
+)
+
+for response in responses:
+    print(response.text, end="")
+
+
+frames = 15
+
+# base_folder = "/lustre/fsw/portfolios/nvr/users/yukangc/download_videos/videos"
+base_folder = "/lustre/fs3/portfolios/nvr/users/ligengz/workspace/Video-Benchmark/videos"
+output_path = f"vertex-ai-gemini-15_pexel_1k_new_prompt.json"
+
+question_formats = [
+    "Create a narrative representing the video presented",
+    "Share a interpretation of the video provided",
+    "Offer a explanation of the footage presented",
+    "Render a summary of the video below",
+    "Summarize the visual content of the following video",
+    "Write an informative summary of the video",
+    "Present a description of the clip's key features",
+    "Relay an account of the video shown",
+    "Provide a description of the given video",
+    "Describe the following video",
+    "Give a explanation of the subsequent video",
+]
+import random
+
+question = "Elaborate on the visual and narrative elements of the video in detail, particularly the motion behavior"
+output_text = {}
+
+if osp.exists(output_path):
+    output_text = json.load(open(output_path, "r"))
+
+
+def pil2vertexIMG(pil_imgs):
+    os.makedirs("tmp", exist_ok=True)
+    vertex_imgs = []
+    for idx, img in enumerate(pil_imgs):
+        img.save(f"tmp/{idx}.png")
+        vertex_imgs.append(vertextaiImage.load_from_file(f"tmp/{idx}.png"))
+    return vertex_imgs
+
+
+import cv2
+from tqdm import tqdm
+
+# jinfo = json.load(
+#     open(
+#         "/lustre/fs3/portfolios/nvr/users/ligengz/workspace/Video-Benchmark/video_benchmark_label_data.json"
+#     )
+# )
+# for vvpath in tqdm(jinfo.keys()):
+for vvpath in tqdm(glob.glob(osp.join(base_folder, "**/*.mp4"), recursive=True)):
+    _vpath = osp.realpath(vvpath)
+    print(_vpath, _vpath in output_text)
+    if _vpath in output_text:
+        print("\tAlready processed ")
+        continue
+    vpath = BytesIO(open(_vpath, "rb").read())
+    try:
+        videos = opencv_extract_frames(vpath, frames)
+    except (cv2.error, ZeroDivisionError):
+        print("error: ", vpath)
+        continue
+    videos = pil2vertexIMG(videos)
+
+    print("\tLaunch labeling through vertex API.")
+    try:
+        response = model.generate_content(
+            [
+                # "Please describe the video in details",
+                *videos,
+                # question,
+                random.choice(question_formats)
+            ]
+        )
+    except:
+        print("google.api_core.exceptions.ResourceExhausted")
+        time.sleep(10)
+        continue
+    # print(response)
+    try:
+        # print(response.text)
+        output = response.text
+    except Exception as e:
+        # print(response)
+        output = "[NA] Gemini refused to answer."
+
+    # output_text[osp.relpath(_vpath, base_folder)] = response.text
+    # output_text[_vpath] = output
+    output_text[osp.realpath(_vpath)] = {
+        "input": question,
+        "output": output,
+        "labeler": mname,
+    }
+    with open(output_path, "w") as f:
+        json.dump(output_text, f, indent=2)
+
+    # time.sleep(10)
