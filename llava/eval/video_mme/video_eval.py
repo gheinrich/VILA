@@ -49,7 +49,8 @@ def safely_merge_info(out_fpath, info):
         shutil.move(out_fpath + ".meta", out_fpath)
     return info
 
-def get_model_output(model, image_processor, tokenizer, video_path, qs, conv_mode="vicuna_v1", num_video_frames = 8):
+def get_model_output(model, image_processor, tokenizer, video_path, qs, conv_mode="vicuna_v1", 
+                     num_video_frames = 8, temperature = 0.2, num_beams = 1):
     from llava.mm_utils import opencv_extract_frames
     imgs, num_frames = opencv_extract_frames(video_path, num_video_frames)
     # print(imgs)
@@ -78,13 +79,18 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, conv_mod
     stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
     keywords = [stop_str]
     stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
+    
+    do_sample = True
+    if temperature == 0:
+        do_sample = False
     with torch.inference_mode():
         output_ids = model.generate(
             input_ids,
             images=image_tensor.half().cuda(),
-            do_sample=True,
-            temperature=0.2,
+            do_sample=do_sample,
+            temperature=temperature,
             max_new_tokens=1024,
+            num_beams=num_beams,
             use_cache=True,
             stopping_criteria=[stopping_criteria]
         )
@@ -105,7 +111,7 @@ The best answer is:
 def eval_model(args):
     from pprint import pprint 
     pprint(vars(args))
-    output_name = osp.basename(args.model_path) + "mme_bench_dev.json"
+    output_name =  osp.basename(args.model_path) + f"_tmp={args.temperature}_beams={args.num_beams}" + "video_mme.json"
     output_json = []
     labeled_key = {}
     if osp.exists(output_name):
@@ -114,7 +120,6 @@ def eval_model(args):
     
     jinfo = json.load(open("/home/ligengz/workspace/video-mme/Video-MME.json"))
     folder = "/home/ligengz/workspace/video-mme/ytb_videos"
-    
     
     if args.convert:
         for vmeta in jinfo:
@@ -166,7 +171,8 @@ def eval_model(args):
                 continue
             qa = questions["question"] + "\n" + "\n".join(questions["choices"])
             qs = template.format(question=qa)
-            output = get_model_output(model, image_processor, tokenizer, vpath, qs, conv_mode=args.conv_mode)
+            output = get_model_output(model, image_processor, tokenizer, vpath, qs, 
+                        conv_mode=args.conv_mode, temperature=args.temperature, num_beams=args.num_beams)
             questions["response"] = output
             labeled_key[questions["question_id"]] = questions
         # break
@@ -178,6 +184,7 @@ def eval_model(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--num-beams", type=int, default=1)
     parser.add_argument("-c", "--convert", action="store_true")
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--total", type=int, default=-1)
@@ -189,9 +196,8 @@ if __name__ == "__main__":
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
     parser.add_argument("--num-chunks", type=int, default=1)
     
-    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top_p", type=float, default=None)
-    parser.add_argument("--num_beams", type=int, default=1)
     args = parser.parse_args()
 
     eval_model(args)
