@@ -2521,8 +2521,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
 
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        # NUM_TOKENS_PER_IMAGE = 196
-        NUM_TOKENS_PER_IMAGE = 256
+        NUM_TOKENS_PER_IMAGE = 196
+        # NUM_TOKENS_PER_IMAGE = 256
 
         # Init the padding sample
         seq_id = 0
