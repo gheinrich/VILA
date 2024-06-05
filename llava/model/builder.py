@@ -1,3 +1,4 @@
+
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 #    Copyright 2023 Haotian Liu
 #
@@ -63,6 +64,7 @@ def load_pretrained_model(
         )
     else:
         kwargs["torch_dtype"] = torch.float16
+        # kwargs["torch_dtype"] = torch.bfloat16
 
     if is_mm_model(model_path):
         # Load LLaVA model
@@ -223,8 +225,10 @@ def load_pretrained_model(
         model.resize_token_embeddings(len(tokenizer))
         vision_tower = model.get_vision_tower()
         vision_tower.to(device=device, dtype=torch.float16)
+        # vision_tower.to(device=device, dtype=torch.bfloat16)
         mm_projector = model.get_mm_projector()
         mm_projector.to(device=device, dtype=torch.float16)
+        # mm_projector.to(device=device, dtype=torch.bfloat16)
         image_processor = vision_tower.image_processor
 
     if hasattr(model.llm.config, "max_sequence_length"):
