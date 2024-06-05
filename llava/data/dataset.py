@@ -2521,8 +2521,8 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
 
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        NUM_TOKENS_PER_IMAGE = 196
-        # NUM_TOKENS_PER_IMAGE = 256
+        # NUM_TOKENS_PER_IMAGE = 196
+        NUM_TOKENS_PER_IMAGE = 256
 
         # Init the padding sample
         seq_id = 0
@@ -2531,13 +2531,14 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
             if len(images[seq_id]) == 0:
                 seq_id += 1
                 continue
-            dummy_image = torch.zeros_like(images[seq_id][:1])
+            dummy_image = torch.ones_like(images[seq_id][:1])
             # dummy input_ids include one bos, one image token, and one eos
             dummy_input_ids = torch.zeros_like(input_ids[seq_id][:3])
+            dummy_input_ids[0] = self.tokenizer.bos_token_id
             dummy_input_ids[1] = IMAGE_TOKEN_INDEX
-            dummy_input_ids[2] = input_ids[seq_id][-1]
+            dummy_input_ids[2] = self.tokenizer.eos_token_id
             dummy_labels = copy.deepcopy(dummy_input_ids)
-            dummy_labels[:] = IGNORE_INDEX
+            dummy_labels[:2] = IGNORE_INDEX
             dummy_seqlen = NUM_TOKENS_PER_IMAGE + 2
             dummy_position_ids = torch.arange(start=0, end=dummy_seqlen, dtype=torch.int32)
             break
@@ -2605,7 +2606,7 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                     assert current_num_images == len(current_batch_images)
                 else:
                     break
-
+            
             # Padding the sample with the dummy image sample, if there are no enough images
             MAX_RETRY = self.sp_degree
             num_retry = 0
@@ -2623,6 +2624,11 @@ class DataCollatorForSupervisedDatasetSeqParallel(object):
                 current_label_batch = torch.cat((current_label_batch, dummy_labels), dim=0)
                 seqlens_in_batch.append(dummy_seqlen)
                 current_batch_images.extend(dummy_image)
+                # We pad from left side to ensure correct grad flow
+                # current_batch = torch.cat((dummy_input_ids, current_batch), dim=0)
+                # current_label_batch = torch.cat((dummy_labels, current_label_batch), dim=0)
+                # seqlens_in_batch.insert(0, dummy_seqlen)
+                # current_batch_images = torch.cat((dummy_image, current_batch_images), dim=0)
                 num_retry += 1
                                 
             # Drop the samples that do not have enough images
