@@ -36,7 +36,7 @@ OUTDIR=slurm-logs/$ckpt
 
 srun \
     -e $OUTDIR/$jname.err -o $OUTDIR/$jname.out \
-    python llava/data_aug/video_eval.py \
+    python llava/eval/video_mme/video_eval.py \
         --model-path $ckpt --shard $idx --total $total --conv-mode $conv_mode \
         --temperature $temperature --num-beams $num_beams
 
