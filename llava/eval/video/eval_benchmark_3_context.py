@@ -10,9 +10,6 @@ from tqdm import tqdm
 
 from openai import AzureOpenAI
 
-#openai.api_key = "sk-LMtetLk5x71KGXoX1a788068C8194151B6De649c3c09998e" #"sk-y8inDulyHohru71t0074E9B2Ae8b4cE9A1D890472197C8Aa"
-#openai.api_base = "https://api.ai-gaochao.cn/v1" #"http://api.ai-gaochao.com/v1"
-
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     api_version="2024-02-01",
