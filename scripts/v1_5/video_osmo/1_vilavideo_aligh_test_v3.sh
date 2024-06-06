@@ -10,7 +10,8 @@ echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
 seq_parallel_size=8
-bs=$((4 * seq_parallel_size / n_node))
+# bs=$((128 * seq_parallel_size / n_node))
+bs=2
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $NODE_RANK
@@ -32,11 +33,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_test_v3_ga8_sp8_2nodes_loss_debug \
+    --output_dir ./checkpoints/vilavideo8b_align_test_v3_ga8_sp8_2nodes_loss_debug_v3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 200000 \
