@@ -1,19 +1,28 @@
 # This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
 
-import openai
+#import openai
 import os
 import argparse
 import json
 import ast
 from multiprocessing.pool import Pool
+from openai import AzureOpenAI
 
+#openai.api_key = "sk-LMtetLk5x71KGXoX1a788068C8194151B6De649c3c09998e" #"sk-y8inDulyHohru71t0074E9B2Ae8b4cE9A1D890472197C8Aa"
+#openai.api_base = "https://api.ai-gaochao.cn/v1" #"http://api.ai-gaochao.com/v1"
+
+client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    api_version="2024-02-01",
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="question-answer-generation-using-gpt-3")
     parser.add_argument("--pred_path", required=True, help="The path to file containing prediction.")
     parser.add_argument("--output_dir", required=True, help="The path to save annotation json files.")
     parser.add_argument("--output_json", required=True, help="The path to save annotation final combined json file.")
-    parser.add_argument("--api_key", required=True, help="OpenAI API key.")
+    parser.add_argument("--api_key", help="OpenAI API key.")
     parser.add_argument("--api_base", default="", type=str, help="OpenAI API base.")
     parser.add_argument("--num_tasks", required=True, type=int, help="Number of splits.")
     args = parser.parse_args()
@@ -26,9 +35,6 @@ def annotate(prediction_set, caption_files, output_dir, args):
     returns a score for detailed orientation.
     """
     # Set the OpenAI API key.
-    openai.api_key = args.api_key
-    if args.api_base is not None:
-        openai.api_base = args.api_base
     for file in caption_files:
         key = file[:-5] # Strip file extension
         qa_set = prediction_set[key]
@@ -37,8 +43,8 @@ def annotate(prediction_set, caption_files, output_dir, args):
         pred = qa_set['pred']
         try:
             # Compute the detailed-orientation score
-            completion = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+            completion = client.chat.completions.create(
+                model="gpt-4",
                 messages=[
                     {
                         "role": "system",
@@ -68,6 +74,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
             )
             # Convert response to a Python dictionary.
             response_message = completion.choices[0].message.content
+            #response_message = completion["choices"][0]["message"]["content"]
             response_dict = ast.literal_eval(response_message)
             result_qa_pair = [response_dict, qa_set]
 
@@ -126,7 +133,7 @@ def main():
         prediction_set[id] = qa_set
 
     # Set the OpenAI API key.
-    openai.api_key = args.api_key
+    #openai.api_key = args.api_key
     num_tasks = args.num_tasks
 
     # While loop to ensure that all captions are processed.
@@ -152,8 +159,11 @@ def main():
             task_args = [(prediction_set, part, args.output_dir, args) for part in all_parts]
 
             # Use a pool of workers to process the files in parallel.
-            with Pool() as pool:
-                pool.starmap(annotate, task_args)
+            #with Pool() as pool:
+            #    pool.starmap(annotate, task_args)
+            from tqdm import tqdm
+            for task_arg in tqdm(task_args):
+                annotate(*task_arg)
 
         except Exception as e:
             print(f"Error: {e}")
