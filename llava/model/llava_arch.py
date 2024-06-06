@@ -621,17 +621,45 @@ class LlavaMetaForCausalLM(ABC):
 
             # Gather inputs_embeds and reshard it evenly
             # TODO: Fix the non-enough images.
-            inputs_embeds_list = [torch.zeros((bs, ulysess_seq_len[i], inputs_embeds.shape[-1]), dtype=inputs_embeds.dtype, device=inputs_embeds.device, requires_grad=True) for i in range(sp_degree)]
-            dist.all_gather(inputs_embeds_list, inputs_embeds, group=sp_group)
+            # inputs_embeds_list = [torch.zeros((bs, ulysess_seq_len[i], inputs_embeds.shape[-1]), dtype=inputs_embeds.dtype, device=inputs_embeds.device, requires_grad=True) for i in range(sp_degree)]
+            # dist.all_gather(inputs_embeds_list, inputs_embeds, group=sp_group)
+            # global_inputs_embeds_list = []
+            # for i in range(bs):
+            #     global_inputs_embeds_batch_list = []
+            #     for j in range(sp_degree):
+            #         global_inputs_embeds_batch_list.append(inputs_embeds_list[j][i, :effective_seqlen_batch_list[i][j]])
+            #     global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
+            # global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
+            # new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+            
+            # Gather all hidden states and flaten them
+            ulysess_seq_len_cat = torch.cat(ulysess_seq_len, dim=0)
             global_inputs_embeds_list = []
+            if sp_rank == 0:
+                original_start_id = 0
+                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
+            elif sp_rank == sp_degree - 1:
+                original_start_id = torch.sum(ulysess_seq_len_cat[:sp_rank]).item()
+                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
+            else:
+                original_start_id = torch.sum(ulysess_seq_len_cat[:sp_rank]).item()
+                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
+            all_inputs_embeds = torch.zeros(bs, torch.sum(ulysess_seq_len_cat), inputs_embeds.shape[-1], dtype=inputs_embeds.dtype, device=inputs_embeds.device).contiguous()
+            all_inputs_embeds[: , original_start_id: original_end_id, :] += inputs_embeds
+            dist.barrier(group=sp_group)
+            dist.all_reduce(all_inputs_embeds, group=sp_group)
+            dist.barrier(group=sp_group)
             for i in range(bs):
                 global_inputs_embeds_batch_list = []
                 for j in range(sp_degree):
-                    global_inputs_embeds_batch_list.append(inputs_embeds_list[j][i, :effective_seqlen_batch_list[i][j]])
+                    prev_len = torch.sum(ulysess_seq_len_cat[:j]).item() if j > 0 else 0
+                    start_id = prev_len
+                    end_id = prev_len + effective_seqlen_batch_list[i][j]
+                    global_inputs_embeds_batch_list.append(all_inputs_embeds[i, start_id: end_id])
                 global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
             global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
             new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
-            
+
                         
             return (
                 None,
