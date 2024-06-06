@@ -5,9 +5,6 @@ import json
 import ast
 from multiprocessing.pool import Pool
 
-#openai.api_key = "sk-LMtetLk5x71KGXoX1a788068C8194151B6De649c3c09998e" #"sk-y8inDulyHohru71t0074E9B2Ae8b4cE9A1D890472197C8Aa"
-#openai.api_base = "https://api.ai-gaochao.cn/v1" #"http://api.ai-gaochao.com/v1"
-
 from openai import AzureOpenAI
 
 client = AzureOpenAI(
