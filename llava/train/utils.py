@@ -199,15 +199,12 @@ def reshard_hiddne_states_and_labels(hidden_states, labels):
     dist.barrier(group=sp_group)
     dist.all_reduce(all_hidden_states, group=sp_group)
     dist.barrier(group=sp_group)
-    # flatten_global_hidden_states = torch.cat(all_hidden_states, dim=1)[:, :-1, :].view(-1, hidden_states.shape[-1])
-    # flatten_global_hidden_states = torch.cat(all_hidden_states, dim=1)[:, :-1, :].contiguous().view(-1, hidden_states.shape[-1])
     flatten_global_hidden_states = all_hidden_states[:, :-1, :].contiguous().view(-1, hidden_states.shape[-1])
     # Get the local hidden states
     effective_flatten_global_hidden_states = flatten_global_hidden_states[flatten_effective_label_index]
     if repeat_num > 1:
         effective_flatten_global_hidden_states = effective_flatten_global_hidden_states.repeat(repeat_num, 1)
     effective_local_hidden_states = torch.narrow(effective_flatten_global_hidden_states, 0, start_id, end_id - start_id)
-    # print("hidden_states.shape: ", effective_local_hidden_states.shape, "labels.shape: ", effective_local_labels.shape, "sp_rank: ", sp_rank, "flatten_label_mask: ", torch.sum(flatten_label_mask),)
 
     return effective_local_hidden_states, effective_local_labels
     
