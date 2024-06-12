@@ -8,6 +8,7 @@ class Dataset:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
     meta_path: str = field(default=None, metadata={"help": "Path to the meta data for webdataset."})
     image_path: str = field(default=None, metadata={"help": "Path to the training image data."})
+    caption_choice: str = field(default=None, metadata={"help": "Path to the caption directory for recaption."})
     description: str = field(
         default=None,
         metadata={
@@ -79,6 +80,14 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(sam_recap)
+    
+    sam_40b_c_spatial_recap = Dataset(
+        dataset_name="sam_40b_c_spatial_recap",
+        dataset_type="sam-wds-tmp",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat",
+        meta_path="/home/yunhaof/workspace/datasets/data_synthesis/sam/recaption/40b/recaption_c_spatial"
+    )
+    add_dataset(sam_40b_c_spatial_recap)
 
     datacomp_webds = Dataset(
         dataset_name="datacomp_webds",
@@ -163,6 +172,15 @@ def register_datasets_mixtures():
     )
     add_dataset(coyo_25m_wds_10_subset)
     
+    coyo_webds_vila_recaption_10_subset_llm_refined = Dataset(
+        dataset_name="coyo_webds_vila_recaption_10_subset_llm_refined",
+        dataset_type="coyo-wds-recap",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-10-subset.json",
+        caption_choice="/home/yunhaof/workspace/datasets/data_synthesis/merged_llm_refined_ori_c_spatial_ocr/processed",
+        description="10% subset of coyo_webds_vila_recaption.",
+    )
+    add_dataset(coyo_webds_vila_recaption_10_subset_llm_refined)
     
     coyo_webds_full = Dataset(
         dataset_name="coyowebds_full",

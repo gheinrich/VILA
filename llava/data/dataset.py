@@ -2797,6 +2797,10 @@ def build_datasets(
             from llava.data.dataset_impl.sam import LazySAMWebDataset
 
             dataset_cls = LazySAMWebDataset
+        elif dataset_type == "sam-wds-tmp":
+            print("dataset.py: Loading SAM class")
+            from llava.data.dataset_impl.sam_tmp import LazySAMTmpWebDataset
+            dataset_cls = LazySAMTmpWebDataset
         elif dataset_type == "coyo-wds":
             dataset_cls = LazyCoyoWebDataset
         elif dataset_type == "coyo-wds-recap":
@@ -2837,6 +2841,7 @@ def build_datasets(
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)
+        data_args.caption_choice = getattr(dataset, "caption_choice", None)
         dataset = dataset_cls(
             tokenizer=tokenizer,
             data_path=dataset.data_path,
