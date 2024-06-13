@@ -10,7 +10,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((64 / n_node))
+bs=$((256 / n_node))
 acc_step=${ACC_STEP:-1}
 
 # for example, lmsys/vicuna-7b-v1.5
