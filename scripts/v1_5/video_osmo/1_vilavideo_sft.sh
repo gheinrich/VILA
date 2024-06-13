@@ -9,6 +9,7 @@ cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
 n_node=$WORLD_SIZE
+seq_parallel_size=8
 bs=$((256 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
@@ -31,15 +32,15 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo7b_sft_v0351 \
+    --output_dir ./checkpoints/vilavideo7b_sft_v0351_nosp_zero3_benchmarking \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 50 \
-    --save_total_limit 2 \
+    --save_steps 200 \
+    --save_total_limit 1 \
     --learning_rate 5e-5 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
@@ -52,4 +53,5 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --gradient_checkpointing True \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \
+    --seq_parallel_size $seq_parallel_size

@@ -8,9 +8,8 @@ which python
 cd ~/VILA
 echo "MASTER_ADDR="$MASTER_ADDR
 
-# export CUDA_LAUNCH_BLOCKING=1
 n_node=$WORLD_SIZE
-seq_parallel_size=4
+seq_parallel_size=2
 bs=$((4 * seq_parallel_size / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
@@ -22,7 +21,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path /mnt/amlfs-01/home/fuzhaox/checkpoints/Meta-Llama-3-8B-Instruct \
     --version llama_3 \
-    --data_mixture osmo_sharegpt4v_sft+osmo_sharegpt_video_qa+osmo_youcook2+osmo_vatex+osmo_jukinmedia+osmo_shot2story_shotonly+osmo_sharegpt_video \
+    --data_mixture osmo_internvid_1300K \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_projector mlp_downsample \
     --tune_mm_projector True \
@@ -33,16 +32,16 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=$MASTER_PORT \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vilavideo8b_align_v012_test_v7 \
+    --output_dir ./checkpoints/vilavideo8b_align_v0135_sp_datasetdebug \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 200 \
     --save_total_limit 1 \
-    --learning_rate 1e-3 \
+    --learning_rate 2e-4 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

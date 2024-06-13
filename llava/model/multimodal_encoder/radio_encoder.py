@@ -227,7 +227,9 @@ class RADIOVisionTower(VisionTower):
 
     @torch.no_grad()
     def get_features(self, x: torch.Tensor):
-        output = self.vision_tower(x)
+        x_float = x.float()
+        with torch.autocast('cuda', dtype=torch.bfloat16):
+            output = self.vision_tower(x_float)
         if isinstance(output, dict):
             _, features = output[self.adaptor_name]
             if self.fuse_adaptor_with_backbone:
@@ -235,7 +237,7 @@ class RADIOVisionTower(VisionTower):
                 features = torch.cat([features, backbone_features], dim=2)
         else:
             _, features = output
-        return features
+        return features.to(dtype=x.dtype)
 
     @torch.no_grad()
     def forward(self, images: torch.Tensor):

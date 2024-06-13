@@ -62,10 +62,15 @@ def send_email(subject, body, sender, recipients, password, files=None):
 
 def main(
     text=None,
+    markdown_text=None,
+    title=None,
     recipients="ligengz@nvidia.com",
 ):
     today = datetime.now().strftime("%m/%d/%Y %H:%M")
-    subject = f"[VILA] Continual Test Report {today}"
+    if title is None:
+        subject = f"[VILA] Continual Test Report {today}"
+    else:
+        subject = title
     body = f"""Testing"""
     
     failed_jobs = []
@@ -101,9 +106,16 @@ def main(
             </body>
             </html>
             """
+    
+    if markdown_text is not None:
+        import markdown
+        markdown_text = markdown_text.replace(r'\n', '\n').replace(r'\t', '\t')
+        markdown_text = "\n".join([_.strip() for _ in markdown_text.split("\n")])
+        body = markdown.markdown(f'''{markdown_text}''')
+        print(body)
     # recipients = os.environ.get("VILA_CI_RECIPIENTS", "ligengz@nvidia.com")
     recipients = recipients.split(",")
-
+    # exit(0)
     send_email(subject, body, sender, recipients, password, files=failed_jobs)
 
 
