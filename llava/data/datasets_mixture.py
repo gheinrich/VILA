@@ -39,6 +39,16 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    internvid_10M_recap = Dataset(
+        dataset_name="internvid_10M_recap",
+        dataset_type="video-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        description="10M (actually 8M) video-caption pairs from InternVid 10M dataset.",
+        caption_choice="/home/ligengz/nvr_elm_llm/dataset/intern10m-recap/data_all",
+    )
+    add_dataset(internvid_10M_recap)
+
     sam_0to5_vila40b_recap = Dataset(
         dataset_name="sam_0to5_vila40b_recap",
         dataset_type="sam-wds",

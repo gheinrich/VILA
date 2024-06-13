@@ -2255,6 +2255,10 @@ class LazyVideoWebDataset(Dataset):
         self.caption_chocie = None
         self.data_path = data_path
 
+        if data_args.caption_choice is not None:
+            self.caption_choice = data_args.caption_choice
+            print("[recap] Override LazyVideo caption using ", self.caption_choice)
+        
         print("total samples", len(self.dataset))
         # InternVid: TODO
         PROCESS_GROUP_MANAGER = get_pg_manager()
@@ -2308,6 +2312,22 @@ class LazyVideoWebDataset(Dataset):
         
         if frames_loaded == 0:
             caption = "Empty video."
+        
+        if self.caption_choice is not None:
+            shard = info["__shard__"]
+            uuid = osp.join(info["__shard__"], info["__key__"])
+            url = info["__key__"]
+            tar_name = osp.basename(info["__shard__"])
+            shard_json_path = osp.join(self.caption_choice, tar_name.replace(".tar", ".json"))
+            shard_json = lru_json_load(shard_json_path)
+            
+            try:
+                caption = shard_json[url]["summary"]["output"]
+            except KeyError:
+                print("override caption not found for ", uuid)
+            
+            print(f"[DEBUG {uuid}]", caption)
+            
         frames_loaded_successfully = len(images)
 
         prompt = "<image>\n" * frames_loaded_successfully + caption

@@ -197,7 +197,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
         assert osp.exists(
             self.meta_path
         ), f"meta path not found in [{self.meta_path}] or [{_local_meta_path}]"
-        print(f"[SimplyCoyo] Loading meta infomation {self.meta_path}", flush=True)
+        print(f"[VILA-forked-Webdataset] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
         import hashlib
