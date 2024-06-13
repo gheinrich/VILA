@@ -1977,7 +1977,8 @@ from functools import lru_cache
 
 @lru_cache(maxsize=16)
 def lru_json_load(fpath):
-    return json.load(open(fpath, "r"))
+    with open(fpath, "r") as fp:
+        return json.load(fp)
 
 
 class LazyEvaluateDataset(LazySupervisedDataset):
@@ -2053,11 +2054,30 @@ class LazyCoyoWebDataset(Dataset):
             meta_path=data_args.meta_path
         )
 
-        # None: use original caption
-        # Folder path: use original caption
-        self.caption_choice = None
-        self.data_path = data_path
+        if data_args.start_idx >= 0 and data_args.end_idx >= 0:
+            # Ligeng: support slicing for ablate different subsets. 
+            total = len(self.dataset)
+            start_idx = int(total * data_args.start_idx)  
+            end_idx = int(total * data_args.end_idx)  
+            print("loading subset from {} to {}, total {}".format(start_idx, end_idx, total))
+            self.dataset = torch.utils.data.Subset(self.dataset, range(start_idx, end_idx))
 
+        # For caption choice, 
+        #   if None: use original caption
+        #   if a folder path: use specified caption to override original one (choice1)
+        #   if a folder path: use specified caption and concat with original one (choice2)
+        self.caption_choice = None
+        self.caption_choice_2 = None
+        self.data_path = data_path
+        
+        if data_args.caption_choice is not None:
+            self.caption_choice = data_args.caption_choice
+            print("[recap] Override coyo caption using ", self.caption_choice)
+        
+        if data_args.caption_choice_2 is not None:
+            self.caption_choice_2 = data_args.caption_choice_2
+            print("[recapv2] Override coyo caption using ", self.caption_choice_2)
+        
         print("total samples", len(self.dataset))
         PROCESS_GROUP_MANAGER = get_pg_manager()
         if PROCESS_GROUP_MANAGER is not None:
@@ -2123,7 +2143,8 @@ class LazyCoyoWebDataset(Dataset):
             if self.caption_choice is not None:
                 # load new captions
                 shard = info["__shard__"]
-                url = info[".json"]["url"]
+                # url = info[".json"]["url"]
+                url = osp.join(info["__shard__"], str(info["__shardindex__"]))
                 tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
                 # tar_name = osp.dirname(shard)
                 shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
@@ -2131,9 +2152,28 @@ class LazyCoyoWebDataset(Dataset):
                 # print("DEBUG:", shard, self.data_path, tar_name)
                 try:
                     caption = shard_json[url]["output"]
+                    # print("loding with recaption choice1")
                 except KeyError:
                     print(f"{url} not in caption. fallback to original caption temporarially")
 
+            if self.caption_choice_2 is not None:
+                # load new captions
+                shard = info["__shard__"]
+                # url = info[".json"]["url"]
+                url = osp.join(info["__shard__"], str(info["__shardindex__"]))
+                tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
+                # tar_name = osp.dirname(shard)
+                shard_json_path = osp.join(self.caption_choice_2, tar_name + ".json")
+                # print("DEBUG:", shard, self.data_path, tar_name)
+                try:
+                    shard_json = lru_json_load(shard_json_path)
+                    new_caption = shard_json[url]["output"]
+                    caption = f"### Short description: \n{caption} \n\n" + \
+                        f"### Long description: \n{new_caption}" 
+                    # print(f"{url} in caption. use new caption")
+                except (KeyError, FileNotFoundError):
+                    print(f"{url} not in caption. fallback to original caption temporarially")
+                    
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -2788,17 +2828,14 @@ def build_datasets(
             print("dataset.py: Loading coyo-wds-recap class")
             from llava.data.dataset_impl.coyo_recap import \
                 LazyCoyoWebRecapDataset
-
             dataset_cls = LazyCoyoWebRecapDataset
         elif dataset_type == "textocr":
             print("dataset.py: Loading textocr class")
             from llava.data.dataset_impl.textocr import VILATextOCR
-
             dataset_cls = VILATextOCR
         elif dataset_type == "hiertext":
             print("dataset.py: Loading hiertext class")
             from llava.data.dataset_impl.hiertext import VILAHierText
-
             dataset_cls = VILAHierText
         elif dataset_type == "panda70m":
             print("dataset.py: Loading VILAPanda70m class")
@@ -2822,6 +2859,11 @@ def build_datasets(
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)
+        # extra args for vila^2, will not affect original logic
+        data_args.caption_choice = getattr(dataset, "caption_choice", None)
+        data_args.caption_choice_2 = getattr(dataset, "caption_choice_2", None)
+        data_args.start_idx = getattr(dataset, "start_idx", None)
+        data_args.end_idx = getattr(dataset, "end_idx", None)
         dataset = dataset_cls(
             tokenizer=tokenizer,
             data_path=dataset.data_path,
