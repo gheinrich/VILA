@@ -17,6 +17,12 @@ class Dataset:
     )
     test_script: str = (None,)
     maintainer: str = (None,)
+    ############## ############## ############## ############## ############## ############## 
+    caption_choice: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
+    caption_choice_2: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
+    start_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
+    end_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
+    
 
 
 DATASETS = {}
@@ -33,6 +39,46 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    internvid_10M_recap = Dataset(
+        dataset_name="internvid_10M_recap",
+        dataset_type="video-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        description="10M (actually 8M) video-caption pairs from InternVid 10M dataset.",
+        caption_choice="/home/ligengz/nvr_elm_llm/dataset/intern10m-recap/data_all",
+    )
+    add_dataset(internvid_10M_recap)
+
+    sam_0to5_vila40b_recap = Dataset(
+        dataset_name="sam_0to5_vila40b_recap",
+        dataset_type="sam-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat",
+        start_idx=0 / 100,
+        end_idx=5 / 100,
+        caption_choice_2="/home/ligengz/workspace/VILA-internal/sam-reformat-captioner_bk_new/VILA1.5-40b",
+    )
+    add_dataset(sam_0to5_vila40b_recap)
+
+    coyo25m_0to5_vila15_40b_recap = Dataset(
+        dataset_name="coyo25m_0to5_vila15_40b_recap",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        start_idx=0 / 100,
+        end_idx=5 / 100,
+        caption_choice_2="/home/ligengz/workspace/VILA-internal/coyo-25m-vila-captioner_bk_new/VILA1.5-40b",
+    )
+    add_dataset(coyo25m_0to5_vila15_40b_recap)
+    
+    coyo25m_0to10_vila15_40b_recap = Dataset(
+        dataset_name="coyo25m_0to10_vila15_40b_recap",
+        dataset_type="coyo-wds",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        start_idx=0 / 100,
+        end_idx=10 / 100,
+        caption_choice_2="/home/ligengz/workspace/VILA-internal/coyo-25m-vila-captioner_bk_new/VILA1.5-40b",
+    )
+    add_dataset(coyo25m_0to10_vila15_40b_recap)
+
     panda70m_testing = Dataset(
         dataset_name="panda70m_testing",
         dataset_type="panda70m",

@@ -12,7 +12,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 # OUTPUT of stage 1 script
 STAGE1_PATH=$1
 # for example, llava-v1.5-7b-mm-align
-OUTPUT=$2
+OUTPUT=${2:-"checkpoints/stage2"}
 
 export NCCL_IB_SL=1
 export CUDA_DEVICE_MAX_CONNECTIONS=1
@@ -20,8 +20,13 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 #export CUDA_LAUNCH_BLOCKING=1
 
+export VISION_TOWER=${VISION_TOWER:-"OpenGVLab/InternViT-6B-448px-V1-2"}
+# export BASE_MODEL_PATH=${BASE_MODEL_PATH:-"NousResearch/Nous-Hermes-2-Yi-34B"}
+# BASE_MODEL_PATH=$STAGE1_PATH
+export PRETRAIN_DATASET=${PRETRAIN_DATASET:-"coyo_25m+mmc4core+sharegpt4v_pretrain"}
+
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((64 / n_node))
+bs=$((128 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
@@ -30,11 +35,11 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path $BASE_MODEL_PATH \
+    --model_name_or_path $STAGE1_PATH \
     --version hermes-2 \
-    --data_mixture coyo_25m+mmc4core+sharegpt4v_pretrain \
-    --vision_tower OpenGVLab/InternViT-6B-448px-V1-2 \
+    --vision_tower $VISION_TOWER \
     --mm_projector mlp_downsample \
+    --data_mixture $PRETRAIN_DATASET \
     --tune_vision_tower False \
     --tune_mm_projector True \
     --tune_language_model True \
@@ -43,7 +48,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/$OUTPUT \
+    --output_dir $OUTPUT \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

@@ -20,8 +20,6 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 #export CUDA_LAUNCH_BLOCKING=1
 
-
-
 n_node=$SLURM_JOB_NUM_NODES
 bs=$((64 / n_node))
 echo "number of nodes:" $n_node

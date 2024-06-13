@@ -115,9 +115,7 @@ def eval_model(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-path", type=str, default="checkpoints/Llama-2-7b-hf-siglip-large-patch16-384-align-llava_1_5_mm_align-pretrain-sharegpt4v_pretrain-SFT-sharegpt4v_sft+vflan")
-    # parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA-7b")
-    # parser.add_argument("--model-path", type=str, default="checkpoints/stage2-siglip-large-patch16-384-align-llava_1_5_mm_align-pretrain-sharegpt4v_pretrain-SFT-sharegpt4v_sft+textocr")
+    parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA1.5-3b")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--model_max_length", type=int, required=False, default=5120)
     parser.add_argument('--video_dir', help='Directory containing video files.', default="~/workspace/vila-captioner-avfm/videos")
