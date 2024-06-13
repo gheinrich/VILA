@@ -1595,7 +1595,7 @@ class LazyWDSDataset(Dataset):
                 info = json.load(f)
                 n_samples.append(info["successes"])
 
-        print(f"[DEBUG] {data_path} total samples", sum(n_samples))  # 10,881,869
+        # print(f"[DEBUG] {data_path} total samples", sum(n_samples))  # 10,881,869
         
         PROCESS_GROUP_MANAGER = get_pg_manager()
         if PROCESS_GROUP_MANAGER is not None:
@@ -2302,6 +2302,7 @@ class LazyVideoWebDataset(Dataset):
 
         info = self.dataset[i]
         
+        caption = ""
         # print(info)
         if ".mp4" in info:
             caption, video_path = info[".txt"], info[".mp4"]
@@ -2331,9 +2332,10 @@ class LazyVideoWebDataset(Dataset):
                     self.missing_uids.add(uuid)
             
             # print(f"[DEBUG {uuid}]", caption)
-            
+        
         frames_loaded_successfully = len(images)
-
+        if caption is None:
+            caption = ""
         prompt = "<image>\n" * frames_loaded_successfully + caption
         image_tensor = torch.stack(
             [process_image(image, self.data_args, None) for image in images]
