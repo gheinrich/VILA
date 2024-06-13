@@ -158,7 +158,7 @@ def register_datasets_mixtures():
     add_dataset(coyo_webds_refilerted)
 
     coyo_webds_vila_recaption = Dataset(
-        dataset_name="coyo_25m_wds_recap",
+        dataset_name="coyo_webds_vila_recaption",
         dataset_type="coyo-wds-recap",
         # data_path='/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila',
         # NOTE(ligeng) change to ligeng's path to keep consisty across draco and cs.

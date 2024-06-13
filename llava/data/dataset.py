@@ -2278,6 +2278,8 @@ class LazyVideoWebDataset(Dataset):
 
         self.tokenizer = tokenizer
         self.data_args = data_args
+        
+        self.missing_uids = set()
 
     def __len__(self):
         return len(self.dataset)
@@ -2318,21 +2320,21 @@ class LazyVideoWebDataset(Dataset):
             uuid = osp.join(info["__shard__"], info["__key__"])
             url = info["__key__"]
             tar_name = osp.basename(info["__shard__"])
-            shard_json_path = osp.join(self.caption_choice, tar_name.replace(".tar", ".json"))
-            shard_json = lru_json_load(shard_json_path)
             
             try:
+                shard_json_path = osp.join(self.caption_choice, tar_name.replace(".tar", ".json"))
+                shard_json = lru_json_load(shard_json_path)
                 caption = shard_json[url]["summary"]["output"]
-            except KeyError:
-                print("override caption not found for ", uuid)
+            except (KeyError, FileNotFoundError, json.decoder.JSONDecodeError):
+                if uuid not in self.missing_uids:
+                    print("override caption not found for ", uuid)
+                    self.missing_uids.add(uuid)
             
-            print(f"[DEBUG {uuid}]", caption)
+            # print(f"[DEBUG {uuid}]", caption)
             
         frames_loaded_successfully = len(images)
 
         prompt = "<image>\n" * frames_loaded_successfully + caption
-
-
         image_tensor = torch.stack(
             [process_image(image, self.data_args, None) for image in images]
         )
