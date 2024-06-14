@@ -39,6 +39,15 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    nvclip_5m = Dataset(
+        dataset_name="nvclip_5m",
+        dataset_type="video-wds",
+        data_path="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/data",
+        start_idx=0 / 100,
+        end_idx=100 / 100,
+    )
+    add_dataset(nvclip_5m)
+    
     internvid_10M_recap = Dataset(
         dataset_name="internvid_10M_recap",
         dataset_type="video-wds",
