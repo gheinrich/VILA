@@ -32,7 +32,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir /lustre/fs8/portfolios/nvr/users/jasonlu/workspace/checkpoints/vila-siglip-llama3-8b-align_sp4_r526 \
+    --output_dir /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-siglip-llama3-8b-align_sp4_r604 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

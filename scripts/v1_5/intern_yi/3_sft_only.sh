@@ -20,11 +20,10 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/models/Nous-Hermes-2-Yi-34B \
+    --model_name_or_path Efficient-Large-Model/VILA1.5-34b-stage2 \
     --version hermes-2 \
-    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+nv_sft \
+    --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock+stem_qa+nv_sft+nv_sft2+idefics2_sft_wo_table+clevr_math \
     --vision_tower /home/jasonlu/models/InternViT-6B-448px-V1-2 \
-    --mlp_path /home/jasonlu/models/InternViT-6B-448px-V1-2/mlp_projector.pth \
     --mm_projector mlp_downsample \
     --tune_vision_tower True \
     --tune_mm_projector True \
@@ -36,7 +35,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --drop_path_rate 0.4 \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_fix797 \
+    --output_dir ./checkpoints/vila-yi-34b-intern-6b-sft_only_r606 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
