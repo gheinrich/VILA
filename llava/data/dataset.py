@@ -2252,7 +2252,7 @@ class LazyVideoWebDataset(Dataset):
 
         # None: use original caption
         # Folder path: use original caption
-        self.caption_chocie = None
+        self.caption_choice = None
         self.data_path = data_path
 
         if data_args.caption_choice is not None:

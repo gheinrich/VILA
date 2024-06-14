@@ -142,9 +142,8 @@ class LazyImageTextWebDataset(Dataset):
             if ".txt" in info:
                 caption = info[".txt"]
             
-
-            assert self.caption_choice is not None or self.caption_choice_2 is not None
-            # load new captions
+            
+            # load customized captions sets
             shard = info["__shard__"]
             url = osp.join(info["__shard__"], str(info["__shardindex__"]))
             tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
@@ -177,14 +176,17 @@ class LazyImageTextWebDataset(Dataset):
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
+            # print("---" * 40)
+            # print("image:", image, "\ncaption:", caption)
+            # print("---" * 40)
             if isinstance(image, io.BytesIO):
                 image = Image.open(image).convert("RGB")
 
-            if not isinstance(image, PIL.Image.Image):
-                print(image)
-                print(info.keys())
-                print(type(image))
-                raise NotImplementedError
+            # if not isinstance(image, PIL.Image.Image):
+            #     print(image)
+            #     print(info.keys())
+            #     print(type(image))
+            #     raise NotImplementedError
 
             image_list.append(image)
 
