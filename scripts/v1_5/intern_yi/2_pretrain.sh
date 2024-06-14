@@ -20,9 +20,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-yi-34b-intern-6b-alignment_fix600 \
+    --model_name_or_path /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-yi-34b-intern-6b-sft_only_pretrain_fix500 \
     --version hermes-2 \
-    --data_mixture sharegpt4v_pretrain \
+    --data_mixture internvid_10M_recap+mmc4core_10_subset+coyo_webds_vila_recaption_10_subset_llm_refined \
     --vision_tower /home/jasonlu/models/InternViT-6B-448px-V1-2 \
     --mm_projector mlp_downsample \
     --tune_vision_tower False \
@@ -32,10 +32,9 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
-    --drop_path_rate 0.4 \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/vila-yi-34b-intern-6b-alignment_fix601_pretrain \
+    --output_dir ./checkpoints/vila-yi-34b-intern-6b-stage2_5 \
     --num_train_epochs 1 \
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \

@@ -2153,7 +2153,7 @@ class LazyCoyoWebDataset(Dataset):
                     shard_json = lru_json_load(shard_json_path)
                     caption = shard_json[url]["output"]
                     # print("loding with recaption choice1")
-                except KeyError:
+                except (KeyError, FileNotFoundError):
                     print(f"{url} not in caption. fallback to original caption temporarially")
 
             if self.caption_choice_2 is not None:

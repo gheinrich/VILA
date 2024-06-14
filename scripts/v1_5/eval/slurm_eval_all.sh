@@ -8,11 +8,11 @@ cd ~/workspace/VILA-Internal
 # Prerequisite: 1. pip install -e ".[eval]"; 2.Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
 
 # Make sure partitions according to different clusters.
-PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
-#PARTITIONS="polar,grizzly"
+#PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
+PARTITIONS="polar,grizzly"
 
 ACCOUNT="llmservice_nlp_fm"
-ACCOUNT="nvr_elm_llm"
+ACCOUNT="nvr_lpr_llm"
 
 # Checkpoint path and model name (replace with your actual values)
 checkpoint_path=$1
@@ -22,7 +22,7 @@ if [ "$#" -ge 3 ]; then
     conv_mode="$3"
 fi
 
-ACCOUNT="llmservice_nlp_fm"
+#ACCOUNT="llmservice_nlp_fm"
 #ACCOUNT="nvr_elm_llm"
 #ACCOUNT="nvr_lpr_aiagent"
 
