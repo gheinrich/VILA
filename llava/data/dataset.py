@@ -2252,7 +2252,7 @@ class LazyVideoWebDataset(Dataset):
 
         # None: use original caption
         # Folder path: use original caption
-        self.caption_chocie = None
+        self.caption_choice = None
         self.data_path = data_path
 
         if data_args.caption_choice is not None:
@@ -2863,7 +2863,7 @@ def build_datasets(
             dataset_cls = LazySAMWebDataset
         elif dataset_type == "sam-wds-tmp":
             print("dataset.py: Loading SAM class")
-            from llava.data.dataset_impl.sam_tmp import LazySAMTmpWebDataset
+            from llava.data.dataset_impl.general_img_text import LazySAMTmpWebDataset
             dataset_cls = LazySAMTmpWebDataset
         elif dataset_type == "coyo-wds":
             dataset_cls = LazyCoyoWebDataset
@@ -2891,6 +2891,10 @@ def build_datasets(
             dataset_cls = LazyVFlanDataset
         elif dataset_type == "video-wds":
             dataset_cls = LazyVideoWebDataset
+        elif dataset_type == "imgtxt-wds":
+            print("dataset.py: Loading VILAPanda70m class")
+            from llava.data.dataset_impl.general_img_text import LazyImageTextWebDataset
+            dataset_cls = LazyImageTextWebDataset
         elif dataset_type == "evaluation":
             dataset_cls = LazyEvaluateDataset
         elif dataset_type == "dummy":
