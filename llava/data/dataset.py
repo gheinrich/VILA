@@ -2148,9 +2148,9 @@ class LazyCoyoWebDataset(Dataset):
                 tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
                 # tar_name = osp.dirname(shard)
                 shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
-                shard_json = lru_json_load(shard_json_path)
                 # print("DEBUG:", shard, self.data_path, tar_name)
                 try:
+                    shard_json = lru_json_load(shard_json_path)
                     caption = shard_json[url]["output"]
                     # print("loding with recaption choice1")
                 except KeyError:
