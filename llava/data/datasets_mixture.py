@@ -778,9 +778,9 @@ def register_datasets_mixtures():
     idefics2_sft = Dataset(
         dataset_name="idefics2_sft",
         dataset_type="torch",
-        data_path="/home/jasonlu/workspace/idefics2-sft/new-vflan/idefics2_sft_train.jsonl",
-        image_path="/home/jasonlu/workspace/idefics2-sft/new-vflan",
-        description="",
+        data_path="/home/yunhaof/workspace/datasets/idefics2-sft/processed/idefics2_sft_w_table.jsonl",
+        image_path="/home/yunhaof/workspace/datasets/idefics2-sft",
+        description="IDEFICS2-SFT dataets, exclude PlotQA and Localized Narratives for slow processing.",
     )
     add_dataset(idefics2_sft)
     
@@ -789,6 +789,7 @@ def register_datasets_mixtures():
         dataset_type="torch",
         data_path="/home/yunhaof/workspace/datasets/idefics2-sft/processed/idefics2_sft_wo_table.jsonl",
         image_path="/home/yunhaof/workspace/datasets/idefics2-sft",
+        description="IDEFICS2-SFT dataets, exclude PlotQA, Localized Narratives for slow processing, and table / charts datasets for high resolution requirements."
     )
     add_dataset(idefics2_sft_wo_table)
     
