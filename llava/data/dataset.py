@@ -828,9 +828,6 @@ class LazySupervisedDataset(Dataset):
             image_tensor = torch.stack(
                 [process_image(image, self.data_args, None) for image in images]
             )
-            image_tensor = torch.stack(
-                [process_image(image, self.data_args, None) for image in images]
-            )
 
             if "video" in sources[0]:
                 question = sources[0]["conversations"][0]["value"].rstrip()
