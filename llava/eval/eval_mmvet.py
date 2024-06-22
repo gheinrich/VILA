@@ -1,6 +1,8 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import openai
+from openai import AzureOpenAI
+
 import json
 import os
 from tqdm import tqdm
@@ -15,9 +17,17 @@ parser.add_argument("--results_file", type=str)
 
 args = parser.parse_args()
 
+try:
+    client = AzureOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+        api_version="2024-02-01",
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    )
+except:
+    client = openai
 
 
-gpt_model = "gpt-4-0613"
+gpt_model = "gpt-4"
 
 
 prompt = """Compare the ground truth and prediction from AI models, to give a correctness score for the prediction. <AND> in the ground truth means it is totally right only when all elements in the ground truth are present in the prediction, and <OR> means it is totally right when any one element in the ground truth is present in the prediction. The correctness score is 0.0 (totally wrong), 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, or 1.0 (totally right). Just complete the last space of the correctness score.
@@ -163,7 +173,7 @@ while need_more_runs():
 
             while not grade_sample_run_complete:
                 try:
-                    response = openai.chat.completions.create(
+                    response = client.chat.completions.create(
                         model=gpt_model,
                         max_tokens=3,
                         temperature=temperature,
@@ -183,7 +193,7 @@ while need_more_runs():
                             messages = [
                             {"role": "user", "content": question},
                             ]
-                            response = openai.chat.completions.create(
+                            response = client.chat.completions.create(
                                 model=gpt_model,
                                 max_tokens=3,
                                 temperature=temperature,

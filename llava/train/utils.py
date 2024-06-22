@@ -86,7 +86,8 @@ def prepare_config_for_training(
     ## set data args
     config.image_aspect_ratio = data_args.image_aspect_ratio
 
-    if "mics" in training_args.deepspeed:
+    # if "mics" in training_args.deepspeed:
+    if hasattr(training_args, "deepspeed") and "mics" in training_args.deepspeed:
         config.deepspeed = training_args.deepspeed
 
     ## extra vision tower configuration
