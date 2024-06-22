@@ -32,6 +32,21 @@ assert sender is not None and password is not None, "sender account and password
 # recipients = os.environ.get("VILA_CI_RECIPIENTS", "ligengz@nvidia.com")
 # recipients = recipients.split(",")
 
+from collections import deque
+import tempfile
+
+def copy_last_100_lines_to_tempfile(source_file_path, maxlen=2000):
+    # Read the last 100 lines from the source file
+    with open(source_file_path, 'r') as source_file:
+        last_100_lines = deque(source_file, maxlen=maxlen)
+    
+    # Create a temporary file and write the last 100 lines to it
+    with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt') as temp_file:
+        temp_file.writelines(last_100_lines)
+        temp_file_path = temp_file.name
+    
+    print(f"Temporary file created at: {temp_file_path}")
+    return temp_file_path
 
 def send_email(subject, body, sender, recipients, password, files=None):
 
@@ -45,7 +60,7 @@ def send_email(subject, body, sender, recipients, password, files=None):
     for f in files or []:
         fpath = osp.join("dev", f.replace("/", "--") + ".err")
         print(f"uploading {fpath}")
-        with open(fpath, "rb") as fil:
+        with open(copy_last_100_lines_to_tempfile(fpath), "rb") as fil:
             part = MIMEApplication(
                 fil.read(),
                 Name=osp.basename(fpath.replace(".py.err", ".txt"))

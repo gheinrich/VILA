@@ -2,6 +2,7 @@ import unittest
 
 from llava.unit_test_utils import requires_gpu, requires_lustre
 
+coyo_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila"
 
 class TestStringMethods(unittest.TestCase):
     @unittest.expectedFailure
@@ -22,7 +23,7 @@ class TestStringMethods(unittest.TestCase):
         from llava.data.simple_vila_webdataset import VILAWebDataset
 
         train_dataset = VILAWebDataset(
-            data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+            data_path=coyo_path,
         )
         print(train_dataset[0])
 
@@ -32,7 +33,7 @@ class TestStringMethods(unittest.TestCase):
         from llava.data.simple_vila_webdataset import VILAWebDataset
 
         train_dataset = VILAWebDataset(
-            data_path="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/coyo-25m-vila",
+            data_path=coyo_path,
         )
         print(train_dataset[0])
         import torch
