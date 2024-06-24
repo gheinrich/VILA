@@ -1,13 +1,13 @@
 export SLURM_ACCOUNT=nvr_elm_llm
 # dtime=$(TZ=Asia/Shanghai date +"%b_%d")
+
+_VILA_CI_RECIPIENTS=${2:-"ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com"}
+
 suffix=${1:-"42"}
-
 export SEED=$suffix
-
-_VILA_CI_RECIPIENTS=ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com
-
 dtime=$(date +"%b_%d")
-WORKDIR=./checkpoints/vila-regression/$dtime-$suffix
+_WORKDIR=./checkpoints/vila-regression-$dtime
+WORKDIR=$_WORKDIR/seed-$suffix
 CKPT1=$WORKDIR/CIs-reproduce-stage1
 CKPT2=$WORKDIR/CIs-reproduce-stage2
 CKPT3=$WORKDIR/CIs-reproduce-stage3-image
@@ -88,10 +88,9 @@ wait
 '''
 pip install fire markdown
 '''
-_VILA_CI_RECIPIENTS=ligengz@nvidia.com
-_VILA_CI_RECIPIENTS=ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com
-BASE=/home/ligengz/workspace/VILA-internal-ci/checkpoints/vila-regression
+# _VILA_CI_RECIPIENTS=ligengz@nvidia.com
+BASE=$(realpath $_WORKDIR)
 python CIs/send_email.py \
-    --title="VILA Regression Test Report" \
+    --title="[VILA] Regression Test Report $(date +'%m/%d/%Y %H:%M')" \
     --recipients $_VILA_CI_RECIPIENTS \
-    --markdown_text "####Regression Test Finish at \n\n* $BASE/May_27-42 \n* $BASE/May_27-43 \n* $BASE/May_27-44\n\n please eval (cs cluster)"
+    --markdown_text "####Regression Test Finish at \n\n* $BASE \n\n please eval on $(hostname)"
