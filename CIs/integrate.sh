@@ -1,6 +1,7 @@
 # /bin/bash
 export SLURM_ACCOUNT=nvr_elm_llm
 
+VILA_CI_MAILIST="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com"
 
 SECONDS=0
 while true; do
@@ -21,7 +22,7 @@ fi
 
 # running CIs jobs
 which python
-bash CIs/continual_local.sh "ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com"
+bash CIs/continual_local.sh $VILA_CI_MAILIST
 
 # launch CI every 3 hour if new commits
 while true; do
