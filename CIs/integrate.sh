@@ -5,13 +5,11 @@ export SLURM_ACCOUNT=nvr_elm_llm
 SECONDS=0
 while true; do
 
-# WORKDIR=~/workspace/VILA-internal
-# cd $WORKDIR
 mkdir -p dev
 
+# skip if no new commits
 git pull
 githash=$(git log --format="%H" -n 1)
-# skip if no new commits
 if [[ $(< dev/githash.txt) == "$githash" ]]; then
     echo "$(date '+%Y-%m-%d %H:%M') No updates since last CI. Skip $githash"
     sleep 60
@@ -21,10 +19,11 @@ else
     echo $githash > dev/githash.txt
 fi
 
+# running CIs jobs
 which python
-bash CIs/continual_local.sh "ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com"
+bash CIs/continual_local.sh "ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com"
 
-# every 3 hour if new commits
+# launch CI every 3 hour if new commits
 while true; do
     if [ "$SECONDS" -gt "10800" ]; then
         SECONDS=0
