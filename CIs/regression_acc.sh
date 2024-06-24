@@ -14,6 +14,7 @@ CKPT3=$WORKDIR/CIs-reproduce-stage3-image
 CKPT3_video=$WORKDIR/CIs-reproduce-stage3-video
 
 # rm $CKPT1 $CKPT2 $CKPT3
+rm core.*
 wait
 
 echo "[$SLURM_ACCOUNT] working directory $WORKDIR"
