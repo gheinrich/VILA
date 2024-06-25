@@ -76,6 +76,15 @@ def send_email(subject, body, sender, recipients, password, files=None):
     print(f"Message sent to {recipients}")
 
 
+import subprocess
+
+def get_git_revision_hash():
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+def get_git_revision_short_hash():
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+
+
 def main(
     text=None,
     markdown_text=None,
@@ -109,9 +118,9 @@ def main(
         info = "".join(info_failed + info_success)
         
         if len(info_failed) > 0:
-            header = "<p>The log for failed jobs are attached. You can run <b> python xxx.py </b> to reproduce.</p>"
+            header = f"<p>The log for failed jobs are attached. You can run <b> python xxx.py </b> to reproduce. git hash: {get_git_revision_short_hash()}</p>"
         else:
-            header = "All checks have passed succesfully!"
+            header = f"<p>All checks have passed succesfully! git hash: {get_git_revision_short_hash()}</p>"
         
         body = f"""\
             <html>
