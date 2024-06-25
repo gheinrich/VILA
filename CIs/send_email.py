@@ -22,6 +22,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
+import socket
 
 
 sender = os.environ.get("VILA_CI_SENDER", None)
@@ -83,7 +84,8 @@ def main(
 ):
     today = datetime.now().strftime("%m/%d/%Y %H:%M")
     if title is None:
-        subject = f"[VILA] Continual Test Report {today}"
+        hostname = socket.gethostname()
+        subject = f"[VILA] Continual Test Report {today} at {hostname}"
     else:
         subject = title
     body = f"""Testing"""
