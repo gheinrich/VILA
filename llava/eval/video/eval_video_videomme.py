@@ -87,6 +87,7 @@ def extract_characters_regex(s):
 
 def eval_your_results(
         your_results_path: str, 
+        groundtruth_path: str,
         video_types: Optional[Union[List[str], str]] = None,
         skip_missing: Optional[bool] = False,
         return_categories_accuracy: Optional[bool] = True,
@@ -112,7 +113,42 @@ def eval_your_results(
 
     # Load your results
     with open(your_results_path, 'r') as f:
-        your_results = json.load(f)
+        your_results_dict = json.load(f)
+    groundtruth_list = json.load(open(groundtruth_path))
+    class_mapping = {}
+    # for video_item in groundtruth_list:
+    #     class_mapping[video_item["video_id"]] = {
+    #         "video_category": video_item["video_category"],
+    #         "video_subcategory": video_item["video_subcategory"],
+    #         "duration_category": video_item["duration_category"],
+    #         "questions": video_item["questions"]
+    #     }
+
+    # Add the video category, sub category and duration_category to your results
+    your_results = []
+    for item in groundtruth_list:
+        for question in item["questions"]:
+            q_id = question["question_id"]
+            if q_id in your_results_dict:
+                question["response"] = your_results_dict[q_id]["response"]
+                item["missing"] = False
+            else:
+                question["response"] = "C"
+                item["missing"] = True
+                break
+        your_results.append(item)
+
+        # q_id = item["question_id"]
+        # video_id = q_id.split("-")[0]
+        # if video_id in class_mapping:
+        #     item["video_category"] = class_mapping[video_id]["video_category"]
+        #     item["video_subcategory"] = class_mapping[video_id]["video_subcategory"]
+        #     item["duration_category"] = class_mapping[video_id]["duration_category"]
+        #     item["questions"] = class_mapping[video_id]["questions"]
+        #     item["missing"] = False
+        # else:
+        #     item["missing"] = True
+        # your_results.append(item)
 
     if isinstance(video_types, str):
         video_types = video_types.split(",")
@@ -120,6 +156,8 @@ def eval_your_results(
     q_type_dict = {}
     v_type_dict = {}
     v_sub_type_dict = {}
+    # print("Keys:", your_results.keys())
+    # print(asd)
 
     for video_type in video_types:
 
@@ -258,6 +296,7 @@ def eval_your_results(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_file", type=str, required=True)
+    parser.add_argument("--groundtruth_file", type=str, required=True)
     parser.add_argument("--video_duration_type", type=str, required=True)
     parser.add_argument("--return_categories_accuracy", action="store_true")
     parser.add_argument("--return_sub_categories_accuracy", action="store_true")
@@ -268,6 +307,7 @@ if __name__ == "__main__":
 
     eval_your_results(
         args.results_file, 
+        args.groundtruth_file,
         video_types=args.video_duration_type,
         return_categories_accuracy=args.return_categories_accuracy,
         return_sub_categories_accuracy=args.return_sub_categories_accuracy,

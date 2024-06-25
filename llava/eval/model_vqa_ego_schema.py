@@ -147,8 +147,7 @@ def eval_model(args):
             for i in range(5):
                 question = question + chr(ord("A") + i) + ". " + sample[f"option {i}"] + "\n"
             sample_set = {'id': q_uid, 'question': question}
-            question = question + "Answer with the option's letter from the given choices directly."
-            
+            question = "Watching the video and answer with the option's letter from the given choices directly." + question
             images, video_loading_succeed = LazySupervisedDataset._load_video(
                 os.path.join(video_dir, video_name), num_video_frames, fps, args
             )
@@ -183,7 +182,7 @@ def eval_model(args):
             for i in range(5):
                 question = question + chr(ord("A") + i) + ". " + sample[f"option {i}"] + "\n"
             sample_set = {'id': q_uid, 'question': question}
-            question = question + "Answer with the option's letter from the given choices directly."
+            question = "Watching the video and answer with the option's letter from the given choices directly." + question
 
             images, video_loading_succeed = LazySupervisedDataset._load_video(
                 os.path.join(video_dir, video_name), num_video_frames, fps, args

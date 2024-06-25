@@ -1087,10 +1087,18 @@ def register_datasets_mixtures():
         dataset_name="osmo_nextqa",
         dataset_type="torch",
         data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/train-processed.json",
-        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/NExTVideo",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/NExTVideo_processed_v4",
         description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
     )
     add_dataset(osmo_nextqa)
+    osmo_nextqa_mc = Dataset(
+        dataset_name="osmo_nextqa_mc",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/train-processed-filtered-mc.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/nextqa/nextqa/NExTVideo_processed_v4",
+        description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
+    )
+    add_dataset(osmo_nextqa_mc)
     osmo_msrvttqa = Dataset(
         dataset_name="osmo_msrvttqa",
         dataset_type="torch",
@@ -1099,3 +1107,81 @@ def register_datasets_mixtures():
         description="6321 videos with 6321 rewritten QA-pairs based on the rewritten captions. (The typos in captions have been fixed by GPT-3.5-turbo)",
     )
     add_dataset(osmo_msrvttqa)
+    osmo_llava_instruct = Dataset(
+        dataset_name="osmo_llava_instruct",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/internvl_chat_coco/llava_instruct_150k_zh.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/internvl_chat_coco/coco",
+        description="",
+    )
+    add_dataset(osmo_llava_instruct)
+    osmo_dvqa_train_200k = Dataset(
+        dataset_name="osmo_dvqa_train_200k",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/dvqa/dvqa_train_200k.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/dvqa/dvqa",
+        description="",
+    )
+    add_dataset(osmo_dvqa_train_200k)
+    osmo_chartqa_train_18k = Dataset(
+        dataset_name="osmo_chartqa_train_18k",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/chartqa/chartqa_train_18k.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/chartqa/chartqa",
+        description="",
+    )
+    add_dataset(osmo_chartqa_train_18k)
+    osmo_ai2d_train_12k = Dataset(
+        dataset_name="osmo_ai2d_train_12k",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/ai2d/ai2d_train_12k.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/ai2d/ai2d",
+        description="",
+    )
+    add_dataset(osmo_ai2d_train_12k)
+    osmo_docvqa_train_10k = Dataset(
+        dataset_name="osmo_docvqa_train_10k",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/docvqa/docvqa/docvqa_train_10k.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/docvqa/docvqa",
+        description="",
+    )
+    add_dataset(osmo_docvqa_train_10k)
+    osmo_geoqa = Dataset(
+        dataset_name="osmo_geoqa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/geoqa/geoqa+.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/geoqa/geoqa+",
+        description="",
+    )
+    add_dataset(osmo_geoqa)
+    osmo_synthdog_en = Dataset(
+        dataset_name="osmo_synthdog_en",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/synthdog-en/synthdog_en.jsonl",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/synthdog-en/synthdog-en",
+        description="",
+    )
+    add_dataset(osmo_synthdog_en)
+    osmo_scienceqa = Dataset(
+        dataset_name="osmo_scienceqa",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/scienceqa/scienceqa/scienceqa_train_12k.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/scienceqa/scienceqa/images",
+    )
+    add_dataset(osmo_scienceqa)
+    osmo_math = Dataset(
+        dataset_name="osmo_math",
+        dataset_type="vflan",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/math/math",
+    )
+    add_dataset(osmo_math)
+    osmo_sherlock = Dataset(
+        dataset_name="osmo_sherlock",
+        dataset_type="torch",
+        data_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sherlock/sherlock/processed/sherlock_317k.json",
+        image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sherlock/sherlock/images",
+    )
+    add_dataset(osmo_sherlock)
+
+

@@ -13,6 +13,7 @@ from llava.conversation import conv_templates, SeparatorStyle
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from llava.mm_utils import opencv_extract_frames
 
 from PIL import Image
 import math
@@ -51,8 +52,18 @@ def safely_merge_info(out_fpath, info):
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, conv_mode="vicuna_v1", 
                      num_video_frames = 8, temperature = 0.2, num_beams = 1):
-    from llava.mm_utils import opencv_extract_frames
-    imgs, num_frames = opencv_extract_frames(video_path, num_video_frames)
+
+    if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
+        num_video_frames = model.config.num_video_frames 
+    else:
+        num_video_frames = 8
+
+    if hasattr(model.config, 'fps') and model.config.fps is not None:
+        fps = model.config.fps
+    else:
+        fps = 0.0
+
+    imgs, _ = opencv_extract_frames(video_path, num_video_frames, fps)
     num_frames_loaded = len(imgs)
     # print(imgs)
     
@@ -112,28 +123,32 @@ The best answer is:
 def eval_model(args):
     from pprint import pprint 
     pprint(vars(args))
-    output_name =  osp.basename(args.model_path) + f"_tmp={args.temperature}_beams={args.num_beams}" + "video_mme.json"
+    # output_name =  osp.basename(args.model_path) + f"_tmp={args.temperature}_beams={args.num_beams}" + "video_mme.json"
+    output_name = args.output_name
     output_json = []
     labeled_key = {}
     if osp.exists(output_name):
         labeled_key = json.load(open(output_name))
     print("already answered ", len(labeled_key.keys()), output_name)
     
-    jinfo = json.load(open("/home/ligengz/workspace/video-mme/Video-MME.json"))
-    folder = "/home/ligengz/workspace/video-mme/ytb_videos"
+    # jinfo = json.load(open("/home/ligengz/workspace/video-mme/Video-MME.json"))
+    # folder = "/home/ligengz/workspace/video-mme/ytb_videos"
+    jinfo = json.load(open(args.input_json))
+    folder = args.video_dir
+
     
-    if args.convert:
-        for vmeta in jinfo:
-            for question in vmeta["questions"]:
-                qid = question["question_id"]
-                if qid in labeled_key:
-                    question["response"] = labeled_key[qid]["response"]
-                else:
-                    print("missing", qid)
-                    question["response"] = "C"
-        with open(output_name.replace(".json", "_converted.json"), "w") as fp:
-            json.dump(jinfo, fp, indent=2)
-        return 0
+    # if args.convert:
+    #     for vmeta in jinfo:
+    #         for question in vmeta["questions"]:
+    #             qid = question["question_id"]
+    #             if qid in labeled_key:
+    #                 question["response"] = labeled_key[qid]["response"]
+    #             else:
+    #                 print("missing", qid)
+    #                 question["response"] = "C"
+    #     with open(output_name.replace(".json", "_converted.json"), "w") as fp:
+    #         json.dump(jinfo, fp, indent=2)
+    #     return 0
             
             
     
@@ -156,6 +171,7 @@ def eval_model(args):
     for idx, vmeta in tqdm(enumerate(jinfo), total=len(jinfo)):
         if not (idx >= begin_idx and idx < end_idx):
             continue
+        print(f"Processing {idx}/{len(jinfo)}")
         url = vmeta["url"]
         video_id = vmeta["video_id"]
         uid = osp.basename(url).split("?v=")[-1]
@@ -174,6 +190,9 @@ def eval_model(args):
             qs = template.format(question=qa)
             output = get_model_output(model, image_processor, tokenizer, vpath, qs, 
                         conv_mode=args.conv_mode, temperature=args.temperature, num_beams=args.num_beams)
+            # print("Question: ", qs)
+            # print("Model Ouput: ", output)
+            # print("====================================")
             questions["response"] = output
             labeled_key[questions["question_id"]] = questions
         # break
@@ -191,10 +210,10 @@ if __name__ == "__main__":
     parser.add_argument("--total", type=int, default=-1)
     parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA1.5-3b")
     parser.add_argument("--model-base", type=str, default=None)
-    parser.add_argument("--model_max_length", type=int, required=False, default=5120)
-    # parser.add_argument('--video_dir', help='Directory containing video files.', default="~/workspace/vila-captioner-avfm/videos")
-    parser.add_argument('--output_name', help='Name of the file for storing results JSON.', default="video_inference_dev.json")
-    parser.add_argument("--conv-mode", type=str, default="llava_v1")
+    parser.add_argument('--input_json', help='JSON file containing video metadata.', default="video_inference_dev.json")
+    parser.add_argument('--video_dir', help='Directory containing video files.', default="~/workspace/vila-captioner-avfm/videos")
+    parser.add_argument('--output_name', help='Name of the file for storing results JSON.', required=True)
+    parser.add_argument("--conv-mode", type=str, default="v1")
     parser.add_argument("--num-chunks", type=int, default=1)
     
     parser.add_argument("--temperature", type=float, default=0.0)

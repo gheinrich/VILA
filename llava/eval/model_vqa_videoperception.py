@@ -8,10 +8,11 @@ from tqdm import tqdm
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, IGNORE_INDEX
 from llava import conversation as conversation_lib
+from llava.conversation import SeparatorStyle, conv_templates
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
-from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria, is_gemma_tokenizer
 from llava.data import preprocess
 from llava.mm_utils import process_images
 
@@ -37,7 +38,7 @@ def get_chunk(lst, n, k):
     return chunks[k]
 
 
-def get_model_option(model, image_processor, tokenizer, video_path, qs, options, args):
+def get_model_output(model, image_processor, tokenizer, video_path, qs, options, args):
 
     conversation_lib.default_conversation = conversation_lib.conv_templates[
         args.conv_mode
@@ -54,47 +55,93 @@ def get_model_option(model, image_processor, tokenizer, video_path, qs, options,
 
     # print(fps)
     images, frames_loaded = LazySupervisedDataset._load_video(video_path, num_video_frames, fps, args)
-    image_tensor = process_images(images, image_processor, model.config)
+    images = process_images(images, image_processor, model.config)
 
     num_frames_loaded_successfully = len(images)
     # print(f"Number of frames loaded successfully: {num_frames_loaded_successfully}")
+
     qs = qs.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
     qs = qs.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
+    qs = "Watching the video and answer with the option's letter from the given choices directly." + qs
     qs = '<image>\n' * num_frames_loaded_successfully + qs
     
     loss_list = []
-    for id, option in enumerate(options):
 
-        conversation = [
-            {"from": "human", "value": qs},
-            {"from": "gpt", "value": option},
-        ]
+    for i, option in enumerate(options):
+        qs = qs + chr(ord("A") + i) + ". " + option + "\n"
 
-        sources = [conversation]
+    conversation = [
+        {"from": "human", "value": qs},
+        {"from": "gpt", "value": None},
+    ]
 
-        data_dict = preprocess(
-            sources,
-            tokenizer,
-            has_image=True,
+
+    conv = conv_templates[args.conv_mode].copy()
+    conv.append_message(conv.roles[0], qs)
+    conv.append_message(conv.roles[1], None)
+    prompt = conv.get_prompt()
+
+    input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
+
+    stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+    keywords = [stop_str]
+    stopping_criteria = (
+        [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+        if conv.version == "v0" or is_gemma_tokenizer(tokenizer)
+        else None
+    )
+
+    with torch.inference_mode():
+        output_ids = model.generate(
+            input_ids,
+            images=images.half().cuda(),
+            # images=images.bfloat16().cuda(),
+            do_sample=True if args.temperature > 0 else False,
+            temperature=args.temperature,
+            max_new_tokens=1024,
+            use_cache=True,
+            stopping_criteria=stopping_criteria,
         )
-        input_ids = data_dict["input_ids"]
-        targets = data_dict["labels"]
-        # Remove last ending token
-        targets[0][-1] = IGNORE_INDEX
 
-        with torch.inference_mode():
-            outputs = model(
-                input_ids=input_ids.cuda(),
-                labels=targets.cuda(),
-                images=image_tensor.half().cuda(),
-                attention_mask=input_ids.cuda().ne(tokenizer.pad_token_id),
-            )
-            loss = outputs.loss.item()
-            loss_list.append(loss)
+    output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+    # out_samples[q_uid] = output_text
+    output_text = output_text.strip()
+    if output_text.endswith(stop_str):
+        output_text = output_text[: -len(stop_str)]
+    output_text = output_text.strip()
+    print(output_text)
 
-    # Get index of the minimum loss
-    min_loss_index = loss_list.index(min(loss_list))
-    return min_loss_index
+    if len(output_text) >= 1:
+        pred_text = output_text[0]
+    else:
+        pred_text = ""
+
+    return pred_text
+    # sources = [conversation]
+
+    # data_dict = preprocess(
+    #     sources,
+    #     tokenizer,
+    #     has_image=True,
+    # )
+    # input_ids = data_dict["input_ids"]
+    # targets = data_dict["labels"]
+    # # Remove last ending token
+    # targets[0][-1] = IGNORE_INDEX
+
+    # with torch.inference_mode():
+    #     outputs = model(
+    #         input_ids=input_ids.cuda(),
+    #         labels=targets.cuda(),
+    #         images=image_tensor.half().cuda(),
+    #         attention_mask=input_ids.cuda().ne(tokenizer.pad_token_id),
+    #     )
+    #     loss = outputs.loss.item()
+    #     loss_list.append(loss)
+
+    # # Get index of the minimum loss
+    # min_loss_index = loss_list.index(min(loss_list))
+    # return min_loss_index
 
 
 def eval_model(args):
@@ -151,17 +198,13 @@ def eval_model(args):
             if f"{video_name}_{question_id}" in cache_set:
                 print(f"Skipping {video_name}_{question_id} because it is in the cache")
                 continue
-            min_loss_index = get_model_option(model, image_processor, tokenizer, os.path.join(args.video_dir, f"{video_name}.mp4"), question, options, args)
-            # if min_loss_index == answer_id:
-            #     correct += 1
-
-            # Write into cache
+            response = get_model_output(model, image_processor, tokenizer, os.path.join(args.video_dir, f"{video_name}.mp4"), question, options, args)
             sample_set = {
                 'video_name_question_id': f"{video_name}_{question_id}", 
                 'question': question, 
                 'answer_id': answer_id,
-                'prediction': min_loss_index,
-                'correct': min_loss_index == answer_id,
+                'prediction': response,
+                'correct': response == chr(ord("A") + answer_id),
             }
             with open(answers_file, 'a') as f:
                 f.write(json.dumps(sample_set) + "\n")
