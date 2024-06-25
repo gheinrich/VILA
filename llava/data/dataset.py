@@ -803,7 +803,9 @@ class LazySupervisedDataset(Dataset):
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
         elif ("video" in sources[0]) or ("video_id" in sources[0]):
             # num_video_frames = self.data_args.num_video_frames
-            if "video" in sources[0]:
+            if "video_path" in sources[0]:
+                video_file = sources[0]["video_path"]
+            elif "video" in sources[0]:
                 video_file = sources[0]["video"]
             else:
                 video_file = sources[0]["video_id"] + ".mp4"
@@ -829,7 +831,11 @@ class LazySupervisedDataset(Dataset):
                 [process_image(image, self.data_args, None) for image in images]
             )
 
-            if "video" in sources[0]:
+            if "captions" in sources[0]:
+                question = "Elaborate on the visual and narrative elements of the video in detail."
+                assert sources[0]["captions"][-1]["idx"] == "-1"
+                answer = sources[0]["captions"][-1]["content"]
+            elif "video" in sources[0]:
                 question = sources[0]["conversations"][0]["value"].rstrip()
                 if isinstance(sources[0]["conversations"][1]["value"], str):
                     answer = sources[0]["conversations"][1]["value"].rstrip()

@@ -360,6 +360,132 @@ def register_datasets_mixtures():
     )
     add_dataset(llava_1_5_sft)
 
+    sharegpt4o_image = Dataset(
+        dataset_name="sharegpt4o_image",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT-4o/image_conversations/gpt-4o.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/ShareGPT-4o/mnt/petrelfs/wangwenhai/workspace_cef/4o/image",
+        description="Original data source: https://sharegpt4v.github.io/ 50K image caption labelled by GPT-4o.",
+    )
+    add_dataset(sharegpt4o_image)
+
+    sharegpt4o_video = Dataset(
+        dataset_name="sharegpt4o_video",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT-4o/video_conversations/gpt4o.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/ShareGPT-4o/pvideo",
+        description="Original data source: https://sharegpt4v.github.io/ 2K video caption labelled by GPT-4o.",
+    )
+    add_dataset(sharegpt4o_video)
+
+    sharegpt4video = Dataset(
+        dataset_name="sharegpt4video",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k_nopanda.jsonl",   # TODO add panda back
+        image_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/zip_folder",
+        description="Original data source: https://sharegpt4video.github.io/ 40K video caption labelled by GPT-4V.",
+    )
+    add_dataset(sharegpt4video)
+
+    videogpt_plus = Dataset(
+        dataset_name="videogpt_plus",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/vcg-plus_112K.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/Activity_Videos",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus 112K video instruction tuning dataset.",
+    )
+    add_dataset(videogpt_plus)
+
+    k710 = Dataset(
+        dataset_name="k710",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/classification_k710_converted.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/k710",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(k710)
+
+    ssv2 = Dataset(
+        dataset_name="ssv2",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/classification_ssv2_converted.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/ssv2",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(ssv2)
+
+    reason_nextqa = Dataset(
+        dataset_name="reason_nextqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/reasoning_next_qa_converted.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/NExTQA/test",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(reason_nextqa)
+
+    nextqa = Dataset(
+        dataset_name="nextqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/train-processed.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/NExTQA/test",
+        description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
+    )
+    add_dataset(nextqa)
+
+    reason_clevrerqa = Dataset(
+        dataset_name="reason_clevrerqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/reasoning_clevrer_qa_converted.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/clevrer",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(reason_clevrerqa)
+
+    reason_clevrermc = Dataset(
+        dataset_name="reason_clevrermc",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/reasoning_clevrer_mc_converted.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/clevrer",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(reason_clevrermc)
+
+    webvid_qa = Dataset(
+        dataset_name="webvid_qa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/vqa_webvid_qa.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/webvid",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(webvid_qa)
+
+    vcg_human = Dataset(
+        dataset_name="vcg_human",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/vcg_human_annotated.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/Activity_Videos",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(vcg_human)
+
+    caption_videochat = Dataset(
+        dataset_name="caption_videochat",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/caption_videochat.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/webvid",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(caption_videochat)
+
+    video_chat1 = Dataset(
+        dataset_name="video_chat1",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/annotations/conversation_videochat1.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/videochat_it",
+        description="Original data source: https://github.com/mbzuai-oryx/VideoGPT-plus one of the SFT datasets.",
+    )
+    add_dataset(video_chat1)
+
     sharegpt4v_sft = Dataset(
         dataset_name="sharegpt4v_sft",
         dataset_type="torch",
