@@ -760,6 +760,8 @@ class LazySupervisedDataset(Dataset):
         # frames_loaded = 0
         if "shortest_edge" in data_args.image_processor.size:
             image_size = data_args.image_processor.size["shortest_edge"]
+        elif "longest_edge" in data_args.image_processor.size:
+            image_size = data_args.image_processor.size["longest_edge"]
         else:
             image_size = data_args.image_processor.size["height"]
         # toTensor = transforms.ToTensor()
