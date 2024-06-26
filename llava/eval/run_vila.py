@@ -56,7 +56,7 @@ def eval_model(args):
             assert osp.exists(args.video_file), "video file not found"
             video_file = args.video_file
         from llava.mm_utils import opencv_extract_frames
-        images = opencv_extract_frames(video_file, args.num_video_frames)
+        images, num_frames = opencv_extract_frames(video_file, args.num_video_frames)
         
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, model_name, args.model_base)
