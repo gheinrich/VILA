@@ -59,7 +59,7 @@ class TestPreprocessMultimodal(unittest.TestCase):
         sources = preprocess_multimodal(sources, self.data_args)
         self.assertEqual(
             sources[0][0]["value"],
-            f"Random nonsense question {DEFAULT_IM_START_TOKEN}{DEFAULT_IMAGE_TOKEN}{DEFAULT_IM_END_TOKEN}\n?",
+            f"Random nonsense question {DEFAULT_IM_START_TOKEN}{DEFAULT_IMAGE_TOKEN}\n{DEFAULT_IM_END_TOKEN}\n?",
         )
 
     def test_single_image_data_without_placeholder_with_im_start_end(self):
@@ -74,7 +74,7 @@ class TestPreprocessMultimodal(unittest.TestCase):
         sources = preprocess_multimodal(sources, self.data_args)
         self.assertEqual(
             sources[0][0]["value"],
-            f"{DEFAULT_IM_START_TOKEN}{DEFAULT_IMAGE_TOKEN}{DEFAULT_IM_END_TOKEN}\nRandom nonsense question?",
+            f"{DEFAULT_IM_START_TOKEN}{DEFAULT_IMAGE_TOKEN}\n{DEFAULT_IM_END_TOKEN}\nRandom nonsense question?",
         )
 
     def test_multiple_image_data_with_placeholder(self):
