@@ -387,6 +387,15 @@ def register_datasets_mixtures():
     )
     add_dataset(sharegpt4video)
 
+    sharegpt4video2 = Dataset(
+        dataset_name="sharegpt4video2",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k.jsonl",   # TODO add panda back
+        image_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/zip_folder",
+        description="Original data source: https://sharegpt4video.github.io/ 40K video caption labelled by GPT-4V.",
+    )
+    add_dataset(sharegpt4video2)
+
     videogpt_plus = Dataset(
         dataset_name="videogpt_plus",
         dataset_type="torch",
@@ -431,6 +440,15 @@ def register_datasets_mixtures():
         description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
     )
     add_dataset(nextqa)
+
+    nextqa_mc = Dataset(
+        dataset_name="nextqa_mc",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/train-processed-filtered-mc.json",
+        image_path="/home/jasonlu/vlm_datasets2/VideoGPT-plus_Training_Dataset/instruction_tuning/NExTQA/test",
+        description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
+    )
+    add_dataset(nextqa_mc)
 
     reason_clevrerqa = Dataset(
         dataset_name="reason_clevrerqa",
@@ -731,15 +749,6 @@ def register_datasets_mixtures():
         description="iVQA dataset, 5378 videos with 5378 QA pairs. The 5378 QA pairs are from various domains.",
     )
     add_dataset(ivqa)
-
-    nextqa = Dataset(
-        dataset_name="nextqa",
-        dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/train-processed.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/nextqa/NExTVideo",
-        description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
-    )
-    add_dataset(nextqa)
 
     msrvttqa = Dataset(
         dataset_name="msrvttqa",
