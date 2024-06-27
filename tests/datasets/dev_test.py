@@ -13,8 +13,8 @@ class TestDatasetLoading(unittest.TestCase):
         print("cpu cores: ", os.cpu_count())
         workers = os.cpu_count() // 4
         workers = 1
-        test_make_supervised_data_module(dataset_name="nvclip_5m", 
-            batch_size=1, num_workers=workers, max_samples=1)
+        test_make_supervised_data_module(dataset_name="nvclip_5m_vfc_recap", 
+            batch_size=1, num_workers=workers, max_samples=5)
         
 
 if __name__ == "__main__":

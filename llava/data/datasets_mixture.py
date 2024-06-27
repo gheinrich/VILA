@@ -39,6 +39,16 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    nvclip_5m_vfc_recap = Dataset(
+        dataset_name="nvclip_5m_vfc_recap",
+        dataset_type="imgtxt-wds",
+        data_path="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/data",
+        start_idx=0 / 100,
+        end_idx=100 / 100,
+        caption_choice="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/vfc_longcaption_jsonraw",
+    )
+    add_dataset(nvclip_5m_vfc_recap)
+    
     nvclip_5m_0to5 = Dataset(
         dataset_name="nvclip_5m_0to5",
         dataset_type="imgtxt-wds",
@@ -60,8 +70,8 @@ def register_datasets_mixtures():
     internvid_10M_recap = Dataset(
         dataset_name="internvid_10M_recap",
         dataset_type="video-wds",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
-        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/internvid/video_data_tar/InternVid-10M-flt",
         description="10M (actually 8M) video-caption pairs from InternVid 10M dataset.",
         caption_choice="/home/ligengz/nvr_elm_llm/dataset/intern10m-recap/data_all",
     )
