@@ -8,7 +8,6 @@ from llava.model.multimodal_encoder.vision_encoder import VisionTower
 from llava.train.utils import mprint, rprint
 from transformers import CLIPVisionConfig
 from .image_processor import ImageProcessor
-from transformers import AutoConfig, AutoModel
 from PIL import Image
 import numpy as np
 
@@ -48,60 +47,105 @@ class RADIOVisionTower(VisionTower):
 
         mprint(f"RADIOVisionTower: {vision_tower}. Args: {args} Delay load: {delay_load}")
 
-        assert not delay_load
-
         self.select_feature = getattr(args, "mm_vision_select_feature", "patch")
 
-        extra_config = {}
-
-        # Check if vision_tower is a valid path.
-        if os.path.exists(vision_tower):
-            self.vision_tower_name = self.vision_tower_checkpoint = vision_tower
-            vision_cfg = getattr(args, "vision_tower_cfg")
-            self.image_size = vision_cfg["image_size"]
-        else:
-            self.vision_tower_name = vision_tower[len("radio:"):]
-            config_items = self.vision_tower_name.split(":")
-            self.image_size = int(config_items[0])
-
-            self.vision_tower_checkpoint = config_items[1]
-
-            if len(config_items) > 2:
-                # Parse extra config items. These are provided as a comma-separated list
-                # of key=value pairs.
-                extra_config_items = config_items[2].split(",")
-
-                for item in extra_config_items:
-                    key, value = item.split("=")
-                    extra_config[key] = value
-
+        self.vision_tower_name = vision_tower[len("radio:"):]
+        config_items = self.vision_tower_name.split(":")
+        self.image_sizes = [int(x) for x in config_items[0].split(",")]
+        if len(self.image_sizes) == 0:
+            raise ValueError("Expected more than zero images sizes!")
+        self.image_size = self.image_sizes[0]
         self.image_aspect_ratio = args.image_aspect_ratio
+
+        self.downscale_factor = None
+        if len(self.image_sizes) > 1:
+            self.downscale_factor = self.image_sizes[0] // self.image_sizes[1]
+            assert self.downscale_factor == self.image_sizes[0] / self.image_sizes[1]
+            self.pool2d = torch.nn.AvgPool2d(self.downscale_factor, self.downscale_factor)
+            if len(self.image_sizes) > 2:
+                raise ValueError(f"Only support up to two resolutions")
+        elif self.image_size >= 512:
+            self.downscale_factor = 2
+
+        self.vision_tower_checkpoint = config_items[1]
+
+        extra_config = {}
+        if len(config_items) > 2:
+            # Parse extra config items. These are provided as a comma-separated list
+            # of key=value pairs.
+            extra_config_items = config_items[2].split(",")
+
+            for item in extra_config_items:
+                key, value = item.split("=")
+                extra_config[key] = value
+
+        self.adaptor_name = extra_config.get("adaptor", "backbone")
+        self.fuse_adaptor_with_backbone = eval(extra_config.get("fuse_adaptor_with_backbone", "False"))
         self.skip_layer_norm = eval(extra_config.get("skip_layer_norm", "False"))
+        self.allow_pixel_unshuffle = eval(extra_config.get("pixel_unshuffle", "False"))
+
+        self.pixel_unshuffle = None
+        if self.allow_pixel_unshuffle and self.downscale_factor is not None:
+            self.pixel_unshuffle = torch.nn.PixelUnshuffle(self.downscale_factor)
 
         if not delay_load:
             self.load_model()
         else:
-            raise ValueError("Delay load not supported for RADIOVisionTower.")
+            # FIXME: This is a hack to avoid having to load the config from the checkpoint.
+            hidden_size = self.get_hidden_size(self.adaptor_name)
+            patch_size = 16
+
+            self.cfg_only = CLIPVisionConfig(
+                **{
+
+                    "hidden_size": hidden_size,
+                    "image_size": self.image_size,
+                    "model_type": "radio_vision_model",
+                    "num_attention_heads": None,
+                    "num_channels": 3,
+                    "num_hidden_layers": None,
+                    "patch_size": patch_size,
+                }
+            )
 
         self.sample_count = 0
+
         self.debug = True
 
     def get_hidden_size(self):
         if self.select_feature == "cls":
             hidden_size = 5120
-        elif self.select_feature == "dense":
-            hidden_size = 4*1280
-        else:
+        elif self.adaptor_name == "openai_clip":
+            hidden_size = 1024
+        elif self.adaptor_name == "clip":
             hidden_size = 1280
+        elif self.adaptor_name == "rtx-translate":
+            hidden_size = 2048
+        elif self.adaptor_name == "backbone":
+            hidden_size = 1280
+        else:
+            raise ValueError(f"Unknown adaptor name: {self.adaptor_name}")
+
+        if self.fuse_adaptor_with_backbone:
+            hidden_size += 1280
+
+        if len(self.image_sizes) == 2:
+            if self.pixel_unshuffle is not None:
+                hidden_size = hidden_size * 5
+            else:
+                hidden_size = hidden_size * 2
+        elif self.pixel_unshuffle is not None:
+            hidden_size = hidden_size * 4
 
         return hidden_size
 
     def load_model(self):
+
         if self.image_aspect_ratio == "resize":
             self.image_processor = ImageProcessor(
                 size={"width": self.image_size, "height": self.image_size},
                 do_pad=False,
-                do_normalize=True,
+                do_normalize=False,
                 do_convert_rgb=True,
             )
         else:
@@ -109,7 +153,7 @@ class RADIOVisionTower(VisionTower):
                     size={"longest_edge": self.image_size},
                     do_pad=True,
                     pad_multiple=16,
-                    do_normalize=True,
+                    do_normalize=False,
                     do_convert_rgb=True,
                     pad_value=0.456,
                 )
@@ -119,15 +163,20 @@ class RADIOVisionTower(VisionTower):
 
         mprint(self.image_processor)
 
-        config = AutoConfig.from_pretrained(self.vision_tower_checkpoint, trust_remote_code=True)
-        mprint("RADIO config", config)
-        self.vision_tower = AutoModel.from_pretrained(self.vision_tower_checkpoint, trust_remote_code=True)
-        self.vision_tower.radio_model.make_preprocessor_external()
+        # Load weights from checkpoint.
+        checkpoint_path = self.vision_tower_checkpoint
+        rprint(f"Loading checkpoint from {checkpoint_path}")
 
-#        # NOTE: do a lazy import of Timm to avoid issues with
-#        # DeepSpeed's ZeRO-3.
+        # NOTE: do a lazy import of Timm to avoid issues with
+        # DeepSpeed's ZeRO-3.
         from timm.models.vision_transformer import VisionTransformer
-#
+
+        self.vision_tower = torch.hub.load('NVlabs/RADIO',
+                                           'radio_model',
+                                           version=checkpoint_path,
+                                           progress=True,
+                                           adaptor_names=self.adaptor_name if self.adaptor_name != "backbone" else None)
+
         if isinstance(self.vision_tower.model, VisionTransformer):
             hidden_size = self.vision_tower.model.embed_dim
         else:
@@ -144,25 +193,32 @@ class RADIOVisionTower(VisionTower):
             # Standard ViT case.
             patch_size = self.vision_tower.model.patch_embed.patch_size[0]
 
-        self.vision_tower.config.image_size = self.image_size
-        self.vision_tower.config.hidden_size = hidden_size
-        self.vision_tower.config.patch_size = patch_size
+        self.vision_tower.config = CLIPVisionConfig(
+                **{
+                    "hidden_size": hidden_size,
+                    "image_size": self.image_size,
+                    "model_type": "radio_vision_model",
+                    "num_attention_heads": None,
+                    "num_channels": 3,
+                    "num_hidden_layers": None,
+                    "patch_size": patch_size,
+                }
+            )
 
-        self.vision_tower.cuda().eval()
+        self.vision_tower.eval()
         self.vision_tower.requires_grad_(False)
 
         self.is_loaded = True
         self._to_dtype = None
 
         if self.skip_layer_norm:
-            mprint(f"Removing layer norm from the model: {self.vision_tower.model.norm}")
+            rank0_print(f"Removing layer norm from the model: {self.vision_tower.model.norm}")
             self.vision_tower.model.norm = torch.nn.Identity()
 
 
     def to(self, *args, **kwargs):
         # Prevent casting the RADIO model's weights
         kwargs = dict(kwargs)
-        #self._to_dtype = kwargs.get('dtype', None)
         self._to_dtype = kwargs.pop('dtype', None)
         mprint(f"RADIO: bypass cast to dtype={self._to_dtype}")
         super().to(*args, **kwargs)
@@ -175,65 +231,22 @@ class RADIOVisionTower(VisionTower):
             warnings.warn("RADIOEncoder is always in eval mode.")
         pass
 
-    def _get_summary_and_patch_from_tokens(self, tokens):
-        model = self.vision_tower.model
-        patch_gen = getattr(model, "patch_generator", None)
-        if patch_gen is not None:
-            all_summary = tokens[:, : patch_gen.num_cls_tokens]
-            if self.vision_tower.radio_model.summary_idxs is not None:
-                summary = all_summary[:, self.vision_tower.radio_model.summary_idxs]
-            else:
-                summary = all_summary
-            all_feat = tokens[:, patch_gen.num_skip :]
-        elif model.global_pool == "avg":
-            all_summary = tokens[:, model.num_prefix_tokens :].mean(dim=1)
-            summary = all_summary
-            all_feat = tokens
-        else:
-            all_summary = tokens[:, 0]
-            summary = all_summary
-            all_feat = tokens[:, 1:]
-        return summary, all_feat
-
     @torch.no_grad()
     def get_features(self, x: torch.Tensor):
-        x_dtype = x.dtype
-        x = x.float()
+        x_float = x.float()
         with torch.autocast('cuda', dtype=torch.bfloat16):
-            if self.select_feature == "dense":
+            output = self.vision_tower(x_float)
 
-                # Layers to return activations of in case of "return_multilayer=True".
-                num_layers = len(self.vision_tower.model.blocks)
-                multilayers = [
-                    num_layers // 4 - 1,
-                    num_layers // 2 - 1,
-                    num_layers // 4 * 3 - 1,
-                ]
+        if isinstance(output, dict):
+            summary, features = output[self.adaptor_name]
+            if self.fuse_adaptor_with_backbone:
+                backbone_summary, backbone_features = output["backbone"]
+                summary = torch.cat([summary, backbone_summary], dim=2)
+                features = torch.cat([features, backbone_features], dim=2)
+        else:
+            summary, features = output
 
-                features = []
-                intermediate_features = []
-
-                x = self.vision_tower.input_conditioner(x)
-                x = self.vision_tower.model.patch_generator(x)
-
-                for i, blk in enumerate(self.vision_tower.model.blocks):
-                    x = blk(x)
-                    _, blk_features = self._get_summary_and_patch_from_tokens(x)
-                    intermediate_features.append(blk_features)
-                    if i in multilayers:
-                        intermediate_features = torch.stack(intermediate_features, dim=0)
-                        intermediate_features = torch.sum(intermediate_features, dim=0) / intermediate_features.shape[0]
-                        features.append(intermediate_features)
-                        intermediate_features = []
-                x = self.vision_tower.model.norm(x)
-                last_summary, last_features = self._get_summary_and_patch_from_tokens(x)
-                features.append(last_features)
-                features = torch.cat(features, dim=-1)
-                summary = last_summary
-            else:
-                summary, features = self.vision_tower(x)
-
-        return summary, features.to(dtype=x_dtype)
+        return summary, features.to(dtype=x.dtype)
 
     @torch.no_grad()
     def forward(self, images: torch.Tensor):
@@ -245,11 +258,7 @@ class RADIOVisionTower(VisionTower):
         if len(input_shape) == 3:
             x = x.unsqueeze(0)
 
-        # Convert the input to the model's dtype (we assume
-        # that the model only has one dtype for all parameters).
-        param0 = next(self.vision_tower.parameters())
-
-        rprint(f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype} param0.device={param0.device} param0.dtype={param0.dtype}")
+        rprint(f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype}")
 
         summary, features = self.get_features(x) # B, T, C
 
@@ -286,7 +295,33 @@ class RADIOVisionTower(VisionTower):
                 image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_pca_map_{i}.png"))
                 pass
 
-        if self.select_feature in ["patch",  "cls_patch", "dense"]:
+        if self.pixel_unshuffle is not None:
+            spatial_features = self.pixel_unshuffle(spatial_features)
+            # B, C*downscale_factor**2, H/patch_size/downscale_factor, W/patch_size/downscale_factor
+            features = spatial_features.reshape(
+                B,
+                C * self.downscale_factor**2,
+                (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor)).permute(0, 2, 1)
+
+        if len(self.image_sizes) > 1:
+            # Experimental support for multi-resolution inference.
+            if self.pixel_unshuffle is None:
+                # downscale features
+                spatial_features = self.pool2d(spatial_features) # B, C, H/patch_size/downscale_factor, W/patch_size/downscale_factor
+                features = spatial_features.reshape(
+                    B,
+                    C,
+                    (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor))
+                features = features.permute(0, 2, 1) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
+
+            # Downscale the input image.
+            x = self.pool2d(x) # B, 3, H/downscale_factor, W/downscale_factor)
+            features_stage2 = self.get_features(x) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
+
+            # Concatenate stage1 and stage 2 features.
+            features = torch.cat([features, features_stage2], dim=2)
+
+        if self.select_feature in ["patch","cls_patch"]:
             # Ignore cls-patch for now.
             pass
         #elif self.select_feature == "cls_patch":
@@ -303,11 +338,10 @@ class RADIOVisionTower(VisionTower):
         # Cast back to the input's dtype.
         features = features.to(images.dtype)
 
-        rprint(f"features shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}")
+        adaptor_name = f"{self.adaptor_name}{'+backbone' if self.fuse_adaptor_with_backbone else ''}"
+        rprint(f"features ({adaptor_name}) shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}")
 
-        if features.shape[-1] != self.get_hidden_size():
-            raise ValueError(f"Unexpected hidden size: {features.shape[-1]} != {self.get_hidden_size()}")
-
+        assert features.shape[-1] == self.get_hidden_size()
         self.sample_count += 1
 
         return features

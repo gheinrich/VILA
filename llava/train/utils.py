@@ -84,15 +84,29 @@ def prepare_config_for_training(
     config.tune_vision_tower = training_args.tune_vision_tower
     config.tune_mm_projector = training_args.tune_mm_projector
     ## set data args
-    config.image_aspect_ratio = data_args.image_aspect_ratio
+        # Get the image_aspect_ratio from the config if is defined there
+    # (case of resuming from a checkpoint) or from the data_args
+    # (i.e. from the command line when starting a new training).
+    if getattr(data_args, "image_aspect_ratio", None) is not None:
+        if getattr(config, "image_aspect_ratio", None) is None:
+            config.image_aspect_ratio = data_args.image_aspect_ratio
+    elif getattr(config, "image_aspect_ratio", None) is not None:
+        data_args.image_aspect_ratio = config.image_aspect_ratio
+    else:
+        raise ValueError("image_aspect_ratio must be set either in data_args or in the pretrained config")
 
     if hasattr(training_args, "deepspeed") and training_args.deepspeed is not None and "mics" in training_args.deepspeed:
         config.deepspeed = training_args.deepspeed
 
     ## extra vision tower configuration
     if getattr(config, "vision_tower_cfg", None) is not None:
-        config.mm_vision_select_layer = model_args.mm_vision_select_layer
-        config.mm_vision_select_feature = model_args.mm_vision_select_feature
+        # Set the vision config as per the command-line flags, except
+        # if the vision config is already defined in the config file (case
+        # of resuming from a checkpoint).
+        if getattr(config, "mm_vision_select_layer", None) is None:
+            config.mm_vision_select_layer = model_args.mm_vision_select_layer
+        if getattr(config, "mm_vision_select_feature", None) is None:
+            config.mm_vision_select_feature = model_args.mm_vision_select_feature
         ## vision tower configurations
         config.vision_resolution = model_args.vision_resolution
         config.interpolate_mode = model_args.interpolate_mode

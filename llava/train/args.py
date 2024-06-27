@@ -27,7 +27,7 @@ class DataArguments:
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     image_folder: Optional[str] = field(default=None)
-    image_aspect_ratio: str = "square"
+    image_aspect_ratio: Optional[str] = 'resize'
     data_mixture: str = "llava_1_5_mm_align"
     eval_data_mixture: str = None
     vflan_no_system_prompt: bool = False

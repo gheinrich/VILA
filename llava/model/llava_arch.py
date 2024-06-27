@@ -171,7 +171,7 @@ class LlavaMetaModel(ABC):
             self.llm.save_pretrained(os.path.join(output_dir, "llm"), state_dict=llm_state_dict)
             self.config.llm_cfg = self.llm.config
 
-        if self.get_vision_tower() and "radio" not in self.get_vision_tower().__class__.__name__.lower():
+        if self.get_vision_tower():
             print(f"saving vision_tower to {osp.join(output_dir, 'vision_tower')}")
             self.vision_tower.config._name_or_path = osp.join(output_dir, "vision_tower")
             vision_tower_state_dict = OrderedDict(
@@ -184,7 +184,8 @@ class LlavaMetaModel(ABC):
             self.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
             self.config.vision_tower_cfg = self.vision_tower.config
             if hasattr(self.config.vision_tower_cfg, 'auto_map'):
-                delattr(self.config.vision_tower_cfg, 'auto_map')
+                if "radio" not in self.get_vision_tower().__class__.__name__.lower():
+                    delattr(self.config.vision_tower_cfg, 'auto_map')
 
         if self.get_mm_projector():
             print(f"saving mm_projector to {osp.join(output_dir, 'mm_projector')}")
