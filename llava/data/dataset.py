@@ -261,36 +261,21 @@ def preprocess_llama_3(
     # Apply prompt templates
     conversations = []
     for i, source in enumerate(sources):
-        conv.messages = []
-        extra_system = ""
-        try:
-            if roles[source[0]["from"]] != conv.roles[0]:
-                # Skip the first one if it is not from human
-                source = source[1:]
-        except:
-            extra_role = source[0]["from"]
-            if extra_role == "system":
-                extra_system = source[0]["value"]
-                source = source[1:]
-            else:
-                print(f"Unexpected roles: {extra_role}")
+        if roles[source[0]["from"]] != conv.roles[0]:
+            # Skip the first one if it is not from human
+            source = source[1:]
 
+        conv.messages = []
         for j, sentence in enumerate(source):
             role = roles[sentence["from"]]
             assert role == conv.roles[j % 2], f"{i}"
             conv.append_message(role, sentence["value"])
-        
-        if extra_system != "":
-            conv.system = extra_system
-        prompt = conv.get_prompt()
-        ## llama3 requires manually added bos token
-        conversations.append(prompt)
+        conversations.append(conv.get_prompt())
     # Tokenize conversations
-    lstrip = False
+
     if has_image:
         input_ids = torch.stack(
             [tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations], dim=0)
-        lstrip = input_ids[0][0] == tokenizer.bos_token_id
     else:
         input_ids = tokenizer(
             conversations,
@@ -314,7 +299,6 @@ def preprocess_llama_3(
             re_rounds.append(conv.sep.join(rounds[conv_idx:conv_idx + 2]))  # user + gpt
         cur_len = 0
         target[:cur_len] = IGNORE_INDEX
-        
         for i, rou in enumerate(re_rounds):
             if rou == "":
                 break
@@ -326,35 +310,26 @@ def preprocess_llama_3(
             parts[0] += sep
 
             if has_image:
-                if i == 0:
-                    round_len = len(tokenizer_image_token(rou, tokenizer))
-                    instruction_len = len(tokenizer_image_token(parts[0], tokenizer))
-                else:
-                    round_len = len(tokenizer_image_token(rou, tokenizer, lstrip=lstrip))
-                    instruction_len = len(tokenizer_image_token(parts[0], tokenizer, lstrip=lstrip))
+                round_len = len(tokenizer_image_token(rou, tokenizer))
+                instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
-                instruction_len = len(tokenizer(parts[0]).input_ids)
+                instruction_len = len(tokenizer(parts[0]).input_ids) - 1
 
-            # Add 1 for <|eot_id|>, llama_3 conversations are separated by "<|eot_id|>" and ended with "<|end_of_text|>"
-            if i < len(re_rounds) - 1:
-                round_len += 1
+            # include <|eot_id|> for all rounds
+            round_len += 1
+            instruction_len += 1
 
             target[cur_len: cur_len + instruction_len] = IGNORE_INDEX
             cur_len += round_len
+
         target[cur_len:] = IGNORE_INDEX
+
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
                 print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}. {sources}" f" (ignored)")
-    assert len(input_ids.shape) == 2, "Unexpected shape for 'input_ids'."
-    ## Append bos token at the beginning
-    cur_bos_token = input_ids[0][0]
-    if cur_bos_token.item() != tokenizer.bos_token_id:
-        assert tokenizer.decode(cur_bos_token) == conv.sep, f"Unexpected begin of sequence for conversation '{input_ids}'."
-        input_ids[:, 0] = torch.tensor([tokenizer.bos_token_id])[None, ...]
-        targets[:, 0] = torch.tensor([tokenizer.bos_token_id])[None, ...]
-        
+
     return dict(
         input_ids=input_ids,
         labels=targets,
@@ -2176,18 +2151,37 @@ class LazyCoyoWebDataset(Dataset):
             if self.caption_choice is not None:
                 # load new captions
                 shard = info["__shard__"]
-                url = info[".json"]["url"]
+                # url = info[".json"]["url"]
+                url = osp.join(info["__shard__"], str(info["__shardindex__"]))
                 tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
                 # tar_name = osp.dirname(shard)
                 shard_json_path = osp.join(self.caption_choice, tar_name + ".json")
+                # print("DEBUG:", shard, self.data_path, tar_name)
                 try:
                     shard_json = lru_json_load(shard_json_path)
-                    try:
-                        caption = shard_json[url]["output"]
-                    except KeyError:
-                        print(f"{url} not in caption. fallback to original caption temporarially")
-                except:
-                    print(f"shard_json_path {shard_json_path} not found. fallback to original caption temporarially")
+                    caption = shard_json[url]["output"]
+                    # print("loding with recaption choice1")
+                except (KeyError, FileNotFoundError):
+                    print(f"{url} not in caption. fallback to original caption temporarially")
+
+            if self.caption_choice_2 is not None:
+                # load new captions
+                shard = info["__shard__"]
+                # url = info[".json"]["url"]
+                url = osp.join(info["__shard__"], str(info["__shardindex__"]))
+                tar_name = osp.relpath(osp.realpath(shard), osp.realpath(self.data_path))
+                # tar_name = osp.dirname(shard)
+                shard_json_path = osp.join(self.caption_choice_2, tar_name + ".json")
+                # print("DEBUG:", shard, self.data_path, tar_name)
+                try:
+                    shard_json = lru_json_load(shard_json_path)
+                    new_caption = shard_json[url]["output"]
+                    caption = f"### Short description: \n{caption} \n\n" + \
+                        f"### Long description: \n{new_caption}" 
+                    # print(f"{url} in caption. use new caption")
+                except (KeyError, FileNotFoundError):
+                    print(f"{url} not in caption. fallback to original caption temporarially")
+                    
             caption = caption.replace("<image>", "<IMAGE>")
             text_list.append(DEFAULT_IMAGE_TOKEN + caption + self.tokenizer.eos_token)
 
@@ -2229,10 +2223,6 @@ class LazyCoyoWebDataset(Dataset):
                 for prompt in text_list
             ]
 
-        input_ids = [
-            torch.concat([torch.tensor([self.tokenizer.bos_token_id]), input_ids_i]) if input_ids_i[0] != self.tokenizer.bos_token_id else input_ids_i for input_ids_i in input_ids
-        ]
-        
         targets = copy.deepcopy(input_ids)
         # mask image tokens is unnecessary for llava-1.5
         # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
@@ -2881,7 +2871,7 @@ def build_datasets(
             dataset_cls = LazySAMWebDataset
         elif dataset_type == "sam-wds-tmp":
             print("dataset.py: Loading SAM class")
-            from llava.data.dataset_impl.sam_tmp import LazySAMTmpWebDataset
+            from llava.data.dataset_impl.general_img_text import LazySAMTmpWebDataset
             dataset_cls = LazySAMTmpWebDataset
         elif dataset_type == "coyo-wds":
             dataset_cls = LazyCoyoWebDataset

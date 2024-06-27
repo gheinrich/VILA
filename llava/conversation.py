@@ -80,12 +80,11 @@ class Conversation:
                     ret += role + ":"
         elif self.sep_style == SeparatorStyle.LLAMA_3:
             ret = self.system + self.sep
-            for rid, (role, message) in enumerate(messages):
+            for role, message in messages:
                 if message:
                     if type(message) is tuple:
                         message = message[0]
-                    sep = self.sep if rid < len(messages) - 1 else self.sep2
-                    ret += role + message + sep
+                    ret += role + message + self.sep
                 else:
                     ret += role
         elif self.sep_style == SeparatorStyle.MPT:
@@ -438,13 +437,12 @@ llama_3_chat = Conversation(
            "You are able to understand the visual content that the user provides, "
            "and assist the user with a variety of tasks using natural language.",
     roles=("<|start_header_id|>user<|end_header_id|>\n\n",
-           "<|start_header_id|>assistant<|end_header_id|>\n\n"),
+           "<|start_header_id|>system<|end_header_id|>\n\n"),
     version="llama_v3",
     messages=(),
     offset=0,
     sep_style=SeparatorStyle.LLAMA_3,
-    sep="<|eot_id|>",
-    sep2="<|end_of_text|>"
+    sep="<|end_of_text|>",
 )
 
 
