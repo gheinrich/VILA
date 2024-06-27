@@ -1,7 +1,7 @@
 # /bin/bash
 export SLURM_ACCOUNT=nvr_elm_llm
 
-VILA_CI_MAILIST="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com,huqinghao@gmail.com"
+VILA_CI_MAILIST="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com,huqinghao@gmail.com,haotiant@nvidia.com,zhijianl@nvidia.com"
 
 SECONDS=0
 while true; do
