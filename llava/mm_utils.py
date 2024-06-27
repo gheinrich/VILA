@@ -333,7 +333,8 @@ def process_images(images, image_processor, model_cfg):
 
 
 def tokenizer_image_token(
-    prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None
+    prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None,
+    lstrip=False
 ):
     prompt_chunks = [tokenizer(chunk).input_ids for chunk in prompt.split("<image>")]
 
@@ -342,16 +343,22 @@ def tokenizer_image_token(
 
     input_ids = []
     offset = 0
-    if (
-        len(prompt_chunks) > 0
-        and len(prompt_chunks[0]) > 0
-        and prompt_chunks[0][0] == tokenizer.bos_token_id
-    ):
+    if lstrip:
         offset = 1
-        input_ids.append(prompt_chunks[0][0])
+    else:
+        if (
+            len(prompt_chunks) > 0
+            and len(prompt_chunks[0]) > 0
+            and prompt_chunks[0][0] == tokenizer.bos_token_id
+        ):
+            offset = 1
+            input_ids.append(prompt_chunks[0][0])
 
-    for x in insert_separator(prompt_chunks, [image_token_index] * (offset + 1)):
-        input_ids.extend(x[offset:])
+    for chunk_id, x in enumerate(insert_separator(prompt_chunks, [image_token_index] * (offset + 1))):
+        if chunk_id == 0 and lstrip:
+            input_ids.extend(x)
+        else:
+            input_ids.extend(x[offset:])
 
     if return_tensors is not None:
         if return_tensors == "pt":
