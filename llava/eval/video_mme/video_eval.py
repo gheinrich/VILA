@@ -112,15 +112,20 @@ The best answer is:
 def eval_model(args):
     from pprint import pprint 
     pprint(vars(args))
-    output_name =  osp.basename(args.model_path) + f"_tmp={args.temperature}_beams={args.num_beams}" + "video_mme.json"
+
+    answers_file = os.path.join(args.output_dir, f"{args.output_name}.json")
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    #output_name =  osp.basename(args.model_path) + f"_tmp={args.temperature}_beams={args.num_beams}" + "video_mme.json"
     output_json = []
     labeled_key = {}
-    if osp.exists(output_name):
-        labeled_key = json.load(open(output_name))
-    print("already answered ", len(labeled_key.keys()), output_name)
+    if osp.exists(answers_file):
+        labeled_key = json.load(open(answers_file))
+    print("already answered ", len(labeled_key.keys()), answers_file)
     
     jinfo = json.load(open("/home/ligengz/workspace/video-mme/Video-MME.json"))
     folder = "/home/ligengz/workspace/video-mme/ytb_videos"
+    #folder = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/Video-MME/videos"
     
     if args.convert:
         for vmeta in jinfo:
@@ -131,7 +136,7 @@ def eval_model(args):
                 else:
                     print("missing", qid)
                     question["response"] = "C"
-        with open(output_name.replace(".json", "_converted.json"), "w") as fp:
+        with open(answers_file.replace(".json", "_converted.json"), "w") as fp:
             json.dump(jinfo, fp, indent=2)
         return 0
             
@@ -170,7 +175,7 @@ def eval_model(args):
             if qid in labeled_key:
                 print("[question id answered] Skip", qid, url)
                 continue
-            qa = questions["question"] + "\n" + "\n".join(questions["choices"])
+            qa = questions["question"] + "\n" + "Answer the question by only outputing the choice.\n" + "\n".join(questions["choices"])
             qs = template.format(question=qa)
             output = get_model_output(model, image_processor, tokenizer, vpath, qs, 
                         conv_mode=args.conv_mode, temperature=args.temperature, num_beams=args.num_beams)
@@ -178,7 +183,7 @@ def eval_model(args):
             labeled_key[questions["question_id"]] = questions
         # break
         # output_json.append(vmeta)
-        safely_merge_info(output_name, labeled_key)
+        safely_merge_info(answers_file, labeled_key)
         # with open(output_name, "w") as fp:
         #     json.dump(output_json, fp, indent=2)
     
@@ -193,8 +198,9 @@ if __name__ == "__main__":
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--model_max_length", type=int, required=False, default=5120)
     # parser.add_argument('--video_dir', help='Directory containing video files.', default="~/workspace/vila-captioner-avfm/videos")
-    parser.add_argument('--output_name', help='Name of the file for storing results JSON.', default="video_inference_dev.json")
-    parser.add_argument("--conv-mode", type=str, default="llava_v1")
+    parser.add_argument('--output_dir', help='Directory to save the model results JSON.', required=True)
+    parser.add_argument('--output_name', help='Name of the file for storing results JSON.', required=True)
+    parser.add_argument("--conv-mode", type=str, default="vicuna_v1")
     parser.add_argument("--num-chunks", type=int, default=1)
     
     parser.add_argument("--temperature", type=float, default=0.0)

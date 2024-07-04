@@ -20,3 +20,6 @@ echo nextqa
 bash ./scripts/v1_5/eval/video_chatgpt/eval_qa_nextqa.sh ${model_name}
 echo perception_test
 bash ./scripts/v1_5/eval/video_chatgpt/eval_qa_perception.sh ${model_name}
+echo video_mme
+python llava/eval/video_mme/video_eval.py --output_dir=./eval_output/$model_name/video_mme/ --output_name=$model_name --convert
+python llava/eval/video_mme/mme_calc.py --results_file ./eval_output/$model_name/video_mme/${model_name}_converted.json --video_duration_type short,medium,long --return_categories_accuracy --return_sub_categories_accuracy --return_task_types_accuracy

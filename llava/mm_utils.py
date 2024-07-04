@@ -81,19 +81,12 @@ def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_coun
                 except:
                     continue
                 count += 1
-            elif count >= 1:
-                width, height = images[-1].size
-                print("padding frames:", (num_frames - len(images)))
-                images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
-                return images, num_frames
             else: 
                 break
     if len(images) == 0:
         raise ValueError("Did not find enough frames in the video. return empty image.")
 
-    width, height = images[-1].size
-    images = [Image.new("RGB", (width, height))] * (num_frames - len(images)) + images
-    return images, num_frames
+    return images, len(images)
 
 
 def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_count=None):
