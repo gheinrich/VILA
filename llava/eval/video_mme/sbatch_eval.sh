@@ -22,9 +22,10 @@ total=$SLURM_ARRAY_TASK_COUNT
 jname=seval-$idx-of-$total-random
 
 ckpt=${1:-"Efficient-Large-Model/VILA1.5-3b"}
+_model_name=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
 # llava_v1
 # hermes-2
-model_name=$2
+model_name=${2:-"$_model_name"}
 conv_mode=${3:-"hermes-2"}
 temperature=${4:-"0.0"}
 num_beams=${5:-1}
@@ -40,3 +41,27 @@ srun \
     python llava/eval/video_mme/video_eval.py \
         --model-path $ckpt --shard $idx --total $total --conv-mode $conv_mode \
         --output_dir=./eval_output/$model_name/video_mme/ --output_name=$model_name --temperature $temperature --num-beams $num_beams
+
+exit 0 
+
+# usage examples
+
+# debuging usage
+python llava/data_aug/video_eval.py --model-path Efficient-Large-Model/VILA1.5-3b
+
+# sbatch launch
+tmp=0
+beam=1
+sbatch -A nvr_elm_llm -p interactive,$SLURM_PARTITION -J videomme:vila-15-13b \
+    llava/eval/video_mme/sbatch_eval.sh Efficient-Large-Model/VILA1.5-3b VILA1.5-3b llava_v1 $tmp $beam
+
+sbatch llava/eval/video_mme/sbatch_eval.sh \
+    Efficient-Large-Model/VILA1.5-3b \
+    VILA1.5-3b \
+    llava_v1 
+
+sbatch -A nvr_elm_llm -p interactive,$SLURM_PARTITION -J videomme:vila-yi-34b-intern-6b-stage2_5_r620_sft_more_r2 \
+    llava/eval/video_mme/sbatch_eval.sh \
+    /home/jasonlu/workspace/VILA-Internal/checkpoints/vila-yi-34b-intern-6b-stage2_5_r620_sft_more_r2 \
+    vila-yi-34b-intern-6b-stage2_5_r620_sft_more_r2 \
+    hermes-2
