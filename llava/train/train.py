@@ -50,7 +50,6 @@ if "WANDB_PROJECT" not in os.environ:
     # Default to WANDB project "VILA".
     os.environ["WANDB_PROJECT"] = "VILA"
 
-
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
     from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
@@ -116,19 +115,28 @@ def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
     return to_return
 
 
-def find_all_linear_names(model):
+def find_all_linear_names(model, lora_llm, lora_vt):
     cls = torch.nn.Linear
     lora_module_names = set()
-    multimodal_keywords = ["mm_projector", "vision_tower", "vision_resampler"]
+    multimodal_keywords = ["mm_projector", "vision_resampler"]
+    assert (lora_llm or lora_vt), "Not applying LoRA to any of the modules..."
+    
+    if not lora_llm:
+        multimodal_keywords += ["llm"]
+    if not lora_vt:
+        multimodal_keywords += ["vision_tower"]
+    
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
         if isinstance(module, cls):
-            names = name.split(".")
-            lora_module_names.add(names[0] if len(names) == 1 else names[-1])
+            if not "lm_head" in name:
+                lora_module_names.add(name)
+            # names = name.split(".")
+            # lora_module_names.add(names[0] if len(names) == 1 else names[-1])
 
-    if "lm_head" in lora_module_names:  # needed for 16-bit
-        lora_module_names.remove("lm_head")
+    # if "lm_head" in lora_module_names:  # needed for 16-bit
+    #     lora_module_names.remove("lm_head")
     return list(lora_module_names)
 
 
@@ -224,9 +232,17 @@ def train():
 
     if resume_path:
         resume_from_checkpoint = True
-        config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
-        config.resume_path = resume_path
-        model_cls = eval(config.architectures[0])
+        if training_args.lora_enable:
+            model_cls = LlavaLlamaModel
+            config = LlavaLlamaConfig.from_pretrained(
+                model_args.model_name_or_path,
+                resume=resume_from_checkpoint
+            )
+            config.resume_path = model_args.model_name_or_path
+        else:
+            config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
+            config.resume_path = resume_path
+            model_cls = eval(config.architectures[0])
     else:
         ## first time training
         resume_from_checkpoint = False
@@ -268,7 +284,7 @@ def train():
         **bnb_model_from_pretrained_args,
     )
 
-    if not resume_path:
+    if not resume_path or training_args.lora_enable:
         if model_args.mlp_path is not None:
             state_dict = torch.load(model_args.mlp_path, map_location='cpu')
             state_dict_new = {}
@@ -297,21 +313,12 @@ def train():
     mprint(model)
 
     model.llm.config.use_cache = False
+
     ## set tunnable parameters
     logging.warning(
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
-    model.get_llm().requires_grad_(training_args.tune_language_model)
-    mprint(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
-    if model.get_vision_tower():
-        model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
-        model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
-        mprint(f"vision tower {training_args.tune_vision_tower}")
-        mprint(f"mm projector {training_args.tune_mm_projector}")
-    if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
-        logging.warning(
-            "You are not tuning any part of the model. Please check if this is intended."
-        )
+    
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
             if (
@@ -350,12 +357,13 @@ def train():
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if training_args.lora_enable:
-        from peft import LoraConfig, get_peft_model
+        from peft import LoraConfig, get_peft_model, PeftModel
 
         lora_config = LoraConfig(
+            use_dora=training_args.use_dora,
             r=training_args.lora_r,
             lora_alpha=training_args.lora_alpha,
-            target_modules=find_all_linear_names(model),
+            target_modules=find_all_linear_names(model, training_args.lora_llm, training_args.lora_vt),
             lora_dropout=training_args.lora_dropout,
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
@@ -365,8 +373,60 @@ def train():
                 model.to(torch.bfloat16)
             if training_args.fp16:
                 model.to(torch.float16)
-        mprint("Adding LoRA adapters...")
-        model = get_peft_model(model, lora_config)
+        if resume_from_checkpoint:
+            # load non-lora weights
+            if os.path.exists(os.path.join(resume_path, "non_lora_trainables.bin")):
+                non_lora_trainables = torch.load(
+                    os.path.join(resume_path, "non_lora_trainables.bin"),
+                    map_location="cpu",
+                )
+                non_lora_trainables = {
+                    (k[11:] if k.startswith("base_model.") else k): v
+                    for k, v in non_lora_trainables.items()
+                }
+                if any(k.startswith("model.model.") for k in non_lora_trainables):
+                    non_lora_trainables = {
+                        (k[6:] if k.startswith("model.") else k): v
+                        for k, v in non_lora_trainables.items()
+                    }
+                model.load_state_dict(non_lora_trainables, strict=False)
+
+            mprint("Resume from checkpoint...", resume_path)
+            model = PeftModel.from_pretrained(model, resume_path, is_trainable=True)
+        else:
+            mprint("Adding LoRA adapters...")
+            model = get_peft_model(model, lora_config)
+        mprint(model)
+        model.print_trainable_parameters()
+    
+    # currently assume fft for mm projector
+    if training_args.lora_enable:
+        if not training_args.lora_llm:
+            model.get_llm().requires_grad_(training_args.tune_language_model)
+        if model.get_vision_tower():
+            if training_args.lora_vt:
+                def make_inputs_require_grad(module, input, output):
+                    output.requires_grad_(True)
+                model.get_vision_tower().vision_tower.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
+            elif training_args.tune_vision_tower:
+                model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+            model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
+            mprint(f"mm projector {training_args.tune_mm_projector}")
+            model.print_trainable_parameters()
+    else:
+        model.get_llm().requires_grad_(training_args.tune_language_model)
+        mprint(f"Tunable parameters:\nlanguage model {training_args.tune_language_model}")
+        if model.get_vision_tower():
+            model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
+            model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
+            mprint(f"vision tower {training_args.tune_vision_tower}")
+            mprint(f"mm projector {training_args.tune_mm_projector}")
+        
+        if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
+            logging.warning(
+                "You are not tuning any part of the model. Please check if this is intended."
+            )
+    
     # @yunhao: tokenizer instantiation is moved into build_llm
     tokenizer = model.tokenizer
     # @yunhao: may move this block into method "build_llm"

@@ -47,6 +47,15 @@ def maybe_zero_3(param, ignore_status=False, name=None):
         param = param.detach().cpu().clone()
     return param
 
+def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
+    to_return = {k: t for k, t in named_params if "lora_" not in k}
+    if require_grad_only:
+        to_return = {k: t for k, t in to_return.items() if t.requires_grad}
+    to_return = {
+        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
+    }
+    return to_return
+
 
 def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
     to_return = {k: t for k, t in named_params if any(key_match in k for key_match in keys_to_match)}
@@ -436,6 +445,16 @@ class LLaVATrainer(Trainer):
         else:
             # TODO(ligeng): fix save_model for multi-node training on large models (e.g., Llama-70b)
             state_dict = self.model.state_dict()
+        
+        if self.args.lora_enable:
+            non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+                self.model.named_parameters()
+            )
+            os.makedirs(output_dir, exist_ok=True)
+            torch.save(
+                non_lora_state_dict,
+                os.path.join(output_dir, "non_lora_trainables.bin"),
+            )
 
         if self.args.should_save:
             return self.model.save_pretrained(output_dir, state_dict=state_dict)

@@ -73,23 +73,24 @@ def load_pretrained_model(
             warnings.warn(
                 "There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument. Detailed instruction: https://github.com/haotian-liu/LLaVA#launch-a-model-worker-lora-weights-unmerged."
             )
-        if "lora" in model_name.lower() and model_base is not None:
+        if ("lora" in model_name.lower() or "dora" in model_name.lower()) and model_base is not None:
             lora_cfg_pretrained = AutoConfig.from_pretrained(model_path)
-            tokenizer = AutoTokenizer.from_pretrained(
-                model_base, use_fast=False, legacy=False
-            )
+            print(lora_cfg_pretrained)
             print("Loading LLaVA from base model...")
-            model = LlavaLlamaForCausalLM.from_pretrained(
-                model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, **kwargs
+            config = AutoConfig.from_pretrained(model_base)
+            prepare_config_for_eval(config, kwargs)
+            model = LlavaLlamaModel.from_pretrained(
+                model_base, low_cpu_mem_usage=True, config=config, **kwargs
             )
-            token_num, tokem_dim = model.lm_head.out_features, model.lm_head.in_features
-            if model.lm_head.weight.shape[0] != token_num:
-                model.lm_head.weight = torch.nn.Parameter(
+            tokenizer = model.tokenizer
+            token_num, tokem_dim = model.llm.lm_head.out_features, model.llm.lm_head.in_features
+            if model.llm.lm_head.weight.shape[0] != token_num:
+                model.llm.lm_head.weight = torch.nn.Parameter(
                     torch.empty(
                         token_num, tokem_dim, device=model.device, dtype=model.dtype
                     )
                 )
-                model.model.embed_tokens.weight = torch.nn.Parameter(
+                model.llm.embed_tokens.weight = torch.nn.Parameter(
                     torch.empty(
                         token_num, tokem_dim, device=model.device, dtype=model.dtype
                     )
