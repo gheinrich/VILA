@@ -3,6 +3,8 @@ export SLURM_ACCOUNT=nvr_elm_llm
 
 VILA_CI_MAILIST="ligengz@nvidia.com,jasonlu@nvidia.com,yunhaof@nvidia.com,fuzhaox@nvidia.com,yukangc@nvidia.com,huqinghao@gmail.com,haotiant@nvidia.com,zhijianl@nvidia.com,vila-ci-notification-aaaanopnxaw6bcnymofqfnwk3e@nvidia.org.slack.com"
 
+UPDATE_PERIOD=28800
+
 SECONDS=0
 while true; do
 
@@ -26,11 +28,11 @@ bash CIs/continual_local.sh $VILA_CI_MAILIST
 
 # launch CI every 3 hour if new commits
 while true; do
-    if [ "$SECONDS" -gt "10800" ]; then
+    if [ "$SECONDS" -gt "$UPDATE_PERIOD" ]; then
         SECONDS=0
         break
     else
-        echo "$(date '+%Y-%m-%d %H:%M') CI waiting progress, $SECONDS of 10800 seconds"
+        echo "$(date '+%Y-%m-%d %H:%M') CI waiting progress, $SECONDS of $UPDATE_PERIOD seconds"
         sleep 60
     fi 
 done
