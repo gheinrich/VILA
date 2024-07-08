@@ -13,7 +13,7 @@ from llava import conversation as conversation_lib
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
-from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
 from llava.mm_utils import process_images
 
 from PIL import Image
@@ -81,9 +81,14 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     input_ids = torch.unsqueeze(input_ids, 0)
     input_ids = torch.as_tensor(input_ids).cuda()
 
-    stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-    keywords = [stop_str]
-    stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
+    if conv.sep_style == SeparatorStyle.LLAMA_3:
+            keywords = [conv.sep, conv.sep2]
+            stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+    else:
+        stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+        keywords = [stop_str]
+        stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None
+
     with torch.inference_mode():
         output_ids = model.generate(
             input_ids,
@@ -92,7 +97,7 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
             temperature=0.2,
             max_new_tokens=1024,
             use_cache=True,
-            stopping_criteria=[stopping_criteria]
+            stopping_criteria=stopping_criteria
         )
 
     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]

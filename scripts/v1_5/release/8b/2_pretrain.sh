@@ -14,16 +14,8 @@ STAGE1_PATH=$1
 # for example, llava-v1.5-7b-mm-align
 OUTPUT=$2
 
-export NCCL_IB_SL=1
-export CUDA_DEVICE_MAX_CONNECTIONS=1
-#export NCCL_DEBUG=INFO
-export NCCL_ASYNC_ERROR_HANDLING=1
-#export CUDA_LAUNCH_BLOCKING=1
-
-
-
 n_node=$SLURM_JOB_NUM_NODES
-bs=$((64 / n_node))
+bs=$((128 / n_node))
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID

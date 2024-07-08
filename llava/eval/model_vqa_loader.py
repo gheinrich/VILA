@@ -97,9 +97,13 @@ def eval_model(args):
         input_ids = input_ids.to(device='cuda', non_blocking=True)
 
         conv = conv_templates[args.conv_mode]
-        stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-        keywords = [conv.sep]
-        stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None
+        if conv.sep_style == SeparatorStyle.LLAMA_3:
+            keywords = [conv.sep, conv.sep2]
+            stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+        else:
+            stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+            keywords = [stop_str]
+            stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None
 
         with torch.inference_mode():
             output_ids = model.generate(
