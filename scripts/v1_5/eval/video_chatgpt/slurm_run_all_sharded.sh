@@ -36,5 +36,6 @@ srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_nextqa_sh
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name $conv_mode &
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name $conv_mode &
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_perception_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.perception.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_perception_sharded.sh $checkpoint_path $model_name $conv_mode &
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_vila_benchmark_sharded --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.vila_benchmark.txt ./scripts/v1_5/eval/video_chatgpt/run_vila_benchmark.sh $checkpoint_path $model_name $conv_mode &
 
 sbatch -p $PARTITIONS llava/eval/video_mme/sbatch_eval.sh $checkpoint_path $model_name $conv_mode

@@ -5,24 +5,32 @@ import torch
 import os
 import json
 from tqdm import tqdm
-import shortuuid
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.conversation import conv_templates, SeparatorStyle
+from llava import conversation as conversation_lib
 from llava.model.builder import load_pretrained_model
 from llava.data.dataset import LazySupervisedDataset
 from llava.utils import disable_torch_init
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
-from llava.mm_utils import process_images
+from llava.mm_utils import process_images, process_image
 
-from PIL import Image
 import math
-import numpy as np
-
-from torchvision.transforms import Resize
-from pytorchvideo.data.encoded_video import EncodedVideo
-
 import signal
+
+LABEL_PATHS = {
+    "pexels": "/home/yukangc/VILA-Benchmark/label/pexels.json",
+    "robotics": "/home/yukangc/VILA-Benchmark/label/robotics.json",
+    "av": "/home/yukangc/VILA-Benchmark/label/av.json",
+    "long": "/home/yukangc/VILA-Benchmark/label/long.json",
+}
+
+VIDEO_DIR = {
+    "pexels": "/home/yukangc/VILA-Benchmark/data/pexels",
+    "robotics": "/home/yukangc/VILA-Benchmark/data/robotics",
+    "av": "/home/yukangc/VILA-Benchmark/data/av",
+    "long": "/home/yukangc/VILA-Benchmark/data/long",
+}
 
 # This function will be called when the timeout is reached
 def handler(signum, frame):
@@ -42,13 +50,30 @@ def get_chunk(lst, n, k):
 
 
 def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
+    conversation_lib.default_conversation = conversation_lib.conv_templates[
+        args.conv_mode
+    ]
+    if hasattr(model.config, 'num_video_frames') and model.config.num_video_frames is not None:
+        num_video_frames = model.config.num_video_frames
+    else:
+        num_video_frames = 8
 
-    num_video_frames = model.config.num_video_frames
-    print("num_video_frames", num_video_frames)
-    images, video_loading_succeed = LazySupervisedDataset._load_video(video_path, num_video_frames, data_args=args)
-    image_tensor = process_images(images, image_processor, model.config)
+    if hasattr(model.config, 'fps') and model.config.fps is not None:
+        fps = model.config.fps
+    else:
+        fps = 0.0
 
-    qs = '<image>\n' * num_video_frames + qs
+    # print(fps)
+    images, frames_loaded = LazySupervisedDataset._load_video(video_path, num_video_frames, fps, args)
+    # image_tensor = process_images(images, image_processor, model.config)
+    image_tensor = torch.stack(
+        [process_image(image, args, None) for image in images]
+    )
+    num_frames_loaded_successfully = len(images)
+    # print(f"Number of frames loaded successfully: {num_frames_loaded_successfully}")
+    qs = qs.replace("<image>\n", "").replace("\n<image>", "").replace("<image>", "")
+    qs = qs.replace("<video>\n", "").replace("\n<video>", "").replace("<video>", "")
+    qs = '<image>\n' * num_frames_loaded_successfully + qs
 
     conv = conv_templates[args.conv_mode].copy()
     conv.append_message(conv.roles[0], qs)
@@ -89,99 +114,93 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     outputs = outputs.strip()
     return outputs
 
-def parse_caption_template(template_type):
-    if "bin" in template_type:
-        short_bin = template_type.split("_")[1]
-        long_bin = template_type.split("_")[2]
-        short_question = "Elaborate on the visual and narrative elements of the video in detail."
-        long_question = f"Summarize the visual content of the following video. Please write the caption with no more than {long_bin} words.\n<video>"
-    else:
-        raise ValueError(f"Invalid template type: {template_type}")
-
-    return short_question, long_question
-
 def eval_model(args):
     # Model
     disable_torch_init()
 
     # List video files
     video_formats = ['.mp4', '.avi', '.mov', '.mkv']
-    video_files = os.listdir(args.video_dir)
+    if not args.eval_type in ["pexels", "robotics", "av", "long"]:
+        raise ValueError("Unsupported eval type %s"%args.eval_type)
+
+    video_dir = VIDEO_DIR[args.eval_type]
+    video_files = os.listdir(video_dir)
     video_files = [f for f in video_files if os.path.splitext(f)[1] in video_formats]
-    short_q, long_q = parse_caption_template(args.prompt_template)
+    short_q = "Elaborate on the visual and narrative elements of the video in detail."
     gt_questions = []
-    questions = json.load(open("/lustre/fs2/portfolios/nvr/users/yukangc/datasets/Video-Benchmark-Label-0607.json"))
-    question_dict = {}
-    for item in questions:
-        question_dict[item['video_name']+".mp4"] = item['Q']
     for i, video_name in enumerate(video_files):
         gt_questions.append(
             {
                 'video_name': video_name, 
-                'short_q': question_dict[video_name], #short_q, 
-                'long_q': long_q,
+                'short_q': short_q,
             }
         )
     
     # Create the output directory if it doesn't exist
 
-
     args.output_dir = os.path.expanduser(args.output_dir)
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     print(f"Output directory: {args.output_dir}")
-    args.video_dir = os.path.expanduser(args.video_dir)
-    print(f"Video directory: {args.video_dir}")
-    short_caption_file = os.path.join(args.output_dir, f"detailed_captions.txt")
-    short_caption_file = open(short_caption_file, "w")
-    long_caption_file = os.path.join(args.output_dir, f"video_captions.txt")
-    long_caption_file = open(long_caption_file, "w")
-    
-    # List to store the output results
-    output_list = [] 
-
+    video_dir = os.path.expanduser(video_dir)
+    print(f"Video directory: {video_dir}")
 
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
     args.image_processor = image_processor
 
+
+    if hasattr(model.config, 'image_aspect_ratio') and model.config.image_aspect_ratio is not None:
+        args.image_aspect_ratio = model.config.image_aspect_ratio
+    else:
+        raise ValueError("image_aspect_ratio is not found in the model config")
+
     # Iterate over each sample in the ground truth file
     index = 0
     for sample in tqdm(gt_questions):
         video_name = sample['video_name']
         short_question = sample['short_q']
-        long_question = sample['long_q']
         index += 1
-        
+        video_key = video_name.split(".")[0]
+        short_caption_file = os.path.join(args.output_dir, "%s.json"%video_key)
+        if os.path.exists(short_caption_file):
+            print("Finished %s."%video_name)
+            continue
         # Load the video file
-        for question_type in ['short', 'long']:
-            temp_path = os.path.join(args.video_dir, f"{video_name}")
-            print(f"Processing video: {temp_path}")
-            if os.path.exists(temp_path):
-                video_path = temp_path
-                question = short_question if question_type == 'short' else long_question
-                output = get_model_output(model, image_processor, tokenizer, video_path, question, args)
-                print('question:', question)
-                if question_type == 'short':
-                    short_caption_file.write(f"{video_name}: {output}\n")
-                elif question_type == 'long':
-                    long_caption_file.write(f"{video_name}: {output}\n")
-                else:
-                    raise ValueError(f"Invalid question type: {question_type}")
-    short_caption_file.close()
-    long_caption_file.close()
-    print(f"Results saved to {args.output_dir}")
+        temp_path = os.path.join(video_dir, f"{video_name}")
+        print(f"Processing video: {temp_path}")
+        if os.path.exists(temp_path):
+            video_path = temp_path
+            question = short_question
+            output = get_model_output(model, image_processor, tokenizer, video_path, question, args)
+
+            output_dict = {video_key: output}
+            json.dump(output_dict, open(short_caption_file, "w"))
+
+    gen_pred_json(args.output_dir, args.eval_type)
+
+def gen_pred_json(output_dir, eval_type):
+    labels_json = json.load(open(LABEL_PATHS[eval_type]))
+    output_files = os.listdir(output_dir)
+    output_json = []
+    for item in labels_json:
+        video_name = item["video_name"]
+        item_output = item
+        item_output['pred'] = json.load(open(os.path.join(output_dir, "%s.json"%video_name)))[video_name]
+        output_json.append(item_output)
+
+    output_path = os.path.join(output_dir, "pred.json")
+    json.dump(output_json, open(output_path, "w"))
+    print(f"Results saved to {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
-    parser.add_argument("--model_max_length", type=int, required=False, default=2048)
-    parser.add_argument('--video_dir', help='Directory containing video files.', required=True)
+    parser.add_argument('--eval_type', type=str, default="pexels", required=True)
     parser.add_argument('--output_dir', help='Directory to save the model results JSON.', required=True)
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
-    parser.add_argument("--prompt_template", type=str, help='The template of video caption question.', required=True)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=None)
     parser.add_argument("--num_beams", type=int, default=1)
