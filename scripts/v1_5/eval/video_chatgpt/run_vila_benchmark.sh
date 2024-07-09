@@ -1,11 +1,5 @@
 #!/bin/bash
 
-source ~/.bashrc
-conda activate vila
-which python
-
-cd ~/workspace/VILA-Internal
-
 model_path=$1
 model_name=$2
 conv_mode=$3
