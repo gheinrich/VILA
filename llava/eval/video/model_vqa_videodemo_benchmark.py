@@ -19,17 +19,17 @@ import math
 import signal
 
 LABEL_PATHS = {
-    "pexels": "/home/yukangc/VILA-Benchmark/label/pexels.json",
-    "robotics": "/home/yukangc/VILA-Benchmark/label/robotics.json",
-    "av": "/home/yukangc/VILA-Benchmark/label/av.json",
-    "long": "/home/yukangc/VILA-Benchmark/label/long.json",
+    "pexels": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/label/pexels.json",
+    "robotics": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/label/robotics.json",
+    "av": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/label/av.json",
+    "long": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/label/long.json",
 }
 
 VIDEO_DIR = {
-    "pexels": "/home/yukangc/VILA-Benchmark/data/pexels",
-    "robotics": "/home/yukangc/VILA-Benchmark/data/robotics",
-    "av": "/home/yukangc/VILA-Benchmark/data/av",
-    "long": "/home/yukangc/VILA-Benchmark/data/long",
+    "pexels": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/data/pexels",
+    "robotics": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/data/robotics",
+    "av": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/data/av",
+    "long": "/home/jasonlu/vlm_datasets2/VILA-Benchmark/data/long",
 }
 
 # This function will be called when the timeout is reached
