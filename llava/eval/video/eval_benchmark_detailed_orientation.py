@@ -6,13 +6,7 @@ import argparse
 import json
 import ast
 from multiprocessing.pool import Pool
-from openai import AzureOpenAI
-
-client = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version="2024-02-01",
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
-)
+import openai
 
 def parse_args():
     parser = argparse.ArgumentParser(description="question-answer-generation-using-gpt-3")
@@ -40,7 +34,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
         pred = qa_set['pred']
         try:
             # Compute the detailed-orientation score
-            completion = client.chat.completions.create(
+            completion = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {
@@ -131,6 +125,7 @@ def main():
 
     # Set the OpenAI API key.
     #openai.api_key = args.api_key
+    openai.api_key = os.environ['OPENAI_API_KEY']
     num_tasks = args.num_tasks
 
     # While loop to ensure that all captions are processed.

@@ -26,7 +26,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
     returns a score for consistency.
     """
     # Set the OpenAI API key.
-    openai.api_key = args.api_key
+    openai.api_key = os.environ['OPENAI_API_KEY']
     if args.api_base is not None:
         openai.api_base = args.api_base
     for file in caption_files:
