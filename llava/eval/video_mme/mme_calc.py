@@ -109,6 +109,7 @@ def eval_your_results(
     - gt_answer_key (Optional[str]): Key to access the ground truth answer in the results file.
     - your_answer_key (Optional[str]): Key to access your answer in the results file.
     """
+    key_name = your_answer_key.replace("response_", "")
     ckpt_name = osp.basename(your_results_path).replace("_converted.json", "")
     wandb_project = os.environ.get("WANDB_PROJECT", "VILA-evaluation")
     wandb_name = os.environ.get("WANDB_NAME", ckpt_name)
@@ -120,7 +121,7 @@ def eval_your_results(
         sha.update(fpath.encode())
         return sha.hexdigest()[:8]
 
-    wandb_id = hash_path(osp.realpath(your_results_path))
+    wandb_id = hash_path(osp.realpath(your_results_path) + "2024")
     # wandb.require("core")
     wandb.init(
         project=wandb_project,
@@ -233,7 +234,7 @@ def eval_your_results(
 
         overall_acc = 100 * total_correct / total_answered if total_answered > 0 else 0
 
-        wandb.log({f"videomme/{video_type}": overall_acc})
+        wandb.log({f"videomme/{video_type}-{key_name}": overall_acc})
         print(f"Overall: {100 * total_correct / total_answered if total_answered > 0 else 0 : .1f}%")
 
         print("\n")
@@ -278,7 +279,7 @@ def eval_your_results(
     total_answered = sum([sum([q_type_dict[video_type][q_type]["answered"] for q_type in TASK_CATEGORIES]) for video_type in video_types])
     overall_acc = 100 * total_correct / total_answered if total_answered > 0 else 0
 
-    wandb.log({"videomme/entire": overall_acc})
+    wandb.log({f"videomme/entire-{key_name}": overall_acc})
 
     print(f"Overall: {100 * total_correct / total_answered if total_answered > 0 else 0 : .1f}%")
 
@@ -287,6 +288,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_file", type=str, required=True)
     parser.add_argument("--video_duration_type", type=str, required=True)
+    parser.add_argument("--your_answer_key", type=str, default="response_w/o_sub")
     parser.add_argument("--return_categories_accuracy", action="store_true")
     parser.add_argument("--return_sub_categories_accuracy", action="store_true")
     parser.add_argument("--return_task_types_accuracy", action="store_true")
@@ -296,6 +298,7 @@ if __name__ == "__main__":
 
     eval_your_results(
         args.results_file,
+        your_answer_key=args.your_answer_key,
         video_types=args.video_duration_type,
         return_categories_accuracy=args.return_categories_accuracy,
         return_sub_categories_accuracy=args.return_sub_categories_accuracy,

@@ -125,6 +125,14 @@ template = r""" Select the best answer to the following multiple-choice question
 The best answer is:
 """
 
+template_wsub = r""" This video's subtitles are listed below:
+{subtitle} 
+Select the best answer to the following multiple-choice question based on the video. Respond with only the letter (A, B, C, or D) of the correct option. 
+{question}
+The best answer is:
+"""
+
+
 
 def get_path(root_path):
     from huggingface_hub import repo_exists, snapshot_download
@@ -152,7 +160,7 @@ def eval_model(args):
     if not args.output_name.endswith(".json"):
         args.output_name += ".json"
 
-    if args.num_video_frames is None:
+    if args.num_video_frames is None or args.num_video_frames < 0:
         root_path = osp.join(get_path(model_path))
         args.num_video_frames = json.load(open(osp.join(root_path, "config.json")))["num_video_frames"]
         print(
@@ -174,19 +182,24 @@ def eval_model(args):
     jinfo = json.load(open("/home/ligengz/workspace/video-mme/Video-MME.json"))
     folder = "/home/ligengz/workspace/video-mme/ytb_videos"
 
-    # videomme v2, released in june 20 2024
+    # videomme v2, updated in june 20 2024
     jinfo = json.load(open("/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/Video-MME/qa_old_format.json"))
     folder = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/Video-MME/videos"
+    subtitle_folder = "/home/ligengz/nvr_elm_llm/dataset/Video-MME/subtitle"
 
     if args.convert:
         for vmeta in jinfo:
             for question in vmeta["questions"]:
                 qid = question["question_id"]
                 if qid in labeled_key:
-                    question["response"] = labeled_key[qid]["response"]
+                    # question["response"] = labeled_key[qid]["response"]
+                    question["response_w/o_sub"] = labeled_key[qid]["response_w/o_sub"]
+                    question["response_w/_sub"] = labeled_key[qid]["response_w/_sub"]
                 else:
+                    # if not answered, using "C" as the default answer.
                     print("missing", qid)
-                    question["response"] = "C"
+                    question["response_w/o_sub"] = "C"
+                    question["response_w/_sub"] = "C"
         with open(answers_file.replace(".json", "_converted.json"), "w") as fp:
             json.dump(jinfo, fp, indent=2)
         return 0
@@ -212,18 +225,23 @@ def eval_model(args):
         url = vmeta["url"]
         video_id = vmeta["video_id"]
         uid = osp.basename(url).split("?v=")[-1]
+        
         vpath = osp.join(folder, f"{uid}.mp4")
+        subpath = osp.join(subtitle_folder, f"{uid}.srt")
 
+        from llava.eval.video_mme.w_sub_eval import slice_frames
+        video_frames, video_subtitles = slice_frames(vpath, subpath, num_frames=args.num_video_frames)
         if not osp.exists(vpath):
             print("[video not downloaded] Skip", vpath)
             continue
-
+        
         for questions in vmeta["questions"]:
             qid = questions["question_id"]
             if qid in labeled_key:
                 print("[question id answered] Skip", qid, url)
                 continue
             qa = questions["question"] + "\n" + "Answer the question by only outputing the choice.\n" + "\n".join(questions["choices"])
+            
             qs = template.format(question=qa)
             output = get_model_output(
                 model,
@@ -236,7 +254,21 @@ def eval_model(args):
                 num_beams=args.num_beams,
                 num_video_frames=args.num_video_frames,
             )
-            questions["response"] = output
+            questions["response_w/o_sub"] = output
+
+            qs = template_wsub.format(question=qa, subtitle=video_subtitles)
+            output = get_model_output(
+                model,
+                image_processor,
+                tokenizer,
+                vpath,
+                qs,
+                conv_mode=args.conv_mode,
+                temperature=args.temperature,
+                num_beams=args.num_beams,
+                num_video_frames=args.num_video_frames,
+            )
+            questions["response_w/_sub"] = output
             labeled_key[questions["question_id"]] = questions
         # break
         # output_json.append(vmeta)
@@ -249,6 +281,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-beams", type=int, default=1)
     parser.add_argument("-c", "--convert", action="store_true")
+    parser.add_argument("--with-sub", action="store_true")
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--total", type=int, default=-1)
     parser.add_argument("--model-path", type=str, default="Efficient-Large-Model/VILA1.5-3b")
