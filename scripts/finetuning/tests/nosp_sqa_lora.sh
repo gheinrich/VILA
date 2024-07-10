@@ -73,7 +73,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path  Efficient-Large-Model/Llama-3-VILA1.5-8B\
     --version llama_3 \
-    --data_mixture scienceqa_mix \
+    --data_mixture scienceqa \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_vision_select_feature cls_patch \
     --mm_projector mlp_downsample \
