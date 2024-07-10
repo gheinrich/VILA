@@ -39,16 +39,27 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
-    nvclip_5m_vfc_recap = Dataset(
-        dataset_name="nvclip_5m_vfc_recap",
+    nvclip_5m_vfc_recap30 = Dataset(
+        dataset_name="nvclip_5m_vfc_recap30",
         dataset_type="imgtxt-wds",
         data_path="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/data",
         start_idx=0 / 100,
-        end_idx=100 / 100,
+        end_idx=30 / 100,
         caption_choice="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/vfc_longcaption_jsonraw",
     )
-    add_dataset(nvclip_5m_vfc_recap)
-    
+    add_dataset(nvclip_5m_vfc_recap30)
+
+
+    nvclip_5m_vfc_recap70 = Dataset(
+        dataset_name="nvclip_5m_vfc_recap70",
+        dataset_type="imgtxt-wds",
+        data_path="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/data",
+        start_idx=0 / 100,
+        end_idx=70 / 100,
+        caption_choice="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/vfc_longcaption_jsonraw",
+    )
+    add_dataset(nvclip_5m_vfc_recap70)
+
     nvclip_5m_0to5 = Dataset(
         dataset_name="nvclip_5m_0to5",
         dataset_type="imgtxt-wds",
@@ -459,6 +470,191 @@ def register_datasets_mixtures():
         description="NextQA dataset(https://github.com/doc-doc/NExT-QA/tree/main), 34132 human annotated questions from various domains.",
     )
     add_dataset(nextqa_mc)
+
+    av_llava_4785 = Dataset(
+        dataset_name="av_llava_4785",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/projects/video_eval/av_llava_4785.json",
+        image_path="/home/yunhaof/workspace/projects/video_eval/av_full",
+    )
+    add_dataset(av_llava_4785)
+
+    # mantis
+    # mm_sft osvald
+    # mira & vlrip
+    birds_to_words = Dataset(
+        dataset_name="birds_to_words",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/birds-to-words/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/birds-to-words/",
+    )
+    add_dataset(birds_to_words)
+
+    coinstruct = Dataset(
+        dataset_name="coinstruct",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/coinstruct/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/coinstruct/",
+    )
+    add_dataset(coinstruct)
+
+    contrastive_caption = Dataset(
+        dataset_name="contrastive_caption",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/contrastive_caption/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/contrastive_caption/",
+    )
+    add_dataset(contrastive_caption)
+
+    dreamsim = Dataset(
+        dataset_name="dreamsim",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/dreamsim/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/dreamsim/",
+    )
+    add_dataset(dreamsim)
+
+    iconqa = Dataset(
+        dataset_name="iconqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/iconqa/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/iconqa/",
+    )
+    add_dataset(iconqa)
+
+    imagecode = Dataset(
+        dataset_name="imagecode",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/imagecode/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/imagecode/",
+    )
+    add_dataset(imagecode)
+
+    llava_665k_multi = Dataset(
+        dataset_name="llava_665k_multi",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/llava_665k_multi/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/llava_665k_multi/",
+    )
+    add_dataset(llava_665k_multi)
+
+    lrv_multi = Dataset(
+        dataset_name="lrv_multi",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/lrv_multi/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/lrv_multi/",
+    )
+    add_dataset(lrv_multi)
+
+    multi_vqa = Dataset(
+        dataset_name="multi_vqa",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/multi_vqa/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/multi_vqa/",
+    )
+    add_dataset(multi_vqa)
+
+    nlvr2 = Dataset(
+        dataset_name="nlvr2",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/nlvr2/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/nlvr2/",
+    )
+    add_dataset(nlvr2)
+
+    spot_the_diff = Dataset(
+        dataset_name="spot_the_diff",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/spot-the-diff/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/spot-the-diff/",
+    )
+    add_dataset(spot_the_diff)
+
+    star = Dataset(
+        dataset_name="star",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/star/train-00000-of-00001_converted.json",
+        image_path="/home/jasonlu/vlm_datasets2/Mantis-Instruct/star/",
+    )
+    add_dataset(star)
+
+    nv_mm_sft = Dataset(
+        dataset_name="nv_mm_sft",
+        dataset_type="torch",
+        data_path="/home/jasonlu/vlm_datasets2/nv_mm_sft/nv_mm_sft.jsonl",
+        image_path="/home/jasonlu/vlm_datasets2/nv_mm_sft/images",
+    )
+    add_dataset(nv_mm_sft)
+
+
+    nv_metropolis_sft = Dataset(
+        dataset_name="nv_metropolis_sft",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/NVCLIP_1M_full.json",
+        image_path="/home/jasonlu/vlm_datasets/nv_metropolis_sft/images",
+    )
+    add_dataset(nv_metropolis_sft)
+
+    nv_metropolis_textcaps = Dataset(
+        dataset_name="nv_metropolis_textcaps",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/textcaps.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_textcaps)
+
+
+    nv_metropolis_refcoco = Dataset(
+        dataset_name="nv_metropolis_refcoco",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/refcoco.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_refcoco)
+
+    nv_metropolis_refcoco_updated = Dataset(
+        dataset_name="nv_metropolis_refcoco_updated",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/refcoco_updated.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_refcoco_updated)
+
+    nv_metropolis_vqav2 = Dataset(
+        dataset_name="nv_metropolis_vqav2",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/vqav2_okvqa.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_vqav2)
+
+    nv_metropolis_vqav2_updated = Dataset(
+        dataset_name="nv_metropolis_vqav2_updated",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/vqav2_okvqa_updated.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_vqav2_updated)
+
+    nv_metropolis_aokvqa = Dataset(
+        dataset_name="nv_metropolis_aokvqa",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/a_okvqa.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_aokvqa)
+
+    nv_metropolis_aokvqa_legal = Dataset(
+        dataset_name="nv_metropolis_aokvqa_legal",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/a_okvqa_legal.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+    )
+    add_dataset(nv_metropolis_aokvqa_legal)
+
+
+
+
 
     reason_clevrerqa = Dataset(
         dataset_name="reason_clevrerqa",

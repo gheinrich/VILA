@@ -1,6 +1,7 @@
 # This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
 
 import openai
+from openai import AzureOpenAI
 import os
 import argparse
 import json
@@ -24,10 +25,20 @@ def annotate(prediction_set, caption_files, output_dir, args):
     Evaluates question and answer pairs using GPT-3.5/GPT-4
     Returns a score for correctness.
     """
-    # Set the OpenAI API key.
-    print("Going to print key")
-    print("Key", os.environ['OPENAI_API_KEY'][:-5])
-    openai.api_key = os.environ['OPENAI_API_KEY']
+
+    try:
+        client = AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+            api_version="2024-02-01",
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        )
+        args.gpt_model='gpt-35-turbo'
+    except:
+        client = openai
+        # Set the OpenAI API key.
+        print("Going to print key")
+        print("Key", os.environ['OPENAI_API_KEY'][:-5])
+        openai.api_key = os.environ['OPENAI_API_KEY']
     for file in caption_files:
         key = file[:-5] # Strip file extension
         qa_set = prediction_set[key]
@@ -36,7 +47,7 @@ def annotate(prediction_set, caption_files, output_dir, args):
         pred = qa_set['pred']
         try:
             # Compute the correctness score
-            completion = openai.chat.completions.create(
+            completion = client.chat.completions.create(
                 model=args.gpt_model,
                 messages=[
                     {

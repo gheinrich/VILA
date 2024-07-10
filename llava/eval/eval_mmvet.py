@@ -23,12 +23,10 @@ try:
         api_version="2024-02-01",
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
+    gpt_model = "gpt-4"
 except:
     client = openai
-
-
-gpt_model = "gpt-4"
-
+    gpt_model = "gpt-4-0613"
 
 prompt = """Compare the ground truth and prediction from AI models, to give a correctness score for the prediction. <AND> in the ground truth means it is totally right only when all elements in the ground truth are present in the prediction, and <OR> means it is totally right when any one element in the ground truth is present in the prediction. The correctness score is 0.0 (totally wrong), 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, or 1.0 (totally right). Just complete the last space of the correctness score.
 

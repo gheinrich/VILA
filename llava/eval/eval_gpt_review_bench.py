@@ -11,11 +11,11 @@ import time
 NUM_SECONDS_TO_SLEEP = 0.5
 
 
-def get_eval(client, content: str, max_tokens: int):
+def get_eval(client, content: str, max_tokens: int, gpt_model):
     while True:
         try:
             response = client.chat.completions.create(
-                model='gpt-4',
+                model=gpt_model,
                 messages=[{
                     'role': 'system',
                     'content': 'You are a helpful and precise assistant for checking the quality of the answer.'
@@ -68,8 +68,10 @@ if __name__ == '__main__':
             api_version="2024-02-01",
             azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         )
+        gpt_model = "gpt-4"
     except:
         client = openai
+        gpt_model = "gpt-4-0613"
 
     f_q = open(os.path.expanduser(args.question))
     f_ans1 = open(os.path.expanduser(args.answer_list[0]))
@@ -120,7 +122,7 @@ if __name__ == '__main__':
             'category': category
         }
         if idx >= len(cur_reviews):
-            review = get_eval(client, content, args.max_tokens)
+            review = get_eval(client, content, args.max_tokens, gpt_model)
             scores = parse_score(review)
             cur_js['content'] = review
             cur_js['tuple'] = scores

@@ -382,7 +382,7 @@ def preprocess_v1(
         conv.messages = []
         for j, sentence in enumerate(source):
             role = roles[sentence["from"]]
-            assert role == conv.roles[j % 2], f"{i}"
+            assert role == conv.roles[j % 2], f"{i} {source}"
             conv.append_message(role, sentence["value"])
         conversations.append(conv.get_prompt())
 
@@ -824,6 +824,8 @@ class LazySupervisedDataset(Dataset):
         elif "images" in sources[0]:
             all_images = []
             for image_file in self.list_data_dict[i]["images"]:
+                if isinstance(image_file, dict):
+                    image_file = image_file["path"]
                 image = process_image(image_file, self.data_args, self.image_folder)
                 all_images.append(image)
             image_tensor = torch.stack(all_images)
