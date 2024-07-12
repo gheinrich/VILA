@@ -90,6 +90,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        dpo_forward: bool = False,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         self.freezed_module_patch()
         if inputs_embeds is None:
@@ -104,34 +105,34 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
         # Note (kentang-mit@): we have a unit test for this function.
-        if self.training:
-            (
-                _,
-                new_position_ids,
-                new_attention_mask,
-                _,
-                new_inputs_embeds,
-                new_labels,
-                sorted_seqlens_in_batch,
-            ) = self.repack_multimodal_data(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
-                inputs_embeds,
-                labels,
-            )
-            if sorted_seqlens_in_batch is None:
-                sorted_seqlens_in_batch = seqlens_in_batch
-            new_input_ids = None
-            past_key_values = None
-        else:
-            new_attention_mask = attention_mask
-            new_position_ids = position_ids
-            new_inputs_embeds = inputs_embeds
-            new_labels = labels
-            sorted_seqlens_in_batch = attention_mask.sum(-1).int()
-            new_input_ids = input_ids
+        # if self.training:
+        #     (
+        #         _,
+        #         new_position_ids,
+        #         new_attention_mask,
+        #         _,
+        #         new_inputs_embeds,
+        #         new_labels,
+        #         sorted_seqlens_in_batch,
+        #     ) = self.repack_multimodal_data(
+        #         input_ids,
+        #         position_ids,
+        #         attention_mask,
+        #         past_key_values,
+        #         inputs_embeds,
+        #         labels,
+        #     )
+        #     if sorted_seqlens_in_batch is None:
+        #         sorted_seqlens_in_batch = seqlens_in_batch
+        #     new_input_ids = None
+        #     past_key_values = None
+        # else:
+        new_attention_mask = attention_mask
+        new_position_ids = position_ids
+        new_inputs_embeds = inputs_embeds
+        new_labels = labels
+        sorted_seqlens_in_batch = attention_mask.sum(-1).int()
+        new_input_ids = input_ids
         # print("new_inputs_embeds", new_inputs_embeds.shape, new_attention_mask is None)
         outputs = self.llm.forward(
             input_ids=new_input_ids,
@@ -146,6 +147,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             return_dict=return_dict,
             seqlens_in_batch=sorted_seqlens_in_batch,
         )
+        if dpo_forward:
+            return outputs.logits, new_labels
         return outputs
     
     @torch.no_grad()

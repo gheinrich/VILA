@@ -18,7 +18,7 @@ import os
 import logging
 from typing import Dict, Optional, Sequence, List
 import warnings
-
+import copy
 import torch
 import transformers
 
@@ -27,9 +27,12 @@ from transformers.modeling_utils import unwrap_model
 from transformers import set_seed
 
 from torch.utils.data import Dataset
-from llava.train.llava_trainer import LLaVATrainer
+from llava.train.llava_trainer import LLaVATrainer, VILADPOTrainer
 from llava.train.args import TrainingArguments, ModelArguments, DataArguments
 from llava.train.callbacks.autoresume_callback import AutoResumeCallback
+from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
+                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
+                             IMAGE_TOKEN_INDEX)
 
 from llava import conversation as conversation_lib
 from llava.data import make_supervised_data_module
@@ -42,6 +45,12 @@ from llava.train.utils import (
     mprint,
 )
 from llava.train.sequence_parallel import set_pg_manager
+from llava.trl.trainer.utils import DPODataCollatorWithPadding
+import llava.data.datasets_mixture as datasets_mixture
+import llava.data.dataset as dataset
+from dataclasses import dataclass, field
+from typing import Any
+from llava.mm_utils import process_image
 
 
 local_rank = None
@@ -181,6 +190,228 @@ def smart_tokenizer_and_embedding_resize(
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
 
 
+def make_conv(prompt, answer):
+    return [
+        {
+            "from": "human",
+            "value": prompt,
+        },
+        {
+            "from": "gpt",
+            "value": answer,
+        },
+    ]
+
+@dataclass
+class DPODataCollator(DPODataCollatorWithPadding):
+    tokenizer: Any = None
+
+    def collate(self, batch):
+        # first, pad everything to the same length
+        # input_ids, labels = tuple([instance[key] for instance in instances]
+        #                           for key in ("input_ids", "labels"))
+        # input_ids = torch.nn.utils.rnn.pad_sequence(
+        #     input_ids,
+        #     batch_first=True,
+        #     padding_value=self.tokenizer.pad_token_id)
+        # labels = torch.nn.utils.rnn.pad_sequence(labels,
+        #                                          batch_first=True,
+        #                                          padding_value=IGNORE_INDEX)
+        # input_ids = input_ids[:, :self.tokenizer.model_max_length]
+        # labels = labels[:, :self.tokenizer.model_max_length]
+        # batch = dict(
+        #     input_ids=input_ids,
+        #     labels=labels,
+        #     attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+        # )
+        padded_batch = {}
+        for k in batch[0].keys():
+            if k.endswith("_input_ids") or k.endswith("_attention_mask") or k.endswith("_labels"):
+                # if "prompt" in k:
+                #     to_pad = [torch.LongTensor(ex[k][::-1]) for ex in batch]
+                # else:
+                to_pad = [torch.LongTensor(ex[k]) for ex in batch]
+                if k.endswith("_input_ids"):
+                    padding_value = self.pad_token_id
+                elif k.endswith("_labels"):
+                    padding_value = self.label_pad_token_id
+                else:
+                    continue
+                # elif k.endswith("_attention_mask"):
+                #     padding_value = self.padding_value
+                # else:
+                #     raise ValueError(f"Unexpected key in batch '{k}'")
+
+                padded_batch[k] = torch.nn.utils.rnn.pad_sequence(to_pad, batch_first=True, padding_value=padding_value)
+                # for the prompt, flip back so padding is on left side
+                # if "prompt" in k:
+                #     padded_batch[k] = padded_batch[k].flip(dims=[1])
+            else:
+                padded_batch[k] = [ex[k] for ex in batch]
+        for k in ['chosen_input_ids', 'rejected_input_ids']:
+            attn_k = k.replace('input_ids', 'attention_mask')
+            padded_batch[attn_k] = padded_batch[k].ne(self.pad_token_id)
+        return padded_batch
+
+    def tokenize_batch_element(
+        self,
+        prompt: str,
+        chosen: str,
+        rejected: str
+    ) -> Dict:
+        """Tokenize a single batch element.
+
+        At this stage, we don't convert to PyTorch tensors yet; we just handle the truncation
+            in case the prompt + chosen or prompt + rejected responses is/are too long. First
+            we truncate the prompt; if we're still too long, we truncate the chosen/rejected.
+
+        We also create the labels for the chosen/rejected responses, which are of length equal to
+            the sum of the length of the prompt and the chosen/rejected response, with
+            label_pad_token_id  for the prompt tokens.
+        """
+        # import pdb; pdb.set_trace()
+        batch = {}
+        
+        chosen_sources = make_conv(prompt, chosen)
+        rejected_sources = make_conv(prompt, rejected)
+        chosen_data_dict = dataset.preprocess(
+            [chosen_sources],
+            self.tokenizer,
+            has_image=True
+        )
+        #chosen_data_dict['attention_mask'] = chosen_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+
+        rejected_data_dict = dataset.preprocess(
+            [rejected_sources],
+            self.tokenizer,
+            has_image=True
+        )
+        #rejected_data_dict['attention_mask'] = rejected_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+
+        chosen_data_dict = {k: v[0] for k, v in chosen_data_dict.items()}
+        rejected_data_dict = {k: v[0] for k, v in rejected_data_dict.items()}
+
+        for k, toks in {
+            "chosen": chosen_data_dict,
+            "rejected": rejected_data_dict,
+        }.items():
+            for type_key, tokens in toks.items():
+                if type_key == "token_type_ids":
+                    continue
+                batch[f"{k}_{type_key}"] = tokens
+        return batch
+    
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+        tokenized_batch = []
+        Xs, keys = [], []
+        for feature in features:
+            prompt = feature["prompt"]
+            chosen = feature["chosen"]
+            rejected = feature["rejected"]
+             
+            batch_element = self.tokenize_batch_element(prompt, chosen, rejected)
+            batch_element['images'] = feature['images']
+            tokenized_batch.append(batch_element)
+
+        # return collated batch
+        padded_batch =  self.collate(tokenized_batch)
+        return padded_batch
+
+
+import json
+
+def load_jsonl(save_path):
+    with open(save_path, "r") as f:
+        data = [json.loads(line) for line in f.readlines()]
+    return data
+
+def load_json(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+    return data
+
+def load_data(data_path):
+    if 'jsonl' in data_path:
+        data_list = load_jsonl(data_path)
+    else: 
+        data_list = load_json(data_path)
+    return data_list
+
+class DPODataset(Dataset):
+    """Dataset for supervised fine-tuning."""
+
+    def __init__(self, data_mixture: str,
+                 tokenizer: transformers.PreTrainedTokenizer,
+                 data_args: DataArguments):
+        super(Dataset, self).__init__()
+        data_path = datasets_mixture.DATASETS[data_mixture].data_path
+        list_data_dict = load_data(data_path)
+        # if data_args.num_sample is not None:
+        #     list_data_dict = list_data_dict[:data_args.num_sample]
+
+        print("Formatting inputs...Skip in lazy mode")
+        self.tokenizer = tokenizer
+        self.list_data_dict = list_data_dict
+        self.data_args = data_args
+        self.image_folder = datasets_mixture.DATASETS[data_mixture].image_path
+
+    def __len__(self):
+        # return 20
+        return len(self.list_data_dict)
+
+    @property
+    def lengths(self):
+        length_list = []
+        for sample in self.list_data_dict:
+            img_tokens = 128 if "image" in sample else 0
+            length_list.append(sum(len(conv["value"].split()) for conv in sample["conversations"]) + img_tokens)
+        return length_list
+
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        '''
+        {
+            'prompt': 'Is there a snowman wearing a green scarf and hat in the background?',
+            'chosen': 'No, there is no snowman wearing a green scarf and hat in the background of the image. The image features a person ...',
+            'rejected': 'No, there is no snowman in the background.',
+            'image_path': '/mnt/bn/liangkeg/data/ruohongz/dpo_data/dpo_images/LRVInstruction-000000009569.jpg',
+            'image_name': 'LRVInstruction-000000009569.jpg'
+        }
+        '''
+        # sources = self.list_data_dict[i]
+        # if isinstance(i, int):
+        #     sources = [sources]
+        # assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
+        data_dict = copy.deepcopy(self.list_data_dict[i]) # inplace modification following
+
+        video_file = data_dict['video'] + '.mp4'
+        video_folder = self.image_folder
+        video_path = os.path.join(video_folder, video_file)
+        num_video_frames = self.data_args.num_video_frames if hasattr(self.data_args, "num_video_frames") else 8
+        loader_fps = self.data_args.fps if hasattr(self.data_args, "fps") else 0.0
+            
+        fps = None
+        frame_count = None
+
+        images, frames_loaded = dataset.LazySupervisedDataset._load_video(
+            video_path, num_video_frames, loader_fps, self.data_args, fps=fps, frame_count=frame_count
+        )
+
+        image_tensor = torch.stack(
+            [process_image(image, self.data_args, None) for image in images]
+        )
+        image_tensor = torch.stack(
+            [process_image(image, self.data_args, None) for image in images]
+        )
+
+        data_dict["images"] = image_tensor
+
+        prompt = data_dict['prompt']
+        prompt = prompt.replace("<video>", "").strip()
+        prompt = "<image>\n"*frames_loaded + prompt
+        data_dict['prompt'] = prompt
+        
+        return data_dict
+
 def train():
     global local_rank
 
@@ -277,6 +508,13 @@ def train():
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
     model = model_cls(
+        config=config,
+        attn_implementation="flash_attention_2",
+        model_max_length=training_args.model_max_length,
+        cache_dir=training_args.cache_dir,
+        **bnb_model_from_pretrained_args,
+    )
+    ref_model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",
         model_max_length=training_args.model_max_length,
@@ -510,10 +748,38 @@ def train():
     # Add a training step_end callback to check whether to autosuspend.
     callbacks = [AutoResumeCallback()]
 
-    trainer = LLaVATrainer(
-        model=model, tokenizer=tokenizer, args=training_args,
-        callbacks=callbacks, **data_module
-    )
+    if training_args.dpo:
+
+        train_dataset = DPODataset(tokenizer=tokenizer,
+                                data_mixture=data_args.data_mixture,
+                                data_args=data_args)
+
+        data_collator = DPODataCollator(
+            tokenizer=tokenizer,
+            label_pad_token_id=IGNORE_INDEX,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+        extra_info = []
+        extra_info.append(len(train_dataset))
+        training_args.sample_lens = extra_info
+
+        trainer = VILADPOTrainer(
+            model=model,
+            dpo_alpha=1.0,
+            gamma=0,
+            ref_model=ref_model,
+            tokenizer=tokenizer, 
+            args=training_args,
+            beta=training_args.dpo_beta,
+            callbacks=callbacks,
+            train_dataset=train_dataset,
+            data_collator=data_collator,
+        )
+    else:
+        trainer = LLaVATrainer(
+            model=model, tokenizer=tokenizer, args=training_args,
+            callbacks=callbacks, **data_module
+        )
     print(
         "length of dataloader:",
         len(trainer.get_train_dataloader()),

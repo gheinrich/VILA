@@ -97,6 +97,8 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_bias: str = "none"
     lora_llm: bool = False
     lora_vt: bool = False
+    dpo: bool = False
+    dpo_beta: float = field(default=0.1)
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
     total_time_limit: int = field(

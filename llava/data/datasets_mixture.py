@@ -5,10 +5,18 @@ from dataclasses import dataclass, field
 class Dataset:
     dataset_name: str
     dataset_type: str = field(default="torch")
-    data_path: str = field(default=None, metadata={"help": "Path to the training data."})
-    meta_path: str = field(default=None, metadata={"help": "Path to the meta data for webdataset."})
-    image_path: str = field(default=None, metadata={"help": "Path to the training image data."})
-    caption_choice: str = field(default=None, metadata={"help": "Path to the caption directory for recaption."})
+    data_path: str = field(
+        default=None, metadata={"help": "Path to the training data."}
+    )
+    meta_path: str = field(
+        default=None, metadata={"help": "Path to the meta data for webdataset."}
+    )
+    image_path: str = field(
+        default=None, metadata={"help": "Path to the training image data."}
+    )
+    caption_choice: str = field(
+        default=None, metadata={"help": "Path to the caption directory for recaption."}
+    )
     description: str = field(
         default=None,
         metadata={
@@ -17,12 +25,17 @@ class Dataset:
     )
     test_script: str = (None,)
     maintainer: str = (None,)
-    ############## ############## ############## ############## ############## ############## 
-    caption_choice: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
-    caption_choice_2: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
-    start_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
+    ############## ############## ############## ############## ############## ##############
+    caption_choice: str = field(
+        default=None, metadata={"help": "Path to the captions for webdataset."}
+    )
+    caption_choice_2: str = field(
+        default=None, metadata={"help": "Path to the captions for webdataset."}
+    )
+    start_idx: float = field(
+        default=-1, metadata={"help": "Start index of the dataset."}
+    )
     end_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
-    
 
 
 DATASETS = {}
@@ -33,7 +46,9 @@ import warnings
 def add_dataset(dataset):
     if dataset.dataset_name in DATASETS:
         # make sure the data_name is unique
-        warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
+        warnings.warn(
+            f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique."
+        )
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
 
@@ -47,8 +62,8 @@ def register_datasets_mixtures():
         end_idx=30 / 100,
         caption_choice="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/vfc_longcaption_jsonraw",
     )
-    add_dataset(nvclip_5m_vfc_recap30)
 
+    add_dataset(nvclip_5m_vfc_recap30)
 
     nvclip_5m_vfc_recap70 = Dataset(
         dataset_name="nvclip_5m_vfc_recap70",
@@ -68,7 +83,7 @@ def register_datasets_mixtures():
         end_idx=5 / 100,
     )
     add_dataset(nvclip_5m_0to5)
-    
+
     nvclip_5m = Dataset(
         dataset_name="nvclip_5m",
         dataset_type="imgtxt-wds",
@@ -77,7 +92,7 @@ def register_datasets_mixtures():
         end_idx=100 / 100,
     )
     add_dataset(nvclip_5m)
-    
+
     internvid_10M_recap = Dataset(
         dataset_name="internvid_10M_recap",
         dataset_type="video-wds",
@@ -107,7 +122,7 @@ def register_datasets_mixtures():
         caption_choice_2="/home/ligengz/workspace/VILA-internal/coyo-25m-vila-captioner_bk_new/VILA1.5-40b",
     )
     add_dataset(coyo25m_0to5_vila15_40b_recap)
-    
+
     coyo25m_0to10_vila15_40b_recap = Dataset(
         dataset_name="coyo25m_0to10_vila15_40b_recap",
         dataset_type="coyo-wds",
@@ -133,7 +148,7 @@ def register_datasets_mixtures():
         description="See panda70m.",
     )
     add_dataset(panda70m_longseq)
-    
+
     panda70m = Dataset(
         dataset_name="panda70m",
         dataset_type="panda70m",
@@ -165,12 +180,12 @@ def register_datasets_mixtures():
         description="",
     )
     add_dataset(sam_recap)
-    
+
     sam_40b_c_spatial_recap = Dataset(
         dataset_name="sam_40b_c_spatial_recap",
         dataset_type="sam-wds-tmp",
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat",
-        meta_path="/home/yunhaof/workspace/datasets/data_synthesis/sam/recaption/40b/recaption_c_spatial"
+        meta_path="/home/yunhaof/workspace/datasets/data_synthesis/sam/recaption/40b/recaption_c_spatial",
     )
     add_dataset(sam_40b_c_spatial_recap)
 
@@ -206,8 +221,7 @@ def register_datasets_mixtures():
         description="See coyo. Relabel coyo w/ VILA captioner, long Image - Text pair.",
     )
     add_dataset(coyo_webds_vila_recaption)
-    
-    
+
     coyo_webds_vila_recaption_5_subset = Dataset(
         dataset_name="coyo_25m_wds_recap_5_subset",
         dataset_type="coyo-wds-recap",
@@ -216,8 +230,7 @@ def register_datasets_mixtures():
         description="5% subset of coyo_webds_vila_recaption.",
     )
     add_dataset(coyo_webds_vila_recaption_5_subset)
-    
-    
+
     coyo_webds_vila_recaption_10_subset = Dataset(
         dataset_name="coyo_25m_wds_recap_10_subset",
         dataset_type="coyo-wds-recap",
@@ -236,8 +249,7 @@ def register_datasets_mixtures():
         description="See coyo. Convert coyo to webds format.",
     )
     add_dataset(coyo_25m_wds)
-    
-    
+
     coyo_25m_wds_5_subset = Dataset(
         dataset_name="coyo_25m_wds_5_subset",
         dataset_type="coyo-wds",
@@ -246,8 +258,7 @@ def register_datasets_mixtures():
         description="5% subset of coyo_25m_wds.",
     )
     add_dataset(coyo_25m_wds_5_subset)
-    
-    
+
     coyo_25m_wds_10_subset = Dataset(
         dataset_name="coyo_25m_wds_10_subset",
         dataset_type="coyo-wds",
@@ -256,7 +267,7 @@ def register_datasets_mixtures():
         description="10% subset of coyo_25m_wds.",
     )
     add_dataset(coyo_25m_wds_10_subset)
-    
+
     coyo_webds_vila_recaption_10_subset_llm_refined = Dataset(
         dataset_name="coyo_webds_vila_recaption_10_subset_llm_refined",
         dataset_type="coyo-wds-recap",
@@ -266,7 +277,7 @@ def register_datasets_mixtures():
         description="10% subset of coyo_webds_vila_recaption.",
     )
     add_dataset(coyo_webds_vila_recaption_10_subset_llm_refined)
-    
+
     coyo_webds_full = Dataset(
         dataset_name="coyowebds_full",
         dataset_type="coyo-wds",
@@ -347,7 +358,7 @@ def register_datasets_mixtures():
         data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-10-dataset/vlm-flan-clean-text1m-nosqa",
     )
     add_dataset(vflan)
-    
+
     vflan_fix = Dataset(
         dataset_name="vflan_fix",
         dataset_type="vflan",
@@ -362,8 +373,7 @@ def register_datasets_mixtures():
         image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/LLaVA-CC3M-Pretrain-595K/images",
     )
     add_dataset(llava_1_5_mm_align)
-    
-    
+
     llava_1_5_pretrain = Dataset(
         dataset_name="llava_1_5_pretrain",
         dataset_type="torch",
@@ -371,8 +381,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/LLaVA-Pretrain/images",
     )
     add_dataset(llava_1_5_pretrain)
-    
-    
+
     llava_1_5_sft = Dataset(
         dataset_name="llava_1_5_sft",
         dataset_type="torch",
@@ -402,7 +411,7 @@ def register_datasets_mixtures():
     sharegpt4video = Dataset(
         dataset_name="sharegpt4video",
         dataset_type="torch",
-        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k_nopanda.jsonl",   # TODO add panda back
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k_nopanda.jsonl",  # TODO add panda back
         image_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/zip_folder",
         description="Original data source: https://sharegpt4video.github.io/ 40K video caption labelled by GPT-4V.",
     )
@@ -411,7 +420,7 @@ def register_datasets_mixtures():
     sharegpt4video2 = Dataset(
         dataset_name="sharegpt4video2",
         dataset_type="torch",
-        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k.jsonl",   # TODO add panda back
+        data_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/sharegpt4video_40k.jsonl",  # TODO add panda back
         image_path="/home/jasonlu/vlm_datasets2/ShareGPT4Video/zip_folder",
         description="Original data source: https://sharegpt4video.github.io/ 40K video caption labelled by GPT-4V.",
     )
@@ -718,7 +727,7 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ 655K llava_1_5_sft data relablled w/ ShareGPT4V captioner.",
     )
     add_dataset(sharegpt4v_sft)
-    
+
     sharegpt4v_sft_fix = Dataset(
         dataset_name="sharegpt4v_sft_fix",
         dataset_type="torch",
@@ -736,8 +745,7 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ ~100K long Image - Text pair generated by GPT4V.",
     )
     add_dataset(sharegpt4v_gpt4_100k)
-    
-    
+
     allava_caption_vflan = Dataset(
         dataset_name="allava_caption_vflan",
         dataset_type="torch",
@@ -777,8 +785,7 @@ def register_datasets_mixtures():
         image_path="/home/yunhaof/workspace/datasets/DVQA/images",
     )
     add_dataset(dvqa)
-    
-    
+
     dvqa_subset = Dataset(
         dataset_name="dvqa_subset",
         dataset_type="torch",
@@ -807,7 +814,7 @@ def register_datasets_mixtures():
         dataset_name="refcoco_train",
         dataset_type="torch",
         data_path="/home/yunhaof/workspace/datasets/grounding/annotations/processed/refcoco_train.json",
-        image_path="/home/yunhaof/workspace/datasets"
+        image_path="/home/yunhaof/workspace/datasets",
     )
     add_dataset(refcoco_train)
 
@@ -988,6 +995,18 @@ def register_datasets_mixtures():
     )
     add_dataset(sharegpt_video)
 
+    dpo = Dataset(
+        dataset_name="dpo",
+        dataset_type="torch",
+        # /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/video_caption_pretrain.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/sharegpt_video/videos",
+        data_path="/home/jasonlu/video_datasets/dpo/sft_dpo_17k.jsonl",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos",
+        description="17k preference data",
+    )
+    add_dataset(dpo)
+
     sharegpt_video_qa = Dataset(
         dataset_name="sharegpt_video_qa",
         dataset_type="torch",
@@ -1124,16 +1143,16 @@ def register_datasets_mixtures():
         description="IDEFICS2-SFT dataets, exclude PlotQA and Localized Narratives for slow processing.",
     )
     add_dataset(idefics2_sft)
-    
+
     idefics2_sft_wo_table = Dataset(
         dataset_name="idefics2_sft_wo_table",
         dataset_type="torch",
         data_path="/home/yunhaof/workspace/datasets/idefics2-sft/processed/idefics2_sft_wo_table.jsonl",
         image_path="/home/yunhaof/workspace/datasets/idefics2-sft",
-        description="IDEFICS2-SFT dataets, exclude PlotQA, Localized Narratives for slow processing, and table / charts datasets for high resolution requirements."
+        description="IDEFICS2-SFT dataets, exclude PlotQA, Localized Narratives for slow processing, and table / charts datasets for high resolution requirements.",
     )
     add_dataset(idefics2_sft_wo_table)
-    
+
     clevr_math = Dataset(
         dataset_name="clevr_math",
         dataset_type="torch",
@@ -1202,12 +1221,12 @@ def register_datasets_mixtures():
         image_path="dummy",
     )
     add_dataset(dummy)
-    
+
     nv_sft = Dataset(
         dataset_name="nv_sft",
         dataset_type="torch",
         data_path="/home/jasonlu/vlm_datasets/nv_sft/project_539_torch.json",
-        image_path="/home/jasonlu/vlm_datasets/nv_sft"
+        image_path="/home/jasonlu/vlm_datasets/nv_sft",
     )
     add_dataset(nv_sft)
 
@@ -1215,7 +1234,7 @@ def register_datasets_mixtures():
         dataset_name="nv_sft2",
         dataset_type="torch",
         data_path="/home/jasonlu/vlm_datasets/nv_sft/project_539_10k_torch.json",
-        image_path="/home/jasonlu/vlm_datasets/nv_sft"
+        image_path="/home/jasonlu/vlm_datasets/nv_sft",
     )
     add_dataset(nv_sft2)
 
@@ -1230,7 +1249,6 @@ def register_datasets_mixtures():
         description="17k preference data",
     )
     add_dataset(dpo)
-
 
     # ========================================================
     # datasets for osmo storage
@@ -1362,7 +1380,7 @@ def register_datasets_mixtures():
         description="YouCook2 (http://youcook2.eecs.umich.edu/): A large-scale video dataset with 11680 short but precise human written captions.",
     )
     add_dataset(osmo_youcook2)
-    
+
     osmo_vatex = Dataset(
         dataset_name="osmo_vatex",
         dataset_type="torch",
@@ -1392,7 +1410,7 @@ def register_datasets_mixtures():
         description="Original data source: https://sharegpt4v.github.io/ ~100K long Image - Text pair generated by GPT4V.",
     )
     add_dataset(osmo_sharegpt4v_gpt4_100k)
-    
+
     osmo_vflan = Dataset(
         dataset_name="osmo_vflan",
         dataset_type="vflan",
@@ -1524,5 +1542,3 @@ def register_datasets_mixtures():
         image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sherlock/sherlock/images",
     )
     add_dataset(osmo_sherlock)
-
-
