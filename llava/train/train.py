@@ -514,13 +514,6 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
-    ref_model = model_cls(
-        config=config,
-        attn_implementation="flash_attention_2",
-        model_max_length=training_args.model_max_length,
-        cache_dir=training_args.cache_dir,
-        **bnb_model_from_pretrained_args,
-    )
 
     if not resume_path or training_args.lora_enable:
         if model_args.mlp_path is not None:
@@ -749,6 +742,13 @@ def train():
     callbacks = [AutoResumeCallback()]
 
     if training_args.dpo:
+        ref_model = model_cls(
+            config=config,
+            attn_implementation="flash_attention_2",
+            model_max_length=training_args.model_max_length,
+            cache_dir=training_args.cache_dir,
+            **bnb_model_from_pretrained_args,
+        ) 
 
         train_dataset = DPODataset(tokenizer=tokenizer,
                                 data_mixture=data_args.data_mixture,

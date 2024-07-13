@@ -25,9 +25,12 @@ def compare_output(tokenizer, labels, sources):
             outputs.append(tokenizer.decode(labels[start:end+1]))
 
     expected_outputs = []
-    for source in sources[0]:
+    for sid, source in enumerate(sources[0]):
         if source['from'] == 'gpt':
-            expected_outputs.append(source['value']+tokenizer.eos_token)
+            if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.LLAMA_3 and sid < len(sources[0]) - 1:
+                expected_outputs.append(source["value"] + "<|eot_id|>")
+            else:
+                expected_outputs.append(source['value']+tokenizer.eos_token)
     print(expected_outputs)
     print(outputs)
 

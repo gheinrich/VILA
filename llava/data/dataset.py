@@ -281,7 +281,7 @@ def preprocess_llama_3(
             conv.append_message(role, sentence["value"])
         
         if extra_system != "":
-            conv.system = extra_system
+            conv.system = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n" + extra_system
         prompt = conv.get_prompt()
         ## llama3 requires manually added bos token
         conversations.append(prompt)
