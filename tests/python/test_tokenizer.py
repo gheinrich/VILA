@@ -20,12 +20,14 @@ import torch
 import transformers
 from llava.data.dataset import preprocess_v1
 from transformers import AutoTokenizer
+from llava import conversation as conversation_lib
 
 
 class TestTokenizerWarning(unittest.TestCase):
     def setUp(self):
         torch.set_default_dtype(torch.bfloat16)
         self.tokenizer = AutoTokenizer.from_pretrained("lmsys/vicuna-7b-v1.5", use_fast=False, legacy=False)
+        conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
         self.tokenizer.pad_token = self.tokenizer.unk_token
         self.test_conv = [
             [

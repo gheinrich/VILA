@@ -1,4 +1,5 @@
 import os
+import sys
 import unittest
 
 from llava.unit_test_utils import requires_gpu, requires_lustre
@@ -81,7 +82,7 @@ class TestRopeScaling(unittest.TestCase):
             unittest.mock.patch('llava.train.args.ModelArguments', new=self.PatchedModelArguments),
             unittest.mock.patch('llava.train.utils.unit_test_rope_scaling', new=patch_unit_test_rope_scaling),
             ):
-
+                sys.argv = sys.argv[:1]
                 from llava.train.train import train
                 train()
 

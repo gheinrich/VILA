@@ -1,2 +1,0 @@
-rm core.*
-rm *.json
