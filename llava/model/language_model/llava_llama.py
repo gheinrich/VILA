@@ -18,6 +18,7 @@
 from typing import List, Optional, Tuple, Union
 import os, os.path as osp
 import torch
+import inspect
 
 from transformers import (
     LlamaForCausalLM,
@@ -104,8 +105,10 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             ) = self.prepare_inputs_labels_for_multimodal(
                 input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
-        # Note (kentang-mit@): we have a unit test for this function.
-        if self.training and not dpo_forward:
+        
+        support_packing = ("seqlens_in_batch" in inspect.signature(self.llm.forward).parameters)
+
+        if self.training and support_packing and not dpo_forward:
             (
                 _,
                 new_position_ids,
@@ -133,20 +136,35 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-        # print("new_inputs_embeds", new_inputs_embeds.shape, new_attention_mask is None)
-        outputs = self.llm.forward(
-            input_ids=new_input_ids,
-            attention_mask=new_attention_mask,
-            position_ids=new_position_ids,
-            past_key_values=past_key_values,
-            inputs_embeds=new_inputs_embeds,
-            labels=new_labels,
-            use_cache=use_cache,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-            seqlens_in_batch=sorted_seqlens_in_batch,
-        )
+        
+        if support_packing:
+            outputs = self.llm.forward(
+                input_ids=new_input_ids,
+                attention_mask=new_attention_mask,
+                position_ids=new_position_ids,
+                past_key_values=past_key_values,
+                inputs_embeds=new_inputs_embeds,
+                labels=new_labels,
+                use_cache=use_cache,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+                return_dict=return_dict,
+                seqlens_in_batch=sorted_seqlens_in_batch,
+            )
+        else:
+            outputs = self.llm.forward(
+                input_ids=new_input_ids,
+                attention_mask=new_attention_mask,
+                position_ids=new_position_ids,
+                past_key_values=past_key_values,
+                inputs_embeds=new_inputs_embeds,
+                labels=new_labels,
+                use_cache=use_cache,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+                return_dict=return_dict,
+            )
+
         if dpo_forward:
             return outputs.logits, new_labels
         return outputs

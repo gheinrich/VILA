@@ -27,7 +27,7 @@ import re
 import time
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Any
 
 import numpy as np
 import PIL
@@ -36,7 +36,7 @@ import transformers
 from datasets import concatenate_datasets, load_dataset
 from PIL import Image, ImageFile
 from pytorchvideo.data.encoded_video import EncodedVideo
-from torch.utils.data import ConcatDataset, Dataset
+from torch.utils.data import ConcatDataset, Dataset, default_collate
 from torchvision.transforms import Resize
 from transformers import PreTrainedTokenizer
 
@@ -53,6 +53,7 @@ from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
 from llava.train.llava_trainer import LLaVATrainer
 from llava.train.sequence_parallel import get_pg_manager, extract_local_from_list, extract_local_input_ids, extract_local_position_ids
+from llava.utils.tokenizer import preprocess_conversation
 
 # torch.backends.cudnn.enabled = False
 
@@ -571,10 +572,15 @@ def preprocess(
     3. Tokenize the concatenated conversation;
     4. Make a deepcopy as the target. Mask human words with IGNORE_INDEX.
     """
-    if conversation_lib.default_conversation.version == "mpt" or conversation_lib.default_conversation.version == "hermes-2":
-        return preprocess_mpt(sources, tokenizer, has_image=has_image, no_system_prompt=no_system_prompt)
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.PLAIN:
         return preprocess_plain(sources, tokenizer)
+
+    supported_tokenizers = ["qwen2tokenizer"]
+    if any(name in tokenizer.__class__.__name__.lower() for name in supported_tokenizers):
+        return default_collate([preprocess_conversation(conversation, tokenizer) for conversation in sources])
+
+    if conversation_lib.default_conversation.version == "mpt" or conversation_lib.default_conversation.version == "hermes-2":
+        return preprocess_mpt(sources, tokenizer, has_image=has_image, no_system_prompt=no_system_prompt)
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.LLAMA_2:
         return preprocess_llama_2(sources, tokenizer, has_image=has_image)
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.MISTRAL:

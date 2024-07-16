@@ -417,7 +417,11 @@ def train():
 
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    training_args.run_name = training_args.output_dir.split("/")[-1]
+
+    # FIXME(zhijianl): This should be deprecated when we move to the new scripts.
+    if os.getenv("RUN_NAME") is None:
+        training_args.run_name = training_args.output_dir.split("/")[-1]
+
     local_rank = training_args.local_rank
     compute_dtype = (
         torch.float16

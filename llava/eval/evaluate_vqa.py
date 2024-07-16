@@ -98,6 +98,7 @@ if __name__ == '__main__':
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
 
         image = Image.open(os.path.join(args.image_folder, image_file))
+        image = image.convert("RGB")
         image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
 
         pred = model.generate(

@@ -40,6 +40,7 @@ dist
 wandb
 output
 
+runs
 checkpoints
 checkpoints_bak
 ckpts*

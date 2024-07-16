@@ -275,6 +275,7 @@ def process_image(image_file, data_args, image_folder):
     else:
         # image is stored in bytearray
         image = image_file
+    image = image.convert("RGB")
     if data_args.image_aspect_ratio == "resize":
         if hasattr(data_args.image_processor, "crop_size"):
             # CLIP vision tower

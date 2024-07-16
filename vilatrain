@@ -1,0 +1,50 @@
+#!/bin/bash
+
+source scripts/setups/base.sh
+
+JOB_NAME="$1"
+echo "JOB_NAME = $JOB_NAME"
+
+NNODES=$2
+echo "NNODES = $NNODES"
+
+shift 2
+JOB_CMD=$@
+echo "JOB_CMD = $JOB_CMD"
+
+JOB_TIME=$(date "+%Y%m%d%H%M%S")
+echo "JOB_TIME = $JOB_TIME"
+
+export RUN_NAME="$JOB_NAME-$JOB_TIME"
+echo "RUN_NAME = $RUN_NAME"
+
+export OUTPUT_DIR="runs/train/$RUN_NAME"
+echo "OUTPUT_DIR = $OUTPUT_DIR"
+
+function srun_with_timeout() {
+    srun \
+        --account $VILA_SLURM_ACCOUNT \
+        --partition $VILA_SLURM_PARTITION \
+        --job-name $VILA_SLURM_ACCOUNT:train/$JOB_NAME \
+        --output $OUTPUT_DIR/slurm/%J-%t.out \
+        --error $OUTPUT_DIR/slurm/%J-%t.err \
+        --nodes $NNODES \
+        --gpus-per-node 8 \
+        --time 4:00:00 \
+        --exclusive \
+        timeout 235m $JOB_CMD
+
+    exit_code=$?
+    if [ -z $exit_code ]; then
+        exit_code=-1
+    fi
+    echo "Exit code: $exit_code"
+}
+
+exit_code=-1
+srun_with_timeout
+while [ $exit_code -eq 124 ]; do
+    echo "Job timed out, retrying..."
+    srun_with_timeout
+done
+echo "Job finished with exit code $exit_code"
