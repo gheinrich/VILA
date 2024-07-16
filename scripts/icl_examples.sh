@@ -12,7 +12,7 @@ python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
     --query "Count number of animals in the image." \
-    --image-file "images/icl-count/cats.jpg" 
+    --image-file "images/icl-count/cats.jpg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
@@ -23,7 +23,7 @@ python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
     --query "What is the word in the image?" \
-    --image-file "images/icl-ocr/congress.png" 
+    --image-file "images/icl-ocr/congress.png"
 
 
 
@@ -52,7 +52,7 @@ python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
     --query "Please describe the image." \
-    --image-file "images/apple_ipod.png" 
+    --image-file "images/apple_ipod.png"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
@@ -62,7 +62,7 @@ python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava
 
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv-downsampleproj-e1-nose --conv-mode vicuna_v1_1 \
     --query "<image>###Les sanglots longs des violons de l’automne blessent mon coeur d’une langueur monotone.###<image>###Pour qui sont ces serpents qui sifflent sur vos têtes?###<image>" \
-    --image-file "images/icl-french/violin.png###images/icl-french/snake.png###images/icl-french/swarm.png" 
+    --image-file "images/icl-french/violin.png###images/icl-french/snake.png###images/icl-french/swarm.png"
 
 # logo example
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava+lrv+sharegpt-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
@@ -76,49 +76,49 @@ python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-finetune-llava
 # conversation testing
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "What is the species of the puppy in the image?" \
-    --image-file "images/puppy_and_kitten.webp" 
+    --image-file "images/puppy_and_kitten.webp"
 # The puppy in the image is a golden retriever.
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "What is the species of the puppy in the image?<image>###The puppy in the image is a golden retriever.###What does the truck in the image sell?<image>" \
-    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png" 
+    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png"
 # The truck in the image sells soft serve ice cream.
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "What is the species of the puppy in the image?<image>###The puppy in the image is a golden retriever.###What does the truck in the image sell?<image>###The truck in the image sells soft serve ice cream.###How many animals are there in the previous image?" \
-    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png" 
+    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png"
 # There are two animals in the previous image: a puppy and a kitten.
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "What is the species of the puppy in the image?<image>###The puppy in the image is a golden retriever.###What does the truck in the image sell?<image>###The truck in the image sells soft serve ice cream.###How many animals are there in the previous image?###There are two animals in the previous image: a puppy and a kitten.###Which two colors is the truck selling ice-cream in?" \
-    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png" 
+    --image-file "images/puppy_and_kitten.webp###images/ice_cream_truck.png"
 # The truck selling ice-cream is blue and white.
 
 
 # two images input
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "How many animals are there in the two images? <image><image>" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "Take a look at the image. <image>###OK.###Take a look at the image. <image>###OK.###Which image has fewer animals?" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "How many images are there? \n<image>\n<image>###There are two images.###How many cats are there in the two images in total?" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 # There are two dogs in total, one in each image.
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "How many images are there? \n<image>\n<image>###There are two images.###How many dogs are there in the two images in total?###There are two dogs in total, one in each image.###How many cats are there in the two images in total?" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "This is the first image.\n<image>###OK.###This is the second image.\n<image>###OK.###What do the two images have in common?" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 # The two images have the same subjects – a dog and a cat. The main difference is the context in which the subjects are presented. In the first image, the dog and the cat are standing next to each other in a grassy field, while in the second image, the dog is sitting on a couch.
 
 python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose --conv-mode vicuna_v1_1 \
     --query "This is the first image.\n<image>###OK.###This is the second image.\n<image>###OK.###In which image there is a kitten?" \
-    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg" 
+    --image-file "images/puppy_and_kitten.webp###images/golden_retriever.jpg"
 # The kitten is in the first image.
 
 
@@ -126,34 +126,34 @@ python llava/eval/run_vila.py --model-path checkpoints/flanvicuna-7b-vflan-finet
 # reasoning examples
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose-tuneffn --conv-mode vicuna_v1_1 \
     --query "How many animals are there in the image?" \
-    --image-file "images/puppy_and_kitten.webp" 
+    --image-file "images/puppy_and_kitten.webp"
 python llava/eval/run_vila.py --model-path checkpoints/vicuna-13b-vflan-finetune-llava+lrv-downsampleprojse-e1-nose-tuneffn --conv-mode vicuna_v1_1 \
     --query "How many animals are there in the image?\n<image>###There are two animals in the image: a dog and a cat.###If we take multiply the number of animals by 10 and add 5, how many is that?" \
-    --image-file "images/puppy_and_kitten.webp" 
+    --image-file "images/puppy_and_kitten.webp"
 
 
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-7b-mmc4sub+coyoaccum-finetune-dualflan-linearclip-e1-nose --conv-mode vicuna_v1_1 \
     --query "<image>Should you honk at the pedestrians crossing the road?" \
-    --image-file "images/av/av1.png" 
+    --image-file "images/av/av1.png"
 
 
 
 # new llama2 model
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1_nosys \
     --query "<image>\n###Les sanglots longs des violons de l’automne blessent mon coeur d’une langueur monotone.###<image>\n###Pour qui sont ces serpents qui sifflent sur vos têtes?###<image>\n" \
-    --image-file "images/icl-french/violin.png###images/icl-french/snake.png###images/icl-french/swarm.png" 
+    --image-file "images/icl-french/violin.png###images/icl-french/snake.png###images/icl-french/swarm.png"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1_nosys \
     --query "<image>\n###The current population of Australia is 26 million people.###<image>\n###Deutschland hat 83 Millionen Einwohner.###<image>\n###Argentina tiene 46 millonesde habitantes.###<image>\n" \
-    --image-file "images/icl-multi-lang/0.png###images/icl-multi-lang/1.png###images/icl-multi-lang/2.png###images/icl-multi-lang/3.png" 
+    --image-file "images/icl-multi-lang/0.png###images/icl-multi-lang/1.png###images/icl-multi-lang/2.png###images/icl-multi-lang/3.png"
 # 7b: Die Eiffelturm hat 130 Meter hoch.
 # 13: Francia tiene 118 millones de habitantes.
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1_nosys \
     --query "<image>\n###The current population of Australia is 26 million people.###<image>\n###Deutschland hat 83 Millionen Einwohner.###<image>\n###中国有13亿人口.###<image>\n###Argentina tiene 46 millonesde habitantes.###<image>\n" \
-    --image-file "images/icl-multi-lang/0.png###images/icl-multi-lang/1.png###images/icl-multi-lang/great-wall.jpg###images/icl-multi-lang/2.png###images/icl-multi-lang/3.png" 
+    --image-file "images/icl-multi-lang/0.png###images/icl-multi-lang/1.png###images/icl-multi-lang/great-wall.jpg###images/icl-multi-lang/2.png###images/icl-multi-lang/3.png"
 
 
 
@@ -164,7 +164,7 @@ python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-f
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nCan you explain the meme?" \
-    --image-file "images/meme1.png" 
+    --image-file "images/meme1.png"
 
 # counting
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1_nosys \
@@ -175,38 +175,38 @@ python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-f
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nWhat is unusual about this image?" \
-    --image-file "images/av/chair.png" 
+    --image-file "images/av/chair.png"
 # The unusual aspect of this image is that a chair is flying through the air on a highway, seemingly coming out of the back of a truck. This is an unexpected and unusual sight, as chairs are not typically transported in this manner. The scene also includes other vehicles, such as cars and a motorcycle, driving on the highway, which adds to the overall peculiarity of the situation.
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nWhat is unusual about this image?###The unusual aspect of this image is that a chair is flying through the air on a highway, seemingly coming out of the back of a truck.###What should the driver do in this case?" \
-    --image-file "images/av/chair.png" 
+    --image-file "images/av/chair.png"
 # If you encounter this situation, you should immediately stop your vehicle and move to a safe distance from the truck and the flying chair. It is essential to avoid any potential hazards and contact the authorities to report the incident and ensure the safety of everyone involved.
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nDescribe the image in details." \
-    --image-file "images/dalle3/leaf.avif" 
+    --image-file "images/dalle3/leaf.avif"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nDescribe the image in details.###A 2D animation of a folk music band composed of anthropomorphic autumn leaves, each playing traditional bluegrass instruments, amidst a rustic forest setting dappled with the soft light of a harvest moon.###<image>\nDescribe the image in details.###A vast landscape made entirely of various meats spreads out before the viewer. tender, succulent hills of roast beef, chicken drumstick trees, bacon rivers, and ham boulders create a surreal, yet appetizing scene. the sky is adorned with pepperoni sun and salami clouds.###<image>\nDescribe the image in details." \
-    --image-file "images/dalle3/leaf.jpeg###images/dalle3/food.jpeg###images/dalle3/potatoking.jpeg" 
+    --image-file "images/dalle3/leaf.jpeg###images/dalle3/food.jpeg###images/dalle3/potatoking.jpeg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\n###A 2D animation of a folk music band composed of anthropomorphic autumn leaves, each playing traditional bluegrass instruments, amidst a rustic forest setting dappled with the soft light of a harvest moon.###<image>\n###A vast landscape made entirely of various meats spreads out before the viewer. tender, succulent hills of roast beef, chicken drumstick trees, bacon rivers, and ham boulders create a surreal, yet appetizing scene. the sky is adorned with pepperoni sun and salami clouds.###<image>\n###A vibrant yellow banana-shaped couch sits in a cozy living room, its curve cradling a pile of colorful cushions. on the wooden floor, a patterned rug adds a touch of eclectic charm, and a potted plant sits in the corner, reaching towards the sunlight filtering through the window.###<image>\n" \
-    --image-file "images/dalle3/leaf.jpeg###images/dalle3/food.jpeg###images/dalle3/banana.jpeg###images/dalle3/potatoking.jpeg" 
+    --image-file "images/dalle3/leaf.jpeg###images/dalle3/food.jpeg###images/dalle3/banana.jpeg###images/dalle3/potatoking.jpeg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\n###A 2D animation of a folk music band composed of anthropomorphic autumn leaves, each playing traditional bluegrass instruments, amidst a rustic forest setting dappled with the soft light of a harvest moon.###<image>\n###Tiny potato kings wearing majestic crowns, sitting on thrones, overseeing their vast potato kingdom filled with potato subjects and potato castles.###<image>\n###A vibrant yellow banana-shaped couch sits in a cozy living room, its curve cradling a pile of colorful cushions. on the wooden floor, a patterned rug adds a touch of eclectic charm, and a potted plant sits in the corner, reaching towards the sunlight filtering through the window.###<image>\n" \
-    --image-file "images/dalle3/leaf.jpeg###images/dalle3/potatoking.jpeg###images/dalle3/banana.jpeg###images/dalle3/food.jpeg" 
+    --image-file "images/dalle3/leaf.jpeg###images/dalle3/potatoking.jpeg###images/dalle3/banana.jpeg###images/dalle3/food.jpeg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nCan you explain the meme?" \
-    --image-file "images/dalle3/oai_meme.jpeg" 
+    --image-file "images/dalle3/oai_meme.jpeg"
 
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1_nosys \
@@ -216,7 +216,7 @@ python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-mmc4sub+coyo-f
 
 python llava/eval/run_vila.py --model-path checkpoints/llama2-13b-clip336-mmc4sub+coyo-finetune-cleandualflan+llava+sgpt-linearclip-e1-nose-run2 --conv-mode vicuna_v1_1 \
     --query "<image>\nCan you explain the meme?" \
-    --image-file "images/adobe-meme/1.jpg" 
+    --image-file "images/adobe-meme/1.jpg"
 
 
 

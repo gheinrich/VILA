@@ -10,7 +10,7 @@ for f in $src_folder/*.tar; do
   done
 
   fname=$(echo $f | rev | cut -d "/" -f 1 | rev)
-  
+
   echo "Running $fname,  now total jobs $(jobs -rp | wc -l)"; \
   srun --label -A $ACCOUNT -N 1 \
     -p $PARTITION -t 1:00:00 \

@@ -29,7 +29,6 @@ from ..models import DDPOStableDiffusionPipeline
 from . import BaseTrainer, DDPOConfig
 from .utils import PerPromptStatTracker
 
-
 logger = get_logger(__name__)
 
 

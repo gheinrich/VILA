@@ -1,20 +1,19 @@
-import torch
-
 from typing import Any
+
+import torch
+import torch.distributed as dist
 from torch import Tensor
 
-import torch.distributed as dist
-from .globals import get_pg_manager, get_ulysess_sp_pg, get_ring_sp_pg
 from .all_to_all import SeqAllToAll4D, SeqAllToAll5D
+from .globals import get_pg_manager, get_ring_sp_pg, get_ulysess_sp_pg
 from .ring import (
     ring_flash_attn_func,
     ring_flash_attn_qkvpacked_func,
-    zigzag_ring_flash_attn_func,
-    zigzag_ring_flash_attn_qkvpacked_func,
     stripe_flash_attn_func,
     stripe_flash_attn_qkvpacked_func,
+    zigzag_ring_flash_attn_func,
+    zigzag_ring_flash_attn_qkvpacked_func,
 )
-
 
 RING_IMPL_DICT = {
     "ring": ring_flash_attn_func,
@@ -47,7 +46,7 @@ class HybridAttention(torch.nn.Module):
         use_pack_qkv: bool = False,
     ) -> None:
 
-        super(HybridAttention, self).__init__()
+        super().__init__()
         self.ring_pg = get_ring_sp_pg()
         self.ulysses_pg = get_ulysess_sp_pg()
 
@@ -155,7 +154,7 @@ class HybridAttentionQKVPacked(torch.nn.Module):
         ring_impl_type: str = "zigzag",
     ) -> None:
 
-        super(HybridAttentionQKVPacked, self).__init__()
+        super().__init__()
 
         self.ring_pg = get_ring_sp_pg()
         self.ulysses_pg = get_ulysess_sp_pg()
@@ -242,7 +241,7 @@ class AsyncHybridAttention(torch.nn.Module):
         ring_impl_type: str = "zigzag",
     ) -> None:
 
-        super(AsyncHybridAttention, self).__init__()
+        super().__init__()
         self.ring_pg = get_ring_sp_pg()
         self.ulysses_pg = get_ulysess_sp_pg()
 
@@ -341,7 +340,9 @@ class AsyncHybridAttention(torch.nn.Module):
         for i, qkv_trans in enumerate(qkv_trans_list):
             if comm_handle_list[i] is not None:
                 comm_handle_list[i].wait()
-            qkv_trans = qkv_trans.reshape(seq_len, 3 * bs, 1, hs).transpose(0, 1).contiguous().reshape(3 * bs, seq_len, 1, hs)
+            qkv_trans = (
+                qkv_trans.reshape(seq_len, 3 * bs, 1, hs).transpose(0, 1).contiguous().reshape(3 * bs, seq_len, 1, hs)
+            )
 
             # qkv_trans = all_to_all_4D_async(qkv, qkv_trans_list[i], self.scatter_idx, self.gather_idx, self.ulysses_pg)
             qkv_trans = torch.chunk(qkv_trans, 3, dim=0)

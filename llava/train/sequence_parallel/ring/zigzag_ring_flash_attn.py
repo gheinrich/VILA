@@ -2,7 +2,8 @@
 # Implementation refers to Ring Attention Paper: https://arxiv.org/abs/2310.01889
 
 import torch
-from flash_attn.flash_attn_interface import _flash_attn_forward, _flash_attn_backward
+from flash_attn.flash_attn_interface import _flash_attn_backward, _flash_attn_forward
+
 from .utils import RingComm, update_out_and_lse
 
 

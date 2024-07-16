@@ -12,4 +12,3 @@ python ~/workspace/VILA-Internal/inference_test/inference_test.py \
     --test_json_path ~/workspace/VILA-Internal/inference_test/inference_test.json \
     --test_image_path ~/workspace/VILA-Internal/inference_test/test_data \
     --conv-mode vicuna_v1
-

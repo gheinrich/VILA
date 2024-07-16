@@ -4,8 +4,8 @@
 # conda activate vila
 # which python
 # cd ~/workspace/VILA-Internal
-# Prerequisite: 
-#   1. "pip install openpyxl"; 
+# Prerequisite:
+#   1. "pip install openpyxl";
 #   2.Softlink "/home/yunhaof/workspace/datasets/evaluation" to "YOUR_VILA_PATH/playground/data/eval" before evaluation.
 
 # pip install openpyxl word2number mmengine openai
@@ -14,7 +14,7 @@
 # Make sure partitions according to different clusters.
 # PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"
 # llmservice_nlp_fm / nvr_elm_llm
-SLURM_ACCOUNT=${SLURM_ACCOUNT:-"llmservice_nlp_fm"} 
+SLURM_ACCOUNT=${SLURM_ACCOUNT:-"llmservice_nlp_fm"}
 PARTITIONS=${SLURM_PARTITION:-"interactive,polar4,polar3,polar2,polar,batch_block1,grizzly,,batch_block2,batch_block3"}
 echo "Submitting jobs to $PARTITIONS"
 

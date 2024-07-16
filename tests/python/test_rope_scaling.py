@@ -8,11 +8,10 @@ from llava.unit_test_utils import requires_gpu, requires_lustre
 def patch_unit_test_rope_scaling(model, config, training_args):
 
     import math
+
     input_max_len = training_args.model_max_length
     model_max_position_embeddings = config.max_position_embeddings
-    ideal_scaling_factor = float(
-        math.ceil(input_max_len / model_max_position_embeddings)
-    )
+    ideal_scaling_factor = float(math.ceil(input_max_len / model_max_position_embeddings))
     rope_scaling_info = config.rope_scaling
     assert rope_scaling_info["factor"] == ideal_scaling_factor
     print("rope_scaling factor is correct")
@@ -30,13 +29,13 @@ def patch_unit_test_rope_scaling(model, config, training_args):
 
 
 class TestRopeScaling(unittest.TestCase):
-
     def setUp(self):
-        
-        from typing import Dict, Optional, Sequence, List
-        from llava.train.args import TrainingArguments as UnpatchedTrainingArguments
-        from llava.train.args import ModelArguments as UnpatchedModelArguments
+
         from dataclasses import dataclass, field
+        from typing import Optional
+
+        from llava.train.args import ModelArguments as UnpatchedModelArguments
+        from llava.train.args import TrainingArguments as UnpatchedTrainingArguments
 
         user_name = os.getenv("USER")
         print(f"User name: {user_name}")
@@ -58,9 +57,7 @@ class TestRopeScaling(unittest.TestCase):
             )
             model_max_length: int = field(
                 default=8192,
-                metadata={
-                    "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-                },
+                metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
             )
 
         @dataclass
@@ -68,23 +65,24 @@ class TestRopeScaling(unittest.TestCase):
             model_name_or_path: Optional[str] = field(default="/home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5")
             vision_tower: Optional[str] = field(default="google/siglip-so400m-patch14-384")
             mm_vision_select_layer: Optional[int] = field(default=-2)
-            mm_projector: Optional[str] = field(default='mlp2x_gelu')
-        
+            mm_projector: Optional[str] = field(default="mlp2x_gelu")
+
         self.PatchedTrainingArguments = PatchedTrainingArguments
         self.PatchedModelArguments = PatchedModelArguments
-            
+
     @requires_gpu()
     @requires_lustre()
     def test_rope_scaling(self):
 
         with (
-            unittest.mock.patch('llava.train.args.TrainingArguments', new=self.PatchedTrainingArguments),
-            unittest.mock.patch('llava.train.args.ModelArguments', new=self.PatchedModelArguments),
-            unittest.mock.patch('llava.train.utils.unit_test_rope_scaling', new=patch_unit_test_rope_scaling),
-            ):
-                sys.argv = sys.argv[:1]
-                from llava.train.train import train
-                train()
+            unittest.mock.patch("llava.train.args.TrainingArguments", new=self.PatchedTrainingArguments),
+            unittest.mock.patch("llava.train.args.ModelArguments", new=self.PatchedModelArguments),
+            unittest.mock.patch("llava.train.utils.unit_test_rope_scaling", new=patch_unit_test_rope_scaling),
+        ):
+            sys.argv = sys.argv[:1]
+            from llava.train.train import train
+
+            train()
 
 
 if __name__ == "__main__":

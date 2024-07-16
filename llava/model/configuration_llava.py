@@ -34,7 +34,7 @@ class LlavaConfig(PretrainedConfig):
         self.vision_tower_cfg = vision_tower_cfg
         self.mm_projector_cfg = mm_projector_cfg
         self.resume_path = resume_path
-        
+
         self.hidden_size = hidden_size
         self.mm_hidden_size = mm_hidden_size
         self.image_aspect_ratio = image_aspect_ratio

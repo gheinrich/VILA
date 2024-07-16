@@ -27,7 +27,6 @@ from llava.trl.trainer.utils import exact_div
 from ..core import flatten_dict
 from ..import_utils import is_wandb_available
 
-
 JSONDict = Annotated[Optional[dict], tyro.conf.arg(metavar="JSON", constructor=json.loads)]
 
 

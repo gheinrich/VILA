@@ -2,25 +2,14 @@
 # Implementation refers to Ring Attention Paper: https://arxiv.org/abs/2310.01889
 
 import torch
-from flash_attn.flash_attn_interface import (
-    _flash_attn_varlen_forward,
-    _flash_attn_varlen_backward,
-)
-from .utils import (
-    RingComm,
-    update_out_and_lse,
-)
+from flash_attn.flash_attn_interface import _flash_attn_varlen_backward, _flash_attn_varlen_forward
+
+from .utils import RingComm, update_out_and_lse
 
 try:
-    from .triton_utils import (
-        flatten_varlen_lse,
-        unflatten_varlen_lse,
-    )
+    from .triton_utils import flatten_varlen_lse, unflatten_varlen_lse
 except:
-    from .utils import (
-        flatten_varlen_lse,
-        unflatten_varlen_lse,
-    )
+    from .utils import flatten_varlen_lse, unflatten_varlen_lse
 
 
 def ring_flash_attn_varlen_forward(

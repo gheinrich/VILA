@@ -24,7 +24,7 @@ output_dir="./eval_output/${CKPT_NAME}/Demo_Zero_Shot_QA/${CKPT_NAME}_${PROMPT_T
 
 
 # for IDX in $(seq 0 $((CHUNKS-1))); do
-# CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} 
+# CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]}
 python3 llava/eval/model_vqa_videodemo.py \
     --model-path ${model_path} \
     --video_dir ${video_dir} \

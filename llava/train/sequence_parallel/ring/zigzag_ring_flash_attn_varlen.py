@@ -2,25 +2,14 @@
 # Implementation refers to Ring Attention Paper: https://arxiv.org/abs/2310.01889
 
 import torch
-from flash_attn.flash_attn_interface import (
-    _flash_attn_varlen_forward,
-    _flash_attn_varlen_backward,
-)
-from .utils import (
-    RingComm,
-    update_out_and_lse,
-)
+from flash_attn.flash_attn_interface import _flash_attn_varlen_backward, _flash_attn_varlen_forward
+
+from .utils import RingComm, update_out_and_lse
 
 try:
-    from .triton_utils import (
-        flatten_varlen_lse,
-        unflatten_varlen_lse,
-    )
+    from .triton_utils import flatten_varlen_lse, unflatten_varlen_lse
 except:
-    from .utils import (
-        flatten_varlen_lse,
-        unflatten_varlen_lse,
-    )
+    from .utils import flatten_varlen_lse, unflatten_varlen_lse
 
 
 def get_half_index(cu_seqlens, *, front: bool):
@@ -317,9 +306,7 @@ class ZigZagRingFlashAttnVarlenFunc(torch.autograd.Function):
         is_half_index_tensor = isinstance(half_index0, torch.Tensor)
         ctx.is_half_index_tensor = is_half_index_tensor
         if is_half_index_tensor:
-            ctx.save_for_backward(
-                q, k, v, out, softmax_lse, cu_seqlens, half_index0, half_index1
-            )
+            ctx.save_for_backward(q, k, v, out, softmax_lse, cu_seqlens, half_index0, half_index1)
         else:
             ctx.save_for_backward(q, k, v, out, softmax_lse, cu_seqlens)
             ctx.half_index0 = half_index0
@@ -337,9 +324,7 @@ class ZigZagRingFlashAttnVarlenFunc(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dout, *args):
         if ctx.is_half_index_tensor:
-            (q, k, v, out, softmax_lse, cu_seqlens, half_index0, half_index1) = (
-                ctx.saved_tensors
-            )
+            (q, k, v, out, softmax_lse, cu_seqlens, half_index0, half_index1) = ctx.saved_tensors
         else:
             q, k, v, out, softmax_lse, cu_seqlens = ctx.saved_tensors
             half_index0 = ctx.half_index0

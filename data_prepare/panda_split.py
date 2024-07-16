@@ -52,9 +52,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
@@ -96,7 +100,7 @@ def split_video_to_clips(
         print(f"[{idx}/{len(video_list)}]", video_path)
         json_path = video_path.replace(".mp4", ".json")
         assert osp.exists(json_path) and osp.exists(video_path)
-        jinfo = json.load(open(json_path, "r"))
+        jinfo = json.load(open(json_path))
         print(jinfo)
         info = with_opencv(video_path)
         print(info)

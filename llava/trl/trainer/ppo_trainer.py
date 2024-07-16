@@ -56,7 +56,6 @@ from ..import_utils import is_npu_available, is_torch_greater_2_0, is_xpu_availa
 from ..models import SUPPORTED_ARCHITECTURES, PreTrainedModelWrapper, create_reference_model
 from . import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
 
-
 if is_deepspeed_available():
     import deepspeed
 

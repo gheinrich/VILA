@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2023 Mistral AI and the HuggingFace Inc. team. All rights reserved.
 #
 # This code is based on EleutherAI's GPT-NeoX library and the GPT-NeoX
@@ -20,6 +19,7 @@
 """ PyTorch Mixtral model."""
 import inspect
 import math
+import random
 import warnings
 from typing import List, Optional, Tuple, Union
 
@@ -28,8 +28,6 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-import random
-
 from transformers.activations import ACT2FN
 from transformers.cache_utils import Cache, DynamicCache
 from transformers.modeling_attn_mask_utils import (
@@ -42,6 +40,7 @@ from transformers.modeling_outputs import (
     SequenceClassifierOutputWithPast,
 )
 from transformers.modeling_utils import PreTrainedModel
+from transformers.models.mixtral.configuration_mixtral import MixtralConfig
 from transformers.pytorch_utils import is_torch_greater_or_equal_than_1_13
 from transformers.utils import (
     add_start_docstrings,
@@ -52,8 +51,6 @@ from transformers.utils import (
     replace_return_docstrings,
 )
 from transformers.utils.import_utils import is_torch_fx_available
-from transformers.models.mixtral.configuration_mixtral import MixtralConfig
-
 
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
@@ -217,6 +214,7 @@ class MixtralRotaryEmbedding(nn.Module):
             self.cos_cached[:seq_len].to(dtype=x.dtype),
             self.sin_cached[:seq_len].to(dtype=x.dtype),
         )
+
 
 class MixtralLinearScalingRotaryEmbedding(MixtralRotaryEmbedding):
     """MixtralRotaryEmbedding extended with linear scaling. Credits to the Reddit user /u/kaiokendev"""
@@ -459,7 +457,7 @@ class MixtralFlashAttention2(MixtralAttention):
         past_key_value: Optional[Cache] = None,
         output_attentions: bool = False,
         use_cache: bool = False,
-        rotary_emb = None,
+        rotary_emb=None,
         **kwargs,
     ):
         if "padding_mask" in kwargs:
@@ -704,9 +702,7 @@ class MixtralFlashAttention2(MixtralAttention):
         value_layer = index_first_axis(value_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
 
         if query_length == kv_seq_len:
-            query_layer = index_first_axis(
-                query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k
-            )
+            query_layer = index_first_axis(query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
             cu_seqlens_q = cu_seqlens_k
             max_seqlen_in_batch_q = max_seqlen_in_batch_k
             indices_q = indices_k
@@ -911,13 +907,9 @@ class MixtralSparseMoeBlock(nn.Module):
                 if self.training:
                     top_x_ = torch.zeros(1).to(hidden_states.device).to(torch.int32)
                     top_x_list = top_x_.tolist()
-                    current_state = hidden_states[None, top_x_list].reshape(
-                        -1, hidden_dim
-                    )
+                    current_state = hidden_states[None, top_x_list].reshape(-1, hidden_dim)
                     fake_state = expert_layer(current_state * 0)
-                    final_hidden_states.index_add_(
-                        0, top_x_, fake_state.to(hidden_states.dtype)   
-                    )
+                    final_hidden_states.index_add_(0, top_x_, fake_state.to(hidden_states.dtype))
                 continue
 
             # in torch it is faster to index using lists than torch tensors
@@ -957,7 +949,7 @@ class MixtralDecoderLayer(nn.Module):
         output_attentions: Optional[bool] = False,
         output_router_logits: Optional[bool] = False,
         use_cache: Optional[bool] = False,
-        rotary_emb = None,
+        rotary_emb=None,
         **kwargs,
     ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         if "padding_mask" in kwargs:
@@ -993,7 +985,7 @@ class MixtralDecoderLayer(nn.Module):
             past_key_value=past_key_value,
             output_attentions=output_attentions,
             use_cache=use_cache,
-            rotary_emb=rotary_emb
+            rotary_emb=rotary_emb,
         )
         hidden_states = residual + hidden_states
 
@@ -1448,7 +1440,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
             loss = loss_fct(shift_logits, shift_labels)
 
         aux_loss = None
-        if False: #output_router_logits:
+        if False:  # output_router_logits:
             aux_loss = load_balancing_loss_func(
                 outputs.router_logits if return_dict else outputs[-1],
                 self.num_experts,

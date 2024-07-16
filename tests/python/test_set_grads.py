@@ -32,11 +32,7 @@ class TestSetGrads(unittest.TestCase):
         )
 
         self.training_args = TrainingArguments(
-            tune_language_model=False,
-            tune_vision_tower=False,
-            tune_mm_projector=False,
-            output_dir=None,
-            bf16=True
+            tune_language_model=False, tune_vision_tower=False, tune_mm_projector=False, output_dir=None, bf16=True
         )
 
     def single_forward_backward(self):
@@ -96,7 +92,7 @@ class TestSetGrads(unittest.TestCase):
         loss.backward()
 
     def build_vila_model(self):
-        ## first time training
+        # first time training
         config = LlavaLlamaConfig.from_pretrained(self.model_args.model_name_or_path)
         model_cls = LlavaLlamaModel
 
@@ -119,22 +115,24 @@ class TestSetGrads(unittest.TestCase):
         self.model.get_llm().requires_grad_(self.training_args.tune_language_model)
         self.model.get_vision_tower().requires_grad_(self.training_args.tune_vision_tower)
         self.model.get_mm_projector().requires_grad_(self.training_args.tune_mm_projector)
-        ## save the loaded weights
-        self.loaded_weights_dict = {name: copy.deepcopy(param.detach().cpu().data) for name, param in self.model.named_parameters()}
-    
+        # save the loaded weights
+        self.loaded_weights_dict = {
+            name: copy.deepcopy(param.detach().cpu().data) for name, param in self.model.named_parameters()
+        }
+
     def verify_grads_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
         print("Checking gradients state...")
-        
+
         for name, param in self.model.named_parameters():
             if "vision_tower" in name:
                 if "post_layernorm" in name:
                     continue
                 if tune_vision_tower:
-                    ## some position embeddings are not trained
+                    # some position embeddings are not trained
                     self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
                 else:
                     self.assertEqual(param.grad is not None, False)
-                
+
             elif "mm_projector" in name:
                 if tune_mm_projector:
                     self.assertEqual(param.grad is not None and (param.grad != 0).all(), True)
@@ -142,24 +140,30 @@ class TestSetGrads(unittest.TestCase):
                     self.assertEqual(param.grad is not None, False)
             else:
                 if tune_language_model:
-                    ## some tokens are not trained
+                    # some tokens are not trained
                     self.assertEqual(param.grad is not None and (param.grad != 0).any(), True)
                 else:
                     self.assertEqual(param.grad is not None, False)
-    
+
     def verify_weights_state(self, tune_language_model, tune_vision_tower, tune_mm_projector):
         print("Checking weights state...")
-        
+
         for name in self.updated_weights_dict.keys():
             if "vision_tower" in name:
                 if "post_layernorm" in name:
                     continue
-                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_vision_tower)
+                self.assertEqual(
+                    (self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_vision_tower
+                )
             elif "mm_projector" in name:
-                self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_mm_projector)
+                self.assertEqual(
+                    (self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_mm_projector
+                )
             else:
                 if self.updated_weights_dict[name].numel() > 1:
-                    self.assertEqual((self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model)
+                    self.assertEqual(
+                        (self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model
+                    )
 
     @requires_gpu
     def test_tune_projector_and_language_model(self):
@@ -168,7 +172,7 @@ class TestSetGrads(unittest.TestCase):
         self.training_args.tune_language_model = True
         self.build_vila_model()
         self.single_forward_backward()
-        
+
         self.verify_grads_state(
             self.training_args.tune_language_model,
             self.training_args.tune_vision_tower,
@@ -254,7 +258,6 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_vision_tower,
             self.training_args.tune_mm_projector,
         )
-
 
     @requires_gpu
     def test_tune_language_model(self):

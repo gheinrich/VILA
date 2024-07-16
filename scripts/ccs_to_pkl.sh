@@ -9,4 +9,4 @@ do
     python llava/data/ccs_to_pkl.py $start $end &
 done
 
-wait 
+wait

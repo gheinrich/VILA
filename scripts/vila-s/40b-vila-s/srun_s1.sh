@@ -28,10 +28,10 @@ JNAME=vila-40b-v1.5-mm-align
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step1-$JNAME.err 
+ERRF=$LOGDIR/step1-$JNAME.err
 LOGF=$LOGDIR/step1-$JNAME.out
 
-for i in $(seq 1 8); do 
+for i in $(seq 1 8); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \

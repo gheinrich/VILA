@@ -1,19 +1,20 @@
+import base64
+import glob
+import json
+import os
+import os.path as osp
 import tempfile
+import time
 from io import BytesIO
-import os, os.path as osp
+
+import vertexai
+import vertexai.preview.generative_models as generative_models
+from vertexai.generative_models import FinishReason, GenerativeModel
+from vertexai.generative_models import Image as vertextaiImage
+from vertexai.generative_models import Part
 
 # from PIL import Image
 from llava.mm_utils import opencv_extract_frames
-import glob
-import json
-
-import base64
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part, FinishReason
-from vertexai.generative_models import Image as vertextaiImage
-import vertexai.preview.generative_models as generative_models
-
-import time
 
 vertexai.init(project="gemini-pro-15-420722", location="us-central1")
 mname = "gemini-1.5-pro-preview-0409"
@@ -54,7 +55,7 @@ question = "Elaborate on the visual and narrative elements of the video in detai
 output_text = {}
 
 if osp.exists(output_path):
-    output_text = json.load(open(output_path, "r"))
+    output_text = json.load(open(output_path))
 
 
 def pil2vertexIMG(pil_imgs):
@@ -96,7 +97,7 @@ for vvpath in tqdm(glob.glob(osp.join(base_folder, "**/*.mp4"), recursive=True))
                 # "Please describe the video in details",
                 *videos,
                 # question,
-                random.choice(question_formats)
+                random.choice(question_formats),
             ]
         )
     except:

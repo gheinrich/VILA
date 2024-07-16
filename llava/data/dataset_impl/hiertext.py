@@ -28,9 +28,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.data.datasets_mixture import DATASETS
 from llava.train.args import DataArguments, TrainingArguments
@@ -68,7 +72,6 @@ class HierTextDataset(GenericDataset):
                     "gt",
                     "train.jsonl" if split == "train" else "validation.jsonl",
                 ),
-                "r",
             )
         )
         images_path = os.path.join(base_folder, "train" if split == "train" else "validation")

@@ -1,19 +1,21 @@
 # VILA Fine-tuning
 
 ## Train
-We provide scripts for fine-tuning VILA with full-parameter, LoRA and DoRA methods. The training scipts are under ``./scripts/finetuning/train``. We support different combination of frozen, full-parameter and lora modules. For example, to apply lora on LLM and full fine-tune the vision tower, run:
+
+We provide scripts for fine-tuning VILA with full-parameter, LoRA and DoRA methods. The training scipts are under `./scripts/finetuning/train`. We support different combination of frozen, full-parameter and lora modules. For example, to apply lora on LLM and full fine-tune the vision tower, run:
+
 ```
 bash ./scripts/finetuning/train/no_sqa_lora.sh --vt ft --llm lora --output_dir $OUTPUT_DIR
 ```
-To enable DoRA, add ``--use_dora`` in ``./scripts/finetuning/train/no_sqa_lora.sh``.
+
+To enable DoRA, add `--use_dora` in `./scripts/finetuning/train/no_sqa_lora.sh`.
 
 ## Eval
-For evaluation, there are several example scripts under `./scripts/finetuning/eval`. For module fine-tuned with LoRA, use scripts ending with ``_lora`` and specify both the base model for ``MODEL_BASE`` and use the ``OUTPUT_DIR`` in training for ``MODEL_PATH`` (which stored the adapter weights and non-adapter states).
 
-
-
+For evaluation, there are several example scripts under `./scripts/finetuning/eval`. For module fine-tuned with LoRA, use scripts ending with `_lora` and specify both the base model for `MODEL_BASE` and use the `OUTPUT_DIR` in training for `MODEL_PATH` (which stored the adapter weights and non-adapter states).
 
 ## Results (mm_projector is always FFT)
+
 | Task      | Metric       | FT       | FT-LLM | FT-VT | FT-VT-LoRA-LLM | FT-VT-DoRA-LLM | LoRA-VT-LoRA-LLM |
 |-----------|--------------|----------|--------|-------|----------------|----------------|------------------|
 | ScienceQA | Accuracy     | 86.70    | 87.81  | 86.51 |     84.11      |     84.13      | 84.41            |

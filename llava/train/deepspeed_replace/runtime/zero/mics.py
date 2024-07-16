@@ -12,12 +12,12 @@ from typing import List
 import deepspeed
 import torch
 from deepspeed import comm as dist
-from deepspeed.runtime.zero.mics_utils import (MiCS_CommGroups, create_mics_comm_groups, scale_tensors)
-from deepspeed.runtime.zero.parameter_offload import (DeepSpeedZeRoOffload, is_zero_param)
-from deepspeed.runtime.zero.partition_parameters import Init, AllGatherCoalescedHandle, ZeroParamStatus
+from deepspeed.accelerator import get_accelerator
+from deepspeed.runtime.zero.mics_utils import MiCS_CommGroups, create_mics_comm_groups, scale_tensors
+from deepspeed.runtime.zero.parameter_offload import DeepSpeedZeRoOffload, is_zero_param
+from deepspeed.runtime.zero.partition_parameters import AllGatherCoalescedHandle, Init, ZeroParamStatus
 from deepspeed.runtime.zero.stage3 import DeepSpeedZeroOptimizer_Stage3
 from deepspeed.utils import instrument_w_nvtx, log_dist
-from deepspeed.accelerator import get_accelerator
 from torch import Tensor
 from torch.nn import Parameter
 
@@ -28,12 +28,13 @@ def has_hierarchical_all_gather_groups(comm_groups: MiCS_CommGroups):
         result = True
     return result
 
+
 def _dist_allgather_fn(input_tensor: Tensor, output_tensor: Tensor, group=None):
     return instrument_w_nvtx(dist.allgather_fn)(output_tensor, input_tensor, group=group, async_op=True)
 
 
 class MiCS_AllGatherCoalescedHandle(AllGatherCoalescedHandle):
-    """ This handle assumes that no need to
+    """This handle assumes that no need to
     copy data out from a contiguous tensor
     """
 
@@ -41,8 +42,7 @@ class MiCS_AllGatherCoalescedHandle(AllGatherCoalescedHandle):
         super().__init__(allgather_handle, params, partitions, world_size)
 
     def wait(self) -> None:
-        """
-        """
+        """ """
         # let the current stream to op
         instrument_w_nvtx(self.allgather_handle.wait)()
         if self.complete:
@@ -56,18 +56,19 @@ class MiCS_AllGatherCoalescedHandle(AllGatherCoalescedHandle):
 
 
 class MiCS_Init(Init):
-
-    def __init__(self,
-                 module=None,
-                 data_parallel_group=None,
-                 mem_efficient_linear=True,
-                 remote_device=None,
-                 pin_memory=False,
-                 config_dict_or_path=None,
-                 config=None,
-                 enabled=True,
-                 dtype=None,
-                 mpu=None):
+    def __init__(
+        self,
+        module=None,
+        data_parallel_group=None,
+        mem_efficient_linear=True,
+        remote_device=None,
+        pin_memory=False,
+        config_dict_or_path=None,
+        config=None,
+        enabled=True,
+        dtype=None,
+        mpu=None,
+    ):
         """A context manager to partition the model parameters during the model
         construction with MiCS partition strategy. Model states are partitioned
         to the number of devices specified via ``mics_shard_size`` field in the
@@ -145,10 +146,21 @@ class MiCS_Init(Init):
             _ds_config.mics_shard_size,
             data_parallel_group,
             hierarchical_allgather=_ds_config.mics_hierarchial_params_gather,
-            mpu=mpu)
+            mpu=mpu,
+        )
 
-        super().__init__(module, data_parallel_group, mem_efficient_linear, remote_device, pin_memory,
-                         config_dict_or_path, config, enabled, dtype, mpu)
+        super().__init__(
+            module,
+            data_parallel_group,
+            mem_efficient_linear,
+            remote_device,
+            pin_memory,
+            config_dict_or_path,
+            config,
+            enabled,
+            dtype,
+            mpu,
+        )
 
     def _convert_to_deepspeed_param(self, param):
         super()._convert_to_deepspeed_param(param)
@@ -199,7 +211,6 @@ class MiCS_Init(Init):
         rank_in_group = mics_comm_groups.param_shard_rank
         partition_sz = sum(p.ds_tensor.ds_numel for p in params)
 
-
         # output_tensors = []
         # input_tensors = []
         # for i, p in enumerate(params):
@@ -215,20 +226,21 @@ class MiCS_Init(Init):
         #     _flat_input = p.ds_tensor.data.view(-1)
         #     input_tensors.append(_flat_input)
 
-
         # input_tensor = torch.cat(input_tensors, dim=0)
         # flat_tensor = torch.cat(output_tensors, dim=0)
-        flat_tensor = torch.empty(partition_sz * param_shard_size, dtype=params[0].dtype, device=self.local_device,
-                                  requires_grad=False).view(-1)
-        
+        flat_tensor = torch.empty(
+            partition_sz * param_shard_size, dtype=params[0].dtype, device=self.local_device, requires_grad=False
+        ).view(-1)
+
         partitions: List[Parameter] = []
         for i in range(param_shard_size):
             partitions.append(flat_tensor.narrow(0, partition_sz * i, partition_sz))
-        instrument_w_nvtx(torch.cat)([p.ds_tensor.to(get_accelerator().current_device_name()) for p in params],
-                                        out=partitions[rank_in_group])
+        instrument_w_nvtx(torch.cat)(
+            [p.ds_tensor.to(get_accelerator().current_device_name()) for p in params], out=partitions[rank_in_group]
+        )
         # Ensure all gather output size is correct
-        assert partitions[rank_in_group].numel() * param_shard_size == flat_tensor.numel() 
-        handle = _dist_allgather_fn(partitions[rank_in_group], flat_tensor, mics_comm_groups.param_shard_group)  
+        assert partitions[rank_in_group].numel() * param_shard_size == flat_tensor.numel()
+        handle = _dist_allgather_fn(partitions[rank_in_group], flat_tensor, mics_comm_groups.param_shard_group)
 
         # Clean the buffer after communication
         # torch.cuda.empty_cache()
@@ -257,12 +269,14 @@ class MiCS_Init(Init):
         for i, p in enumerate(params):
             param_size = p.ds_tensor.ds_numel * param_shard_size
             if params_buffers is not None and params_buffers[i] is not None:
-                assert params_buffers[i].numel(
-                ) == param_size, f'param_buffers[{i}] size {params_buffers[i].numel()} does not match with param_size {param_size}'
+                assert (
+                    params_buffers[i].numel() == param_size
+                ), f"param_buffers[{i}] size {params_buffers[i].numel()} does not match with param_size {param_size}"
                 param_tensor = params_buffers[i]
             else:
-                param_tensor = torch.empty(param_size, dtype=p.dtype, device=self.local_device,
-                                           requires_grad=False).view(-1)
+                param_tensor = torch.empty(
+                    param_size, dtype=p.dtype, device=self.local_device, requires_grad=False
+                ).view(-1)
             param_tensors.append(param_tensor)
 
         # inter node all-gather
@@ -285,8 +299,9 @@ class MiCS_Init(Init):
             # while in param memory, those inter-node data are placed in different
             # location.
             # each chunk is an intra-node output
-            param_chunk = param_tensors[i].view(
-                (inter_node_size, intra_node_size, p.ds_tensor.ds_numel)).narrow(1, local_rank, 1)
+            param_chunk = (
+                param_tensors[i].view((inter_node_size, intra_node_size, p.ds_tensor.ds_numel)).narrow(1, local_rank, 1)
+            )
             param_chunk.copy_(inter_outputs[i].detach().clone().view(param_chunk.size()))
             output_chunks = torch.chunk(param_tensors[i], inter_node_size)
             for j, _out in enumerate(output_chunks):
@@ -296,10 +311,9 @@ class MiCS_Init(Init):
                 intra_outputs.append(_out)
                 intra_inputs.append(_in)
 
-        all_gather_handle = dist.all_gather_coalesced(intra_outputs,
-                                                      intra_inputs,
-                                                      group=intra_node_comm_group,
-                                                      async_op=True)
+        all_gather_handle = dist.all_gather_coalesced(
+            intra_outputs, intra_inputs, group=intra_node_comm_group, async_op=True
+        )
         for i, param in enumerate(params):
             param.data = param_tensors[i].narrow(0, 0, param.ds_numel).view(param.ds_shape).data
 
@@ -322,30 +336,39 @@ class MiCS_Init(Init):
 
 
 class MiCS_Offload(DeepSpeedZeRoOffload):
-    """ Wrapper to change the behavior for parameter sharding
-    """
+    """Wrapper to change the behavior for parameter sharding"""
 
-    def __init__(self,
-                 module,
-                 timers,
-                 ds_config,
-                 overlap_comm=True,
-                 prefetch_bucket_size=50000000,
-                 max_reuse_distance=1000000000,
-                 max_live_parameters=1000000000,
-                 param_persistence_threshold=100000,
-                 model_persistence_threshold=sys.maxsize,
-                 offload_param_config=None,
-                 mpu=None):
-        super().__init__(module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                         max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                         offload_param_config, mpu)
+    def __init__(
+        self,
+        module,
+        timers,
+        ds_config,
+        overlap_comm=True,
+        prefetch_bucket_size=50000000,
+        max_reuse_distance=1000000000,
+        max_live_parameters=1000000000,
+        param_persistence_threshold=100000,
+        model_persistence_threshold=sys.maxsize,
+        offload_param_config=None,
+        mpu=None,
+    ):
+        super().__init__(
+            module,
+            timers,
+            ds_config,
+            overlap_comm,
+            prefetch_bucket_size,
+            max_reuse_distance,
+            max_live_parameters,
+            param_persistence_threshold,
+            model_persistence_threshold,
+            offload_param_config,
+            mpu,
+        )
 
     def _convert_to_zero_parameters(self, ds_config, module, mpu):
-        """ overload the parent class function for convert the parameters
-
-        """
-        log_dist(f'Convert to zero parameters from MiCS Offload manager', ranks=[0])
+        """overload the parent class function for convert the parameters"""
+        log_dist(f"Convert to zero parameters from MiCS Offload manager", ranks=[0])
         non_zero_params = [p for p in module.parameters() if not is_zero_param(p)]
         if non_zero_params:
             zero_params = [p for p in module.parameters() if is_zero_param(p)]
@@ -356,13 +379,15 @@ class MiCS_Offload(DeepSpeedZeRoOffload):
                 if mpu:
                     group = mpu.get_data_parallel_group()
 
-                MiCS_Init(module=module,
-                          data_parallel_group=group,
-                          dtype=self.dtype,
-                          config_dict_or_path=ds_config,
-                          remote_device=self.offload_device,
-                          pin_memory=self.offload_param_pin_memory,
-                          mpu=mpu)
+                MiCS_Init(
+                    module=module,
+                    data_parallel_group=group,
+                    dtype=self.dtype,
+                    config_dict_or_path=ds_config,
+                    remote_device=self.offload_device,
+                    pin_memory=self.offload_param_pin_memory,
+                    mpu=mpu,
+                )
 
 
 class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
@@ -370,61 +395,110 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
     MiCS Optimizer
     """
 
-    def __init__(self,
-                 module,
-                 init_optimizer,
-                 timers,
-                 ds_config,
-                 static_loss_scale=1,
-                 dynamic_loss_scale=False,
-                 dynamic_loss_args=None,
-                 verbose=True,
-                 contiguous_gradients=True,
-                 reduce_bucket_size=500000000,
-                 prefetch_bucket_size=50000000,
-                 max_reuse_distance=1000000000,
-                 max_live_parameters=1000000000,
-                 param_persistence_threshold=100000,
-                 model_persistence_threshold=sys.maxsize,
-                 dp_process_group=None,
-                 reduce_scatter=True,
-                 overlap_comm=False,
-                 offload_optimizer_config=None,
-                 offload_param_config=None,
-                 sub_group_size=1000000000000,
-                 mpu=None,
-                 clip_grad=0,
-                 communication_data_type=torch.float16,
-                 postscale_gradients=True,
-                 gradient_predivide_factor=1,
-                 gradient_accumulation_steps=1,
-                 elastic_checkpoint=False,
-                 aio_config=None):
+    def __init__(
+        self,
+        module,
+        init_optimizer,
+        timers,
+        ds_config,
+        static_loss_scale=1,
+        dynamic_loss_scale=False,
+        dynamic_loss_args=None,
+        verbose=True,
+        contiguous_gradients=True,
+        reduce_bucket_size=500000000,
+        prefetch_bucket_size=50000000,
+        max_reuse_distance=1000000000,
+        max_live_parameters=1000000000,
+        param_persistence_threshold=100000,
+        model_persistence_threshold=sys.maxsize,
+        dp_process_group=None,
+        reduce_scatter=True,
+        overlap_comm=False,
+        offload_optimizer_config=None,
+        offload_param_config=None,
+        sub_group_size=1000000000000,
+        mpu=None,
+        clip_grad=0,
+        communication_data_type=torch.float16,
+        postscale_gradients=True,
+        gradient_predivide_factor=1,
+        gradient_accumulation_steps=1,
+        elastic_checkpoint=False,
+        aio_config=None,
+    ):
 
         log_dist("Init MiCS optimizer", ranks=[0])
-        super().__init__(module, init_optimizer, timers, ds_config, static_loss_scale, dynamic_loss_scale,
-                         dynamic_loss_args, verbose, contiguous_gradients, reduce_bucket_size, prefetch_bucket_size,
-                         max_reuse_distance, max_live_parameters, param_persistence_threshold,
-                         model_persistence_threshold, dp_process_group, reduce_scatter, overlap_comm,
-                         offload_optimizer_config, offload_param_config, sub_group_size, mpu, clip_grad,
-                         communication_data_type, postscale_gradients, gradient_predivide_factor,
-                         gradient_accumulation_steps, elastic_checkpoint, aio_config)
+        super().__init__(
+            module,
+            init_optimizer,
+            timers,
+            ds_config,
+            static_loss_scale,
+            dynamic_loss_scale,
+            dynamic_loss_args,
+            verbose,
+            contiguous_gradients,
+            reduce_bucket_size,
+            prefetch_bucket_size,
+            max_reuse_distance,
+            max_live_parameters,
+            param_persistence_threshold,
+            model_persistence_threshold,
+            dp_process_group,
+            reduce_scatter,
+            overlap_comm,
+            offload_optimizer_config,
+            offload_param_config,
+            sub_group_size,
+            mpu,
+            clip_grad,
+            communication_data_type,
+            postscale_gradients,
+            gradient_predivide_factor,
+            gradient_accumulation_steps,
+            elastic_checkpoint,
+            aio_config,
+        )
         first_param = next(module.parameters())
         # overload the dp_process_group and partition_count
-        assert hasattr(first_param, "comm"), " ".join([
-            "Sharded parameters don't have the MiCS_CommGroups attached.",
-            "Might due to the use of deepspeed.zero.Init context for initializing the weights.",
-            "To use MiCS sharding, please use deepspeed.zero.MiCS_Init instead for initializing parameter."
-        ])
+        assert hasattr(first_param, "comm"), " ".join(
+            [
+                "Sharded parameters don't have the MiCS_CommGroups attached.",
+                "Might due to the use of deepspeed.zero.Init context for initializing the weights.",
+                "To use MiCS sharding, please use deepspeed.zero.MiCS_Init instead for initializing parameter.",
+            ]
+        )
         self.dp_process_group = first_param.comm.param_shard_group
         self.partition_count = first_param.comm.param_shard_size
 
-    def initialize_ds_offload(self, module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                              max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                              offload_param_config, mpu):
-        return MiCS_Offload(module, timers, ds_config, overlap_comm, prefetch_bucket_size, max_reuse_distance,
-                            max_live_parameters, param_persistence_threshold, model_persistence_threshold,
-                            offload_param_config, mpu)
+    def initialize_ds_offload(
+        self,
+        module,
+        timers,
+        ds_config,
+        overlap_comm,
+        prefetch_bucket_size,
+        max_reuse_distance,
+        max_live_parameters,
+        param_persistence_threshold,
+        model_persistence_threshold,
+        offload_param_config,
+        mpu,
+    ):
+        return MiCS_Offload(
+            module,
+            timers,
+            ds_config,
+            overlap_comm,
+            prefetch_bucket_size,
+            max_reuse_distance,
+            max_live_parameters,
+            param_persistence_threshold,
+            model_persistence_threshold,
+            offload_param_config,
+            mpu,
+        )
 
     def partition_grads(self, params_to_release: List[Parameter], grad_partitions: List[Tensor]) -> None:
         grad_buffers = super().partition_grads(params_to_release, grad_partitions)
@@ -434,11 +508,9 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
 
     @instrument_w_nvtx
     def allreduce_mics_shard_grads(self, params, partitioned_grads_buffers: List[Tensor]):
-        """
-        """
+        """ """
         # TODO: improve the condition check
-        if not self.is_gradient_accumulation_boundary or \
-            len(partitioned_grads_buffers) == 0:
+        if not self.is_gradient_accumulation_boundary or len(partitioned_grads_buffers) == 0:
             return
 
         mics_comm_groups: MiCS_CommGroups = params[0].comm
@@ -463,12 +535,10 @@ class MiCS_Optimizer(DeepSpeedZeroOptimizer_Stage3):
                 grad_buff.view(-1).copy_(aggregated_buffer.narrow(0, offset, grad_buff.numel()))
                 offset += grad_buff.numel()
 
-    def load_state_dict(self,
-                        state_dict_list,
-                        load_optimizer_states=True,
-                        load_from_fp32_weights=False,
-                        checkpoint_folder=None):
-        r""" Loading the ZeRO-3/MiCS partitioned checkpoints
+    def load_state_dict(
+        self, state_dict_list, load_optimizer_states=True, load_from_fp32_weights=False, checkpoint_folder=None
+    ):
+        r"""Loading the ZeRO-3/MiCS partitioned checkpoints
         Because the self.dp_process_group is replaced with the communicator for
         partition group we can call the load_state_dict logic from ZeRO-3.
         """

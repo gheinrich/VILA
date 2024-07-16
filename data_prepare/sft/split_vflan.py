@@ -1,7 +1,9 @@
 import os
 import pickle
-from tqdm import tqdm
 import random
+
+from tqdm import tqdm
+
 random.seed(1)
 
 input_dirs = ["/dataset/llava-data/instruction-tuning/new-vflan"]
@@ -33,9 +35,9 @@ while len(all_samples) >= per_shard_samples:
     samples2write, all_samples = all_samples[:per_shard_samples], all_samples[per_shard_samples:]
     with open(os.path.join(out_dir, f"part-{counter:05d}.pkl"), "wb") as f:
         pickle.dump(samples2write, f)
-    
+
     with open(os.path.join(out_dir, f"part-{counter:05d}.count"), "w") as f:
-        f.write(str(len(samples2write)))    
+        f.write(str(len(samples2write)))
     print(f"Finished writing part-{counter:05d}.pkl!")
-    
+
     counter += 1

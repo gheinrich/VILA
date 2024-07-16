@@ -54,7 +54,7 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
         print(f"    Generating meta: {tar_abs_metapath}")
         try:
             tar = load_tarfile(tar_abspath)
-            uuids = list(set([osp.splitext(_)[0] for _ in tar.getnames()]))
+            uuids = list({osp.splitext(_)[0] for _ in tar.getnames()})
         except tarfile.ReadError as e:
             print(f"Skipping {tar_abspath}")
             print(e)
@@ -80,10 +80,10 @@ def generate_and_load_tar_meta(data_path, tar_path, cache_dir, overwrite=False):
 
     if osp.exists(tar_abs_metapath):
         print(f"    Loading abs meta: {tar_abs_metapath}")
-        tar_meta = json.load(open(tar_abs_metapath, "r"))
+        tar_meta = json.load(open(tar_abs_metapath))
     elif osp.exists(tar_real_metapath):
         print(f"    Loading realpath meta: {tar_real_metapath}")
-        tar_meta = json.load(open(tar_real_metapath, "r"))
+        tar_meta = json.load(open(tar_real_metapath))
     else:
         return None
     return tar_meta
@@ -194,9 +194,7 @@ class VILAWebDataset(torch.utils.data.Dataset):
                 self.data_path.replace("/", "--") + f".max_shards:{max_shards_to_load}" + ".wdsmeta.json",
             )
 
-        assert osp.exists(
-            self.meta_path
-        ), f"meta path not found in [{self.meta_path}] or [{_local_meta_path}]"
+        assert osp.exists(self.meta_path), f"meta path not found in [{self.meta_path}] or [{_local_meta_path}]"
         print(f"[VILA-forked-Webdataset] Loading meta infomation {self.meta_path}", flush=True)
 
         # uuid = abs(hash(self.meta_path)) % (10 ** 8)
@@ -279,14 +277,14 @@ if __name__ == "__main__":
     if args.total > 0:
         print("building meta information only")
         exit(0)
-        
+
     train_dataset = VILAWebDataset(
         data_path=args.data_path,
     )
     # print("overwrite:", args.overwrite)
     print("dataset size: ", len(train_dataset))
     print(train_dataset[0])
-    
+
     if args.test_all:
         print("iterating all dataset for data integrity.")
         train_dataset = VILAWebDataset(
@@ -317,6 +315,6 @@ if __name__ == "__main__":
                 print(f"{idx}-of-{len(dloader)}", type(data), count)
             else:
                 count += 1
-            
+
             # if idx >= 5:
             #     break

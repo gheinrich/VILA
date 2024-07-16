@@ -1,4 +1,4 @@
-# huggingface-cli download Efficient-Large-Model/coyo-25m-recap --local-dir coyo-25m-recap --repo-type dataset --local-dir-use-symlinks False --resume-download 
+# huggingface-cli download Efficient-Large-Model/coyo-25m-recap --local-dir coyo-25m-recap --repo-type dataset --local-dir-use-symlinks False --resume-download
 JOBS_LIMIT=${1:-32}  # Set your limit here
 # model_id=NousResearch/Llama-2-13b-chat-hf
 # model_id=google/gemma-7b-it

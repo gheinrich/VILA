@@ -47,7 +47,6 @@ from .utils import (
     trl_sanitze_kwargs_for_tagging,
 )
 
-
 if is_peft_available():
     from peft import PeftConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
 
@@ -480,8 +479,7 @@ class SFTTrainer(Trainer):
             )
 
             def data_generator(constant_length_iterator):
-                for i in constant_length_iterator:
-                    yield i
+                yield from constant_length_iterator
 
             try:
                 packed_dataset = Dataset.from_generator(

@@ -1,11 +1,10 @@
-import os
-import json
 import argparse
+import json
+import os
 from collections import defaultdict
 
-eval_dict = {'refcoco': ['val','testA','testB'], 
-            'refcoco+': ['val','testA','testB'],
-            'refcocog': ['val','test']}
+eval_dict = {"refcoco": ["val", "testA", "testB"], "refcoco+": ["val", "testA", "testB"], "refcocog": ["val", "test"]}
+
 
 def computeIoU(bbox1, bbox2):
     x1, y1, x2, y2 = bbox1
@@ -21,39 +20,40 @@ def computeIoU(bbox1, bbox2):
     iou = intersection_area / union_area
     return iou
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pred_path', help='prediction path')
-    parser.add_argument('--data_path', help='data path')
+    parser.add_argument("--pred_path", help="prediction path")
+    parser.add_argument("--data_path", help="data path")
     args = parser.parse_args()
-    
-    for dataset in ['refcoco', 'refcoco+', 'refcocog']:
+
+    for dataset in ["refcoco", "refcoco+", "refcocog"]:
         for split in eval_dict[dataset]:
             try:
-                prediction_file = os.path.join(args.pred_path, dataset, split, 'merge.jsonl')
-                pred_data = [json.loads(x) for x in open(prediction_file, 'r')]
+                prediction_file = os.path.join(args.pred_path, dataset, split, "merge.jsonl")
+                pred_data = [json.loads(x) for x in open(prediction_file)]
                 pred_dict = defaultdict(list)
                 for pred in pred_data:
-                    img_id = pred['img_id'][0]
+                    img_id = pred["img_id"][0]
                     pred_dict[img_id].append(pred)
 
-                with open(os.path.join(args.data_path, "{}_{}.json".format(dataset, split)), 'r') as f:
+                with open(os.path.join(args.data_path, f"{dataset}_{split}.json")) as f:
                     ann_data = json.load(f)
-                
-                count = 0 
+
+                count = 0
                 total = len(ann_data)
-                print("total ann: {}\ntotal pred: {}".format(total, len(pred_data)))
+                print(f"total ann: {total}\ntotal pred: {len(pred_data)}")
 
                 refcoco_dict = defaultdict()
                 for item in ann_data:
-                    refcoco_dict[item['img_id']] = item
+                    refcoco_dict[item["img_id"]] = item
                 for img_id in refcoco_dict:
                     item = refcoco_dict[img_id]
-                    bbox = item['bbox']
+                    bbox = item["bbox"]
                     outputs = pred_dict[img_id]
                     for output in outputs:
                         try:
-                            pred_bbox = output['bbox']
+                            pred_bbox = output["bbox"]
 
                             gt_bbox = [0, 0, 0, 0]
                             gt_bbox[0] = bbox[0]
@@ -62,12 +62,12 @@ if __name__ == "__main__":
                             gt_bbox[3] = bbox[1] + bbox[3]
                             iou_score = computeIoU(pred_bbox, gt_bbox)
                             if iou_score >= 0.5:
-                                count+=1
+                                count += 1
                         except Exception as e:
                             print(e, pred_bbox, gt_bbox, flush=True)
                             continue
-                
-                print('{} {}: {:.2f}\n'.format(dataset, split, count / total * 100), flush=True)    
+
+                print(f"{dataset} {split}: {count / total * 100:.2f}\n", flush=True)
             except Exception as e:
                 print(e, flush=True)
                 continue

@@ -18,11 +18,9 @@ from pytorchvideo.data.encoded_video import EncodedVideo
 from torchvision.transforms import Resize
 from tqdm import tqdm
 
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX)
+from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.conversation import SeparatorStyle, conv_templates
-from llava.mm_utils import (KeywordsStoppingCriteria, get_model_name_from_path,
-                            tokenizer_image_token)
+from llava.mm_utils import KeywordsStoppingCriteria, get_model_name_from_path, tokenizer_image_token
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
 
@@ -126,12 +124,11 @@ The best answer is:
 """
 
 template_wsub = r""" This video's subtitles are listed below:
-{subtitle} 
-Select the best answer to the following multiple-choice question based on the video. Respond with only the letter (A, B, C, or D) of the correct option. 
+{subtitle}
+Select the best answer to the following multiple-choice question based on the video. Respond with only the letter (A, B, C, or D) of the correct option.
 {question}
 The best answer is:
 """
-
 
 
 def get_path(root_path):
@@ -156,7 +153,9 @@ def eval_model(args):
     model_name = get_model_name_from_path(model_path)
 
     if args.output_name is None:
-        args.output_name = osp.basename(args.model_path) + f"tmp={args.temperature}_beams={args.num_beams}-" + "video_mme.json"
+        args.output_name = (
+            osp.basename(args.model_path) + f"tmp={args.temperature}_beams={args.num_beams}-" + "video_mme.json"
+        )
     if not args.output_name.endswith(".json"):
         args.output_name += ".json"
 
@@ -225,23 +224,29 @@ def eval_model(args):
         url = vmeta["url"]
         video_id = vmeta["video_id"]
         uid = osp.basename(url).split("?v=")[-1]
-        
+
         vpath = osp.join(folder, f"{uid}.mp4")
         subpath = osp.join(subtitle_folder, f"{uid}.srt")
 
         from llava.eval.video_mme.w_sub_eval import slice_frames
+
         video_frames, video_subtitles = slice_frames(vpath, subpath, num_frames=args.num_video_frames)
         if not osp.exists(vpath):
             print("[video not downloaded] Skip", vpath)
             continue
-        
+
         for questions in vmeta["questions"]:
             qid = questions["question_id"]
             if qid in labeled_key:
                 print("[question id answered] Skip", qid, url)
                 continue
-            qa = questions["question"] + "\n" + "Answer the question by only outputing the choice.\n" + "\n".join(questions["choices"])
-            
+            qa = (
+                questions["question"]
+                + "\n"
+                + "Answer the question by only outputing the choice.\n"
+                + "\n".join(questions["choices"])
+            )
+
             qs = template.format(question=qa)
             output = get_model_output(
                 model,

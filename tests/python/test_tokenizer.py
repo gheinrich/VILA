@@ -17,10 +17,10 @@
 import unittest
 
 import torch
-import transformers
-from llava.data.dataset import preprocess_v1
 from transformers import AutoTokenizer
+
 from llava import conversation as conversation_lib
+from llava.data.dataset import preprocess_v1
 
 
 class TestTokenizerWarning(unittest.TestCase):

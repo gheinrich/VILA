@@ -1,4 +1,4 @@
-#@yunhao: deprecated comment
+# @yunhao: deprecated comment
 """
 A inference test on llava_arch.py
 This test can be simply run by
@@ -14,14 +14,16 @@ import json
 import os
 
 import torch
+from PIL import Image
+from tqdm import tqdm
+from transformers import AutoTokenizer
+
 from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.mm_utils import tokenizer_image_token
 from llava.model import LlavaLlamaConfig, LlavaLlamaModel
-from llava.train.args import ModelArguments, TrainingArguments, DataArguments
+from llava.train.args import DataArguments, ModelArguments, TrainingArguments
 from llava.train.utils import prepare_config_for_training
-from transformers import AutoTokenizer
-from PIL import Image
-from tqdm import tqdm
+
 
 def build_model():
     # This test is supposed to run on a single GPU
@@ -54,10 +56,9 @@ def build_model():
     model.vision_tower = model.vision_tower.to(device)
     model.mm_projector = model.mm_projector.to(device)
     model = model.to(device)
-    
+
     return tokenizer, model, model.vision_tower.image_processor
-    
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     patch_size = vision_tower.config.patch_size
     visual_tokens_per_image = (image_size // patch_size) ** 2
 
-    questions = json.load(open(os.path.expanduser(args.question_file), "r"))
+    questions = json.load(open(os.path.expanduser(args.question_file)))
 
     for i, line in enumerate(tqdm(questions)):
         idx = line["id"]

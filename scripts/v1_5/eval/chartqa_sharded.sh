@@ -28,7 +28,7 @@ done
 
 wait
 
-output_file=./eval_output/$CKPT/chartqa/$SPLIT/answers1/merge.jsonl 
+output_file=./eval_output/$CKPT/chartqa/$SPLIT/answers1/merge.jsonl
 
 # Clear out the output file if it exists.
 > "$output_file"

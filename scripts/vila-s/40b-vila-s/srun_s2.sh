@@ -28,10 +28,10 @@ JNAME=$JNAME_PREV-PRETRAIN-$PRETRAIN_DATASET
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step2-$JNAME.err 
+ERRF=$LOGDIR/step2-$JNAME.err
 LOGF=$LOGDIR/step2-$JNAME.out
 
-for i in $(seq 1 10); do 
+for i in $(seq 1 10); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \

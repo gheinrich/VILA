@@ -31,7 +31,6 @@ from transformers.trainer_utils import EvalLoopOutput
 from ..core import PPODecorators
 from ..import_utils import is_peft_available
 
-
 if is_peft_available():
     from peft import PeftModel
 

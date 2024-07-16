@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors, Facebook AI Research authors and The HuggingFace Inc. team.
 # Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
@@ -96,7 +95,6 @@ from .utils.import_utils import (
 )
 from .utils.quantization_config import AwqConfig, BitsAndBytesConfig, GPTQConfig, QuantizationMethod
 from .utils.versions import require_version_core
-
 
 XLA_USE_BF16 = os.environ.get("XLA_USE_BF16", "0").upper()
 XLA_DOWNCAST_BF16 = os.environ.get("XLA_DOWNCAST_BF16", "0").upper()
@@ -397,9 +395,7 @@ def shard_checkpoint(
     shards = {}
     for idx, shard in enumerate(sharded_state_dicts):
         shard_file = weights_name.replace(".bin", f"-{idx+1:05d}-of-{len(sharded_state_dicts):05d}.bin")
-        shard_file = shard_file.replace(
-            ".safetensors", f"-{idx + 1:05d}-of-{len(sharded_state_dicts):05d}.safetensors"
-        )
+        shard_file = shard_file.replace(".safetensors", f"-{idx + 1:05d}-of-{len(sharded_state_dicts):05d}.safetensors")
         shards[shard_file] = shard
         for key in shard.keys():
             weight_map[key] = shard_file
@@ -452,15 +448,13 @@ def load_sharded_checkpoint(model, folder, strict=True, prefer_safe=True):
             if is_safetensors_available():
                 load_safe = True  # load safe due to preference
             else:
-                logger.warning(
-                    f"Cannot load sharded checkpoint at {folder} safely since safetensors is not installed!"
-                )
+                logger.warning(f"Cannot load sharded checkpoint at {folder} safely since safetensors is not installed!")
         elif not index_present:
             load_safe = True  # load safe since we have no other choice
 
     load_index = safe_index_file if load_safe else index_file
 
-    with open(load_index, "r", encoding="utf-8") as f:
+    with open(load_index, encoding="utf-8") as f:
         index = json.load(f)
 
     shard_files = list(set(index["weight_map"].values()))
@@ -1239,10 +1233,13 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
         if is_deepspeed_zero3_enabled():
             import deepspeed
+
             # this immediately partitions the model across all gpus, to avoid the overhead in time
             # and memory copying it on CPU or each GPU first
-            if "mics_shard_size" in deepspeed_config()['zero_optimization'] and \
-                deepspeed_config()['zero_optimization']['mics_shard_size'] > 1:
+            if (
+                "mics_shard_size" in deepspeed_config()["zero_optimization"]
+                and deepspeed_config()["zero_optimization"]["mics_shard_size"] > 1
+            ):
                 print("Detected DeepSpeed ZeRO-3 with MiCS: activating zero.MiCS_Init() for this model")
                 with deepspeed.zero.MiCS_Init(config_dict_or_path=deepspeed_config()):
                     model = cls(config, **kwargs)
@@ -1471,9 +1468,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                     "request support for this architecture: https://github.com/huggingface/transformers/issues/new"
                 )
             if not is_torch_sdpa_available():
-                raise ImportError(
-                    "PyTorch SDPA requirements in Transformers are not met. Please install torch>=2.1.1."
-                )
+                raise ImportError("PyTorch SDPA requirements in Transformers are not met. Please install torch>=2.1.1.")
 
         if not is_torch_sdpa_available() or not cls._supports_sdpa:
             return config
@@ -2824,7 +2819,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                     **adapter_kwargs,
                 )
             if _adapter_model_path is not None and os.path.isfile(_adapter_model_path):
-                with open(_adapter_model_path, "r", encoding="utf-8") as f:
+                with open(_adapter_model_path, encoding="utf-8") as f:
                     _adapter_model_path = pretrained_model_name_or_path
                     pretrained_model_name_or_path = json.load(f)["base_model_name_or_path"]
         else:
@@ -3056,11 +3051,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
             if low_cpu_mem_usage is None:
                 low_cpu_mem_usage = True
 
-        if (
-            is_8bit_serializable
-            and quantization_method_from_args == QuantizationMethod.BITS_AND_BYTES
-            and load_in_8bit
-        ):
+        if is_8bit_serializable and quantization_method_from_args == QuantizationMethod.BITS_AND_BYTES and load_in_8bit:
             if quantization_method_from_config == QuantizationMethod.BITS_AND_BYTES:
                 logger.warning(
                     "You passed `quantization_config` to `from_pretrained` but the model you're loading already has a"
@@ -3179,24 +3170,24 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                 elif os.path.isfile(
                     os.path.join(pretrained_model_name_or_path, subfolder, TF_WEIGHTS_NAME + ".index")
                 ) or os.path.isfile(os.path.join(pretrained_model_name_or_path, subfolder, TF2_WEIGHTS_NAME)):
-                    raise EnvironmentError(
+                    raise OSError(
                         f"Error no file named {_add_variant(WEIGHTS_NAME, variant)} found in directory"
                         f" {pretrained_model_name_or_path} but there is a file for TensorFlow weights. Use"
                         " `from_tf=True` to load this model from those weights."
                     )
                 elif os.path.isfile(os.path.join(pretrained_model_name_or_path, subfolder, FLAX_WEIGHTS_NAME)):
-                    raise EnvironmentError(
+                    raise OSError(
                         f"Error no file named {_add_variant(WEIGHTS_NAME, variant)} found in directory"
                         f" {pretrained_model_name_or_path} but there is a file for Flax weights. Use `from_flax=True`"
                         " to load this model from those weights."
                     )
                 elif use_safetensors:
-                    raise EnvironmentError(
+                    raise OSError(
                         f"Error no file named {_add_variant(SAFE_WEIGHTS_NAME, variant)} found in directory"
                         f" {pretrained_model_name_or_path}."
                     )
                 else:
-                    raise EnvironmentError(
+                    raise OSError(
                         f"Error no file named {_add_variant(WEIGHTS_NAME, variant)}, {TF2_WEIGHTS_NAME},"
                         f" {TF_WEIGHTS_NAME + '.index'} or {FLAX_WEIGHTS_NAME} found in directory"
                         f" {pretrained_model_name_or_path}."
@@ -3261,7 +3252,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                                 )
                             cached_file_kwargs["revision"] = revision
                             if resolved_archive_file is None:
-                                raise EnvironmentError(
+                                raise OSError(
                                     f"{pretrained_model_name_or_path} does not appear to have a file named"
                                     f" {_add_variant(SAFE_WEIGHTS_NAME, variant)} or {_add_variant(SAFE_WEIGHTS_INDEX_NAME, variant)} "
                                     "and thus cannot be loaded with `safetensors`. Please make sure that the model has "
@@ -3291,13 +3282,13 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                             "token": token,
                         }
                         if has_file(pretrained_model_name_or_path, TF2_WEIGHTS_NAME, **has_file_kwargs):
-                            raise EnvironmentError(
+                            raise OSError(
                                 f"{pretrained_model_name_or_path} does not appear to have a file named"
                                 f" {_add_variant(WEIGHTS_NAME, variant)} but there is a file for TensorFlow weights."
                                 " Use `from_tf=True` to load this model from those weights."
                             )
                         elif has_file(pretrained_model_name_or_path, FLAX_WEIGHTS_NAME, **has_file_kwargs):
-                            raise EnvironmentError(
+                            raise OSError(
                                 f"{pretrained_model_name_or_path} does not appear to have a file named"
                                 f" {_add_variant(WEIGHTS_NAME, variant)} but there is a file for Flax weights. Use"
                                 " `from_flax=True` to load this model from those weights."
@@ -3305,24 +3296,24 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                         elif variant is not None and has_file(
                             pretrained_model_name_or_path, WEIGHTS_NAME, **has_file_kwargs
                         ):
-                            raise EnvironmentError(
+                            raise OSError(
                                 f"{pretrained_model_name_or_path} does not appear to have a file named"
                                 f" {_add_variant(WEIGHTS_NAME, variant)} but there is a file without the variant"
                                 f" {variant}. Use `variant=None` to load this model from those weights."
                             )
                         else:
-                            raise EnvironmentError(
+                            raise OSError(
                                 f"{pretrained_model_name_or_path} does not appear to have a file named"
                                 f" {_add_variant(WEIGHTS_NAME, variant)}, {TF2_WEIGHTS_NAME}, {TF_WEIGHTS_NAME} or"
                                 f" {FLAX_WEIGHTS_NAME}."
                             )
-                except EnvironmentError:
+                except OSError:
                     # Raise any environment error raise by `cached_file`. It will have a helpful error message adapted
                     # to the original exception.
                     raise
                 except Exception as e:
                     # For any other exception, we throw a generic error.
-                    raise EnvironmentError(
+                    raise OSError(
                         f"Can't load the model for '{pretrained_model_name_or_path}'. If you were trying to load it"
                         " from 'https://huggingface.co/models', make sure you don't have a local directory with the"
                         f" same name. Otherwise, make sure '{pretrained_model_name_or_path}' is the correct path to a"
@@ -3439,8 +3430,11 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
         if is_deepspeed_zero3_enabled():
             import deepspeed
-            if "mics_shard_size" in deepspeed_config()['zero_optimization'] and \
-                deepspeed_config()['zero_optimization']['mics_shard_size'] > 1:
+
+            if (
+                "mics_shard_size" in deepspeed_config()["zero_optimization"]
+                and deepspeed_config()["zero_optimization"]["mics_shard_size"] > 1
+            ):
                 print("Detected DeepSpeed ZeRO-3 with MiCS: activating zero.MiCS_Init() for this model")
                 init_contexts = [deepspeed.zero.MiCS_Init(config_dict_or_path=deepspeed_config())] + init_contexts
             else:
@@ -3938,9 +3932,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                 if (
                     keep_in_fp32_modules is not None
                     and dtype == torch.float16
-                    and any(
-                        module_to_keep_in_fp32 in key.split(".") for module_to_keep_in_fp32 in keep_in_fp32_modules
-                    )
+                    and any(module_to_keep_in_fp32 in key.split(".") for module_to_keep_in_fp32 in keep_in_fp32_modules)
                 ):
                     target_dtype = torch.float32
 

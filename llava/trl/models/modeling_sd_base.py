@@ -27,14 +27,13 @@ from diffusers.utils import convert_state_dict_to_diffusers
 from ..core import randn_tensor
 from ..import_utils import is_peft_available
 
-
 if is_peft_available():
     from peft import LoraConfig
     from peft.utils import get_peft_model_state_dict
 
 
 @dataclass
-class DDPOPipelineOutput(object):
+class DDPOPipelineOutput:
     """
     Output class for the diffusers pipeline to be finetuned with the DDPO trainer
 
@@ -54,7 +53,7 @@ class DDPOPipelineOutput(object):
 
 
 @dataclass
-class DDPOSchedulerOutput(object):
+class DDPOSchedulerOutput:
     """
     Output class for the diffusers scheduler to be finetuned with the DDPO trainer
 
@@ -69,7 +68,7 @@ class DDPOSchedulerOutput(object):
     log_probs: torch.Tensor
 
 
-class DDPOStableDiffusionPipeline(object):
+class DDPOStableDiffusionPipeline:
     """
     Main class for the diffusers pipeline to be finetuned with the DDPO trainer
     """
@@ -272,9 +271,7 @@ def scheduler_step(
     if self.config.thresholding:
         pred_original_sample = self._threshold_sample(pred_original_sample)
     elif self.config.clip_sample:
-        pred_original_sample = pred_original_sample.clamp(
-            -self.config.clip_sample_range, self.config.clip_sample_range
-        )
+        pred_original_sample = pred_original_sample.clamp(-self.config.clip_sample_range, self.config.clip_sample_range)
 
     # 5. compute variance: "sigma_t(η)" -> see formula (16)
     # σ_t = sqrt((1 − α_t−1)/(1 − α_t)) * sqrt(1 − α_t/α_t−1)

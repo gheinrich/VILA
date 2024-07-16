@@ -1,19 +1,17 @@
-import os
-import unittest
-from llava.unit_test_utils import requires_lustre
-from parameterized import parameterized
-import os
 import os.path as osp
+import unittest
+
+import numpy as np
 import torch
 import transformers
-import numpy as np
+from parameterized import parameterized
+from torch.utils.data import DataLoader
+from transformers import SiglipImageProcessor
 
 from llava import conversation as conversation_lib
 from llava.data.dataset import make_supervised_data_module
 from llava.train.args import DataArguments, TrainingArguments
-from llava.model.multimodal_encoder.siglip.image_processing_siglip import SiglipImageProcessor
-from torch.utils.data import DataLoader
-
+from llava.unit_test_utils import requires_lustre
 
 DATASETS = [
     # "ccs_recaptioned"
@@ -34,11 +32,12 @@ DATASETS = [
     # "mmc4core",
 ]
 
+
 def _test_fps_module(
-    dataset_name, 
-    max_samples=-1, 
-    batch_size=32, 
-    num_workers=16, 
+    dataset_name,
+    max_samples=-1,
+    batch_size=32,
+    num_workers=16,
     skip_before=0,
     num_video_frames=32,
     fps=2.0,
@@ -46,7 +45,7 @@ def _test_fps_module(
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",
-        model_max_length=8192*2,
+        model_max_length=8192 * 2,
         padding_side="right",
         use_fast=False,
         legacy=False,
@@ -76,13 +75,15 @@ def _test_fps_module(
 
     dataset = data_module["train_dataset"]
 
-    dloader = DataLoader(dataset, collate_fn=data_module["data_collator"], batch_size=batch_size, num_workers=num_workers)
+    dloader = DataLoader(
+        dataset, collate_fn=data_module["data_collator"], batch_size=batch_size, num_workers=num_workers
+    )
     dloader_len = len(dloader)
     len_list = []
     for idx, batch in enumerate(dloader):
         if idx < skip_before:
             continue
-        
+
         if max_samples > 0 and idx > min(max_samples, dloader_len):
             break
 
@@ -92,7 +93,7 @@ def _test_fps_module(
                 info.append((k, v.shape))
             else:
                 info.append((k, type(v)))
-            if k == 'images':
+            if k == "images":
                 len_list.append(v.shape[0])
     print(f"[{idx}/{len(dloader)}]", info)
     # calculate the var of len_list
@@ -100,15 +101,15 @@ def _test_fps_module(
     print(f"var: {np.var(len_list)}")
     print(f"mean: {np.mean(len_list)}")
     assert np.var(len_list) > 0 and np.mean(len_list) > 0
- 
+
 
 def _test_make_supervised_data_module(
-    dataset_name, 
-    max_samples=-1, 
-    batch_size=32, 
-    num_workers=16, 
-    skip_before=0, 
-):    
+    dataset_name,
+    max_samples=-1,
+    batch_size=32,
+    num_workers=16,
+    skip_before=0,
+):
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",
         model_max_length=8192,
@@ -139,12 +140,14 @@ def _test_make_supervised_data_module(
 
     dataset = data_module["train_dataset"]
 
-    dloader = DataLoader(dataset, collate_fn=data_module["data_collator"], batch_size=batch_size, num_workers=num_workers)
+    dloader = DataLoader(
+        dataset, collate_fn=data_module["data_collator"], batch_size=batch_size, num_workers=num_workers
+    )
     dloader_len = len(dloader)
     for idx, batch in enumerate(dloader):
         if idx < skip_before:
             continue
-        
+
         if max_samples > 0 and idx > min(max_samples, dloader_len):
             break
 
@@ -164,31 +167,32 @@ class TestDatasetMethods(unittest.TestCase):
         _test_make_supervised_data_module(dataset_name=dataset, batch_size=2, num_workers=8, max_samples=10)
 
     @requires_lustre()
-    def test_fps(self):        
+    def test_fps(self):
         _test_fps_module(
-            dataset_name="sharegpt_video" if osp.isdir("/lustre") else "osmo_sharegpt_video", 
-            batch_size=4, 
-            num_workers=4, 
+            dataset_name="sharegpt_video" if osp.isdir("/lustre") else "osmo_sharegpt_video",
+            batch_size=4,
+            num_workers=4,
             max_samples=10,
             num_video_frames=32,
             fps=2.0,
         )
         _test_fps_module(
-            dataset_name="shot2story_shotonly" if osp.isdir("/lustre") else "osmo_shot2story_shotonly", 
-            batch_size=4, 
-            num_workers=4, 
+            dataset_name="shot2story_shotonly" if osp.isdir("/lustre") else "osmo_shot2story_shotonly",
+            batch_size=4,
+            num_workers=4,
             max_samples=10,
             num_video_frames=32,
             fps=2.0,
         )
         _test_fps_module(
             dataset_name="panda70m" if osp.isdir("/lustre") else "osmo_panda70m",
-            batch_size=4, 
-            num_workers=4, 
+            batch_size=4,
+            num_workers=4,
             max_samples=10,
             num_video_frames=48,
             fps=2.0,
         )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,6 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
         --answers-file ./playground/data/eval/docvqa/answers/$CKPT/${CHUNKS}_${IDX}.jsonl \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
-        --conv-mode $CONV_MODE    
+        --conv-mode $CONV_MODE
 done
 wait

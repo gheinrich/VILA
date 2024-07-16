@@ -30,7 +30,5 @@ srun --label -A nvr_elm_llm -J nvr_elm_llm-vlm:label-coyo-$SLURM_ARRAY_TASK_ID-$
         --dataset /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat \
         --idx $SLURM_ARRAY_TASK_ID \
         --total $SLURM_ARRAY_TASK_COUNT
-    
-# bash ~/workspace/multi-modality-research/VILA/scripts/caption.sh $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_COUNT
 
- 
+# bash ~/workspace/multi-modality-research/VILA/scripts/caption.sh $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_COUNT

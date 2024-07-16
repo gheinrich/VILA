@@ -3,20 +3,18 @@
 
 # DeepSpeed Team
 import copy
-import torch
-
 from typing import Any, Tuple
+
+import deepspeed.comm as dist
+import torch
+import torch.distributed as torch_dist
+from flash_attn import flash_attn_func
 from torch import Tensor
 from torch.nn import Module
 
-import torch.distributed as torch_dist
+from llava.train.sequence_parallel.globals import get_ulysess_seq_len, get_ulysess_sp_rank, get_ulysess_sp_size
 
-import deepspeed.comm as dist
-from flash_attn import flash_attn_func
-from .all_to_all import SeqAllToAll4D, SeqAllToAll5D, SeqAllGather
-
-from llava.train.sequence_parallel.globals import get_ulysess_sp_size, get_ulysess_sp_rank, get_ulysess_seq_len
-
+from .all_to_all import SeqAllGather, SeqAllToAll4D, SeqAllToAll5D
 
 # def single_all_to_all(input, scatter_idx, gather_idx, group):
 #     seq_world_size = dist.get_world_size(group)
@@ -82,7 +80,7 @@ class UlyssesAttention(torch.nn.Module):
         gather_idx: int = 1,
     ) -> None:
 
-        super(UlyssesAttention, self).__init__()
+        super().__init__()
         self.local_attn = local_attention
         self.spg = sequence_process_group
         self.scatter_idx = scatter_idx
@@ -135,21 +133,23 @@ class UlyssesAttention(torch.nn.Module):
                     global_attention_mask_list.append(
                         torch.cat(
                             [
-                                local_attention_mask, 
+                                local_attention_mask,
                                 torch.zeros(
-                                    (local_attention_mask.size(0), max_global_length - shard_seqlen), 
-                                    dtype=local_attention_mask.dtype, 
-                                    device=local_attention_mask.device)
-                            ], 
-                            dim=1
+                                    (local_attention_mask.size(0), max_global_length - shard_seqlen),
+                                    dtype=local_attention_mask.dtype,
+                                    device=local_attention_mask.device,
+                                ),
+                            ],
+                            dim=1,
                         )
                     )
                 else:
                     global_attention_mask_list.append(
                         torch.zeros(
-                            (local_attention_mask.size(0), max_global_length), 
-                            dtype=local_attention_mask.dtype, 
-                            device=local_attention_mask.device)
+                            (local_attention_mask.size(0), max_global_length),
+                            dtype=local_attention_mask.dtype,
+                            device=local_attention_mask.device,
+                        )
                     )
 
             global_attention_mask = torch.stack(global_attention_mask_list, dim=0)
@@ -160,7 +160,7 @@ class UlyssesAttention(torch.nn.Module):
             new_global_attention_mask_list = list(torch.unbind(global_attention_mask, dim=0))
             # Unpad the global attention mask list and concatenate them
             for i in range(len(new_global_attention_mask_list)):
-                new_global_attention_mask_list[i] = new_global_attention_mask_list[i][:, :ulysess_seq_len[i]]
+                new_global_attention_mask_list[i] = new_global_attention_mask_list[i][:, : ulysess_seq_len[i]]
             global_attention_mask = torch.cat(new_global_attention_mask_list, dim=1)
             context_layer = self.local_attn(
                 q,
@@ -191,9 +191,9 @@ class UlyssesAttention(torch.nn.Module):
             context_layer = context_layer[0]
 
         # (bs, seq_len, head_cnt/N, head_size) -> (bs, seq_len/N, head_cnt, head_size)
-            
+
         # scatter 1, gather 2
         output = SeqAllToAll4D.apply(self.spg, context_layer, self.gather_idx, self.scatter_idx)
-        
+
         # out e.g., [s/p::h]
         return output

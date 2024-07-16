@@ -16,21 +16,19 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import os
-
 from unittest import mock
+
+from llava.train.sequence_parallel.monkey_patch import (  # _create_zero_param_parallel_group_vila,
+    __init__,
+    _flash_attention_forward,
+    _upad_input,
+    flash_attn_varlen_func_helper,
+    new_decoder_forward,
+    new_flash_attn_forward,
+    new_llamamodel_forward,
+)
 from llava.train.train import train
 from llava.train.transformer_normalize_monkey_patch import patched_normalize
-
-from llava.train.sequence_parallel.monkey_patch import (
-    new_flash_attn_forward,
-    new_decoder_forward,
-    new_llamamodel_forward,
-    _flash_attention_forward,
-    __init__,
-    flash_attn_varlen_func_helper,
-    _upad_input,
-    # _create_zero_param_parallel_group_vila,
-)
 
 
 def __len__(self):
@@ -55,7 +53,10 @@ if __name__ == "__main__":
         # mock.patch("deepspeed.utils.groups._create_zero_param_parallel_group", new=_create_zero_param_parallel_group_vila),
         mock.patch("transformers.models.llama.modeling_llama.LlamaModel.forward", new=new_llamamodel_forward),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2._upad_input", new=_upad_input),
-        mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2.flash_attn_varlen_func_helper", new=flash_attn_varlen_func_helper),
+        mock.patch(
+            "transformers.models.llama.modeling_llama.LlamaFlashAttention2.flash_attn_varlen_func_helper",
+            new=flash_attn_varlen_func_helper,
+        ),
         mock.patch("transformers.models.llama.modeling_llama.LlamaFlashAttention2.__init__", new=__init__),
         mock.patch(
             "transformers.models.llama.modeling_llama.LlamaFlashAttention2._flash_attention_forward",

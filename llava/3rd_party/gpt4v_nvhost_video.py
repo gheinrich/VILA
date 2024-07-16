@@ -1,23 +1,19 @@
-
 ### This is the updated script that people should use ###
 ###TESTED to work with updated OpenAI APIs####
 ###Please note create() / AzureOpenAI() instance creation ###
 
-import cv2  # We're using OpenCV to read video, to install !pip install opencv-python
 import base64
-import time
-from openai import OpenAI
-import os, os.path as osp
-import requests
-import glob, json
-
-import os
-import time
-import requests
+import glob
 import json
+import os
+import os.path as osp
+import time
 from pathlib import Path
+
+import cv2  # We're using OpenCV to read video, to install !pip install opencv-python
 import openai
-from openai import AzureOpenAI
+import requests
+from openai import AzureOpenAI, OpenAI
 
 
 def get_oauth_token(p_token_url, p_client_id, p_client_secret, p_scope):
@@ -38,8 +34,12 @@ def get_oauth_token(p_token_url, p_client_id, p_client_secret, p_scope):
         # Get a new token from the OAuth server
         response = requests.post(
             p_token_url,
-            data={"grant_type": "client_credentials", "client_id": p_client_id,
-                    "client_secret": p_client_secret, "scope": p_scope}
+            data={
+                "grant_type": "client_credentials",
+                "client_id": p_client_id,
+                "client_secret": p_client_secret,
+                "scope": p_scope,
+            },
         )
         response.raise_for_status()
         token = response.json()
@@ -54,8 +54,7 @@ def get_oauth_token(p_token_url, p_client_id, p_client_secret, p_scope):
         expires_in = time.time() + token["expires_in"]
         if time.time() > expires_in:
             # Refresh the token
-            token = get_oauth_token(p_token_url, p_client_id,
-                                    p_client_secret, p_scope)
+            token = get_oauth_token(p_token_url, p_client_id, p_client_secret, p_scope)
     except Exception as e:
         print(f"Error occurred while while getting OAuth token: {e}")
         return None
@@ -63,9 +62,12 @@ def get_oauth_token(p_token_url, p_client_id, p_client_secret, p_scope):
     authToken = token["access_token"]
     return authToken
 
+
 client_id = os.environ.get("NVHOST_OAI_CLIENT_ID", None)
 client_secret = os.environ.get("NVHOST_OAI_client_secret", None)
-assert client_id is not None and client_secret is not None, "Please set NVHOST_OAI_CLIENT_ID and NVHOST_OAI_client_secret in your environment variables"
+assert (
+    client_id is not None and client_secret is not None
+), "Please set NVHOST_OAI_CLIENT_ID and NVHOST_OAI_client_secret in your environment variables"
 # Please use this URL for retrieving token https://prod.api.nvidia.com/oauth/api/v1/ssa/default/token
 token_url = "https://prod.api.nvidia.com/oauth/api/v1/ssa/default/token"
 # Please use this Scope for Azure OpenAI: azureopenai-readwrite
@@ -74,8 +76,8 @@ scope = "azureopenai-readwrite"
 token = get_oauth_token(token_url, client_id, client_secret, scope)
 # Define OPENAI Variables and URL
 api_base = "https://prod.api.nvidia.com/llm/v1/azure/openai"
-deployment_name = 'gpt-4-vision-preview'
-api_version = '2023-12-01-preview'  # this might change in the future
+deployment_name = "gpt-4-vision-preview"
+api_version = "2023-12-01-preview"  # this might change in the future
 
 client = AzureOpenAI(
     api_key=token,
@@ -90,6 +92,7 @@ question = "Elaborate on the visual and narrative elements of the video in detai
 # "These are frames from a video that I want to upload. Generate a detailed caption",
 # question = "These are frames from a video that I want to upload. Elaborate on the visual and narrative elements of the video in detail that I can upload along with the video,  particularly the motion behavior"
 
+
 def gpt4_caption_video(_vpath, num_frames):
     # num_frames = 15
     video = cv2.VideoCapture(_vpath)
@@ -98,7 +101,7 @@ def gpt4_caption_video(_vpath, num_frames):
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     sample_interval = frame_count // num_frames
     print("[video-info]", sample_interval, frame_count, num_frames, _vpath)
-    
+
     while video.isOpened():
         success, frame = video.read()
         if not success or len(base64Frames) >= num_frames:
@@ -143,7 +146,7 @@ def gpt4_caption_image_then_summarize(_vpath, num_frames):
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     sample_interval = frame_count // num_frames
     print("[video-info]", sample_interval, frame_count, num_frames)
-    
+
     while video.isOpened():
         success, frame = video.read()
         if not success or len(base64Frames) >= num_frames:
@@ -176,12 +179,12 @@ def gpt4_caption_image_then_summarize(_vpath, num_frames):
         result = client.chat.completions.create(**params)
         print(result.choices[0].message.content)
         image_captions.append(result.choices[0].message.content)
-        
+
     PROMPT_MESSAGES = [
         {
             "role": "user",
-            "content": "Below are captions from samples that are sampled from a given video. Please summarize them and make a short caption:\n" \
-                    + "\n".join(image_captions) ,
+            "content": "Below are captions from samples that are sampled from a given video. Please summarize them and make a short caption:\n"
+            + "\n".join(image_captions),
         },
     ]
     params = {
@@ -194,14 +197,15 @@ def gpt4_caption_image_then_summarize(_vpath, num_frames):
     print(result.choices[0].message.content)
     return result.choices[0].message.content
 
+
 output_text = {}
-num_frames=10
+num_frames = 10
 
 base_folder = "/lustre/fs3/portfolios/nvr/users/ligengz/workspace/Video-Benchmark/videos"
 output_path = f"gpt4v_pexel_1k.json"
 
 if osp.exists(output_path):
-    output_text = json.load(open(output_path, "r"))
+    output_text = json.load(open(output_path))
 
 from tqdm import tqdm
 
@@ -210,8 +214,8 @@ for vvpath in glob.iglob(osp.join(base_folder, "**/*.mp4"), recursive=True):
     if vvpath in output_text:
         print("skip ", vvpath)
         continue
-    
-    count = 0 
+
+    count = 0
     while True:
         output = None
         try:
@@ -232,8 +236,7 @@ for vvpath in glob.iglob(osp.join(base_folder, "**/*.mp4"), recursive=True):
             output = "[openai.BadRequestError] filtered by OAI"
         if output is not None:
             break
-    
-    
+
     output_text[vvpath] = {
         "question": question,
         "labeler": "gpt4v-nvhost",

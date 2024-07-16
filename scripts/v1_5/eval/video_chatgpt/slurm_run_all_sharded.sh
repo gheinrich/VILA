@@ -5,7 +5,7 @@ conda activate vila
 which python
 
 cd ~/workspace/VILA-Internal
-# Prerequisite: 1. pip install -e ".[eval]"; 
+# Prerequisite: 1. pip install -e ".[eval]";
 
 # Make sure partitions according to different clusters.
 PARTITIONS="batch_block1,batch_block2,batch_block3,batch_block4"

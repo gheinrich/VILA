@@ -1,35 +1,26 @@
 # This file is originated from the official MMMU codebase:
 # https://github.com/MMMU-Benchmark/MMMU
-import torch
+import math
 import os
 import random
-
-import math
-import numpy as np
-from tqdm import tqdm
-
-from datasets import load_dataset, concatenate_datasets
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path
-from llava.mm_utils import process_images
-
 from argparse import ArgumentParser
 
+import numpy as np
+import torch
+from datasets import concatenate_datasets, load_dataset
+from tqdm import tqdm
+
 from llava.eval.mmmu_utils.data_utils import (
-    load_yaml,
-    construct_prompt,
-    save_json,
-    process_single_sample,
     CAT_SHORT2LONG,
+    construct_prompt,
+    load_yaml,
+    process_single_sample,
+    save_json,
 )
-from llava.eval.mmmu_utils.model_utils import (
-    call_llava_engine_df,
-    llava_image_processor,
-)
-from llava.eval.mmmu_utils.eval_utils import (
-    parse_multi_choice_response,
-    parse_open_response,
-)
+from llava.eval.mmmu_utils.eval_utils import parse_multi_choice_response, parse_open_response
+from llava.eval.mmmu_utils.model_utils import call_llava_engine_df, llava_image_processor
+from llava.mm_utils import get_model_name_from_path, process_images
+from llava.model.builder import load_pretrained_model
 
 
 def split_list(lst, n):
@@ -58,9 +49,7 @@ def run_model(
             response = call_model_engine_fn(args, sample, model, tokenizer, processor)
 
             if sample["question_type"] == "multiple-choice":
-                pred_ans = parse_multi_choice_response(
-                    response, sample["all_choices"], sample["index2ans"]
-                )
+                pred_ans = parse_multi_choice_response(response, sample["all_choices"], sample["index2ans"])
             else:  # open question
                 pred_ans = response
             out_samples[sample["id"]] = pred_ans
@@ -91,12 +80,8 @@ def main():
         default="llava1.5_13b_val.json",
         help="name of saved json",
     )
-    parser.add_argument(
-        "--config_path", type=str, default="llava/eval/mmmu_utils/configs/llava1.5.yaml"
-    )
-    parser.add_argument(
-        "--data_path", type=str, default="playground/data/eval/MMMU"
-    )  # hf dataset path.
+    parser.add_argument("--config_path", type=str, default="llava/eval/mmmu_utils/configs/llava1.5.yaml")
+    parser.add_argument("--data_path", type=str, default="playground/data/eval/MMMU")  # hf dataset path.
     parser.add_argument("--model_path", type=str, default="liuhaotian/llava-v1.5-13b")
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
     parser.add_argument("--num-chunks", type=int, default=1)
@@ -117,7 +102,7 @@ def main():
     args.config = load_yaml(args.config_path)
     for key, value in args.config.items():
         if key != "eval_params" and type(value) == list:
-            assert len(value) == 1, "key {} has more than one value".format(key)
+            assert len(value) == 1, f"key {key} has more than one value"
             args.config[key] = value[0]
 
     # run for each subject
@@ -134,9 +119,7 @@ def main():
 
     # load model
     model_name = get_model_name_from_path(args.model_path)
-    tokenizer, model, vis_processors, _ = load_pretrained_model(
-        args.model_path, model_name, None
-    )
+    tokenizer, model, vis_processors, _ = load_pretrained_model(args.model_path, model_name, None)
 
     samples = []
     for sample in dataset:
@@ -144,15 +127,15 @@ def main():
 
         sample = construct_prompt(sample, args.config)
         if sample["image"]:
-            sample['image'] = process_images([image.convert("RGB") for image in sample['image']], vis_processors, model.config)
+            sample["image"] = process_images(
+                [image.convert("RGB") for image in sample["image"]], vis_processors, model.config
+            )
         samples.append(sample)
 
     # run ex
     # TODO (kentang-mit@): for other backbones such as mistral, we may still need this.
     # conv_version = args.conv_mode
-    out_samples = run_model(
-        args, samples, model, call_model_engine, tokenizer, processor
-    )
+    out_samples = run_model(args, samples, model, call_model_engine, tokenizer, processor)
     os.makedirs("/".join(args.output_path.split("/")[:-1]), exist_ok=True)
     output_path = args.output_path.replace(".json", f"-{args.chunk_idx}.json")
     save_json(output_path, out_samples)

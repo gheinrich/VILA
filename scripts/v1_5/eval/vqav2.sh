@@ -40,4 +40,3 @@ done
 cp ./playground/data/eval/vqav2/llava_vqav2_mscoco_test2015.jsonl ./eval_output/$CKPT/vqav2/
 
 python scripts/convert_vqav2_for_submission.py --dir ./eval_output/$CKPT/vqav2/ --split $SPLIT
-

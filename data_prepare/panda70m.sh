@@ -13,8 +13,8 @@ for idx in $(seq 0 $idx_size); do
     while [ $(jobs -rp | wc -l) -ge $JOBS_LIMIT ]; do
         sleep 1
     done
-    echo "Running jobs $(jobs -rp | wc -l) $wname-$idx-of-$parallel_size"; 
-    
+    echo "Running jobs $(jobs -rp | wc -l) $wname-$idx-of-$parallel_size";
+
     srun -A llmservice_nlp_fm \
         -p cpu,cpu_1,cpu_long -t 4:00:00 -J cleanup-$wname-$idx-of-$parallel_size \
         --cpus-per-task 8 \

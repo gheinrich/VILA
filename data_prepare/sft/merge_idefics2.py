@@ -1,17 +1,19 @@
-import os
 import json
+import os
 
 dataset_path = "/home/jasonlu/workspace/idefics2-sft/the_cauldron"
 save_path = "/home/jasonlu/workspace/idefics2-sft/new-vflan/"
 metadata_path = os.path.join(save_path, "metadata")
 dataset_names = sorted(os.listdir(metadata_path))
 
+
 def load_jsonl(file_path):
     data = []
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             data.append(json.loads(line))
     return data
+
 
 all_data = []
 for dataset_name in dataset_names:

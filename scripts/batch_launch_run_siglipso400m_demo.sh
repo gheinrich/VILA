@@ -8,12 +8,10 @@
 #SBATCH --exclusive
 #SBATCH --dependency=singleton
 #SBATCH --output=eval-demo-inference.out
-    
+
 CKPT_NAME=vilavideo-sft-7b-v032-fixedfps
 # vilavideo-sft-7b-v032
-model_path=./checkpoints/${CKPT_NAME} 
+model_path=./checkpoints/${CKPT_NAME}
 PROMPT_TEMPLATE=bin_20_80
 
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/eval/video_chatgpt/run_qa_demo.sh ${model_path} ${CKPT_NAME} ${PROMPT_TEMPLATE}
-
-

@@ -14,50 +14,51 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os
-import logging
-from typing import Dict, Optional, Sequence, List
-import warnings
 import copy
+import logging
+import os
+import warnings
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Sequence
+
 import torch
 import transformers
-
-from transformers import HfArgumentParser, AutoTokenizer, AutoConfig, LlamaForCausalLM
-from transformers.modeling_utils import unwrap_model
-from transformers import set_seed
-
 from torch.utils.data import Dataset
-from llava.train.llava_trainer import LLaVATrainer, VILADPOTrainer
-from llava.train.args import TrainingArguments, ModelArguments, DataArguments
-from llava.train.callbacks.autoresume_callback import AutoResumeCallback
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from transformers import AutoConfig, AutoTokenizer, HfArgumentParser, LlamaForCausalLM, set_seed
+from transformers.modeling_utils import unwrap_model
 
+import llava.data.dataset as dataset
+import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data import make_supervised_data_module
+from llava.mm_utils import process_image
 from llava.model import *
+from llava.train.args import DataArguments, ModelArguments, TrainingArguments
+from llava.train.callbacks.autoresume_callback import AutoResumeCallback
+from llava.train.llava_trainer import LLaVATrainer, VILADPOTrainer
+from llava.train.sequence_parallel import set_pg_manager
 from llava.train.utils import (
     get_checkpoint_path,
-    prepare_config_for_training,
-    vision_resolution_elevation,
-    unit_test_rope_scaling,
     mprint,
+    prepare_config_for_training,
+    unit_test_rope_scaling,
+    vision_resolution_elevation,
 )
-from llava.train.sequence_parallel import set_pg_manager
 from llava.trl.trainer.utils import DPODataCollatorWithPadding
-import llava.data.datasets_mixture as datasets_mixture
-import llava.data.dataset as dataset
-from dataclasses import dataclass, field
-from typing import Any
-from llava.mm_utils import process_image
-
 
 local_rank = None
 
 if "WANDB_PROJECT" not in os.environ:
     # Default to WANDB project "VILA".
     os.environ["WANDB_PROJECT"] = "VILA"
+
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -66,9 +67,7 @@ def maybe_zero_3(param, ignore_status=False, name=None):
     if hasattr(param, "ds_id"):
         if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
             if not ignore_status:
-                logging.warning(
-                    f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}"
-                )
+                logging.warning(f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}")
         with zero.GatheredParameters([param]):
             param = param.data.detach().cpu().clone()
     else:
@@ -106,21 +105,13 @@ def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
     if require_grad_only:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 
 def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
-    to_return = {
-        k: t
-        for k, t in named_params
-        if any(key_match in k for key_match in keys_to_match)
-    }
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
+    to_return = {k: t for k, t in named_params if any(key_match in k for key_match in keys_to_match)}
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 
@@ -128,13 +119,13 @@ def find_all_linear_names(model, lora_llm, lora_vt):
     cls = torch.nn.Linear
     lora_module_names = set()
     multimodal_keywords = ["mm_projector", "vision_resampler"]
-    assert (lora_llm or lora_vt), "Not applying LoRA to any of the modules..."
-    
+    assert lora_llm or lora_vt, "Not applying LoRA to any of the modules..."
+
     if not lora_llm:
         multimodal_keywords += ["llm"]
     if not lora_vt:
         multimodal_keywords += ["vision_tower"]
-    
+
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
@@ -179,12 +170,8 @@ def smart_tokenizer_and_embedding_resize(
         input_embeddings = model.get_input_embeddings().weight.data
         output_embeddings = model.get_output_embeddings().weight.data
 
-        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
-            dim=0, keepdim=True
-        )
-        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(
-            dim=0, keepdim=True
-        )
+        input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+        output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
 
         input_embeddings[-num_new_tokens:] = input_embeddings_avg
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
@@ -201,6 +188,7 @@ def make_conv(prompt, answer):
             "value": answer,
         },
     ]
+
 
 @dataclass
 class DPODataCollator(DPODataCollatorWithPadding):
@@ -248,17 +236,12 @@ class DPODataCollator(DPODataCollatorWithPadding):
                 #     padded_batch[k] = padded_batch[k].flip(dims=[1])
             else:
                 padded_batch[k] = [ex[k] for ex in batch]
-        for k in ['chosen_input_ids', 'rejected_input_ids']:
-            attn_k = k.replace('input_ids', 'attention_mask')
+        for k in ["chosen_input_ids", "rejected_input_ids"]:
+            attn_k = k.replace("input_ids", "attention_mask")
             padded_batch[attn_k] = padded_batch[k].ne(self.pad_token_id)
         return padded_batch
 
-    def tokenize_batch_element(
-        self,
-        prompt: str,
-        chosen: str,
-        rejected: str
-    ) -> Dict:
+    def tokenize_batch_element(self, prompt: str, chosen: str, rejected: str) -> Dict:
         """Tokenize a single batch element.
 
         At this stage, we don't convert to PyTorch tensors yet; we just handle the truncation
@@ -271,22 +254,14 @@ class DPODataCollator(DPODataCollatorWithPadding):
         """
         # import pdb; pdb.set_trace()
         batch = {}
-        
+
         chosen_sources = make_conv(prompt, chosen)
         rejected_sources = make_conv(prompt, rejected)
-        chosen_data_dict = dataset.preprocess(
-            [chosen_sources],
-            self.tokenizer,
-            has_image=True
-        )
-        #chosen_data_dict['attention_mask'] = chosen_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+        chosen_data_dict = dataset.preprocess([chosen_sources], self.tokenizer, has_image=True)
+        # chosen_data_dict['attention_mask'] = chosen_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
 
-        rejected_data_dict = dataset.preprocess(
-            [rejected_sources],
-            self.tokenizer,
-            has_image=True
-        )
-        #rejected_data_dict['attention_mask'] = rejected_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+        rejected_data_dict = dataset.preprocess([rejected_sources], self.tokenizer, has_image=True)
+        # rejected_data_dict['attention_mask'] = rejected_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
 
         chosen_data_dict = {k: v[0] for k, v in chosen_data_dict.items()}
         rejected_data_dict = {k: v[0] for k, v in rejected_data_dict.items()}
@@ -300,7 +275,7 @@ class DPODataCollator(DPODataCollatorWithPadding):
                     continue
                 batch[f"{k}_{type_key}"] = tokens
         return batch
-    
+
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
         tokenized_batch = []
         Xs, keys = [], []
@@ -308,41 +283,43 @@ class DPODataCollator(DPODataCollatorWithPadding):
             prompt = feature["prompt"]
             chosen = feature["chosen"]
             rejected = feature["rejected"]
-             
+
             batch_element = self.tokenize_batch_element(prompt, chosen, rejected)
-            batch_element['images'] = feature['images']
+            batch_element["images"] = feature["images"]
             tokenized_batch.append(batch_element)
 
         # return collated batch
-        padded_batch =  self.collate(tokenized_batch)
+        padded_batch = self.collate(tokenized_batch)
         return padded_batch
 
 
 import json
 
+
 def load_jsonl(save_path):
-    with open(save_path, "r") as f:
+    with open(save_path) as f:
         data = [json.loads(line) for line in f.readlines()]
     return data
 
+
 def load_json(path):
-    with open(path, "r") as f:
+    with open(path) as f:
         data = json.load(f)
     return data
 
+
 def load_data(data_path):
-    if 'jsonl' in data_path:
+    if "jsonl" in data_path:
         data_list = load_jsonl(data_path)
-    else: 
+    else:
         data_list = load_json(data_path)
     return data_list
+
 
 class DPODataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
-    def __init__(self, data_mixture: str,
-                 tokenizer: transformers.PreTrainedTokenizer,
-                 data_args: DataArguments):
+    def __init__(self, data_mixture: str, tokenizer: transformers.PreTrainedTokenizer, data_args: DataArguments):
         super(Dataset, self).__init__()
         data_path = datasets_mixture.DATASETS[data_mixture].data_path
         list_data_dict = load_data(data_path)
@@ -368,7 +345,7 @@ class DPODataset(Dataset):
         return length_list
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        '''
+        """
         {
             'prompt': 'Is there a snowman wearing a green scarf and hat in the background?',
             'chosen': 'No, there is no snowman wearing a green scarf and hat in the background of the image. The image features a person ...',
@@ -376,19 +353,19 @@ class DPODataset(Dataset):
             'image_path': '/mnt/bn/liangkeg/data/ruohongz/dpo_data/dpo_images/LRVInstruction-000000009569.jpg',
             'image_name': 'LRVInstruction-000000009569.jpg'
         }
-        '''
+        """
         # sources = self.list_data_dict[i]
         # if isinstance(i, int):
         #     sources = [sources]
         # assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
-        data_dict = copy.deepcopy(self.list_data_dict[i]) # inplace modification following
+        data_dict = copy.deepcopy(self.list_data_dict[i])  # inplace modification following
 
-        video_file = data_dict['video'] + '.mp4'
+        video_file = data_dict["video"] + ".mp4"
         video_folder = self.image_folder
         video_path = os.path.join(video_folder, video_file)
         num_video_frames = self.data_args.num_video_frames if hasattr(self.data_args, "num_video_frames") else 8
         loader_fps = self.data_args.fps if hasattr(self.data_args, "fps") else 0.0
-            
+
         fps = None
         frame_count = None
 
@@ -396,21 +373,18 @@ class DPODataset(Dataset):
             video_path, num_video_frames, loader_fps, self.data_args, fps=fps, frame_count=frame_count
         )
 
-        image_tensor = torch.stack(
-            [process_image(image, self.data_args, None) for image in images]
-        )
-        image_tensor = torch.stack(
-            [process_image(image, self.data_args, None) for image in images]
-        )
+        image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
+        image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
 
         data_dict["images"] = image_tensor
 
-        prompt = data_dict['prompt']
+        prompt = data_dict["prompt"]
         prompt = prompt.replace("<video>", "").strip()
-        prompt = "<image>\n"*frames_loaded + prompt
-        data_dict['prompt'] = prompt
-        
+        prompt = "<image>\n" * frames_loaded + prompt
+        data_dict["prompt"] = prompt
+
         return data_dict
+
 
 def train():
     global local_rank
@@ -423,11 +397,7 @@ def train():
         training_args.run_name = training_args.output_dir.split("/")[-1]
 
     local_rank = training_args.local_rank
-    compute_dtype = (
-        torch.float16
-        if training_args.fp16
-        else (torch.bfloat16 if training_args.bf16 else torch.float32)
-    )
+    compute_dtype = torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
 
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
@@ -469,10 +439,7 @@ def train():
         resume_from_checkpoint = True
         if training_args.lora_enable:
             model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig.from_pretrained(
-                model_args.model_name_or_path,
-                resume=resume_from_checkpoint
-            )
+            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
             config.resume_path = model_args.model_name_or_path
         else:
             config = AutoConfig.from_pretrained(resume_path, trust_remote_code=True)
@@ -482,9 +449,7 @@ def train():
         ## first time training
         resume_from_checkpoint = False
         if "mpt" in model_args.model_name_or_path:
-            config = AutoConfig.from_pretrained(
-                model_args.model_name_or_path, trust_remote_code=True
-            )
+            config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
             config.attn_config["attn_impl"] = training_args.mpt_attn_impl
             model_cls = LlavaMPTForCausalLM
         elif "mistral" in model_args.model_name_or_path.lower():
@@ -502,13 +467,10 @@ def train():
         else:
             ## llm and default multimodal model
             model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig.from_pretrained(
-                model_args.model_name_or_path,
-                resume=resume_from_checkpoint
-            )
+            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
         if getattr(config, "resume_path", None) is not None:
             config.resume_path = model_args.model_name_or_path
-    
+
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
     model = model_cls(
@@ -521,21 +483,21 @@ def train():
 
     if not resume_path or training_args.lora_enable:
         if model_args.mlp_path is not None:
-            state_dict = torch.load(model_args.mlp_path, map_location='cpu')
+            state_dict = torch.load(model_args.mlp_path, map_location="cpu")
             state_dict_new = {}
             for k, v in state_dict.items():
-                if k == '0.weight':
-                    state_dict_new['layers.1.weight'] = v
-                if k == '0.bias':
-                    state_dict_new['layers.1.bias'] = v
-                if k == '1.weight':
-                    state_dict_new['layers.2.weight'] = v
-                if k == '1.bias':
-                    state_dict_new['layers.2.bias'] = v
-                if k == '3.weight':
-                    state_dict_new['layers.4.weight'] = v
-                if k == '3.bias':
-                    state_dict_new['layers.4.bias'] = v
+                if k == "0.weight":
+                    state_dict_new["layers.1.weight"] = v
+                if k == "0.bias":
+                    state_dict_new["layers.1.bias"] = v
+                if k == "1.weight":
+                    state_dict_new["layers.2.weight"] = v
+                if k == "1.bias":
+                    state_dict_new["layers.2.bias"] = v
+                if k == "3.weight":
+                    state_dict_new["layers.4.weight"] = v
+                if k == "3.bias":
+                    state_dict_new["layers.4.bias"] = v
             model.get_mm_projector().load_state_dict(state_dict_new)
 
     vision_resolution_elevation(model, config)
@@ -553,13 +515,10 @@ def train():
     logging.warning(
         "You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.\n Notice: default value of tune_xxx is False, which means you would not tune this part."
     )
-    
+
     def need_to_modify_do_sample(generation_config):
         if generation_config.do_sample is False:
-            if (
-                generation_config.temperature is not None
-                and generation_config.temperature != 1.0
-            ):
+            if generation_config.temperature is not None and generation_config.temperature != 1.0:
                 return True
             if generation_config.top_p is not None and generation_config.top_p != 1.0:
                 return True
@@ -573,9 +532,7 @@ def train():
         from peft import prepare_model_for_kbit_training
 
         model.llm.config.torch_dtype = (
-            torch.float32
-            if training_args.fp16
-            else (torch.bfloat16 if training_args.bf16 else torch.float32)
+            torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
         )
         model.llm = prepare_model_for_kbit_training(
             model.llm, use_gradient_checkpointing=training_args.gradient_checkpointing
@@ -592,7 +549,7 @@ def train():
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if training_args.lora_enable:
-        from peft import LoraConfig, get_peft_model, PeftModel
+        from peft import LoraConfig, PeftModel, get_peft_model
 
         lora_config = LoraConfig(
             use_dora=training_args.use_dora,
@@ -616,13 +573,11 @@ def train():
                     map_location="cpu",
                 )
                 non_lora_trainables = {
-                    (k[11:] if k.startswith("base_model.") else k): v
-                    for k, v in non_lora_trainables.items()
+                    (k[11:] if k.startswith("base_model.") else k): v for k, v in non_lora_trainables.items()
                 }
                 if any(k.startswith("model.model.") for k in non_lora_trainables):
                     non_lora_trainables = {
-                        (k[6:] if k.startswith("model.") else k): v
-                        for k, v in non_lora_trainables.items()
+                        (k[6:] if k.startswith("model.") else k): v for k, v in non_lora_trainables.items()
                     }
                 model.load_state_dict(non_lora_trainables, strict=False)
 
@@ -633,16 +588,20 @@ def train():
             model = get_peft_model(model, lora_config)
         mprint(model)
         model.print_trainable_parameters()
-    
+
     # currently assume fft for mm projector
     if training_args.lora_enable:
         if not training_args.lora_llm:
             model.get_llm().requires_grad_(training_args.tune_language_model)
         if model.get_vision_tower():
             if training_args.lora_vt:
+
                 def make_inputs_require_grad(module, input, output):
                     output.requires_grad_(True)
-                model.get_vision_tower().vision_tower.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
+
+                model.get_vision_tower().vision_tower.get_input_embeddings().register_forward_hook(
+                    make_inputs_require_grad
+                )
             elif training_args.tune_vision_tower:
                 model.get_vision_tower().requires_grad_(training_args.tune_vision_tower)
             model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
@@ -656,12 +615,12 @@ def train():
             model.get_mm_projector().requires_grad_(training_args.tune_mm_projector)
             mprint(f"vision tower {training_args.tune_vision_tower}")
             mprint(f"mm projector {training_args.tune_mm_projector}")
-        
-        if not any([training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]):
-            logging.warning(
-                "You are not tuning any part of the model. Please check if this is intended."
-            )
-    
+
+        if not any(
+            [training_args.tune_language_model, training_args.tune_vision_tower, training_args.tune_mm_projector]
+        ):
+            logging.warning("You are not tuning any part of the model. Please check if this is intended.")
+
     # @yunhao: tokenizer instantiation is moved into build_llm
     tokenizer = model.tokenizer
     # @yunhao: may move this block into method "build_llm"
@@ -683,13 +642,9 @@ def train():
                 model=model.llm,
             )
         if model_args.version in conversation_lib.conv_templates:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[
-                model_args.version
-            ]
+            conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
         else:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[
-                "vicuna_v1"
-            ]
+            conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.llm.pad_token_id = tokenizer.pad_token_id
@@ -704,19 +659,17 @@ def train():
         data_args.is_multimodal = True
 
         if hasattr(data_args, "num_video_frames") and data_args.num_video_frames != None:
-            model.config.num_video_frames = data_args.num_video_frames 
+            model.config.num_video_frames = data_args.num_video_frames
         else:
-            model.config.num_video_frames =  8
+            model.config.num_video_frames = 8
 
         if hasattr(data_args, "fps"):
-            model.config.fps = data_args.fps 
+            model.config.fps = data_args.fps
         else:
-            model.config.fps =  0.0
+            model.config.fps = 0.0
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
-        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = (
-            model_args.mm_use_im_start_end
-        )
+        model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_projector_lr = training_args.mm_projector_lr
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
@@ -752,11 +705,9 @@ def train():
             model_max_length=training_args.model_max_length,
             cache_dir=training_args.cache_dir,
             **bnb_model_from_pretrained_args,
-        ) 
+        )
 
-        train_dataset = DPODataset(tokenizer=tokenizer,
-                                data_mixture=data_args.data_mixture,
-                                data_args=data_args)
+        train_dataset = DPODataset(tokenizer=tokenizer, data_mixture=data_args.data_mixture, data_args=data_args)
 
         data_collator = DPODataCollator(
             tokenizer=tokenizer,
@@ -772,7 +723,7 @@ def train():
             dpo_alpha=1.0,
             gamma=0,
             ref_model=ref_model,
-            tokenizer=tokenizer, 
+            tokenizer=tokenizer,
             args=training_args,
             beta=training_args.dpo_beta,
             callbacks=callbacks,
@@ -780,10 +731,7 @@ def train():
             data_collator=data_collator,
         )
     else:
-        trainer = LLaVATrainer(
-            model=model, tokenizer=tokenizer, args=training_args,
-            callbacks=callbacks, **data_module
-        )
+        trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
     print(
         "length of dataloader:",
         len(trainer.get_train_dataloader()),
@@ -804,12 +752,8 @@ def train():
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
     ## TODO handle lora for new initialization
     if training_args.lora_enable:
-        state_dict = get_peft_state_maybe_zero_3(
-            model.named_parameters(), training_args.lora_bias
-        )
-        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-            model.named_parameters()
-        )
+        state_dict = get_peft_state_maybe_zero_3(model.named_parameters(), training_args.lora_bias)
+        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(model.named_parameters())
         if training_args.local_rank == 0 or training_args.local_rank == -1:
             model.config.save_pretrained(training_args.output_dir)
             model.save_pretrained(training_args.output_dir, state_dict=state_dict)
@@ -818,9 +762,7 @@ def train():
                 os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
             )
     else:
-        safe_save_model_for_hf_trainer(
-            trainer=trainer, output_dir=training_args.output_dir
-        )
+        safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
 
 if __name__ == "__main__":

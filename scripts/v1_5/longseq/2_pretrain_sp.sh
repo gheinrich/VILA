@@ -56,4 +56,4 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --report_to wandb \
     --seq_parallel_size 4
 
-    # --seq_parallel_ring_size 2 
+    # --seq_parallel_ring_size 2

@@ -8,8 +8,7 @@ from llava.mm_utils import KeywordsStoppingCriteria, is_gemma_tokenizer
 
 
 def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
-    from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                                 DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX)
+    from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
     from llava.conversation import SeparatorStyle, conv_templates
 
     def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None):
@@ -51,13 +50,17 @@ def call_llava_engine_df(args, sample, model, tokenizer=None, processor=None):
     image = sample["image"]
 
     if conv.sep_style == SeparatorStyle.LLAMA_3:
-            keywords = [conv.sep, conv.sep2]
-            stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+        keywords = [conv.sep, conv.sep2]
+        stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
     else:
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         keywords = [stop_str]
-        stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)] if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer) else None
-            
+        stopping_criteria = (
+            [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+            if args.conv_mode == "v0" or is_gemma_tokenizer(tokenizer)
+            else None
+        )
+
     if image is not None:
         output_ids = model.generate(
             input_ids,

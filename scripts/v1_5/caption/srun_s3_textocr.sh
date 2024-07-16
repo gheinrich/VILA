@@ -28,13 +28,13 @@ JNAME=$MNAME-$VTOWER-ALIGN-$ALIGN_DATASET-PRETRAIN-$PT_DATASET-SFT-$SFT_DATASET
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step2-$JNAME.err 
+ERRF=$LOGDIR/step2-$JNAME.err
 LOGF=$LOGDIR/step2-$JNAME.out
 
 OUTPUT_STEP2="/home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2"
 # -pty
 # -e $ERRF -o $LOGF \
-for i in $(seq 1 4); do 
+for i in $(seq 1 4); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \
@@ -49,13 +49,13 @@ done
 
 # squeue --me -o "%.8i %.20P %.100j %.8u %.8T %.8M %.6D %.20S %R"
 # export SQUEUE_FORMAT="%.8i %.30P %.120j %.8u %.8T %.8M %.9l %.6D %S %R"
-# 
+#
 # /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
 # OUTPUT_STEP2="/home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2"
 # SFT_DATASET=sharegpt4v_sft+hiertext bash scripts/v1_5/caption/3_sft_captioner.sh /home/yunhaof/workspace/ckpts/vila/data_recipe/llava_align_sharegpt4v_pretrain_sharegpt4v_sft/stage2
 
 # slurm_account=nvr_elm_llm bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext+textocr
-# 
+#
 # bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext+textocr
 # bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+hiertext
 # bash scripts/v1_5/caption/srun_s3_textocr.sh llava_1_5_mm_align sharegpt4v_pretrain sharegpt4v_sft+textocr

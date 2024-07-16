@@ -50,7 +50,6 @@ from .utils import (
     trl_sanitze_kwargs_for_tagging,
 )
 
-
 if is_peft_available():
     from peft import PeftModel, get_peft_model, prepare_model_for_kbit_training
 
@@ -533,9 +532,7 @@ class DPOTrainer(Trainer):
             all_reference_rejected_logps = torch.cat(reference_rejected_logps).float().numpy()
 
             eval_dataset = eval_dataset.add_column(name="reference_chosen_logps", column=all_reference_chosen_logps)
-            eval_dataset = eval_dataset.add_column(
-                name="reference_rejected_logps", column=all_reference_rejected_logps
-            )
+            eval_dataset = eval_dataset.add_column(name="reference_rejected_logps", column=all_reference_rejected_logps)
 
             # Save calculated reference_chosen_logps and reference_rejected_logps to the eval_dataset for subsequent runs
             if self.eval_dataset is not None:
@@ -835,8 +832,8 @@ class DPOTrainer(Trainer):
             concatenated_batch["concatenated_attention_mask"] = (
                 batch["prompt_attention_mask"].repeat(2, 1).to(device=device)
             )
-        repeated_list = torch.cat(batch['images']+batch['images'], dim=0)
-        concatenated_batch['concatenated_images'] = repeated_list
+        repeated_list = torch.cat(batch["images"] + batch["images"], dim=0)
+        concatenated_batch["concatenated_images"] = repeated_list
         return concatenated_batch
 
     def dpo_loss(
@@ -913,8 +910,7 @@ class DPOTrainer(Trainer):
         rejected_rewards = (
             self.beta
             * (
-                policy_rejected_logps.to(self.accelerator.device)
-                - reference_rejected_logps.to(self.accelerator.device)
+                policy_rejected_logps.to(self.accelerator.device) - reference_rejected_logps.to(self.accelerator.device)
             ).detach()
         )
 
@@ -970,7 +966,7 @@ class DPOTrainer(Trainer):
         shift_labels = shift_labels.to(shift_logits.device)
         loss = loss_fct(shift_logits, shift_labels)
         return loss
-    
+
     def concatenated_forward(
         self, model: nn.Module, batch: Dict[str, Union[List, torch.LongTensor]]
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
@@ -1054,17 +1050,14 @@ class DPOTrainer(Trainer):
             with torch.no_grad():
                 if self.ref_model is None:
                     with self.null_ref_context():
-                        (
-                            reference_chosen_logps,
-                            reference_rejected_logps,
-                        ) = self.concatenated_forward(self.model, batch)[:2]
+                        (reference_chosen_logps, reference_rejected_logps,) = self.concatenated_forward(
+                            self.model, batch
+                        )[:2]
                 else:
-                    (
-                        reference_chosen_logps,
-                        reference_rejected_logps,
-                    ) = self.concatenated_forward(self.ref_model, batch)[:2]
+                    (reference_chosen_logps, reference_rejected_logps,) = self.concatenated_forward(
+                        self.ref_model, batch
+                    )[:2]
 
-        
         unscaled_dpo_losses, chosen_rewards, rejected_rewards = self.dpo_loss(
             policy_chosen_logps,
             policy_rejected_logps,
@@ -1073,9 +1066,9 @@ class DPOTrainer(Trainer):
         )
         unscaled_dpo_losses = unscaled_dpo_losses.mean()
         dpo_losses = unscaled_dpo_losses * self.dpo_alpha
-        unscaled_sft_loss = self.get_sft_loss(policy_chosen_logits, chosen_labels) 
+        unscaled_sft_loss = self.get_sft_loss(policy_chosen_logits, chosen_labels)
         sft_loss = unscaled_sft_loss * self.gamma
-        
+
         # print(sft_loss.shape, dpo_losses.shape)
         losses = dpo_losses + sft_loss
         # losses = sft_loss # sft only
@@ -1091,6 +1084,7 @@ class DPOTrainer(Trainer):
             # else:
             #     print('not distributed')
             return tensor
+
         # gather chosen_rewards across devices
         chosen_rewards = all_gather_tensor(chosen_rewards)
         rejected_rewards = all_gather_tensor(rejected_rewards)
@@ -1099,7 +1093,6 @@ class DPOTrainer(Trainer):
         policy_rejected_logps = all_gather_tensor(policy_rejected_logps)
         reference_chosen_logps = all_gather_tensor(reference_chosen_logps)
         reference_rejected_logps = all_gather_tensor(reference_rejected_logps)
-
 
         prefix = "eval_" if train_eval == "eval" else ""
         metrics[f"{prefix}losses/dpo"] = unscaled_dpo_losses.cpu()

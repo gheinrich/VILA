@@ -6,7 +6,6 @@ from transformers import AutoTokenizer
 
 from ..trainer.utils import ConstantLengthDataset
 
-
 FORMAT_MAPPING = {
     "chatml": [{"content": Value(dtype="string", id=None), "role": Value(dtype="string", id=None)}],
     "instruction": {"completion": Value(dtype="string", id=None), "prompt": Value(dtype="string", id=None)},

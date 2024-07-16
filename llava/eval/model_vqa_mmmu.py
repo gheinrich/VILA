@@ -9,18 +9,17 @@ import torch
 from datasets import concatenate_datasets, load_dataset
 from tqdm import tqdm
 
-from llava.eval.mmmu_utils.data_utils import (CAT_SHORT2LONG, construct_prompt,
-                                              load_yaml, process_single_sample,
-                                              save_json)
-from llava.eval.mmmu_utils.eval_utils import (parse_multi_choice_response,
-                                              parse_open_response)
-from llava.eval.mmmu_utils.model_utils import (call_llava_engine_df,
-                                               llava_image_processor)
-from llava.mm_utils import get_model_name_from_path
+from llava.eval.mmmu_utils.data_utils import (
+    CAT_SHORT2LONG,
+    construct_prompt,
+    load_yaml,
+    process_single_sample,
+    save_json,
+)
+from llava.eval.mmmu_utils.eval_utils import parse_multi_choice_response, parse_open_response
+from llava.eval.mmmu_utils.model_utils import call_llava_engine_df, llava_image_processor
+from llava.mm_utils import get_model_name_from_path, process_images
 from llava.model.builder import load_pretrained_model
-from llava.mm_utils import process_images
-
-
 
 
 def run_model(args, samples, model, call_model_engine_fn=None, tokenizer=None, processor=None, conv_version=None):
@@ -76,7 +75,7 @@ def main():
     args.config = load_yaml(args.config_path)
     for key, value in args.config.items():
         if key != "eval_params" and type(value) == list:
-            assert len(value) == 1, "key {} has more than one value".format(key)
+            assert len(value) == 1, f"key {key} has more than one value"
             args.config[key] = value[0]
 
     # run for each subject
@@ -98,7 +97,9 @@ def main():
 
         sample = construct_prompt(sample, args.config)
         if sample["image"]:
-            sample['image'] = process_images([image.convert("RGB") for image in sample['image']], vis_processors, model.config)
+            sample["image"] = process_images(
+                [image.convert("RGB") for image in sample["image"]], vis_processors, model.config
+            )
         samples.append(sample)
 
     # run ex

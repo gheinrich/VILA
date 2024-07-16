@@ -22,5 +22,3 @@ ERRFILE="${RESULTS}/slurm-$SLURM_ARRAY_TASK_ID-of-$SLURM_ARRAY_TASK_COUNT-%j-%n.
 srun --label -N 1 -t 4:00:00 -J llmservice_nlp_fm-vlm:caption-sharding-$SLURM_ARRAY_TASK_ID-$SLURM_ARRAY_TASK_COUNT \
     -o $OUTFILE -e $ERRFILE \
     python shard_caption.py $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_COUNT
-
- 

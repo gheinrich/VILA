@@ -1,28 +1,28 @@
-from argparse import Namespace
 import os
-import torch
-from typing import Any, Dict
 import warnings
+from argparse import Namespace
+from typing import Any, Dict
+
+import numpy as np
+import torch
+from PIL import Image
+from transformers import AutoConfig, AutoModel, CLIPVisionConfig
 
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
 from llava.train.utils import mprint, rprint
-from transformers import CLIPVisionConfig
-from .image_processor import ImageProcessor
-from transformers import AutoConfig, AutoModel
-from PIL import Image
-import numpy as np
 
+from .image_processor import ImageProcessor
 from .visualize_features import get_pca_map
 
 
 def get_prefix_state_dict(state_dict: Dict[str, Any], prefix: str):
-    mod_state_dict = {
-        k[len(prefix) :]: v for k, v in state_dict.items() if k.startswith(prefix)
-    }
+    mod_state_dict = {k[len(prefix) :]: v for k, v in state_dict.items() if k.startswith(prefix)}
     return mod_state_dict
+
 
 def is_rank0():
     return not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
+
 
 class RADIOVisionTower(VisionTower):
     """
@@ -41,6 +41,7 @@ class RADIOVisionTower(VisionTower):
         args (Namespace): Arguments.
         delay_load (bool): Delay loading the model.
     """
+
     def __init__(self, vision_tower, args, delay_load=False):
         """Initialization Routine."""
 
@@ -60,7 +61,7 @@ class RADIOVisionTower(VisionTower):
             vision_cfg = getattr(args, "vision_tower_cfg")
             self.image_size = vision_cfg["image_size"]
         else:
-            self.vision_tower_name = vision_tower[len("radio:"):]
+            self.vision_tower_name = vision_tower[len("radio:") :]
             config_items = self.vision_tower_name.split(":")
             self.image_size = int(config_items[0])
 
@@ -90,7 +91,7 @@ class RADIOVisionTower(VisionTower):
         if self.select_feature == "cls":
             hidden_size = 5120
         elif self.select_feature == "dense":
-            hidden_size = 4*1280
+            hidden_size = 4 * 1280
         else:
             hidden_size = 1280
 
@@ -106,13 +107,13 @@ class RADIOVisionTower(VisionTower):
             )
         else:
             self.image_processor = ImageProcessor(
-                    size={"longest_edge": self.image_size},
-                    do_pad=True,
-                    pad_multiple=16,
-                    do_normalize=True,
-                    do_convert_rgb=True,
-                    pad_value=0.456,
-                )
+                size={"longest_edge": self.image_size},
+                do_pad=True,
+                pad_multiple=16,
+                do_normalize=True,
+                do_convert_rgb=True,
+                pad_value=0.456,
+            )
         # For compatibility with CLIP Image Processor: the data loader uses width/height to
         # create dummy blank images for samples that don't have an image.
         self.image_processor.crop_size = {"width": self.image_size, "height": self.image_size}
@@ -124,10 +125,11 @@ class RADIOVisionTower(VisionTower):
         self.vision_tower = AutoModel.from_pretrained(self.vision_tower_checkpoint, trust_remote_code=True)
         self.vision_tower.radio_model.make_preprocessor_external()
 
-#        # NOTE: do a lazy import of Timm to avoid issues with
-#        # DeepSpeed's ZeRO-3.
+        #        # NOTE: do a lazy import of Timm to avoid issues with
+        #        # DeepSpeed's ZeRO-3.
         from timm.models.vision_transformer import VisionTransformer
-#
+
+        #
         if isinstance(self.vision_tower.model, VisionTransformer):
             hidden_size = self.vision_tower.model.embed_dim
         else:
@@ -158,12 +160,11 @@ class RADIOVisionTower(VisionTower):
             mprint(f"Removing layer norm from the model: {self.vision_tower.model.norm}")
             self.vision_tower.model.norm = torch.nn.Identity()
 
-
     def to(self, *args, **kwargs):
         # Prevent casting the RADIO model's weights
         kwargs = dict(kwargs)
-        #self._to_dtype = kwargs.get('dtype', None)
-        self._to_dtype = kwargs.pop('dtype', None)
+        # self._to_dtype = kwargs.get('dtype', None)
+        self._to_dtype = kwargs.pop("dtype", None)
         mprint(f"RADIO: bypass cast to dtype={self._to_dtype}")
         super().to(*args, **kwargs)
         pass
@@ -199,7 +200,7 @@ class RADIOVisionTower(VisionTower):
     def get_features(self, x: torch.Tensor):
         x_dtype = x.dtype
         x = x.float()
-        with torch.autocast('cuda', dtype=torch.bfloat16):
+        with torch.autocast("cuda", dtype=torch.bfloat16):
             if self.select_feature == "dense":
 
                 # Layers to return activations of in case of "return_multilayer=True".
@@ -249,13 +250,15 @@ class RADIOVisionTower(VisionTower):
         # that the model only has one dtype for all parameters).
         param0 = next(self.vision_tower.parameters())
 
-        rprint(f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype} param0.device={param0.device} param0.dtype={param0.dtype}")
+        rprint(
+            f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype} param0.device={param0.device} param0.dtype={param0.dtype}"
+        )
 
-        summary, features = self.get_features(x) # B, T, C
+        summary, features = self.get_features(x)  # B, T, C
 
         if len(summary.shape) == 2:
             if self.select_feature == "cls4":
-               # Add a token dimension if necessary.
+                # Add a token dimension if necessary.
                 B, C = summary.shape
                 summary = summary.reshape(B, 4, C // 4)
             else:
@@ -266,7 +269,7 @@ class RADIOVisionTower(VisionTower):
         _, _, C = features.shape
         patch_size = self.vision_tower.config.patch_size
         spatial_features = features.reshape(B, H // patch_size, W // patch_size, C)
-        spatial_features = spatial_features.permute(0, 3, 1, 2) # B, C, H/patch_size, W/patch_size
+        spatial_features = spatial_features.permute(0, 3, 1, 2)  # B, C, H/patch_size, W/patch_size
 
         if self.debug and is_rank0() and self.sample_count % 1000 == 0:
             spatial_features_hwc = spatial_features.permute(0, 2, 3, 1)
@@ -279,17 +282,17 @@ class RADIOVisionTower(VisionTower):
                 image = x[i].permute(1, 2, 0).float() * 255
                 image = Image.fromarray(image.cpu().numpy().astype(np.uint8))
                 image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_preprocessed_{i}.png"))
-                pca_map = get_pca_map(spatial_features_hwc[i:i+1], x.shape[-2:])
+                pca_map = get_pca_map(spatial_features_hwc[i : i + 1], x.shape[-2:])
                 torch.save(pca_map, f"radio-debug/sample_{self.sample_count}_pca_map_{i}.pt")
                 image = pca_map * 255
                 image = Image.fromarray(image.astype(np.uint8))
                 image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_pca_map_{i}.png"))
                 pass
 
-        if self.select_feature in ["patch",  "cls_patch", "dense"]:
+        if self.select_feature in ["patch", "cls_patch", "dense"]:
             # Ignore cls-patch for now.
             pass
-        #elif self.select_feature == "cls_patch":
+        # elif self.select_feature == "cls_patch":
         #    features = torch.cat([summary, features], dim=1)
         elif self.select_feature in ["cls", "cls4"]:
             features = summary
@@ -303,7 +306,9 @@ class RADIOVisionTower(VisionTower):
         # Cast back to the input's dtype.
         features = features.to(images.dtype)
 
-        rprint(f"features shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}")
+        rprint(
+            f"features shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}"
+        )
 
         if features.shape[-1] != self.get_hidden_size():
             raise ValueError(f"Unexpected hidden size: {features.shape[-1]} != {self.get_hidden_size()}")

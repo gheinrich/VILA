@@ -38,7 +38,7 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/1_mm_align.sh llava_1_5_mm_align $CKPT1 &
 
-wait 
+wait
 
 jname=stage2-$suffix
 for i in $(seq 1 6); do
@@ -52,7 +52,7 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/2_pretrain.sh sharegpt4v_pretrain $CKPT1 $CKPT2 &
 done
-wait 
+wait
 
 # Image SFT
 jname=stage3-image-$suffix
@@ -68,7 +68,7 @@ srun -A $SLURM_ACCOUNT \
     --gpus-per-node 8 --exclusive \
     bash scripts/reproduce/3_sft_captioner.sh sharegpt4v_sft $CKPT2 $CKPT3 &
 done
-wait 
+wait
 
 # Video SFT
 # jname=stage3-video-$suffix
@@ -81,11 +81,11 @@ wait
 #     --gpus-per-node 16 --exclusive \
 #     SFT_DATASET=vflan+sharegpt4v_sft+video_chatgpt+shot2story_shotonly bash scripts/reproduce/3_sft_captioner.sh $CKPT2 $CKPT3 &
 # done
-# wait 
-wait 
+# wait
+wait
 
 # bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/eval_output
-# wait 
+# wait
 '''
 pip install fire markdown
 '''

@@ -1,27 +1,28 @@
-from argparse import Namespace
 import os
-import torch
-from typing import Any, Dict
 import warnings
+from argparse import Namespace
+from typing import Any, Dict
+
+import numpy as np
+import torch
+from PIL import Image
+from transformers import CLIPVisionConfig
 
 from llava.model.multimodal_encoder.vision_encoder import VisionTower
 from llava.train.utils import mprint, rprint
-from transformers import CLIPVisionConfig
-from .image_processor import ImageProcessor
-from PIL import Image
-import numpy as np
 
+from .image_processor import ImageProcessor
 from .visualize_features import get_pca_map
 
 
 def get_prefix_state_dict(state_dict: Dict[str, Any], prefix: str):
-    mod_state_dict = {
-        k[len(prefix) :]: v for k, v in state_dict.items() if k.startswith(prefix)
-    }
+    mod_state_dict = {k[len(prefix) :]: v for k, v in state_dict.items() if k.startswith(prefix)}
     return mod_state_dict
+
 
 def is_rank0():
     return not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
+
 
 class RADIOVisionTower(VisionTower):
     """
@@ -40,6 +41,7 @@ class RADIOVisionTower(VisionTower):
         args (Namespace): Arguments.
         delay_load (bool): Delay loading the model.
     """
+
     def __init__(self, vision_tower, args, delay_load=False):
         """Initialization Routine."""
 
@@ -49,7 +51,7 @@ class RADIOVisionTower(VisionTower):
 
         self.select_feature = getattr(args, "mm_vision_select_feature", "patch")
 
-        self.vision_tower_name = vision_tower[len("radio:"):]
+        self.vision_tower_name = vision_tower[len("radio:") :]
         config_items = self.vision_tower_name.split(":")
         self.image_sizes = [int(x) for x in config_items[0].split(",")]
         if len(self.image_sizes) == 0:
@@ -97,7 +99,6 @@ class RADIOVisionTower(VisionTower):
 
             self.cfg_only = CLIPVisionConfig(
                 **{
-
                     "hidden_size": hidden_size,
                     "image_size": self.image_size,
                     "model_type": "radio_vision_model",
@@ -150,13 +151,13 @@ class RADIOVisionTower(VisionTower):
             )
         else:
             self.image_processor = ImageProcessor(
-                    size={"longest_edge": self.image_size},
-                    do_pad=True,
-                    pad_multiple=16,
-                    do_normalize=False,
-                    do_convert_rgb=True,
-                    pad_value=0.456,
-                )
+                size={"longest_edge": self.image_size},
+                do_pad=True,
+                pad_multiple=16,
+                do_normalize=False,
+                do_convert_rgb=True,
+                pad_value=0.456,
+            )
         # For compatibility with CLIP Image Processor: the data loader uses width/height to
         # create dummy blank images for samples that don't have an image.
         self.image_processor.crop_size = {"width": self.image_size, "height": self.image_size}
@@ -171,11 +172,13 @@ class RADIOVisionTower(VisionTower):
         # DeepSpeed's ZeRO-3.
         from timm.models.vision_transformer import VisionTransformer
 
-        self.vision_tower = torch.hub.load('NVlabs/RADIO',
-                                           'radio_model',
-                                           version=checkpoint_path,
-                                           progress=True,
-                                           adaptor_names=self.adaptor_name if self.adaptor_name != "backbone" else None)
+        self.vision_tower = torch.hub.load(
+            "NVlabs/RADIO",
+            "radio_model",
+            version=checkpoint_path,
+            progress=True,
+            adaptor_names=self.adaptor_name if self.adaptor_name != "backbone" else None,
+        )
 
         if isinstance(self.vision_tower.model, VisionTransformer):
             hidden_size = self.vision_tower.model.embed_dim
@@ -194,16 +197,16 @@ class RADIOVisionTower(VisionTower):
             patch_size = self.vision_tower.model.patch_embed.patch_size[0]
 
         self.vision_tower.config = CLIPVisionConfig(
-                **{
-                    "hidden_size": hidden_size,
-                    "image_size": self.image_size,
-                    "model_type": "radio_vision_model",
-                    "num_attention_heads": None,
-                    "num_channels": 3,
-                    "num_hidden_layers": None,
-                    "patch_size": patch_size,
-                }
-            )
+            **{
+                "hidden_size": hidden_size,
+                "image_size": self.image_size,
+                "model_type": "radio_vision_model",
+                "num_attention_heads": None,
+                "num_channels": 3,
+                "num_hidden_layers": None,
+                "patch_size": patch_size,
+            }
+        )
 
         self.vision_tower.eval()
         self.vision_tower.requires_grad_(False)
@@ -215,11 +218,10 @@ class RADIOVisionTower(VisionTower):
             rank0_print(f"Removing layer norm from the model: {self.vision_tower.model.norm}")
             self.vision_tower.model.norm = torch.nn.Identity()
 
-
     def to(self, *args, **kwargs):
         # Prevent casting the RADIO model's weights
         kwargs = dict(kwargs)
-        self._to_dtype = kwargs.pop('dtype', None)
+        self._to_dtype = kwargs.pop("dtype", None)
         mprint(f"RADIO: bypass cast to dtype={self._to_dtype}")
         super().to(*args, **kwargs)
         pass
@@ -234,7 +236,7 @@ class RADIOVisionTower(VisionTower):
     @torch.no_grad()
     def get_features(self, x: torch.Tensor):
         x_float = x.float()
-        with torch.autocast('cuda', dtype=torch.bfloat16):
+        with torch.autocast("cuda", dtype=torch.bfloat16):
             output = self.vision_tower(x_float)
 
         if isinstance(output, dict):
@@ -258,13 +260,15 @@ class RADIOVisionTower(VisionTower):
         if len(input_shape) == 3:
             x = x.unsqueeze(0)
 
-        rprint(f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype}")
+        rprint(
+            f"input shape={input_shape}->{x.shape} device={x.device} mean={x.mean().item()} std={x.std().item()} dtype={x.dtype}"
+        )
 
-        summary, features = self.get_features(x) # B, T, C
+        summary, features = self.get_features(x)  # B, T, C
 
         if len(summary.shape) == 2:
             if self.select_feature == "cls4":
-               # Add a token dimension if necessary.
+                # Add a token dimension if necessary.
                 B, C = summary.shape
                 summary = summary.reshape(B, 4, C // 4)
             else:
@@ -275,7 +279,7 @@ class RADIOVisionTower(VisionTower):
         _, _, C = features.shape
         patch_size = self.vision_tower.config.patch_size
         spatial_features = features.reshape(B, H // patch_size, W // patch_size, C)
-        spatial_features = spatial_features.permute(0, 3, 1, 2) # B, C, H/patch_size, W/patch_size
+        spatial_features = spatial_features.permute(0, 3, 1, 2)  # B, C, H/patch_size, W/patch_size
 
         if self.debug and is_rank0() and self.sample_count % 1000 == 0:
             spatial_features_hwc = spatial_features.permute(0, 2, 3, 1)
@@ -288,7 +292,7 @@ class RADIOVisionTower(VisionTower):
                 image = x[i].permute(1, 2, 0).float() * 255
                 image = Image.fromarray(image.cpu().numpy().astype(np.uint8))
                 image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_preprocessed_{i}.png"))
-                pca_map = get_pca_map(spatial_features_hwc[i:i+1], x.shape[-2:])
+                pca_map = get_pca_map(spatial_features_hwc[i : i + 1], x.shape[-2:])
                 torch.save(pca_map, f"radio-debug/sample_{self.sample_count}_pca_map_{i}.pt")
                 image = pca_map * 255
                 image = Image.fromarray(image.astype(np.uint8))
@@ -301,30 +305,36 @@ class RADIOVisionTower(VisionTower):
             features = spatial_features.reshape(
                 B,
                 C * self.downscale_factor**2,
-                (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor)).permute(0, 2, 1)
+                (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor),
+            ).permute(0, 2, 1)
 
         if len(self.image_sizes) > 1:
             # Experimental support for multi-resolution inference.
             if self.pixel_unshuffle is None:
                 # downscale features
-                spatial_features = self.pool2d(spatial_features) # B, C, H/patch_size/downscale_factor, W/patch_size/downscale_factor
+                spatial_features = self.pool2d(
+                    spatial_features
+                )  # B, C, H/patch_size/downscale_factor, W/patch_size/downscale_factor
                 features = spatial_features.reshape(
-                    B,
-                    C,
-                    (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor))
-                features = features.permute(0, 2, 1) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
+                    B, C, (H // patch_size // self.downscale_factor) * (W // patch_size // self.downscale_factor)
+                )
+                features = features.permute(
+                    0, 2, 1
+                )  # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
 
-            # Downscale the input image.
-            x = self.pool2d(x) # B, 3, H/downscale_factor, W/downscale_factor)
-            features_stage2 = self.get_features(x) # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
+            # Downscale the input image.
+            x = self.pool2d(x)  # B, 3, H/downscale_factor, W/downscale_factor)
+            features_stage2 = self.get_features(
+                x
+            )  # B, (H/patch_size/downscale_factor) * (W/patch_size/downscale_factor), C
 
             # Concatenate stage1 and stage 2 features.
             features = torch.cat([features, features_stage2], dim=2)
 
-        if self.select_feature in ["patch","cls_patch"]:
+        if self.select_feature in ["patch", "cls_patch"]:
             # Ignore cls-patch for now.
             pass
-        #elif self.select_feature == "cls_patch":
+        # elif self.select_feature == "cls_patch":
         #    features = torch.cat([summary, features], dim=1)
         elif self.select_feature in ["cls", "cls4"]:
             features = summary
@@ -339,7 +349,9 @@ class RADIOVisionTower(VisionTower):
         features = features.to(images.dtype)
 
         adaptor_name = f"{self.adaptor_name}{'+backbone' if self.fuse_adaptor_with_backbone else ''}"
-        rprint(f"features ({adaptor_name}) shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}")
+        rprint(
+            f"features ({adaptor_name}) shape={features.shape} mean={features.mean().item()} std={features.std().item()} dtype={features.dtype}"
+        )
 
         assert features.shape[-1] == self.get_hidden_size()
         self.sample_count += 1

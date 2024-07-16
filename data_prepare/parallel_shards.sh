@@ -13,8 +13,8 @@ for idx in $(seq 0 $idx_size); do
     while [ $(jobs -rp | wc -l) -ge $JOBS_LIMIT ]; do
         sleep 1
     done
-    echo "Running jobs $(jobs -rp | wc -l) $idx-of-$parallel_size"; 
-    
+    echo "Running jobs $(jobs -rp | wc -l) $idx-of-$parallel_size";
+
     srun -A $SLURM_ACCOUNT \
         -p cpu,cpu_1,cpu_long -t 4:00:00 -J creating-WDS-$idx-of-$parallel_size \
         --cpus-per-task 8 \
@@ -24,6 +24,6 @@ for idx in $(seq 0 $idx_size); do
         -o slurm-logs/data/$idx-of-$parallel_size.txt \
         python llava/data/simple_vila_webdataset.py $workdir --shards=$idx --total=$parallel_size &
 done
-wait 
+wait
 
 python llava/data/simple_vila_webdataset.py $workdir

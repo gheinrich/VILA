@@ -8,7 +8,7 @@ end_idx=$(($num_nodes-1))
 #     --dependency singleton \
 #     --pty bash ~/workspace/multi-modality-research/VILA/scripts/caption.sh
 
-for i in $(seq 0 $end_idx); do 
+for i in $(seq 0 $end_idx); do
 # for i in {1..10}; do
     srun --label -A nvr_elm_llm -N 1 -t 4:00:00 -J nvr_elm_llm-vlm:label-coyo-$i-$num_nodes \
         --gpus-per-node 1 \

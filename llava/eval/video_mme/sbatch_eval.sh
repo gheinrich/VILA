@@ -47,7 +47,7 @@ srun \
         --num_video_frames $num_video_frames \
         --temperature $temperature --num-beams $num_beams
 
-exit 0 
+exit 0
 
 # usage examples
 
@@ -69,7 +69,7 @@ sbatch -A nvr_elm_llm -p interactive,$SLURM_PARTITION -J videomme:VILA1.5-3b \
     llava/eval/video_mme/sbatch_eval.sh \
     Efficient-Large-Model/VILA1.5-3b \
     VILA1.5-3b \
-    llava_v1 
+    llava_v1
 
 
 sbatch -A nvr_elm_llm -p interactive,$SLURM_PARTITION -J videomme:VILA1.5-40b \

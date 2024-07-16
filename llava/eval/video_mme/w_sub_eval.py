@@ -1,9 +1,11 @@
-import pysubs2
-import cv2
-import numpy as np
 import os
 import shutil
+
+import cv2
+import numpy as np
+import pysubs2
 from PIL import Image
+
 
 def get_seq_frames(total_num_frames, desired_num_frames):
     """
@@ -31,6 +33,7 @@ def get_seq_frames(total_num_frames, desired_num_frames):
 
     return seq
 
+
 def create_frame_output_dir(output_dir):
     """
     Create the output directory for storing the extracted frames.
@@ -45,6 +48,7 @@ def create_frame_output_dir(output_dir):
     else:
         shutil.rmtree(output_dir)
         os.makedirs(output_dir)
+
 
 def slice_frames(video_path, srt_path, num_frames=8):
     """
@@ -91,7 +95,7 @@ def slice_frames(video_path, srt_path, num_frames=8):
         subs = pysubs2.load(srt_path, encoding="utf-8")
         subtitles = []
 
-        for seleced_frame_id in selected_frame_ids:    
+        for seleced_frame_id in selected_frame_ids:
             sub_text = ""
             cur_time = pysubs2.make_time(fps=fps, frames=seleced_frame_id)
             for sub in subs:
@@ -104,9 +108,12 @@ def slice_frames(video_path, srt_path, num_frames=8):
 
     return pil_frames, subtitles
 
+
 if __name__ == "__main__":
-    print(slice_frames(
-        "/home/ligengz/nvr_elm_llm/dataset/Video-MME/videos/_8lBR0E_Tx8.mp4",
-        "/home/ligengz/nvr_elm_llm/dataset/Video-MME/subtitle/_8lBR0E_Tx8.srt",
-        num_frames=12
-    ))
+    print(
+        slice_frames(
+            "/home/ligengz/nvr_elm_llm/dataset/Video-MME/videos/_8lBR0E_Tx8.mp4",
+            "/home/ligengz/nvr_elm_llm/dataset/Video-MME/subtitle/_8lBR0E_Tx8.srt",
+            num_frames=12,
+        )
+    )

@@ -6,7 +6,7 @@
           "more_samples/top_view.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is unusual about this image?",
             "expected_answer": "The unusual aspect of this image is that it is an aerial view of a busy freeway with many cars, and it appears to be taken from a helicopter. This perspective provides a unique and interesting perspective of the traffic, as it allows the viewer to see the entire freeway and all the cars on it from above. The image captures the bustling nature of the city and the movement of the vehicles, which is not easily visible from ground level."
           }
@@ -19,7 +19,7 @@
           "more_samples/deer_crossing.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is unusual about this image?",
             "expected_answer": "The unusual aspect of this image is that a group of deer is crossing a road in front of a car. Typically, deer are not expected to be seen crossing roads, especially in urban or suburban areas. This situation can pose a risk to both the deer and the people in the car, as the deer might not be aware of the approaching vehicle, and the driver may not have enough time to react and stop safely. It is important for drivers to be cautious and patient in such situations to avoid accidents and ensure the safety of both the animals and the people involved."
           }
@@ -32,11 +32,11 @@
           "more_samples/windmine.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is in this image?",
             "expected_answer": "The image features a large field with numerous wind turbines scattered throughout the area. The wind turbines are of varying heights and are positioned at different angles, creating a visually striking scene. The field is surrounded by a forest, adding to the natural beauty of the landscape."
           },
-          { 
+          {
             "question": "<image>\n Do facilities here look normal or need maintenance?",
             "expected_answer": "The facilities in the image, which are wind turbines, appear to be in good condition and functioning properly. They are situated in a large field with a clear blue sky, indicating that they are well-maintained and not in need of immediate maintenance. The presence of multiple wind turbines in the field suggests that they are part of a larger wind farm, which is likely to be managed and maintained by professionals to ensure optimal performance and efficiency."
           }
@@ -49,11 +49,11 @@
           "more_samples/windworker.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n Can you describe the situation in this image?",
             "expected_answer": "In the image, a person is climbing a large wind turbine, likely a windmill, to perform maintenance or repair work. The individual is using a harness and a rope to secure themselves to the turbine, ensuring their safety while they work. The scene captures the height and scale of the wind turbine, emphasizing the importance of the task being performed by the person."
           },
-          { 
+          {
             "question": "<image>\n Is the worker well protected?",
             "expected_answer": "Yes, the worker is well protected. In the image, the man is wearing a harness while climbing the side of a wind turbine. This harness provides safety and support, preventing the worker from falling and ensuring that they can safely perform their task. Additionally, the worker is likely using other safety equipment and following proper safety protocols to minimize the risk of accidents while working at such heights."
           }
@@ -66,11 +66,11 @@
           "more_samples/construction_crack.webp"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n Is the building in health condition?",
             "expected_answer": "The building appears to be in a state of disrepair, with visible cracks and chips in the paint. This suggests that the building may be old, poorly maintained, or has experienced some form of damage or wear over time. The presence of these structural issues could potentially pose safety risks or negatively impact the building's overall appearance and value."
           },
-          { 
+          {
             "question": "<image>\n What are the likely service needed for this building?",
             "expected_answer": "The building in the image has a cracked wall and a damaged roof, which indicates that it requires repair and maintenance services. The cracked wall may require repairs to ensure structural integrity and prevent further damage. The damaged roof may need to be replaced or repaired to prevent water leakage and potential damage to the building's interior. Additionally, the building may need to be inspected for any other potential issues that may arise due to the damage."
           }
@@ -83,7 +83,7 @@
           "more_samples/climate_change.jpeg"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is the implication of temperature based on this image?",
             "expected_answer": "The image shows a comparison of the Arctic ice cover in 1984 and 2012. The implication of this image is that the Arctic ice cover has significantly decreased over the years, which is a result of climate change. The reduction in ice cover can have various implications, such as increased exposure of the Arctic environment to warmer temperatures, which can lead to the melting of sea ice, loss of habitat for polar bears and other Arctic species, and potential disruptions to the global climate system. This image serves as a visual representation of the impact of climate change on the Arctic environment and the need for action to mitigate its effects."
           }
@@ -96,11 +96,11 @@
           "more_samples/patient_status.jpeg"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is the patient status?",
             "expected_answer": "The patient is in a critical condition, as indicated by the presence of a ventilator and the fact that she is hooked up to a lot of wires."
           },
-          { 
+          {
             "question": "<image>\n Is the patient asleep?",
             "expected_answer": "Yes, the patient is asleep in the hospital bed."
           }
@@ -113,11 +113,11 @@
           "more_samples/patient_care.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n What is the training session about?",
             "expected_answer": "The training session is about learning how to perform CPR (cardiopulmonary resuscitation) on a mannequin. The group of people, including nurses and possibly other medical professionals, are gathered around a mannequin to practice their skills and learn the proper techniques for administering CPR."
           },
-          { 
+          {
             "question": "<image>\n Will the practice cause pain to the patient in the image?",
             "expected_answer": "The image shows a group of people, including nurses and a mannequin, practicing CPR on a mannequin. While practicing CPR is essential for healthcare professionals, it is important to note that it is a simulation and not a real patient. The practice does not cause pain to the patient in the image, as it is a mannequin and not a living person."
           }
@@ -130,7 +130,7 @@
           "fuyu-capm.png"
         ],
         "QAs": [
-          { 
+          {
             "question": "<image>\n Janet Ludlow’s firm requires all its analysts to use a two-stage dividend discount model (DDM) and the capital asset pricing model (CAPM) to value stocks. Using the CAPM and DDM, Ludlow has valued QuickBrush Company at $63 per share. She now must value SmileWhite Corporation. Calculate the required rate of return for SmileWhite by using the information in the table. Which rate is correct? A. 14% B. 15% C. 16%",
             "expected_answer": "The required rate of return for SmileWhite can be calculated using the capital asset pricing model (CAPM), which is:\n\nRequired Return = Risk-free Rate + Beta x (Expected Market Return - Risk-free Rate)\n\nThe risk-free rate and expected market return are provided in the table, and the beta for SmileWhite is given as 1.15.\n\nLet’s calculate the required rate of return for SmileWhite:\n\nRequired Return = 4.50% + 1.15 x (14.50% - 4.50%)\nRequired Return = 4.50% + 1.15 x 10%\nRequired Return = 4.50% + 11.50%\nRequired Return = 16%\n\nTherefore, the answer is:\n\nC: 16%\nAnswer: C"
           }

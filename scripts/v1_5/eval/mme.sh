@@ -21,4 +21,3 @@ CUDA_VISIBLE_DEVICES=0 python -m llava.eval.model_vqa_loader \
 python $MMEDIR/convert_answer_to_mme.py --experiment ./eval_output/$CKPT/MME/mme.jsonl
 
 python $MMEDIR/eval_tool/calculation.py --results_dir ./eval_output/$CKPT/MME/mme_results
-

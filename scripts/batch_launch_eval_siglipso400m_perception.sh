@@ -10,6 +10,3 @@
 
 CKPT_NAME=vila-video-13b-fix
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/eval/video_chatgpt/eval_qa_perception.sh ${CKPT_NAME}
-
-
-

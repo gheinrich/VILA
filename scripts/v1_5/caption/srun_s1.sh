@@ -26,7 +26,7 @@ JNAME=$MNAME-$VTOWER-align-$ALIGN_DATASET
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step1-$JNAME.err 
+ERRF=$LOGDIR/step1-$JNAME.err
 LOGF=$LOGDIR/step1-$JNAME.out
 
 # -pty

@@ -13,4 +13,3 @@
 # srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/1_train_projector_vicuna13b_siglipso400m.sh
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/1_mm_align.sh
 # srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/video/3_sft_videov2_siglipso400m_2.sh
-

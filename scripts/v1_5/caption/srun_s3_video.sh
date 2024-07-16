@@ -54,13 +54,13 @@ mkdir -p $LOGDIR
 # export WANDB_RUN_ID=“video-SFT:$SFT_DATASET-$dtime”
 # export WANDB_RESUME="allow"
 
-ERRF=$LOGDIR/step2-$JNAME.err 
+ERRF=$LOGDIR/step2-$JNAME.err
 LOGF=$LOGDIR/step2-$JNAME.out
 
 OUTPUT_STEP2="/home/ligengz/workspace/video_checkpoint/video-13b"
 # -pty
 # -e $ERRF -o $LOGF \
-for i in $(seq 1 4); do 
+for i in $(seq 1 4); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \

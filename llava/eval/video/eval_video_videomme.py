@@ -1,8 +1,8 @@
-import os
 import argparse
 import json
-from typing import List, Dict, Optional, Union
+import os
 import re
+from typing import Dict, List, Optional, Union
 
 CATEGORIES = [
     "Knowledge",
@@ -10,7 +10,7 @@ CATEGORIES = [
     "Sports Competition",
     "Artistic Performance",
     "Life Record",
-    "Multilingual"
+    "Multilingual",
 ]
 
 SUB_CATEGORIES = [
@@ -43,7 +43,7 @@ SUB_CATEGORIES = [
     "Travel",
     "Pet & Animal",
     "Exercise",
-    "Multilingual"
+    "Multilingual",
 ]
 
 TASK_CATEGORIES = [
@@ -69,40 +69,37 @@ def extract_characters_regex(s):
         "The correct answer is",
         "The answer is",
         "The answer",
-        "The best option is"
-        "The correct option is",
-        "Best answer:"
-        "Best option:",
+        "The best option is" "The correct option is",
+        "Best answer:" "Best option:",
     ]
     for answer_prefix in answer_prefixes:
         s = s.replace(answer_prefix, "")
 
     if len(s.split()) > 10 and not re.search("[ABCD]", s):
         return ""
-    matches = re.search(r'[ABCD]', s)
+    matches = re.search(r"[ABCD]", s)
     if matches is None:
         return ""
     return matches[0]
 
 
 def eval_your_results(
-        your_results_path: str, 
-        groundtruth_path: str,
-        video_types: Optional[Union[List[str], str]] = None,
-        skip_missing: Optional[bool] = False,
-        return_categories_accuracy: Optional[bool] = True,
-        return_sub_categories_accuracy: Optional[bool] = False,
-        return_task_types_accuracy: Optional[bool] = False,
-        gt_answer_key: Optional[str] = "answer",
-        your_answer_key: Optional[str] = "response"
-
-    ):
+    your_results_path: str,
+    groundtruth_path: str,
+    video_types: Optional[Union[List[str], str]] = None,
+    skip_missing: Optional[bool] = False,
+    return_categories_accuracy: Optional[bool] = True,
+    return_sub_categories_accuracy: Optional[bool] = False,
+    return_task_types_accuracy: Optional[bool] = False,
+    gt_answer_key: Optional[str] = "answer",
+    your_answer_key: Optional[str] = "response",
+):
     """
     Evaluate your results against the ground truth
 
     Args:
     - your_results_path (str): Path to your results file
-    - video_types (Optional[List[str], str]): List of video types to evaluate. 
+    - video_types (Optional[List[str], str]): List of video types to evaluate.
     - skip_missing (Optional[bool]): If True, missing files will be skipped. If False, an error will be raised if there are missing files.
     - return_categories_accuracy (Optional[bool]): If True, the accuracy for each video category will be returned.
     - return_sub_categories_accuracy (Optional[bool]): If True, the accuracy for each video sub category will be returned.
@@ -112,7 +109,7 @@ def eval_your_results(
     """
 
     # Load your results
-    with open(your_results_path, 'r') as f:
+    with open(your_results_path) as f:
         your_results_dict = json.load(f)
     groundtruth_list = json.load(open(groundtruth_path))
     class_mapping = {}
@@ -173,14 +170,16 @@ def eval_your_results(
         v_type_dict[video_type] = {}
         for v_type in CATEGORIES:
             v_type_dict[video_type][v_type] = {"correct": 0, "answered": 0}
-        
+
         v_sub_type_dict[video_type] = {}
         for v_sub_type in SUB_CATEGORIES:
             v_sub_type_dict[video_type][v_sub_type] = {"correct": 0, "answered": 0}
 
         if not skip_missing:
             # Check if the number of files in your results and ground truth are the same
-            assert len(your_results_video_type) == 300, f"Number of files in {video_type} is not 300. Check if there are missing files."
+            assert (
+                len(your_results_video_type) == 300
+            ), f"Number of files in {video_type} is not 300. Check if there are missing files."
 
         for item in your_results_video_type:
 
@@ -190,7 +189,7 @@ def eval_your_results(
             # Get the video category, sub category and question category
             video_category = item["video_category"]
             video_sub_category = item["video_subcategory"]
-            
+
             questions = item["questions"]
 
             for question in questions:
@@ -202,7 +201,7 @@ def eval_your_results(
 
                 # Extract the answer from the response
                 extration = extract_characters_regex(response)
-    
+
                 if extration != "":
                     q_type_dict[video_type][q_type]["answered"] += 1
                     q_type_dict[video_type][q_type]["correct"] += extration == gt_answer
@@ -212,7 +211,6 @@ def eval_your_results(
 
                     v_sub_type_dict[video_type][video_sub_category]["answered"] += 1
                     v_sub_type_dict[video_type][video_sub_category]["correct"] += extration == gt_answer
-
 
     # Print the results for each video type
     for video_type in video_types:
@@ -225,20 +223,26 @@ def eval_your_results(
             print("Video Categories")
             print("-------------------------------------")
             for v_type in v_type_dict[video_type]:
-                print(f"{v_type}: {100 * v_type_dict[video_type][v_type]['correct'] / v_type_dict[video_type][v_type]['answered'] if v_type_dict[video_type][v_type]['answered'] > 0 else 0 : .1f}%")
+                print(
+                    f"{v_type}: {100 * v_type_dict[video_type][v_type]['correct'] / v_type_dict[video_type][v_type]['answered'] if v_type_dict[video_type][v_type]['answered'] > 0 else 0 : .1f}%"
+                )
         if return_sub_categories_accuracy:
             print("-------------------------------------")
             print("Video Sub Categories")
             print("-------------------------------------")
             for v_sub_type in v_sub_type_dict[video_type]:
-                print(f"{v_sub_type}: {100 * v_sub_type_dict[video_type][v_sub_type]['correct'] / v_sub_type_dict[video_type][v_sub_type]['answered'] if v_sub_type_dict[video_type][v_sub_type]['answered'] > 0 else 0 : .1f}%")
+                print(
+                    f"{v_sub_type}: {100 * v_sub_type_dict[video_type][v_sub_type]['correct'] / v_sub_type_dict[video_type][v_sub_type]['answered'] if v_sub_type_dict[video_type][v_sub_type]['answered'] > 0 else 0 : .1f}%"
+                )
         if return_task_types_accuracy:
             print("-------------------------------------")
             print("Task Categories")
             print("-------------------------------------")
             for q_type in q_type_dict[video_type]:
-                print(f"{q_type}: {100 * q_type_dict[video_type][q_type]['correct'] / q_type_dict[video_type][q_type]['answered'] if q_type_dict[video_type][q_type]['answered'] > 0 else 0 : .1f}%")
-        
+                print(
+                    f"{q_type}: {100 * q_type_dict[video_type][q_type]['correct'] / q_type_dict[video_type][q_type]['answered'] if q_type_dict[video_type][q_type]['answered'] > 0 else 0 : .1f}%"
+                )
+
         print("-------------------------------------")
         print("Overall Performance")
         print("-------------------------------------")
@@ -261,7 +265,6 @@ def eval_your_results(
             total_correct = sum([v_type_dict[video_type][v_type]["correct"] for video_type in video_types])
             total_answered = sum([v_type_dict[video_type][v_type]["answered"] for video_type in video_types])
             print(f"{v_type}: {100 * total_correct / total_answered if total_answered > 0 else 0 : .1f}%")
-    
 
     if return_sub_categories_accuracy:
         print("-------------------------------------")
@@ -272,7 +275,6 @@ def eval_your_results(
             total_correct = sum([v_sub_type_dict[video_type][v_sub_type]["correct"] for video_type in video_types])
             total_answered = sum([v_sub_type_dict[video_type][v_sub_type]["answered"] for video_type in video_types])
             print(f"{v_sub_type}: {100 * total_correct / total_answered if total_answered > 0 else 0 : .1f}%")
-
 
     if return_task_types_accuracy:
         print("-------------------------------------")
@@ -287,10 +289,13 @@ def eval_your_results(
     print("-------------------------------------")
     print("Overall Performance")
     print("-------------------------------------")
-    total_correct = sum([sum([q_type_dict[video_type][q_type]["correct"] for q_type in TASK_CATEGORIES]) for video_type in video_types])
-    total_answered = sum([sum([q_type_dict[video_type][q_type]["answered"] for q_type in TASK_CATEGORIES]) for video_type in video_types])
+    total_correct = sum(
+        [sum([q_type_dict[video_type][q_type]["correct"] for q_type in TASK_CATEGORIES]) for video_type in video_types]
+    )
+    total_answered = sum(
+        [sum([q_type_dict[video_type][q_type]["answered"] for q_type in TASK_CATEGORIES]) for video_type in video_types]
+    )
     print(f"Overall: {100 * total_correct / total_answered if total_answered > 0 else 0 : .1f}%")
-
 
 
 if __name__ == "__main__":
@@ -306,7 +311,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     eval_your_results(
-        args.results_file, 
+        args.results_file,
         args.groundtruth_file,
         video_types=args.video_duration_type,
         return_categories_accuracy=args.return_categories_accuracy,
@@ -314,6 +319,3 @@ if __name__ == "__main__":
         return_task_types_accuracy=args.return_task_types_accuracy,
         skip_missing=args.skip_missing,
     )
-
-
-

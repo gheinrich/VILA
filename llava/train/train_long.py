@@ -16,13 +16,14 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 import os
-
 from unittest import mock
+
+import deepspeed.comm as dist
+from llama_dpsp_attn_monkey_patch import __init__, _flash_attention_forward, initialize_sequence_parallel
+
 from llava.train.train import train
 from llava.train.transformer_normalize_monkey_patch import patched_normalize
-import deepspeed.comm as dist
 
-from llama_dpsp_attn_monkey_patch import initialize_sequence_parallel, _flash_attention_forward, __init__
 
 def __len__(self):
     return len(self.batch_sampler)
@@ -31,17 +32,21 @@ def __len__(self):
 def __iter__(self):
     return self.batch_sampler.__iter__()
 
+
 if __name__ == "__main__":
     # read from os environment for now.
     # (DL): TODO find a more elegant way to launch
     longseq_sequence_parallel_size = os.environ.get("LONGSEQ_SEQUENCE_PARALLEL_SIZE", 1)
     initialize_sequence_parallel(longseq_sequence_parallel_size)
-    
+
     with (
-        mock.patch('transformers.models.llama.modeling_llama.LlamaAttention.__init__', new=__init__),
-        mock.patch('transformers.models.llama.modeling_llama.LlamaFlashAttention2._flash_attention_forward', new=_flash_attention_forward),
-        mock.patch('transformers.image_processing_utils.normalize', new=patched_normalize),
-        mock.patch('accelerate.data_loader.BatchSamplerShard.__len__', new=__len__),
-        mock.patch('accelerate.data_loader.BatchSamplerShard.__iter__', new=__iter__)
-        ):
-            train()
+        mock.patch("transformers.models.llama.modeling_llama.LlamaAttention.__init__", new=__init__),
+        mock.patch(
+            "transformers.models.llama.modeling_llama.LlamaFlashAttention2._flash_attention_forward",
+            new=_flash_attention_forward,
+        ),
+        mock.patch("transformers.image_processing_utils.normalize", new=patched_normalize),
+        mock.patch("accelerate.data_loader.BatchSamplerShard.__len__", new=__len__),
+        mock.patch("accelerate.data_loader.BatchSamplerShard.__iter__", new=__iter__),
+    ):
+        train()

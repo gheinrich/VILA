@@ -1,12 +1,12 @@
-from datasets import load_dataset, concatenate_datasets
+import json
 import os
 import pickle
-import torch
-import json
-from tqdm import tqdm
-from PIL import Image
 from multiprocessing import Pool
 
+import torch
+from datasets import concatenate_datasets, load_dataset
+from PIL import Image
+from tqdm import tqdm
 
 
 def general_conversation_preprocessor(item, dataset_name, id):
@@ -18,8 +18,8 @@ def general_conversation_preprocessor(item, dataset_name, id):
     for img_idx, img in enumerate(item["images"]):
         save_path_to_append = os.path.join("images", dataset_name, f"{id}_{img_idx}.png")
         img_path = os.path.join(save_path, save_path_to_append)
-        if img.mode == 'CMYK':
-            img = img.convert('RGB')
+        if img.mode == "CMYK":
+            img = img.convert("RGB")
         img.save(img_path)
         img_paths.append(save_path_to_append)
     ret_item["images"] = img_paths
@@ -28,28 +28,20 @@ def general_conversation_preprocessor(item, dataset_name, id):
         if "user" in conv:
             if idx > 0:
                 cur_conv = conv["user"]
-                new_conv = {
-                    "from": "human",
-                    "value": cur_conv
-                }
+                new_conv = {"from": "human", "value": cur_conv}
             else:
                 cur_conv = conv["user"]
-                new_conv = {
-                    "from": "human",
-                    "value": "<image>\n" * len(item["images"]) + cur_conv
-                }
+                new_conv = {"from": "human", "value": "<image>\n" * len(item["images"]) + cur_conv}
             conversations.append(new_conv)
         if "assistant" in conv:
             cur_conv = conv["assistant"]
             if cur_conv.startswith("Answer: "):
                 cur_conv = cur_conv.replace("Answer: ", "")
-            new_conv = {
-                "from": "gpt",
-                "value": cur_conv
-            }
+            new_conv = {"from": "gpt", "value": cur_conv}
             conversations.append(new_conv)
     ret_item["conversations"] = conversations
     return ret_item
+
 
 def process_dataset(args):
     dataset_name, dataset_path, metadata_path, save_path = args
@@ -73,6 +65,7 @@ def process_dataset(args):
             json.dump(item, f)
             f.write("\n")
 
+
 # download M3IT to the dataset_path directory
 dataset_path = "/home/jasonlu/workspace/idefics2-sft/the_cauldron"
 save_path = "/home/jasonlu/workspace/idefics2-sft/new-vflan/"
@@ -80,22 +73,22 @@ metadata_path = os.path.join(save_path, "metadata")
 os.makedirs(metadata_path, exist_ok=True)
 
 skipped_datasets = [
-    "ai2d", #internvl-sft
-    "chartqa", #internvl-sft
-    "clevr", #vflan, HAS BUG
-    "clevr_math", # HAS BUG
-    "docvqa", #internvl-sft
-    "dvqa", #internvl-sft
-    "nlvr2", #vflan
-    "ocrvqa", #vflan
-    "st_vqa", #vflan
-    "textcaps", #vflan, llava1.5
-    "visualmrc", #vflan
-    "vqav2", #vflan, llava1.5
-    "okvqa", #llava1.5
-    "aokvqa", #llava1.5
-    "plotqa", # has problem to load (very slow)
-    "localized_narratives", # has problem to load (very slow)
+    "ai2d",  # internvl-sft
+    "chartqa",  # internvl-sft
+    "clevr",  # vflan, HAS BUG
+    "clevr_math",  # HAS BUG
+    "docvqa",  # internvl-sft
+    "dvqa",  # internvl-sft
+    "nlvr2",  # vflan
+    "ocrvqa",  # vflan
+    "st_vqa",  # vflan
+    "textcaps",  # vflan, llava1.5
+    "visualmrc",  # vflan
+    "vqav2",  # vflan, llava1.5
+    "okvqa",  # llava1.5
+    "aokvqa",  # llava1.5
+    "plotqa",  # has problem to load (very slow)
+    "localized_narratives",  # has problem to load (very slow)
 ]
 
 _dataset_names = sorted(os.listdir(dataset_path))

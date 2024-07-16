@@ -22,5 +22,4 @@ mkdir -p eval_output/$model_name
 ./scripts/v1_5/eval/mmbench.sh $checkpoint_path $model_name $conv_mode > eval_output/$model_name/mmbench.txt &&
 ./scripts/v1_5/eval/mmbench_cn.sh $checkpoint_path $model_name $conv_mode > eval_output/$model_name/mmbench_cn.txt &&
 ./scripts/v1_5/eval/seed.sh $checkpoint_path $model_name $conv_mode > eval_output/$model_name/seed.txt &&
-./scripts/v1_5/eval/mmmu.sh $checkpoint_path $model_name $conv_mode > eval_output/$model_name/mmmu.txt 
-
+./scripts/v1_5/eval/mmmu.sh $checkpoint_path $model_name $conv_mode > eval_output/$model_name/mmmu.txt

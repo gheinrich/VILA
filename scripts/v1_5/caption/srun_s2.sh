@@ -55,12 +55,12 @@ JNAME=$MNAME-$VTOWER-ALIGN-$ALIGN_DATASET-PRETRAIN-$PT_DATASET
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step2-$JNAME.err 
+ERRF=$LOGDIR/step2-$JNAME.err
 LOGF=$LOGDIR/step2-$JNAME.out
 
 # -pty
 # -e $ERRF -o $LOGF \
-for i in $(seq 1 8); do 
+for i in $(seq 1 8); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \

@@ -26,9 +26,13 @@ from torchvision.transforms import Resize
 
 import llava.data.datasets_mixture as datasets_mixture
 from llava import conversation as conversation_lib
-from llava.constants import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
-                             DEFAULT_IMAGE_TOKEN, IGNORE_INDEX,
-                             IMAGE_TOKEN_INDEX)
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
@@ -110,7 +114,7 @@ class TextOCRDataset(GenericDataset):
         self.data = []
         self.img2text = {}
 
-        annotations = json.load(open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json"), "r"))
+        annotations = json.load(open(os.path.join(base_folder, f"TextOCR_0.1_{split}.json")))
         valid_images = [
             {
                 "size": (
@@ -132,7 +136,7 @@ class TextOCRDataset(GenericDataset):
                 if annotation["utf8_string"] == ".":
                     continue  # Unreadable characters
 
-                x, y, w, h = [int(x) for x in annotation["bbox"]]
+                x, y, w, h = (int(x) for x in annotation["bbox"])
                 img_area = image["size"][0] * image["size"][1]
                 if (w * h) / img_area < min_area:
                     continue  # skip too small texts

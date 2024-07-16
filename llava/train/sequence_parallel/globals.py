@@ -1,6 +1,7 @@
 import os
-import torch
+
 import deepspeed.comm as dist
+import torch
 
 
 class Singleton:
@@ -8,7 +9,7 @@ class Singleton:
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(Singleton, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance.__initialized = False
         return cls._instance
 
@@ -175,9 +176,11 @@ def get_ulysess_sp_size():
     """Get the size of the Ulysses sequence parallel group."""
     return PROCESS_GROUP_MANAGER.ulysses_degree
 
+
 def get_ulysess_seq_len():
     """Get the size of the Ulysses sequence parallel group."""
     return PROCESS_GROUP_MANAGER.ulysses_seq_len
+
 
 def set_ulysess_seq_len(seq_len):
     """Get the size of the Ulysses sequence parallel group."""

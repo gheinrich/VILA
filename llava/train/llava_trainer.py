@@ -18,21 +18,21 @@
 
 import os
 import random
+from collections import OrderedDict
 from typing import List, Optional
 
 import torch
 import torch.distributed as dist
 from torch import nn
-from torch.utils.data import (ConcatDataset, Dataset, DistributedSampler,
-                              RandomSampler, Sampler)
+from torch.utils.data import ConcatDataset, Dataset, DistributedSampler, RandomSampler, Sampler
 from transformers import PreTrainedModel, Trainer
 from transformers.modeling_utils import unwrap_model
 from transformers.trainer import ALL_LAYERNORM_LAYERS  # ShardedDDPOption,
-from transformers.trainer import (get_parameter_names, has_length,
-                                  is_sagemaker_mp_enabled, logger)
-from collections import OrderedDict
+from transformers.trainer import get_parameter_names, has_length, is_sagemaker_mp_enabled, logger
+
 from llava.train.sequence_parallel import get_pg_manager
 from llava.trl.trainer import DPOTrainer
+
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
@@ -48,13 +48,12 @@ def maybe_zero_3(param, ignore_status=False, name=None):
         param = param.detach().cpu().clone()
     return param
 
+
 def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
     if require_grad_only:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
+    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
     return to_return
 
 
@@ -289,7 +288,7 @@ class VILADPOTrainer(DPOTrainer):
         seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
         num_replicas = self.args.world_size
         rank = self.args.process_index
-        
+
         # Consider sequence parallelism
         sp_degree = self.args.seq_parallel_size
         if sp_degree > 1:  # Sequence Parallelism is enabled
@@ -297,7 +296,7 @@ class VILADPOTrainer(DPOTrainer):
             PROCESS_GROUP_MANAGER = get_pg_manager()
             rank = PROCESS_GROUP_MANAGER.dp_rank
             # rank = dist.get_rank() // sp_degree
-            
+
         return VILADistributedSampler(
             self.train_dataset,
             num_replicas=num_replicas,
@@ -437,7 +436,6 @@ class VILADPOTrainer(DPOTrainer):
                     logger.info(f"skipped: {skipped/2**20}M params")
 
         return self.optimizer
-
 
     def save_model(self, output_dir: Optional[str], _internal_call: bool):
         ## save tuned model separately
@@ -461,7 +459,7 @@ class LLaVATrainer(Trainer):
         seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
         num_replicas = self.args.world_size
         rank = self.args.process_index
-        
+
         # Consider sequence parallelism
         sp_degree = self.args.seq_parallel_size
         if sp_degree > 1:  # Sequence Parallelism is enabled
@@ -469,7 +467,7 @@ class LLaVATrainer(Trainer):
             PROCESS_GROUP_MANAGER = get_pg_manager()
             rank = PROCESS_GROUP_MANAGER.dp_rank
             # rank = dist.get_rank() // sp_degree
-            
+
         return VILADistributedSampler(
             self.train_dataset,
             num_replicas=num_replicas,
@@ -610,7 +608,6 @@ class LLaVATrainer(Trainer):
 
         return self.optimizer
 
-
     def save_model(self, output_dir: Optional[str], _internal_call: bool):
         ## save tuned model separately
         if self.is_deepspeed_enabled:
@@ -618,11 +615,9 @@ class LLaVATrainer(Trainer):
         else:
             # TODO(ligeng): fix save_model for multi-node training on large models (e.g., Llama-70b)
             state_dict = self.model.state_dict()
-        
+
         if self.args.lora_enable:
-            non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-                self.model.named_parameters()
-            )
+            non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(self.model.named_parameters())
             os.makedirs(output_dir, exist_ok=True)
             torch.save(
                 non_lora_state_dict,

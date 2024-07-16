@@ -14,7 +14,6 @@
 import importlib
 import sys
 
-
 if sys.version_info < (3, 8):
     _is_python_greater_3_8 = False
 else:

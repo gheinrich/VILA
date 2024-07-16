@@ -1,18 +1,19 @@
 import math
-import warnings
 import os.path as osp
-import torch
+import warnings
 from typing import Tuple
-from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    AutoConfig,
-    PretrainedConfig,
-    PreTrainedModel,
-    PreTrainedTokenizer
-)
+
+import torch
 from huggingface_hub import file_exists, repo_exists
 from huggingface_hub.utils import HFValidationError
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PretrainedConfig,
+    PreTrainedModel,
+    PreTrainedTokenizer,
+)
 
 
 def has_tokenizer(repo_id_or_path: str) -> bool:
@@ -40,21 +41,11 @@ def context_length_extension(config):
 def build_llm_and_tokenizer(
     model_name_or_path: str,
     config: PretrainedConfig,
-    # config_cls: PretrainedConfig = None,
-    # llm_cls: PreTrainedModel = None,
     attn_implementation=None,
     model_max_length=None,
     *args,
     **kwargs,
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
-    # if config_cls is None:
-    #     config_cls = AutoConfig
-    # if llm_cls is None:
-    #     llm_cls = AutoModelForCausalLM
-    # config_cls = AutoConfig
-    # llm_cls = AutoModelForCausalLM
-    ## extra configuration for llm
-    # print("build_llm_and_tokenizer():", model_name_or_path); input("DEBUG")
     llm_cfg = AutoConfig.from_pretrained(model_name_or_path)
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length
@@ -64,29 +55,29 @@ def build_llm_and_tokenizer(
     llm = AutoModelForCausalLM.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
-    
+
     # Locate the tokenizer.
     llm_path = model_name_or_path
     if not has_tokenizer(llm_path):
         llm_path = osp.join(llm_path, "llm")
     if not has_tokenizer(llm_path):
         raise ValueError(f"Cannot find tokenizer in {llm_path}.")
-    
+
     # TODO(ligeng): use LLM class to judge to better compability.
     try:
         llm_arch = getattr(llm_cfg, "architectures")[0].lower()
-    except:
-        warnings.warn(f"Cannot find LLM architecture, please check the \"config.json\" under \"{llm_path}\".")
+    except BaseException:
+        warnings.warn(f'Cannot find LLM architecture, please check the "config.json" under "{llm_path}".')
 
     if "mpt" in llm_arch:
         tokenizer = AutoTokenizer.from_pretrained(
-            llm_path, 
+            llm_path,
             model_max_length=llm_cfg.model_max_length,
             padding_side="right",
         )
-    elif "yi" in llm_path or \
-        (getattr(llm_cfg, "num_hidden_layers", -1) == 60 \
-         and getattr(llm_cfg, "num_attention_heads", -1) == 56):
+    elif "yi" in llm_path or (
+        getattr(llm_cfg, "num_hidden_layers", -1) == 60 and getattr(llm_cfg, "num_attention_heads", -1) == 56
+    ):
         tokenizer = AutoTokenizer.from_pretrained(
             llm_path,
             model_max_length=llm_cfg.model_max_length,
@@ -95,13 +86,13 @@ def build_llm_and_tokenizer(
         )
     else:
         tokenizer = AutoTokenizer.from_pretrained(
-            llm_path, 
+            llm_path,
             model_max_length=llm_cfg.model_max_length,
             padding_side="right",
             use_fast=False,
             legacy=False,
         )
-        
+
     # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
     return llm, tokenizer

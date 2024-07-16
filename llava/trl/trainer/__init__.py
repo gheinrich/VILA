@@ -32,7 +32,6 @@ from ..import_utils import is_diffusers_available
 from .base import BaseTrainer
 from .ddpo_config import DDPOConfig
 
-
 if is_diffusers_available():
     from .ddpo_trainer import DDPOTrainer
 

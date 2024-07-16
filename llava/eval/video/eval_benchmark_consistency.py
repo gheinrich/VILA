@@ -1,11 +1,12 @@
 # This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
 
-import openai
-import os
 import argparse
-import json
 import ast
+import json
+import os
 from multiprocessing.pool import Pool
+
+import openai
 
 
 def parse_args():
@@ -26,17 +27,17 @@ def annotate(prediction_set, caption_files, output_dir, args):
     returns a score for consistency.
     """
     # Set the OpenAI API key.
-    openai.api_key = os.environ['OPENAI_API_KEY']
+    openai.api_key = os.environ["OPENAI_API_KEY"]
     if args.api_base is not None:
         openai.api_base = args.api_base
     for file in caption_files:
-        key = file[:-5] # Strip file extension
+        key = file[:-5]  # Strip file extension
         qa_set = prediction_set[key]
-        question1 = qa_set['q1']
-        question2 = qa_set['q2']
-        answer = qa_set['a']
-        pred1 = qa_set['pred1']
-        pred2 = qa_set['pred2']
+        question1 = qa_set["q1"]
+        question2 = qa_set["q2"]
+        answer = qa_set["a"]
+        pred1 = qa_set["pred1"]
+        pred2 = qa_set["pred2"]
         try:
             # Compute the consistency score
             completion = openai.chat.completions.create(
@@ -44,32 +45,30 @@ def annotate(prediction_set, caption_files, output_dir, args):
                 messages=[
                     {
                         "role": "system",
-                        "content":
-                            "You are an intelligent chatbot designed for evaluating the consistency of generative outputs for similar video-based question-answer pairs. "
-                            "You will be given two very similar questions, a common answer common to both the questions and predicted answers for the two questions ."
-                            "Your task is to compare the predicted answers for two very similar question, with a common correct answer and determine if they are consistent. Here's how you can accomplish the task:"
-                            "------"
-                            "##INSTRUCTIONS: "
-                            "- Focus on the consistency between the two predicted answers and the correct answer. Both predicted answers should correspond to the correct answer and to each other, and should not contain any contradictions or significant differences in the conveyed information.\n"
-                            "- Both predicted answers must be consistent with each other and the correct answer, in terms of the information they provide about the video content.\n"
-                            "- Consider synonyms or paraphrases as valid matches, but only if they maintain the consistency in the conveyed information.\n"
-                            "- Evaluate the consistency of the two predicted answers compared to the correct answer."
+                        "content": "You are an intelligent chatbot designed for evaluating the consistency of generative outputs for similar video-based question-answer pairs. "
+                        "You will be given two very similar questions, a common answer common to both the questions and predicted answers for the two questions ."
+                        "Your task is to compare the predicted answers for two very similar question, with a common correct answer and determine if they are consistent. Here's how you can accomplish the task:"
+                        "------"
+                        "##INSTRUCTIONS: "
+                        "- Focus on the consistency between the two predicted answers and the correct answer. Both predicted answers should correspond to the correct answer and to each other, and should not contain any contradictions or significant differences in the conveyed information.\n"
+                        "- Both predicted answers must be consistent with each other and the correct answer, in terms of the information they provide about the video content.\n"
+                        "- Consider synonyms or paraphrases as valid matches, but only if they maintain the consistency in the conveyed information.\n"
+                        "- Evaluate the consistency of the two predicted answers compared to the correct answer.",
                     },
                     {
                         "role": "user",
-                        "content":
-                            "Please evaluate the following video-based question-answer pair:\n\n"
-                            f"Question 1: {question1}\n"
-                            f"Question 2: {question2}\n"
-                            f"Correct Answer: {answer}\n"
-                            f"Predicted Answer to Question 1: {pred1}\n"
-                            f"Predicted Answer to Question 2: {pred2}\n\n"
-                            "Provide your evaluation only as a consistency score where the consistency score is an integer value between 0 and 5, with 5 indicating the highest level of consistency. "
-                            "Please generate the response in the form of a Python dictionary string with keys 'score', where its value is the consistency score in INTEGER, not STRING."
-                            "DO NOT PROVIDE ANY OTHER OUTPUT TEXT OR EXPLANATION. Only provide the Python dictionary string. "
-                            "For example, your response should look like this: {''score': 4.8}."
-                    }
-                ]
+                        "content": "Please evaluate the following video-based question-answer pair:\n\n"
+                        f"Question 1: {question1}\n"
+                        f"Question 2: {question2}\n"
+                        f"Correct Answer: {answer}\n"
+                        f"Predicted Answer to Question 1: {pred1}\n"
+                        f"Predicted Answer to Question 2: {pred2}\n\n"
+                        "Provide your evaluation only as a consistency score where the consistency score is an integer value between 0 and 5, with 5 indicating the highest level of consistency. "
+                        "Please generate the response in the form of a Python dictionary string with keys 'score', where its value is the consistency score in INTEGER, not STRING."
+                        "DO NOT PROVIDE ANY OTHER OUTPUT TEXT OR EXPLANATION. Only provide the Python dictionary string. "
+                        "For example, your response should look like this: {''score': 4.8}.",
+                    },
+                ],
             )
             # Convert response to a Python dictionary.
             response_message = completion.choices[0].message.content
@@ -100,7 +99,7 @@ def main():
 
     # Iterate through each sample in pred_contents
     for sample in pred_contents:
-        video_id = sample['video_name']
+        video_id = sample["video_name"]
         if video_id in video_id_counts:
             video_id_counts[video_id] += 1
         else:
@@ -108,11 +107,11 @@ def main():
 
         # Create a new sample with the modified key
         new_sample = sample
-        new_sample['video_name'] = f"{video_id}_{video_id_counts[video_id]}"
+        new_sample["video_name"] = f"{video_id}_{video_id_counts[video_id]}"
         new_pred_contents.append(new_sample)
 
     # Generating list of id's and corresponding files
-    id_list = [x['video_name'] for x in new_pred_contents]
+    id_list = [x["video_name"] for x in new_pred_contents]
     caption_files = [f"{id}.json" for id in id_list]
 
     output_dir = args.output_dir
@@ -123,12 +122,12 @@ def main():
     # Preparing dictionary of question-answer sets
     prediction_set = {}
     for sample in new_pred_contents:
-        id = sample['video_name']
-        question1 = sample['Q1']
-        question2 = sample['Q1']
-        answer = sample['A']
-        pred1 = sample['pred1']
-        pred2 = sample['pred2']
+        id = sample["video_name"]
+        question1 = sample["Q1"]
+        question2 = sample["Q1"]
+        answer = sample["A"]
+        pred1 = sample["pred1"]
+        pred2 = sample["pred2"]
         qa_set = {"q1": question1, "q2": question2, "a": answer, "pred1": pred1, "pred2": pred2}
         prediction_set[id] = qa_set
 
@@ -155,14 +154,14 @@ def main():
 
             # Split tasks into parts.
             part_len = len(incomplete_files) // num_tasks
-            all_parts = [incomplete_files[i:i + part_len] for i in range(0, len(incomplete_files), part_len)]
+            all_parts = [incomplete_files[i : i + part_len] for i in range(0, len(incomplete_files), part_len)]
             task_args = [(prediction_set, part, args.output_dir, args) for part in all_parts]
 
             # Use a pool of workers to process the files in parallel.
             with Pool() as pool:
                 pool.starmap(annotate, task_args)
 
-        except Exception as e: 
+        except Exception as e:
             print(f"Error: {e}")
 
     # Combine all the processed files into one
@@ -173,7 +172,7 @@ def main():
     for file_name in os.listdir(output_dir):
         if file_name.endswith(".json"):
             file_path = os.path.join(output_dir, file_name)
-            with open(file_path, "r") as json_file:
+            with open(file_path) as json_file:
                 content = json.load(json_file)
                 combined_contents[file_name[:-5]] = content
 
@@ -187,7 +186,7 @@ def main():
     count = 0
     for key, result in combined_contents.items():
         count += 1
-        score_match = result[0]['score']
+        score_match = result[0]["score"]
         score = int(score_match)
         score_sum += score
     average_score = score_sum / count

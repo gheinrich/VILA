@@ -1,24 +1,24 @@
 
 #!/bin/bash
 
-MODEL_PATH=$1      # Your model path 
+MODEL_PATH=$1      # Your model path
 MODEL_BASE=Efficient-Large-Model/Llama-3-VILA1.5-8B-stage2
-CKPT=$2             # Checkpoint name 
+CKPT=$2             # Checkpoint name
 CONV_MODE=llama_3   # Convolution mode
 RANK=0              # Rank of the job (multi-node)
 YOUR_ANSWER_PATH=~/workspace/eval_output/${CKPT}/RefCOCO/
 
 mkdir -p ${YOUR_ANSWER_PATH}
 
-BSIZE=1      # batch size per job 
-CHUNKS=8     # number of parallel jobs 
+BSIZE=1      # batch size per job
+CHUNKS=8     # number of parallel jobs
 
 image_path='/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coco/train2014/'
 ann_path='/home/yunhaof/workspace/datasets/REC/minigpt_eval_annotations/'
- 
-# your LLM inference parameters 
+
+# your LLM inference parameters
 top_p=0.2
-top_k=100 
+top_k=100
 temperature=4.0
 
 export HF_HOME="~/workspace/hf_cache/"
@@ -65,7 +65,7 @@ for dataset in refcoco refcoco+; do
     done
 done
 
-wait 
+wait
 
 dataset=refcocog
 for data_split in val test; do

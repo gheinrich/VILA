@@ -3,18 +3,18 @@
 
 # DeepSpeed Team
 
-import torch
-
 from typing import Any, Tuple
+
+import torch
+import torch.distributed as dist
 from torch import Tensor
 from torch.nn import Module
 
-import torch.distributed as dist
 from llava.train.sequence_parallel.globals import (
-    get_ulysess_sp_size,
+    get_ulysess_seq_len,
     get_ulysess_sp_pg,
     get_ulysess_sp_rank,
-    get_ulysess_seq_len,
+    get_ulysess_sp_size,
     set_ulysess_seq_len,
 )
 
@@ -278,5 +278,5 @@ class SeqAllGather(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx: Any, grad_output: Tensor) -> Tuple[None, Tensor]:
-        tensor, = ctx.saved_tensors
+        (tensor,) = ctx.saved_tensors
         return None, (None, tensor)

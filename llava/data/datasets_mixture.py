@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass, field
 
 
@@ -5,18 +6,10 @@ from dataclasses import dataclass, field
 class Dataset:
     dataset_name: str
     dataset_type: str = field(default="torch")
-    data_path: str = field(
-        default=None, metadata={"help": "Path to the training data."}
-    )
-    meta_path: str = field(
-        default=None, metadata={"help": "Path to the meta data for webdataset."}
-    )
-    image_path: str = field(
-        default=None, metadata={"help": "Path to the training image data."}
-    )
-    caption_choice: str = field(
-        default=None, metadata={"help": "Path to the caption directory for recaption."}
-    )
+    data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    meta_path: str = field(default=None, metadata={"help": "Path to the meta data for webdataset."})
+    image_path: str = field(default=None, metadata={"help": "Path to the training image data."})
+    caption_choice: str = field(default=None, metadata={"help": "Path to the caption directory for recaption."})
     description: str = field(
         default=None,
         metadata={
@@ -26,29 +19,19 @@ class Dataset:
     test_script: str = (None,)
     maintainer: str = (None,)
     ############## ############## ############## ############## ############## ##############
-    caption_choice: str = field(
-        default=None, metadata={"help": "Path to the captions for webdataset."}
-    )
-    caption_choice_2: str = field(
-        default=None, metadata={"help": "Path to the captions for webdataset."}
-    )
-    start_idx: float = field(
-        default=-1, metadata={"help": "Start index of the dataset."}
-    )
+    caption_choice: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
+    caption_choice_2: str = field(default=None, metadata={"help": "Path to the captions for webdataset."})
+    start_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
     end_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
 
 
 DATASETS = {}
 
-import warnings
-
 
 def add_dataset(dataset):
     if dataset.dataset_name in DATASETS:
         # make sure the data_name is unique
-        warnings.warn(
-            f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique."
-        )
+        warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
 
@@ -595,7 +578,6 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_mm_sft)
 
-
     nv_metropolis_sft = Dataset(
         dataset_name="nv_metropolis_sft",
         dataset_type="torch",
@@ -611,7 +593,6 @@ def register_datasets_mixtures():
         image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
     )
     add_dataset(nv_metropolis_textcaps)
-
 
     nv_metropolis_refcoco = Dataset(
         dataset_name="nv_metropolis_refcoco",
@@ -660,10 +641,6 @@ def register_datasets_mixtures():
         image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
     )
     add_dataset(nv_metropolis_aokvqa_legal)
-
-
-
-
 
     reason_clevrerqa = Dataset(
         dataset_name="reason_clevrerqa",

@@ -5,7 +5,7 @@ which python
 if [ ! -d "/tmp/llava-1.5" ]; then
     echo "Preparing dataset..."
     mkdir -p /tmp/llava-1.5
-    # /tmp/llava-1.5/coco/train2017  
+    # /tmp/llava-1.5/coco/train2017
     echo "unzip coco"
     mkdir -p /tmp/llava-1.5/coco
     unzip -q /home/jil/datasets/llava-1.5/coco/train2017.zip -d /tmp/llava-1.5/coco/ &
@@ -23,13 +23,13 @@ if [ ! -d "/tmp/llava-1.5" ]; then
     # /tmp/llava-1.5/textvqa/train_images/
     echo "unzip textvqa"
     mkdir -p /tmp/llava-1.5/textvqa
-    unzip -q /home/jil/datasets/llava-1.5/textvqa/train_val_images.zip -d /tmp/llava-1.5/textvqa/ & 
+    unzip -q /home/jil/datasets/llava-1.5/textvqa/train_val_images.zip -d /tmp/llava-1.5/textvqa/ &
 
     # vg
     echo "unzip vg"
     mkdir -p /tmp/llava-1.5/vg
-    unzip -q /home/jil/datasets/llava-1.5/vg/images.zip -d /tmp/llava-1.5/vg/ & 
-    unzip -q /home/jil/datasets/llava-1.5/vg/images2.zip -d /tmp/llava-1.5/vg/ & 
+    unzip -q /home/jil/datasets/llava-1.5/vg/images.zip -d /tmp/llava-1.5/vg/ &
+    unzip -q /home/jil/datasets/llava-1.5/vg/images2.zip -d /tmp/llava-1.5/vg/ &
 
     wait  # finish all unpacking
     # move the dir

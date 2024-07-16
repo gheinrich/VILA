@@ -26,7 +26,6 @@ from transformers.generation import TopKLogitsWarper, TopPLogitsWarper
 
 from .import_utils import is_npu_available, is_xpu_available
 
-
 try:
     from collections.abc import Mapping
 except ImportError:

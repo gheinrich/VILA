@@ -1,17 +1,21 @@
 import unittest
-import torch
 from typing import Any, Dict, List, Tuple
-from llava.data import dataset
-from transformers import PreTrainedTokenizer, AutoTokenizer
-from llava import conversation as conversation_lib
-from llava.utils.tokenizer import infer_stop_tokens, preprocess_conversation
-from parameterized import parameterized
-from llava.constants import IGNORE_INDEX
 
+import torch
+from parameterized import parameterized
+from transformers import AutoTokenizer, PreTrainedTokenizer
+
+from llava import conversation as conversation_lib
+from llava.constants import IGNORE_INDEX
+from llava.data import dataset
+from llava.utils.tokenizer import infer_stop_tokens, preprocess_conversation
 
 TEST_CONVERSATIONS = [
     [
-        {"from": "human", "value": "<image>\nWho is the author of this book?\nAnswer the question using a single word or phrase."},
+        {
+            "from": "human",
+            "value": "<image>\nWho is the author of this book?\nAnswer the question using a single word or phrase.",
+        },
         {"from": "gpt", "value": "*"},
         {"from": "human", "value": "What is the title of this book?"},
         {"from": "gpt", "value": "Rough Guide Map of South Africa, Lesotho"},
@@ -24,10 +28,16 @@ TEST_CONVERSATIONS = [
     ],
     [
         {"from": "human", "value": "<image>\nWhat do you see happening in this image?"},
-        {"from": "gpt", "value": "In the image, a person's hand is seen holding a pink highlighter pen, which is being used to highlight text in a notebook. The notebook is open, revealing a page filled with handwritten text. The text appears to be in a foreign language, suggesting that the person might be studying or learning a new language. The background of the image is blurred, drawing focus to the hand and the notebook. The overall scene suggests a learning or study environment."},
+        {
+            "from": "gpt",
+            "value": "In the image, a person's hand is seen holding a pink highlighter pen, which is being used to highlight text in a notebook. The notebook is open, revealing a page filled with handwritten text. The text appears to be in a foreign language, suggesting that the person might be studying or learning a new language. The background of the image is blurred, drawing focus to the hand and the notebook. The overall scene suggests a learning or study environment.",
+        },
     ],
     [
-        {"from": "human", "value": "Who is the author of this book?\nAnswer the question using a single word or phrase."},
+        {
+            "from": "human",
+            "value": "Who is the author of this book?\nAnswer the question using a single word or phrase.",
+        },
         {"from": "gpt", "value": "*"},
         {"from": "human", "value": "What is the title of this book?"},
         {"from": "gpt", "value": "Rough Guide Map of South Africa, Lesotho"},
@@ -86,14 +96,14 @@ class TestTokenizerUtils(unittest.TestCase):
                     start = k
                 if k == len(labels) - 1 or labels[k + 1] == IGNORE_INDEX:
                     end = k
-                    outputs.append(tokenizer.decode(labels[start : end]).lstrip())
+                    outputs.append(tokenizer.decode(labels[start:end]).lstrip())
 
             # Get the target responses
             targets = []
             for source in conversation:
                 if source["from"] == "gpt":
                     targets.append(source["value"])
-            
+
             self.assertListEqual(outputs, targets)
 
         # Test regression

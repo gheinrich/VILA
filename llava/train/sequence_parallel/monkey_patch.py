@@ -1,18 +1,17 @@
 from typing import List, Optional, Tuple, Union
 
 import torch
-from torch import nn
-
 import transformers
-from transformers import LlamaConfig
-from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, LlamaAttention, _get_unpad_data
-from transformers.modeling_outputs import BaseModelOutputWithPast
 from einops import rearrange
-
 from flash_attn import flash_attn_func, flash_attn_varlen_func
 from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input
+from torch import nn
+from transformers import LlamaConfig
+from transformers.modeling_outputs import BaseModelOutputWithPast
+from transformers.models.llama.modeling_llama import LlamaAttention, _get_unpad_data, apply_rotary_pos_emb
 
 from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysess_sp_pg
+
 from .hybrid_attn import HybridAttention
 from .ulysses_attn import UlyssesAttention
 
@@ -58,9 +57,7 @@ def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query
     batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
 
     num_query_heads = query_layer.shape[2]
-    key_layer = index_first_axis(
-        key_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
-    )
+    key_layer = index_first_axis(key_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k)
     value_layer = index_first_axis(
         value_layer.reshape(batch_size * kv_seq_len, num_key_value_heads, head_dim), indices_k
     )
@@ -93,7 +90,6 @@ def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query
     )
 
 
-
 def flash_attn_varlen_func_helper(
     self,
     query_states,
@@ -108,7 +104,7 @@ def flash_attn_varlen_func_helper(
 ):
     batch_size = query_states.shape[0]
     assert attention_mask.shape[1] == query_states.shape[1]
-    
+
     # overwrite query_length with the actual length of the sequence after seq parallel communciation
     query_length = attention_mask.shape[1]
     # print('Before unpad attention_mask', attention_mask.shape, "query_states", query_states.shape, "query_length", query_length)
@@ -201,9 +197,17 @@ def _flash_attention_forward(
     try:
         assert attention_mask is not None
     except AssertionError:
-        print("attention_mask is None", "query_states", query_states.shape, "query_length", query_length, "seqlens_in_batch", seqlens_in_batch)
+        print(
+            "attention_mask is None",
+            "query_states",
+            query_states.shape,
+            "query_length",
+            query_length,
+            "seqlens_in_batch",
+            seqlens_in_batch,
+        )
         print(asd)
-    
+
     if attention_mask is not None:
         attn_output = self.ulysses_attn_varlen_func(
             query_states,
@@ -218,11 +222,15 @@ def _flash_attention_forward(
         )
     else:
         attn_output = self.ulysses_attn_func(
-            query_states, key_states, value_states, dropout_p=dropout, softmax_scale=softmax_scale, causal=self.is_causal
+            query_states,
+            key_states,
+            value_states,
+            dropout_p=dropout,
+            softmax_scale=softmax_scale,
+            causal=self.is_causal,
         )
 
     return attn_output
-
 
 
 def new_decoder_forward(
@@ -354,7 +362,7 @@ def new_llamamodel_forward(
                 past_key_value,
                 output_attentions,
                 use_cache,
-                seqlens_in_batch
+                seqlens_in_batch,
             )
         else:
             layer_outputs = decoder_layer(
@@ -364,7 +372,7 @@ def new_llamamodel_forward(
                 past_key_value=past_key_value,
                 output_attentions=output_attentions,
                 use_cache=use_cache,
-                seqlens_in_batch=seqlens_in_batch
+                seqlens_in_batch=seqlens_in_batch,
             )
 
         hidden_states = layer_outputs[0]

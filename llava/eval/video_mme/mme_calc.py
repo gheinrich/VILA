@@ -134,7 +134,7 @@ def eval_your_results(
     )
 
     # Load your results
-    with open(your_results_path, "r") as f:
+    with open(your_results_path) as f:
         your_results = json.load(f)
 
     if isinstance(video_types, str):
@@ -164,7 +164,9 @@ def eval_your_results(
 
         if not skip_missing:
             # Check if the number of files in your results and ground truth are the same
-            assert len(your_results_video_type) == 300, f"Number of files in {video_type} is {len(your_results_video_type)} and is not 300. Check if there are missing files."
+            assert (
+                len(your_results_video_type) == 300
+            ), f"Number of files in {video_type} is {len(your_results_video_type)} and is not 300. Check if there are missing files."
 
         for item in your_results_video_type:
             if skip_missing and item["missing"]:
@@ -275,8 +277,12 @@ def eval_your_results(
     print("-------------------------------------")
     print("Overall Performance")
     print("-------------------------------------")
-    total_correct = sum([sum([q_type_dict[video_type][q_type]["correct"] for q_type in TASK_CATEGORIES]) for video_type in video_types])
-    total_answered = sum([sum([q_type_dict[video_type][q_type]["answered"] for q_type in TASK_CATEGORIES]) for video_type in video_types])
+    total_correct = sum(
+        [sum([q_type_dict[video_type][q_type]["correct"] for q_type in TASK_CATEGORIES]) for video_type in video_types]
+    )
+    total_answered = sum(
+        [sum([q_type_dict[video_type][q_type]["answered"] for q_type in TASK_CATEGORIES]) for video_type in video_types]
+    )
     overall_acc = 100 * total_correct / total_answered if total_answered > 0 else 0
 
     wandb.log({f"videomme/entire-{key_name}": overall_acc})

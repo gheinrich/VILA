@@ -10,6 +10,5 @@
 #SBATCH --output=eval-activitynet-inference.log
 
 CKPT_NAME=vicuna-13b-siglipso400m-ccsvideo-coyo_25m_mmc4core_sharegpt4v_internvid_10M-finetune-baseline_nv_video_flan_jukin_shot2story_shot_only-e4
-model_path=./checkpoints/${CKPT_NAME} 
+model_path=./checkpoints/${CKPT_NAME}
 srun --label bash ~/workspace/VILA-Internal/scripts/v1_5/eval/video_chatgpt/run_qa_activitynet.sh ${model_path} ${CKPT_NAME}
-

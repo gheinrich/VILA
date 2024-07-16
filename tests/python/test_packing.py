@@ -2,11 +2,11 @@ import copy
 import unittest
 
 import torch
-from llava.model import LlavaLlamaConfig, LlavaLlamaModel
-from llava.train.args import ModelArguments, TrainingArguments, DataArguments
-from llava.train.utils import prepare_config_for_training
-from llava.unit_test_utils import requires_gpu, requires_lustre
 from transformers import AutoTokenizer
+
+from llava.model import LlavaLlamaConfig, LlavaLlamaModel
+from llava.train.args import DataArguments, ModelArguments, TrainingArguments
+from llava.train.utils import prepare_config_for_training
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -55,7 +55,7 @@ class TestInputPacking(unittest.TestCase):
         self.model.llm.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
-    #@requires_gpu()
+    # @requires_gpu()
     def test_loss_close(self):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)

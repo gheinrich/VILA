@@ -19,7 +19,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 ###########################################################################
 export VISION_TOWER=${VISION_TOWER:-"google/siglip-large-patch16-384"}
 # google/siglip-large-patch16-384
-# openai/clip-vit-large-patch14-336 
+# openai/clip-vit-large-patch14-336
 
 # GLOBAL bs: 128 * 8
 export ALIGN_DATASET=${ALIGN_DATASET:-llava_1_5_mm_align}

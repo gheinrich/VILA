@@ -31,7 +31,6 @@ from transformers import PreTrainedModel
 
 from ..import_utils import is_npu_available, is_peft_available, is_transformers_greater_than, is_xpu_available
 
-
 if is_peft_available():
     from peft import (
         PeftConfig,
@@ -75,9 +74,7 @@ class PreTrainedModelWrapper(nn.Module):
     supported_modules = ("v_head",)
     supported_rm_modules = ("score",)
     supported_pretrained_model_architectures = (
-        (PreTrainedModel)
-        if not is_peft_available()
-        else (PreTrainedModel, PeftModelForCausalLM, PeftModelForSeq2SeqLM)
+        (PreTrainedModel) if not is_peft_available() else (PreTrainedModel, PeftModelForCausalLM, PeftModelForSeq2SeqLM)
     )
 
     def __init__(
@@ -377,7 +374,7 @@ class PreTrainedModelWrapper(nn.Module):
                     )
             # load json
             if is_resuming_training:
-                with open(index_file_name, "r") as f:
+                with open(index_file_name) as f:
                     index = json.load(f)
                 # check filename with `v_head` or any known extra module:
                 files_to_download = set()

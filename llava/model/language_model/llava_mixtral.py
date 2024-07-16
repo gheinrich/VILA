@@ -20,13 +20,10 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-
-from transformers import AutoConfig, AutoModelForCausalLM, \
-                         MixtralConfig, MixtralModel, MixtralForCausalLM
-
+from transformers import AutoConfig, AutoModelForCausalLM, MixtralConfig, MixtralForCausalLM, MixtralModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
-from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
+from ..llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
 
 
 class LlavaMixtralConfig(MixtralConfig):
@@ -38,7 +35,7 @@ class LlavaMixtralModel(MixtralModel, LlavaMetaModel):
     config_class = LlavaMixtralConfig
 
     def __init__(self, config: MixtralConfig):
-        super(LlavaMixtralModel, self).__init__(config)
+        super().__init__(config)
 
 
 class LlavaMixtralForCausalLM(MixtralForCausalLM, LlavaMetaForCausalLM):
@@ -56,7 +53,7 @@ class LlavaMixtralForCausalLM(MixtralForCausalLM, LlavaMetaForCausalLM):
 
     def get_model(self):
         return self.model
-    
+
     def get_lm_head(self):
         return self.lm_head
 
@@ -82,14 +79,9 @@ class LlavaMixtralForCausalLM(MixtralForCausalLM, LlavaMetaForCausalLM):
                 attention_mask,
                 past_key_values,
                 inputs_embeds,
-                labels
-            ) = self.prepare_inputs_labels_for_multimodal(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
                 labels,
-                images
+            ) = self.prepare_inputs_labels_for_multimodal(
+                input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
         if self.training:
             (
@@ -99,14 +91,9 @@ class LlavaMixtralForCausalLM(MixtralForCausalLM, LlavaMetaForCausalLM):
                 _,
                 new_inputs_embeds,
                 new_labels,
-                sorted_seqlens_in_batch
+                sorted_seqlens_in_batch,
             ) = self.repack_multimodal_data(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
-                inputs_embeds,
-                labels
+                input_ids, position_ids, attention_mask, past_key_values, inputs_embeds, labels
             )
             if sorted_seqlens_in_batch is None:
                 sorted_seqlens_in_batch = seqlens_in_batch
@@ -141,8 +128,9 @@ class LlavaMixtralForCausalLM(MixtralForCausalLM, LlavaMetaForCausalLM):
             input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs
         )
         if images is not None:
-            _inputs['images'] = images
+            _inputs["images"] = images
         return _inputs
+
 
 AutoConfig.register("llava_mixtral", LlavaMixtralConfig)
 AutoModelForCausalLM.register(LlavaMixtralConfig, LlavaMixtralForCausalLM)

@@ -21,7 +21,6 @@ from transformers import StoppingCriteria, StoppingCriteriaList
 
 from ..import_utils import is_rich_available
 
-
 if is_rich_available():
     from rich import print
     from rich.text import Text
@@ -242,7 +241,7 @@ class TextEnvironment:
         if isinstance(tools, dict):
             self.tools = tools
         else:
-            self.tools = dict([(tool.__class__.__name__, tool) for tool in tools])
+            self.tools = {tool.__class__.__name__: tool for tool in tools}
         self.reward_fn = reward_fn
         self.max_length = max_length
         self.request_token = "<request>"

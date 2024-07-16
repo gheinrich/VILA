@@ -18,7 +18,7 @@ Due to the limit of compute, we pre-train VILA on the smaller core set of MMC4 i
 
 1. Firstly, download the annotations of the MMC4-core dataset here: https://github.com/allenai/mmc4. We used the non-fewer-face split, and you may need to request the access [here](https://forms.gle/VYtcNY8aYaUANK9f8).
 
-2. Now modify the input and output path in `mmc4_downloader.py` and run the following script to scrawl the MMC4 images:
+1. Now modify the input and output path in `mmc4_downloader.py` and run the following script to scrawl the MMC4 images:
 
 ```bash
 cd mmc4
@@ -118,7 +118,7 @@ python split_vflan.py
 
 ### ShareGPT4v
 
-The ShareGPT data can be obtained [mit-han-lab/ShareGPT4V](https://huggingface.co/datasets/mit-han-lab/ShareGPT4V). \* Note the original ShareGPT4v dataset contains some samples with file ids (sa_XXXX) and repeative response. We filter those bad examples and reduced the samples from 100K -> 96K (for caption) and 1.2m -> 1.17m (for pretraining). Then we re-combine them into a single file.
+The ShareGPT data can be obtained [mit-han-lab/ShareGPT4V](https://huggingface.co/datasets/mit-han-lab/ShareGPT4V). * Note the original ShareGPT4v dataset contains some samples with file ids (sa_XXXX) and repeative response. We filter those bad examples and reduced the samples from 100K -> 96K (for caption) and 1.2m -> 1.17m (for pretraining). Then we re-combine them into a single file.
 
 ```bash
 huggingface-cli download mit-han-lab/ShareGPT4V --repo-type dataset --local-dir coyo-700m --local-dir-use-symlinks False
@@ -126,7 +126,7 @@ huggingface-cli download mit-han-lab/ShareGPT4V --repo-type dataset --local-dir 
 
 ### WIT
 
-The original WIT data can be obtained [google-research-datasets/wit](https://github.com/google-research-datasets/wit/tree/main). \* We subsample ~538K english data from the original WIT dataset and curate a llava conversation format JSON file.
+The original WIT data can be obtained [google-research-datasets/wit](https://github.com/google-research-datasets/wit/tree/main). * We subsample ~538K english data from the original WIT dataset and curate a llava conversation format JSON file.
 
 ```bash
 huggingface-cli download Efficient-Large-Model/WIT_538K --repo-type dataset --local-dir WIT --local-dir-use-symlinks False
@@ -144,7 +144,7 @@ The image files of Sherlock can be obtained from [VisualGenome](https://visualge
 huggingface-cli download Efficient-Large-Model/sherlock_317K --repo-type dataset --local-dir sherlock --local-dir-use-symlinks False
 ```
 
-### ScienceQA 
+### ScienceQA
 
 We use the train split of ScienceQA. The image data of the train split can be obtained from [ScienceQA](https://huggingface.co/datasets/derek-thomas/ScienceQA) or their [huggingface repo](https://huggingface.co/datasets/derek-thomas/ScienceQA). The llava conversation format JSON file can be downloaded with
 
@@ -154,7 +154,7 @@ huggingface-cli download Efficient-Large-Model/ScienceQA_train_12K --repo-type d
 
 ### IDEFICS2-SFT dataset
 
-We also provide scripts to preprocess IDEFICS2-SFT dataset into llava-SFT like format. 
+We also provide scripts to preprocess IDEFICS2-SFT dataset into llava-SFT like format.
 
 Please first download [HuggingFaceM4/the_cauldron](https://huggingface.co/datasets/HuggingFaceM4/the_cauldron) to `/home/jasonlu/workspace/idefics2-sft/the_cauldron`. Then, run the following scripts:
 

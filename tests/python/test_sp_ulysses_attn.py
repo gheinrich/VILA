@@ -1,9 +1,9 @@
 import torch
 import torch.distributed as dist
-
 from flash_attn import flash_attn_func
+
+from llava.train.sequence_parallel.globals import get_ulysess_sp_pg, set_pg_manager
 from llava.train.sequence_parallel.ulysses_attn import UlyssesAttention
-from llava.train.sequence_parallel.globals import set_pg_manager, get_ulysess_sp_pg
 
 
 def log(msg, a, rank0_only=False):

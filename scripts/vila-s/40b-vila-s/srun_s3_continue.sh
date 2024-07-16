@@ -29,10 +29,10 @@ echo "$SLURM_ACCOUNT | $SLURM_PARTITION | $PRETRAIN_DATASET | $JNAME_PREV | $VIS
 LOGDIR=slurm-logs/$dtime
 mkdir -p $LOGDIR
 
-ERRF=$LOGDIR/step3-$JNAME.err 
+ERRF=$LOGDIR/step3-$JNAME.err
 LOGF=$LOGDIR/step3-$JNAME.out
 
-for i in $(seq 1 10); do 
+for i in $(seq 1 10); do
 
 srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
     -A $SLURM_ACCOUNT -J vila:$JNAME \
@@ -43,7 +43,7 @@ srun -p $SLURM_PARTITION -N $NNODES -t 4:00:00 \
 
 done
 '''
-SLURM_ACCOUNT=nvr_elm_llm 
+SLURM_ACCOUNT=nvr_elm_llm
  cosmos_misc
 SLURM_ACCOUNT=cosmos_misc bash 40b/srun_s3_continue.sh checkpoints/vila-40b-oss-stage2-PRETRAIN-sam_0to5_vila40b_recap
 SLURM_ACCOUNT=nvr_elm_llm bash 40b/srun_s3_continue.sh checkpoints/vila-40b-oss-stage2-PRETRAIN-coyo25m_0to5_vila15_40b_recap+sam_0to5_vila40b_recap

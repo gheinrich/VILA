@@ -16,7 +16,7 @@ fi
 # Input Validation
 if [[ "$SPLIT" != "validation" && "$SPLIT" != "test" ]]; then
     echo "Error: SPLIT must be either 'validation' or 'test'"
-    exit 1 
+    exit 1
 fi
 
 CHUNKS=$(( ${#GPULIST[@]} / 2 )) # Calculate chunks for 2 GPUs per chunk

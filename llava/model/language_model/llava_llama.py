@@ -15,27 +15,27 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 
-from typing import List, Optional, Tuple, Union
-import os, os.path as osp
-import torch
 import inspect
+import os
+import os.path as osp
+from typing import List, Optional, Tuple, Union
 
+import torch
 from transformers import (
-    LlamaForCausalLM,
-    LlamaConfig,
-    PreTrainedModel,
     AutoConfig,
     AutoModel,
     GenerationConfig,
+    LlamaConfig,
+    LlamaForCausalLM,
     PretrainedConfig,
     PreTrainedModel,
 )
-
 from transformers.modeling_outputs import CausalLMOutputWithPast
-from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
+
+from ..configuration_llava import LlavaConfig
+from ..llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
 from ..multimodal_encoder.builder import build_vision_tower
 from ..multimodal_projector.builder import build_mm_projector
-from ..configuration_llava import LlavaConfig
 from ..utils import get_model_config
 from .builder import build_llm_and_tokenizer
 
@@ -43,16 +43,17 @@ from .builder import build_llm_and_tokenizer
 class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
 
+
 ## FIXME we will follow the convention to add a new class for CausalLM in the future
 class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     config_class = LlavaLlamaConfig
     main_input_name = "input_embeds"
     supports_gradient_checkpointing = True
-    
+
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         super().__init__(config)
         return self.init_vlm(config=config, *args, **kwargs)
-        
+
     @classmethod
     def from_pretrained(
         cls,
@@ -69,13 +70,32 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         **kwargs,
     ):
         if hasattr(cls, "load_pretrained"):
-            return cls.load_pretrained(pretrained_model_name_or_path, 
-                *model_args, config=config, cache_dir=cache_dir, ignore_mismatched_sizes=ignore_mismatched_sizes, force_download=force_download, local_files_only=local_files_only, token=token, 
-                revision=revision, use_safetensors=use_safetensors, **kwargs
+            return cls.load_pretrained(
+                pretrained_model_name_or_path,
+                *model_args,
+                config=config,
+                cache_dir=cache_dir,
+                ignore_mismatched_sizes=ignore_mismatched_sizes,
+                force_download=force_download,
+                local_files_only=local_files_only,
+                token=token,
+                revision=revision,
+                use_safetensors=use_safetensors,
+                **kwargs,
             )
-        return super(LlavaLlamaModel).from_pretrained(pretrained_model_name_or_path, 
-            *model_args, config=config, cache_dir=cache_dir, ignore_mismatched_sizes=ignore_mismatched_sizes, force_download=force_download, local_files_only=local_files_only, token=token, 
-            revision=revision, use_safetensors=use_safetensors, **kwargs)    
+        return super(LlavaLlamaModel).from_pretrained(
+            pretrained_model_name_or_path,
+            *model_args,
+            config=config,
+            cache_dir=cache_dir,
+            ignore_mismatched_sizes=ignore_mismatched_sizes,
+            force_download=force_download,
+            local_files_only=local_files_only,
+            token=token,
+            revision=revision,
+            use_safetensors=use_safetensors,
+            **kwargs,
+        )
 
     def forward(
         self,
@@ -105,8 +125,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             ) = self.prepare_inputs_labels_for_multimodal(
                 input_ids, position_ids, attention_mask, past_key_values, labels, images
             )
-        
-        support_packing = ("seqlens_in_batch" in inspect.signature(self.llm.forward).parameters)
+
+        support_packing = "seqlens_in_batch" in inspect.signature(self.llm.forward).parameters
 
         if self.training and support_packing and not dpo_forward:
             (
@@ -136,7 +156,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             new_labels = labels
             sorted_seqlens_in_batch = attention_mask.sum(-1).int()
             new_input_ids = input_ids
-        
+
         if support_packing:
             outputs = self.llm.forward(
                 input_ids=new_input_ids,
@@ -168,7 +188,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         if dpo_forward:
             return outputs.logits, new_labels
         return outputs
-    
+
     @torch.no_grad()
     def generate(
         self,
@@ -185,20 +205,14 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 _,
                 inputs_embeds,
                 _,
-            ) = self.prepare_inputs_labels_for_multimodal(
-                input_ids, None, attention_mask, None, None, images
-            )
+            ) = self.prepare_inputs_labels_for_multimodal(input_ids, None, attention_mask, None, None, images)
         else:
             inputs_embeds = self.get_input_embeddings()(input_ids)
         inputs_embeds = inputs_embeds.to(self.dtype)
-        
-        outputs = self.llm.generate(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
-            **generation_kwargs
-        )
+
+        outputs = self.llm.generate(inputs_embeds=inputs_embeds, attention_mask=attention_mask, **generation_kwargs)
         return outputs
-        
+
 
 AutoConfig.register("llava_llama", LlavaLlamaConfig)
 AutoModel.register(LlavaLlamaConfig, LlavaLlamaModel)

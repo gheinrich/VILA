@@ -129,20 +129,21 @@ class VILAPanda70m(Dataset):
 
     def __getitem__(self, index):
         data = self.dataset[index]
-        
+
         # TODO: we shall make sure no key is missing in panda70m.
         try:
             video_path = data[".mp4"]
         except KeyError:
             video_path = None
             print("bad data", data)
-        
+
         if ".json" in data:
             jinfo = data[".json"]
             caption = jinfo["caption"]
         else:
             caption = "This is a sample video from Youtube."
         from llava.mm_utils import opencv_extract_frames
+
         imgs, frames_loaded = opencv_extract_frames(video_path, self.num_video_frames, self.loader_fps)
         cap = caption
         if frames_loaded == 0:
@@ -153,7 +154,8 @@ class VILAPanda70m(Dataset):
         processor = self.data_args.image_processor
         image_tensor = [
             # processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in torch.unbind(image_tensor)
-            processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in imgs
+            processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+            for image in imgs
         ]
         image_tensor = torch.stack(image_tensor)
 
@@ -202,7 +204,7 @@ def cleanup_corrupted_videos(
 
         try:
             assert osp.exists(json_path) and osp.exists(video_path)
-            jinfo = json.load(open(json_path, "r"))
+            jinfo = json.load(open(json_path))
             info = with_opencv(video_path)
             print(info)
             video = VILAEncodedVideo.from_bytesio(video_path, decoder="decord", decode_audio=False)
@@ -227,7 +229,7 @@ if __name__ == "__main__":
 
     # video_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.mp4")
     # json_path = osp.expanduser(f"{WORKDIR}/WxTjy7RY2yA.json")
-    jinfo = json.load(open(json_path, "r"))
+    jinfo = json.load(open(json_path))
     img_t = load_video(video_path, jinfo=jinfo)
     print(img_t)
 

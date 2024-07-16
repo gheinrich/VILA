@@ -46,7 +46,7 @@ def process_caption(msg, task):
 
 class Cap2QADataset(Dataset):
     def __init__(self, data_path="captioner/coyo-25m-recap/coyo25m-0-000000.tar.json", task="cap2qa") -> None:
-        caption_json = json.load(open(data_path, "r"))
+        caption_json = json.load(open(data_path))
         self.captions = list(caption_json.items())
         self.task = task
 
@@ -95,7 +95,7 @@ def main(
     # print("[DEBUG]", output_path, output_json, flush=True)
     output_json = safely_merge_info(output_path, output_json)
     # return 0
-    
+
     pipe = pipeline(
         "text-generation",
         model=model_id,
@@ -107,7 +107,7 @@ def main(
         return_full_text=False,
         repetition_penalty=1.0,
     )
-    
+
     for idx, (k, v) in enumerate(dloader):
         input_msg = v["cap2llm"]
 
@@ -145,7 +145,7 @@ srun --label -A llmservice_nlp_fm -N 1 \
     -p batch_block1,batch_block2,batch_block3 -t 4:00:00 \
     -J llmservice_nlp_fm:test2 --gpus-per-node 8 --exclusive \
     --pty torchrun --nproc-per-node 8  llava/data_aug/caption2qa.py --model_id=NousResearch/Llama-2-13b-chat-hf
-    
+
 
 JOBS_LIMIT=64  # Set your limit here
 model_id=NousResearch/Llama-2-13b-chat-hf

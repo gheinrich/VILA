@@ -1,12 +1,14 @@
 import glob
-import tarfile
-import json
-import os, os.path as osp
-from io import BytesIO
-from PIL import Image, ImageFile
 import hashlib
-from torch.utils.data import Dataset, get_worker_info, ConcatDataset
+import json
+import os
+import os.path as osp
+import tarfile
+from io import BytesIO
 from multiprocessing.pool import ThreadPool as Pool
+
+from PIL import Image, ImageFile
+from torch.utils.data import ConcatDataset, Dataset, get_worker_info
 
 try:  # make torchvision optional
     from torchvision.transforms.functional import to_tensor
@@ -78,7 +80,7 @@ class TarDataset(Dataset):
             json.dump(self.samples, open(fpath, "w"), indent=2)
         else:
             print(f"loading cached tarinfo from {fpath}")
-            self.samples = json.load(open(fpath, "r"))
+            self.samples = json.load(open(fpath))
 
     def __getitem__(self, index):
         image = self.get_image(self.samples[index], pil=True)
@@ -207,7 +209,7 @@ class TarImageFolder(Dataset):
         print("TarImageFolder dataset init finish")
 
         if len(self.class2idx) == 0:
-            raise IOError(
+            raise OSError(
                 "No classes (top-level folders) were found with the given criteria. The given\n"
                 "extensions, is_valid_file is too strict, or the archive is empty."
             )

@@ -12,22 +12,26 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os, sys, os.path as osp
+import logging
+import os
+import os.path as osp
+import sys
 import warnings
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
-import torch, logging
+import torch
 import torch.distributed as dist
-
 from transformers import (
-    AutoTokenizer,
+    AutoConfig,
     AutoModel,
     AutoModelForCausalLM,
-    AutoConfig,
+    AutoTokenizer,
     BitsAndBytesConfig,
     PretrainedConfig,
     PreTrainedModel,
 )
+from transformers.modeling_utils import ContextManagers, no_init_weights
 
 from llava.constants import (
     DEFAULT_IM_END_TOKEN,
@@ -36,42 +40,34 @@ from llava.constants import (
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
 )
-
-from llava.train.utils import (
-    get_checkpoint_path,
-    prepare_config_for_training,
-    vision_resolution_elevation,
-    unit_test_rope_scaling,
-)
-
-from collections import OrderedDict
-from llava.model.utils import get_model_config
+from llava.model.configuration_llava import LlavaConfig
 from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
-from llava.model.configuration_llava import LlavaConfig
-
-from transformers.modeling_utils import ContextManagers, no_init_weights
-
+from llava.model.utils import get_model_config
 from llava.train.sequence_parallel import get_pg_manager
-from llava.train.sequence_parallel.globals import (
-    get_ulysess_sp_pg,
+from llava.train.sequence_parallel.globals import get_ulysess_sp_pg
+from llava.train.utils import (
+    get_checkpoint_path,
+    prepare_config_for_training,
+    unit_test_rope_scaling,
+    vision_resolution_elevation,
 )
 
 
-## TODO decide whether should we use metaclass
+# TODO decide whether should we use metaclass
 class LlavaMetaModel(ABC):
     def init_vlm(self, config: PreTrainedModel = None, *args, **kwargs):
         # TODO(ligeng): figure out how from_config and from_pretrained works in HF implementation.
-        if hasattr(self, "llm") or hasattr(self, "vision_tower")  or hasattr(self, "mm_projector"):
+        if hasattr(self, "llm") or hasattr(self, "vision_tower") or hasattr(self, "mm_projector"):
             # already initialized, skipped
-            return 
-        
+            return
+
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
-        
+
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
@@ -97,11 +93,11 @@ class LlavaMetaModel(ABC):
         assert (
             self.llm is not None or self.vision_tower is not None or self.mm_projector is not None
         ), "At least one of the components must be instantiated."
-    
+
     @classmethod
     def load_from_config(cls, model_path_or_config, *args, **kwargs):
         pass
-    
+
     ## FIXME we will use this function to load model in the future
     @classmethod
     def load_pretrained(cls, model_path_or_config, *args, **kwargs):
@@ -112,14 +108,16 @@ class LlavaMetaModel(ABC):
         elif isinstance(model_path_or_config, LlavaConfig):
             config = model_path_or_config
         else:
-            raise NotImplementedError(f"wrong type, {type(model_path_or_config)} \
-                                      {isinstance(model_path_or_config, LlavaConfig)}")
+            raise NotImplementedError(
+                f"wrong type, {type(model_path_or_config)} \
+                                      {isinstance(model_path_or_config, LlavaConfig)}"
+            )
 
         model_dtype = getattr(config, "model_dtype", "torch.float16")
         if not hasattr(config, "model_dtype"):
             warnings.warn("model_dtype not found in config, defaulting to torch.float16.")
             config.model_dtype = model_dtype
-        
+
         cfgs = get_model_config(config)
         if len(cfgs) == 3:
             llm_cfg, vision_tower_cfg, mm_projector_cfg = cfgs
@@ -127,7 +125,9 @@ class LlavaMetaModel(ABC):
             raise ValueError("`llm_cfg` `mm_projector_cfg` `vision_tower_cfg` not found in the config.")
 
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained")
-        init_context = [no_init_weights(_enable=True),]
+        init_context = [
+            no_init_weights(_enable=True),
+        ]
         # print("Before Init Context")
         # if hasattr(config, "deepspeed") and "mics" in config.deepspeed:
         #     print("Using MiCS_Init")
@@ -136,11 +136,11 @@ class LlavaMetaModel(ABC):
         with ContextManagers(init_context):
             vlm = cls(config, *args, **kwargs)
         # print(llm_cfg, vision_tower_cfg, mm_projector_cfg); input("DEBUG load_pretrained finish")
-        
-        if hasattr(vlm, "llm") or hasattr(vlm, "vision_tower")  or hasattr(vlm, "mm_projector"):
+
+        if hasattr(vlm, "llm") or hasattr(vlm, "vision_tower") or hasattr(vlm, "mm_projector"):
             if vlm.is_loaded:
                 return vlm
-        
+
         vlm.llm, vlm.tokenizer = build_llm_and_tokenizer(llm_cfg, config, *args, **kwargs)
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
@@ -153,14 +153,14 @@ class LlavaMetaModel(ABC):
             vlm.llm is not None or vlm.vision_tower is not None or vlm.mm_projector is not None
         ), "At least one of the components must be instantiated."
         return vlm
-    
+
     ## FIXME we will use this function to save the model in the future
     def save_pretrained(self, output_dir, state_dict=None):
         if state_dict is None:
             # other wise fetch from deepspeed
             # state_dict = accelerator.get_state_dict(is_deepspeed_enabled)
             state_dict = self.state_dict()
-        
+
         if getattr(self, "tokenizer", None):
             self.tokenizer.save_pretrained(osp.join(output_dir, "llm"))
 
@@ -183,9 +183,9 @@ class LlavaMetaModel(ABC):
             )
             self.vision_tower.image_processor.save_pretrained(os.path.join(output_dir, "vision_tower"))
             self.config.vision_tower_cfg = self.vision_tower.config
-            if hasattr(self.config.vision_tower_cfg, 'auto_map'):
+            if hasattr(self.config.vision_tower_cfg, "auto_map"):
                 if "radio" not in self.get_vision_tower().__class__.__name__.lower():
-                    delattr(self.config.vision_tower_cfg, 'auto_map')
+                    delattr(self.config.vision_tower_cfg, "auto_map")
 
         if self.get_mm_projector():
             print(f"saving mm_projector to {osp.join(output_dir, 'mm_projector')}")
@@ -202,7 +202,6 @@ class LlavaMetaModel(ABC):
         self.config._name_or_path = output_dir
         self.config.architectures = [self.__class__.__name__]
         self.config.save_pretrained(output_dir)
-   
 
     def get_llm(self):
         llm = getattr(self, "llm", None)
@@ -237,9 +236,9 @@ class LlavaMetaModel(ABC):
             self.config.mm_projector_cfg = self.mm_projector.config
 
     def freezed_module_patch(self):
-        '''
+        """
         Huggingface will call model.train() at each training_step. To ensure the expected behaviors for modules like dropout, batchnorm, etc., we need to call model.eval() for the freezed modules.
-        '''
+        """
         if self.training:
             if self.get_llm() and not getattr(self.config, "tune_language_model", False):
                 pass
@@ -248,12 +247,12 @@ class LlavaMetaModel(ABC):
                 self.get_vision_tower().eval()
             if self.get_mm_projector() and not getattr(self.config, "tune_mm_projector", False):
                 self.get_mm_projector().eval()
-    
+
     def encode_images(self, images):
         image_features = self.get_vision_tower()(images)
         image_features = self.get_mm_projector()(image_features)
         return image_features
-    
+
     ## @yunhao: is there a better way to handle function call and attributes for llm?
     ## support beam search
     def _temporary_reorder_cache(self, past_key_values, sorted_idx):
@@ -268,7 +267,6 @@ class LlavaMetaModel(ABC):
     def resize_token_embeddings(self, embed_size):
         self.get_llm().resize_token_embeddings(embed_size)
 
-    
 
 class LlavaMetaForCausalLM(ABC):
     """This class is originally implemented by the LLaVA team and
@@ -279,7 +277,7 @@ class LlavaMetaForCausalLM(ABC):
     def prepare_inputs_labels_for_multimodal(
         self, input_ids, position_ids, attention_mask, past_key_values, labels, images
     ):
-        
+
         # Handle sequence parallelism
         PROCESS_GROUP_MANAGER = get_pg_manager()
         if PROCESS_GROUP_MANAGER is None:
@@ -366,7 +364,6 @@ class LlavaMetaForCausalLM(ABC):
         new_labels = []
         cur_image_idx = 0
 
-
         # kentang-mit@: If some part of the model is executed in the loop, the the loop length needs to be a constant.
         for batch_idx, cur_input_ids in enumerate(input_ids):
             cur_input_ids = input_ids[batch_idx]
@@ -415,7 +412,7 @@ class LlavaMetaForCausalLM(ABC):
                             dtype=cur_labels.dtype,
                         )
                     )
-                
+
             cur_new_input_embeds = torch.cat(cur_new_input_embeds)
             cur_new_labels = torch.cat(cur_new_labels)
 
@@ -500,7 +497,6 @@ class LlavaMetaForCausalLM(ABC):
         #     else:
         #         assert self.global_seq_len[sp_rank] == position_ids.shape[-1]
 
-
         if _labels is None:
             new_labels = None
         else:
@@ -552,11 +548,10 @@ class LlavaMetaForCausalLM(ABC):
         #     sp_degree = PROCESS_GROUP_MANAGER.sp_degree
         #     sp_rank = PROCESS_GROUP_MANAGER.sp_rank
 
-
         # We will not use packing here when sequence parallelism is enabled.
         # However, we do resharding here to ensure the sequence length is the same across all ranks.
         if PROCESS_GROUP_MANAGER is not None:
-            
+
             sp_degree = PROCESS_GROUP_MANAGER.sp_degree
             sp_rank = PROCESS_GROUP_MANAGER.sp_rank
             sp_group = PROCESS_GROUP_MANAGER.ulysses_pg
@@ -565,9 +560,11 @@ class LlavaMetaForCausalLM(ABC):
             dist.all_gather(ulysess_seq_len, torch.tensor(shard_seqlen, device=position_ids.device), group=sp_group)
             # global_seq_len = torch.sum(torch.cat(ulysess_seq_len, dim=0)).item()
 
-
             # Gather attention_mask and reshard it evenly
-            attention_mask_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=attention_mask.dtype, device=attention_mask.device) for i in range(sp_degree)]
+            attention_mask_list = [
+                torch.zeros((bs, ulysess_seq_len[i]), dtype=attention_mask.dtype, device=attention_mask.device)
+                for i in range(sp_degree)
+            ]
             dist.all_gather(attention_mask_list, attention_mask, group=sp_group)
             effective_seqlen_list = [attention_mask_list[i].sum(dim=-1) for i in range(sp_degree)]
             effective_seqlen = torch.stack(effective_seqlen_list, dim=-1)
@@ -577,9 +574,13 @@ class LlavaMetaForCausalLM(ABC):
             for i in range(bs):
                 global_attention_mask_batch_list = []
                 for j in range(sp_degree):
-                    global_attention_mask_batch_list.append(attention_mask_list[j][i, :effective_seqlen_batch_list[i][j]])
+                    global_attention_mask_batch_list.append(
+                        attention_mask_list[j][i, : effective_seqlen_batch_list[i][j]]
+                    )
                 global_attention_mask_list.append(torch.cat(global_attention_mask_batch_list, dim=0))
-            global_attention_mask = torch.nn.utils.rnn.pad_sequence(global_attention_mask_list, batch_first=True, padding_value=False)
+            global_attention_mask = torch.nn.utils.rnn.pad_sequence(
+                global_attention_mask_list, batch_first=True, padding_value=False
+            )
 
             # Hyperparameters for sequence parallelism resharding
             global_seq_len = global_attention_mask.shape[-1]
@@ -591,34 +592,45 @@ class LlavaMetaForCausalLM(ABC):
             # else:
             #     start_idx = torch.sum(torch.cat(ulysess_seq_len[:sp_rank], dim=0)).item()
 
-            new_attention_mask = torch.narrow(global_attention_mask, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
-
+            new_attention_mask = torch.narrow(
+                global_attention_mask, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard
+            )
 
             # Gather position_ids and reshard it evenly
-            position_ids_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=position_ids.dtype, device=position_ids.device) for i in range(sp_degree)]
+            position_ids_list = [
+                torch.zeros((bs, ulysess_seq_len[i]), dtype=position_ids.dtype, device=position_ids.device)
+                for i in range(sp_degree)
+            ]
             dist.all_gather(position_ids_list, position_ids, group=sp_group)
             global_position_ids_list = []
             for i in range(bs):
                 global_position_ids_batch_list = []
                 for j in range(sp_degree):
-                    global_position_ids_batch_list.append(position_ids_list[j][i, :effective_seqlen_batch_list[i][j]])
+                    global_position_ids_batch_list.append(position_ids_list[j][i, : effective_seqlen_batch_list[i][j]])
                 global_position_ids_list.append(torch.cat(global_position_ids_batch_list, dim=0))
-            global_position_ids = torch.nn.utils.rnn.pad_sequence(global_position_ids_list, batch_first=True, padding_value=-1)
-            new_position_ids = torch.narrow(global_position_ids, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
-
+            global_position_ids = torch.nn.utils.rnn.pad_sequence(
+                global_position_ids_list, batch_first=True, padding_value=-1
+            )
+            new_position_ids = torch.narrow(
+                global_position_ids, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard
+            )
 
             # Gather labels and reshard it evenly
-            labels_list = [torch.zeros((bs, ulysess_seq_len[i]), dtype=labels.dtype, device=labels.device) for i in range(sp_degree)]
+            labels_list = [
+                torch.zeros((bs, ulysess_seq_len[i]), dtype=labels.dtype, device=labels.device)
+                for i in range(sp_degree)
+            ]
             dist.all_gather(labels_list, labels, group=sp_group)
             global_labels_list = []
             for i in range(bs):
                 global_labels_batch_list = []
                 for j in range(sp_degree):
-                    global_labels_batch_list.append(labels_list[j][i, :effective_seqlen_batch_list[i][j]])
+                    global_labels_batch_list.append(labels_list[j][i, : effective_seqlen_batch_list[i][j]])
                 global_labels_list.append(torch.cat(global_labels_batch_list, dim=0))
-            global_labels = torch.nn.utils.rnn.pad_sequence(global_labels_list, batch_first=True, padding_value=IGNORE_INDEX)
+            global_labels = torch.nn.utils.rnn.pad_sequence(
+                global_labels_list, batch_first=True, padding_value=IGNORE_INDEX
+            )
             new_labels = torch.narrow(global_labels, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
-
 
             # Gather inputs_embeds and reshard it evenly
             # TODO: Fix the non-enough images.
@@ -632,21 +644,27 @@ class LlavaMetaForCausalLM(ABC):
             #     global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
             # global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
             # new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
-            
+
             # Gather all hidden states and flaten them
             ulysess_seq_len_cat = torch.cat(ulysess_seq_len, dim=0)
             global_inputs_embeds_list = []
             if sp_rank == 0:
                 original_start_id = 0
-                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
+                original_end_id = torch.sum(ulysess_seq_len_cat[: sp_rank + 1]).item()
             elif sp_rank == sp_degree - 1:
                 original_start_id = torch.sum(ulysess_seq_len_cat[:sp_rank]).item()
-                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
+                original_end_id = torch.sum(ulysess_seq_len_cat[: sp_rank + 1]).item()
             else:
                 original_start_id = torch.sum(ulysess_seq_len_cat[:sp_rank]).item()
-                original_end_id = torch.sum(ulysess_seq_len_cat[:sp_rank+1]).item()
-            all_inputs_embeds = torch.zeros(bs, torch.sum(ulysess_seq_len_cat), inputs_embeds.shape[-1], dtype=inputs_embeds.dtype, device=inputs_embeds.device).contiguous()
-            all_inputs_embeds[: , original_start_id: original_end_id, :] += inputs_embeds
+                original_end_id = torch.sum(ulysess_seq_len_cat[: sp_rank + 1]).item()
+            all_inputs_embeds = torch.zeros(
+                bs,
+                torch.sum(ulysess_seq_len_cat),
+                inputs_embeds.shape[-1],
+                dtype=inputs_embeds.dtype,
+                device=inputs_embeds.device,
+            ).contiguous()
+            all_inputs_embeds[:, original_start_id:original_end_id, :] += inputs_embeds
             dist.barrier(group=sp_group)
             dist.all_reduce(all_inputs_embeds, group=sp_group)
             dist.barrier(group=sp_group)
@@ -656,12 +674,15 @@ class LlavaMetaForCausalLM(ABC):
                     prev_len = torch.sum(ulysess_seq_len_cat[:j]).item() if j > 0 else 0
                     start_id = prev_len
                     end_id = prev_len + effective_seqlen_batch_list[i][j]
-                    global_inputs_embeds_batch_list.append(all_inputs_embeds[i, start_id: end_id])
+                    global_inputs_embeds_batch_list.append(all_inputs_embeds[i, start_id:end_id])
                 global_inputs_embeds_list.append(torch.cat(global_inputs_embeds_batch_list, dim=0))
-            global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(global_inputs_embeds_list, batch_first=True, padding_value=0)
-            new_inputs_embeds = torch.narrow(global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard)
+            global_inputs_embeds = torch.nn.utils.rnn.pad_sequence(
+                global_inputs_embeds_list, batch_first=True, padding_value=0
+            )
+            new_inputs_embeds = torch.narrow(
+                global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard
+            )
 
-                        
             return (
                 None,
                 new_position_ids,
@@ -669,7 +690,7 @@ class LlavaMetaForCausalLM(ABC):
                 past_key_values,
                 new_inputs_embeds,
                 new_labels,
-                None, # sorted_seqlens_in_batch set as None for sequence parallelism
+                None,  # sorted_seqlens_in_batch set as None for sequence parallelism
             )
 
         # kentang-mit@: reorder and repack (reduce computation overhead)
