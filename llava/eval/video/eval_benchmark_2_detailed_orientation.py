@@ -1,6 +1,3 @@
-# This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
-
-# import openai
 import argparse
 import ast
 import json
@@ -8,6 +5,11 @@ import os
 from multiprocessing.pool import Pool
 
 import openai
+from openai import BadRequestError
+
+from .utils import get_client
+
+client = get_client()
 
 
 def parse_args():
@@ -15,9 +17,10 @@ def parse_args():
     parser.add_argument("--pred_path", required=True, help="The path to file containing prediction.")
     parser.add_argument("--output_dir", required=True, help="The path to save annotation json files.")
     parser.add_argument("--output_json", required=True, help="The path to save annotation final combined json file.")
-    parser.add_argument("--api_key", help="OpenAI API key.")
-    parser.add_argument("--api_base", default="", type=str, help="OpenAI API base.")
+    parser.add_argument("--api_key", required=True, help="OpenAI API key.")
+    parser.add_argument("--api_base", default=None, type=str, help="OpenAI API base.")
     parser.add_argument("--num_tasks", required=True, type=int, help="Number of splits.")
+    parser.add_argument("--model", default="gpt-3.5-turbo", type=str, help="OpenAI model.")
     args = parser.parse_args()
     return args
 
@@ -28,6 +31,9 @@ def annotate(prediction_set, caption_files, output_dir, args):
     returns a score for detailed orientation.
     """
     # Set the OpenAI API key.
+    openai.api_key = args.api_key
+    if args.api_base is not None:
+        openai.api_base = args.api_base
     for file in caption_files:
         key = file[:-5]  # Strip file extension
         qa_set = prediction_set[key]
@@ -36,8 +42,8 @@ def annotate(prediction_set, caption_files, output_dir, args):
         pred = qa_set["pred"]
         try:
             # Compute the detailed-orientation score
-            completion = openai.chat.completions.create(
-                model="gpt-4",
+            completion = client.chat.completions.create(
+                model=args.model,
                 messages=[
                     {
                         "role": "system",
@@ -65,10 +71,18 @@ def annotate(prediction_set, caption_files, output_dir, args):
             )
             # Convert response to a Python dictionary.
             response_message = completion.choices[0].message.content
-            # response_message = completion["choices"][0]["message"]["content"]
             response_dict = ast.literal_eval(response_message)
             result_qa_pair = [response_dict, qa_set]
 
+            # Save the question-answer pairs to a json file.
+            with open(f"{output_dir}/{key}.json", "w") as f:
+                json.dump(result_qa_pair, f)
+
+        except BadRequestError as e:
+            print(f"BadRequestError processing file '{key}': {e}")
+            response_dict = {"score": 0}
+            qa_set["pred"] = ""
+            result_qa_pair = [response_dict, qa_set]
             # Save the question-answer pairs to a json file.
             with open(f"{output_dir}/{key}.json", "w") as f:
                 json.dump(result_qa_pair, f)
@@ -85,7 +99,7 @@ def main():
     args = parse_args()
 
     file = open(args.pred_path)
-    pred_contents = json.load(file)
+    pred_contents = [eval(i.strip()) for i in file.readlines()]
 
     # Dictionary to store the count of occurrences for each video_id
     video_id_counts = {}
@@ -124,8 +138,7 @@ def main():
         prediction_set[id] = qa_set
 
     # Set the OpenAI API key.
-    # openai.api_key = args.api_key
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+    openai.api_key = args.api_key
     num_tasks = args.num_tasks
 
     # While loop to ensure that all captions are processed.
@@ -151,12 +164,8 @@ def main():
             task_args = [(prediction_set, part, args.output_dir, args) for part in all_parts]
 
             # Use a pool of workers to process the files in parallel.
-            # with Pool() as pool:
-            #    pool.starmap(annotate, task_args)
-            from tqdm import tqdm
-
-            for task_arg in tqdm(task_args):
-                annotate(*task_arg)
+            with Pool() as pool:
+                pool.starmap(annotate, task_args)
 
         except Exception as e:
             print(f"Error: {e}")
@@ -183,12 +192,17 @@ def main():
     count = 0
     for key, result in combined_contents.items():
         count += 1
-        score_match = result[0]["score"]
+        score_match = result[0].get("score", 3)
         score = int(score_match)
         score_sum += score
     average_score = score_sum / count
 
     print("Average score for detailed orientation:", average_score)
+
+    result_file = os.path.join(os.path.dirname(os.path.dirname(args.output_json)), "results.json")
+    sample_set = {"gpt": args.model, "task": "2_detailed", "score": average_score}
+    with open(result_file, "a") as f:
+        f.write(json.dumps(sample_set) + "\n")
 
 
 if __name__ == "__main__":

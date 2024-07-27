@@ -89,6 +89,7 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
     if conv.sep_style == SeparatorStyle.LLAMA_3:
         keywords = [conv.sep, conv.sep2]
         stopping_criteria = [KeywordsStoppingCriteria(keywords, tokenizer, input_ids)]
+        stop_str = None
     else:
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         keywords = [stop_str]
@@ -111,7 +112,7 @@ def get_model_output(model, image_processor, tokenizer, video_path, qs, args):
 
     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
     outputs = outputs.strip()
-    if outputs.endswith(stop_str):
+    if stop_str is not None and outputs.endswith(stop_str):
         outputs = outputs[: -len(stop_str)]
     outputs = outputs.strip()
     return outputs

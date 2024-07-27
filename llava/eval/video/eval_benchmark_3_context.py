@@ -1,5 +1,3 @@
-# This file is originated from: https://github.com/mbzuai-oryx/Video-ChatGPT
-
 import argparse
 import ast
 import json
@@ -7,6 +5,12 @@ import os
 from multiprocessing.pool import Pool
 
 import openai
+from openai import BadRequestError
+
+# from .utils import client
+from .utils import get_client
+
+client = get_client()
 
 
 def parse_args():
@@ -15,8 +19,9 @@ def parse_args():
     parser.add_argument("--output_dir", required=True, help="The path to save annotation json files.")
     parser.add_argument("--output_json", required=True, help="The path to save annotation final combined json file.")
     parser.add_argument("--api_key", required=True, help="OpenAI API key.")
-    parser.add_argument("--api_base", default="", type=str, help="OpenAI API base.")
+    parser.add_argument("--api_base", default=None, type=str, help="OpenAI API base.")
     parser.add_argument("--num_tasks", required=True, type=int, help="Number of splits.")
+    parser.add_argument("--model", default="gpt-3.5-turbo", type=str, help="OpenAI model.")
     args = parser.parse_args()
     return args
 
@@ -24,47 +29,42 @@ def parse_args():
 def annotate(prediction_set, caption_files, output_dir, args):
     """
     Evaluates question and answer pairs using GPT-3 and
-    returns a score for consistency.
+    returns a score for contextual understanding.
     """
     # Set the OpenAI API key.
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+    openai.api_key = args.api_key
     if args.api_base is not None:
         openai.api_base = args.api_base
     for file in caption_files:
         key = file[:-5]  # Strip file extension
         qa_set = prediction_set[key]
-        question1 = qa_set["q1"]
-        question2 = qa_set["q2"]
+        question = qa_set["q"]
         answer = qa_set["a"]
-        pred1 = qa_set["pred1"]
-        pred2 = qa_set["pred2"]
+        pred = qa_set["pred"]
         try:
-            # Compute the consistency score
-            completion = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+            # Compute the contextual understanding score
+            completion = client.chat.completions.create(
+                model=args.model,
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an intelligent chatbot designed for evaluating the consistency of generative outputs for similar video-based question-answer pairs. "
-                        "You will be given two very similar questions, a common answer common to both the questions and predicted answers for the two questions ."
-                        "Your task is to compare the predicted answers for two very similar question, with a common correct answer and determine if they are consistent. Here's how you can accomplish the task:"
+                        "content": "You are an intelligent chatbot designed for evaluating the contextual understanding of generative outputs for video-based question-answer pairs. "
+                        "Your task is to compare the predicted answer with the correct answer and determine if the generated response aligns with the overall context of the video content. Here's how you can accomplish the task:"
                         "------"
                         "##INSTRUCTIONS: "
-                        "- Focus on the consistency between the two predicted answers and the correct answer. Both predicted answers should correspond to the correct answer and to each other, and should not contain any contradictions or significant differences in the conveyed information.\n"
-                        "- Both predicted answers must be consistent with each other and the correct answer, in terms of the information they provide about the video content.\n"
-                        "- Consider synonyms or paraphrases as valid matches, but only if they maintain the consistency in the conveyed information.\n"
-                        "- Evaluate the consistency of the two predicted answers compared to the correct answer.",
+                        "- Evaluate whether the predicted answer aligns with the overall context of the video content. It should not provide information that is out of context or misaligned.\n"
+                        "- The predicted answer must capture the main themes and sentiments of the video.\n"
+                        "- Consider synonyms or paraphrases as valid matches.\n"
+                        "- Provide your evaluation of the contextual understanding of the prediction compared to the answer.",
                     },
                     {
                         "role": "user",
                         "content": "Please evaluate the following video-based question-answer pair:\n\n"
-                        f"Question 1: {question1}\n"
-                        f"Question 2: {question2}\n"
+                        f"Question: {question}\n"
                         f"Correct Answer: {answer}\n"
-                        f"Predicted Answer to Question 1: {pred1}\n"
-                        f"Predicted Answer to Question 2: {pred2}\n\n"
-                        "Provide your evaluation only as a consistency score where the consistency score is an integer value between 0 and 5, with 5 indicating the highest level of consistency. "
-                        "Please generate the response in the form of a Python dictionary string with keys 'score', where its value is the consistency score in INTEGER, not STRING."
+                        f"Predicted Answer: {pred}\n\n"
+                        "Provide your evaluation only as a contextual understanding score where the contextual understanding score is an integer value between 0 and 5, with 5 indicating the highest level of contextual understanding. "
+                        "Please generate the response in the form of a Python dictionary string with keys 'score', where its value is contextual understanding score in INTEGER, not STRING."
                         "DO NOT PROVIDE ANY OTHER OUTPUT TEXT OR EXPLANATION. Only provide the Python dictionary string. "
                         "For example, your response should look like this: {''score': 4.8}.",
                     },
@@ -75,6 +75,15 @@ def annotate(prediction_set, caption_files, output_dir, args):
             response_dict = ast.literal_eval(response_message)
             result_qa_pair = [response_dict, qa_set]
 
+            # Save the question-answer pairs to a json file.
+            with open(f"{output_dir}/{key}.json", "w") as f:
+                json.dump(result_qa_pair, f)
+
+        except BadRequestError as e:
+            print(f"BadRequestError processing file '{key}': {e}")
+            response_dict = {"score": 0}
+            qa_set["pred"] = ""
+            result_qa_pair = [response_dict, qa_set]
             # Save the question-answer pairs to a json file.
             with open(f"{output_dir}/{key}.json", "w") as f:
                 json.dump(result_qa_pair, f)
@@ -91,7 +100,7 @@ def main():
     args = parse_args()
 
     file = open(args.pred_path)
-    pred_contents = json.load(file)
+    pred_contents = [eval(i.strip()) for i in file.readlines()]
 
     # Dictionary to store the count of occurrences for each video_id
     video_id_counts = {}
@@ -123,12 +132,10 @@ def main():
     prediction_set = {}
     for sample in new_pred_contents:
         id = sample["video_name"]
-        question1 = sample["Q1"]
-        question2 = sample["Q1"]
+        question = sample["Q"]
         answer = sample["A"]
-        pred1 = sample["pred1"]
-        pred2 = sample["pred2"]
-        qa_set = {"q1": question1, "q2": question2, "a": answer, "pred1": pred1, "pred2": pred2}
+        pred = sample["pred"]
+        qa_set = {"q": question, "a": answer, "pred": pred}
         prediction_set[id] = qa_set
 
     # Set the OpenAI API key.
@@ -158,7 +165,7 @@ def main():
             task_args = [(prediction_set, part, args.output_dir, args) for part in all_parts]
 
             # Use a pool of workers to process the files in parallel.
-            with Pool() as pool:
+            with Pool(processes=8) as pool:
                 pool.starmap(annotate, task_args)
 
         except Exception as e:
@@ -191,7 +198,12 @@ def main():
         score_sum += score
     average_score = score_sum / count
 
-    print("Average score for consistency:", average_score)
+    print("Average score for contextual understanding:", average_score)
+
+    result_file = os.path.join(os.path.dirname(os.path.dirname(args.output_json)), "results.json")
+    sample_set = {"gpt": args.model, "task": "3_contextual", "score": average_score}
+    with open(result_file, "a") as f:
+        f.write(json.dumps(sample_set) + "\n")
 
 
 if __name__ == "__main__":

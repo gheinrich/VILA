@@ -23,6 +23,7 @@ fi
 
 mkdir -p eval_output/$model_name
 
+srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_videochatgpt --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.videochatgpt_benchmark.txt ./scripts/v1_5/eval/video_chatgpt/run_videochatgpt_benchmark.sh $checkpoint_path $model_name $conv_mode &
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_activitynet --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.activitynet.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_activitynet.sh $checkpoint_path $model_name $conv_mode &
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msvd --gpus-per-node 8 --exclusive -o eval_output/$model_name/%J.msvd.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msvd.sh $checkpoint_path $model_name $conv_mode &
 srun -p $PARTITIONS -A $ACCOUNT -N 1 -t 4:00:00 -J $ACCOUNT:evaluation_msrvtt --gpus-per-node 8 --dependency singleton --exclusive -o eval_output/$model_name/%J.msrvtt.txt ./scripts/v1_5/eval/video_chatgpt/run_qa_msrvtt.sh $checkpoint_path $model_name $conv_mode &
