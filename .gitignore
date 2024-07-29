@@ -49,3 +49,5 @@ ckpts*
 
 playground
 */visualization/*
+.env
+server.log

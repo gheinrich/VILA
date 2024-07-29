@@ -57,16 +57,16 @@ VILA is a visual language model (VLM) pretrained with interleaved image-text dat
 
 | $~~~~~~$               | Precision | A100  | 4090  | Orin |
 | ---------------------- | --------- | ----- | ----- | ---- |
-| VILA1.5-3B           | fp16      | 104.6 | 137.6 | 25.4 |
-| VILA1.5-3B-AWQ       | int4      | 182.8 | 215.5 | 42.5 |
-| VILA1.5-3B-S2        | fp16      | 104.3 | 137.2 | 24.6 |
-| VILA1.5-3B-S2-AWQ    | int4      | 180.2 | 219.3 | 40.1 |
+| VILA1.5-3B             | fp16      | 104.6 | 137.6 | 25.4 |
+| VILA1.5-3B-AWQ         | int4      | 182.8 | 215.5 | 42.5 |
+| VILA1.5-3B-S2          | fp16      | 104.3 | 137.2 | 24.6 |
+| VILA1.5-3B-S2-AWQ      | int4      | 180.2 | 219.3 | 40.1 |
 | Llama-3-VILA1.5-8B     | fp16      | 74.9  | 57.4  | 10.2 |
 | Llama-3-VILA1.5-8B-AWQ | int4      | 168.9 | 150.2 | 28.7 |
 | VILA1.5-13B            | fp16      | 50.9  | OOM   | 6.1  |
 | VILA1.5-13B-AWQ        | int4      | 115.9 | 105.7 | 20.6 |
-| VILA1.5-40B            | fp16      | OOM  | OOM   | --  |
-| VILA1.5-40B-AWQ        | int4      | 57.0 | OOM | -- |
+| VILA1.5-40B            | fp16      | OOM   | OOM   | --   |
+| VILA1.5-40B-AWQ        | int4      | 57.0  | OOM   | --   |
 
 <sup>NOTE: Measured using the [TinyChat](https://github.com/mit-han-lab/llm-awq/tinychat) backend at batch size = 1.</sup>
 
@@ -231,6 +231,67 @@ We support AWQ-quantized 4bit VILA on GPU platforms via [TinyChat](https://githu
 ### Running VILA on laptops
 
 We further support our AWQ-quantized 4bit VILA models on various CPU platforms with both x86 and ARM architectures with our [TinyChatEngine](https://github.com/mit-han-lab/TinyChatEngine). We also provide a detailed [tutorial](https://github.com/mit-han-lab/TinyChatEngine/tree/main?tab=readme-ov-file#deploy-vision-language-model-vlm-chatbot-with-tinychatengine) to help the users deploy VILA on different CPUs.
+
+### Running VILA API server
+
+A simple API server has been provided to serve VILA models. The server is built on top of [FastAPI](https://fastapi.tiangolo.com/) and [Huggingface Transformers](https://huggingface.co/transformers/). The server can be run with the following command:
+
+#### With CLI
+
+```bash
+python -W ignore server.py \
+    --port 8000 \
+    --model-path Efficient-Large-Model/VILA1.5-3B \
+    --conv-mode vicuna_v1
+```
+
+#### With Docker
+
+```bash
+docker build -t vila-server:latest .
+docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+    -v ./hub:/root/.cache/huggingface/hub \
+    -it --rm -p 8000:8000 \
+    -e VILA_MODEL_PATH=Efficient-Large-Model/VILA1.5-3B \
+    -e VILA_CONV_MODE=vicuna_v1 \
+    vila-server:latest
+```
+
+Then you can call the endpoint with the OpenAI SDK as follows:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000",
+    api_key="fake-key",
+)
+response = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What’s in this image?"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "https://blog.logomyway.com/wp-content/uploads/2022/01/NVIDIA-logo.jpg",
+                        # Or you can pass in a base64 encoded image
+                        # "url": "data:image/png;base64,<base64_encoded_image>",
+                    },
+                },
+            ],
+        }
+    ],
+    max_tokens=300,
+    model="VILA1.5-3B",
+    # You can pass in extra parameters as follows
+    extra_body={"num_beams": 1, "use_cache": False},
+)
+print(response.choices[0].message.content)
+```
+
+<sup>NOTE: This API server is intended for evaluation purposes only and has not been optimized for production use. It has only been tested on A100 and H100 GPUs.</sup>
 
 ## Checkpoints
 
