@@ -25,12 +25,7 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.conversation import SeparatorStyle, conv_templates
-from llava.mm_utils import (
-    KeywordsStoppingCriteria,
-    get_model_name_from_path,
-    process_images,
-    tokenizer_image_token,
-)
+from llava.mm_utils import KeywordsStoppingCriteria, get_model_name_from_path, process_images, tokenizer_image_token
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
 
@@ -77,6 +72,7 @@ class ChatCompletionRequest(BaseModel):
     stream: Optional[bool] = False
     use_cache: Optional[bool] = True
     num_beams: Optional[int] = 1
+
 
 model = None
 model_name = None
@@ -129,9 +125,7 @@ async def lifespan(app: FastAPI):
     disable_torch_init()
     model_path = app.args.model_path
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(
-        model_path, model_name, None
-    )
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, None)
     print(f"Model {model_name} loaded successfully. Context length: {context_len}")
     yield
 
@@ -188,13 +182,9 @@ async def chat_completions(request: ChatCompletionRequest):
         prompt_text = conv.get_prompt()
         print("Prompt input: ", prompt_text)
 
-        images_tensor = process_images(images, image_processor, model.config).to(
-            model.device, dtype=torch.float16
-        )
+        images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
         input_ids = (
-            tokenizer_image_token(
-                prompt_text, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-            )
+            tokenizer_image_token(prompt_text, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
             .unsqueeze(0)
             .to(model.device)
         )
@@ -231,9 +221,7 @@ async def chat_completions(request: ChatCompletionRequest):
             "object": "chat.completion",
             "created": time.time(),
             "model": request.model,
-            "choices": [
-                {"message": ChatMessage(role="assistant", content=resp_content)}
-            ],
+            "choices": [{"message": ChatMessage(role="assistant", content=resp_content)}],
         }
     except Exception as e:
         return JSONResponse(
