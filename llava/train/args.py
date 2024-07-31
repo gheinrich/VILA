@@ -108,3 +108,11 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": "The communication process group size using optimized Ring Attention approach in SP, where `seq_parallel_size` = `seq_parallel_ring_size` x `seq_parallel_ulysses_size` (determined by other two terms). Ring Attention approach is disabled by default in SP. This setting is adjustable only when `seq_parallel_size` > 1."
         },
     )
+    seq_parallel_ring_type: str = field(
+        default="ring_varlen",
+        metadata={"help": "Ring Attention implementation."},
+    )
+    debug_e2e: bool = field(
+        default=False,
+        metadata={"help": "Whether enter debug mode."},
+    )

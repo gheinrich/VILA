@@ -68,11 +68,11 @@ def ring_flash_attn_varlen_forward(
                 window_size=window_size,
                 alibi_slopes=alibi_slopes,
                 return_softmax=True and dropout_p > 0,
+                block_table=None,
             )
-            block_lse = flatten_varlen_lse(
-                block_lse,
-                cu_seqlens=cu_seqlens,
-            )
+
+            block_lse = flatten_varlen_lse(block_lse, cu_seqlens=cu_seqlens)
+
             out, lse = update_out_and_lse(out, lse, block_out, block_lse)
 
         if step + 1 != comm.world_size:

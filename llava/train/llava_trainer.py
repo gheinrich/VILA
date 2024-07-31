@@ -16,10 +16,11 @@
 # This file is modified from https://github.com/haotian-liu/LLaVA/
 
 
+import json
 import os
 import random
-from collections import OrderedDict
-from typing import List, Optional
+import time
+from typing import Dict, List, Optional
 
 import torch
 import torch.distributed as dist
@@ -141,6 +142,7 @@ class VILADistributedSampler(DistributedSampler):
         # NOTE: this is the total size but not per-worker
         sample_len_list=None,
         force_accumulation=True,
+        sp_degree: int = 1,
     ) -> None:
         if num_replicas is None:
             if not dist.is_available():
@@ -159,17 +161,33 @@ class VILADistributedSampler(DistributedSampler):
         self.rank = rank
         self.epoch = 0
         self.drop_last = True  # always True
+        self.sp_degree = max(1, sp_degree)
+        assert batch_size % self.sp_degree == 0, "Batch size must be divisible by sequence parallelism degree."
+
+        # Consider sequence parallelism
+        if self.sp_degree > 1:  # Sequence Parallelism is enabled
+            PROCESS_GROUP_MANAGER = get_pg_manager()
+            self.dp_rank = PROCESS_GROUP_MANAGER.dp_rank
+            self.dp_num_replicas = num_replicas // sp_degree
+            self.corresponding_ranks = list(range(self.dp_rank * self.sp_degree, (self.dp_rank + 1) * self.sp_degree))
+        else:
+            self.dp_rank = rank
+            self.dp_num_replicas = num_replicas
+
+        self.batch_size = batch_size
+        self.global_batch_size = batch_size * self.dp_num_replicas
 
         # NOTE: org_ is without drop last
         self.org_sample_len_list = self.per_replica_samples = sample_len_list
         assert sum(sample_len_list) == len(self.dataset)
 
-        self.batch_size = batch_size
-        self.global_batch_size = batch_size * num_replicas
-
         if self.drop_last:  # type: ignore[arg-type]
             self.per_replica_samples = [
-                sample_len // (self.num_replicas * batch_size) * batch_size for sample_len in self.per_replica_samples
+                sample_len
+                // (self.num_replicas * self.batch_size // self.sp_degree)
+                * self.batch_size
+                // self.sp_degree
+                for sample_len in self.per_replica_samples
             ]
             self.num_samples = sum(self.per_replica_samples)
         else:
@@ -200,30 +218,78 @@ class VILADistributedSampler(DistributedSampler):
             self.total_size,
         )
 
-        # let's first do subsample
-        for idx, indices in enumerate(indices_list):
-            indices_list[idx] = indices[
-                self.rank * self.per_replica_samples[idx] : (self.rank + 1) * self.per_replica_samples[idx]
-            ]
+        if self.sp_degree > 1:  # Sequence Parallelism is enabled, to ensure the same behavior as data parallelism
+            dp_indices_dict = {}  # {rank: indices_list}
+            all_indices_dict = {}  # {rank: all_indices}
 
-        random.seed(self.seed + self.epoch)
-        for indice in range(len(indices_list)):
-            random.shuffle(indices_list[indice])
+            for i in self.corresponding_ranks:
+                dp_indices_list = []
+                for idx, indices in enumerate(indices_list):
+                    dp_indices_list.append(
+                        indices[i * self.per_replica_samples[idx] : (i + 1) * self.per_replica_samples[idx]]
+                    )
 
-        indices_list = sorted(indices_list, key=lambda x: -len(x))
-        all_indices = [-1] * self.num_samples
-        indices_available = list(range(self.num_samples))
-        for indice in indices_list:
-            original_indices = range(len(indice))
-            transformed_indices = [idx * len(indices_available) // len(indice) for idx in original_indices]
-            mapped_indices = [indices_available[idx] for idx in transformed_indices]
-            # update indices_available
-            for idx in reversed(transformed_indices):
-                del indices_available[idx]
-            for i, idx in enumerate(mapped_indices):
-                all_indices[idx] = indice[i]
+                random.seed(self.seed + self.epoch)
+                for indice in range(len(dp_indices_list)):
+                    random.shuffle(dp_indices_list[indice])
+
+                dp_indices_dict[i] = dp_indices_list.copy()
+
+            for rank, dp_indices_list in dp_indices_dict.items():
+                dp_indices_list = sorted(dp_indices_list, key=lambda x: -len(x))
+                dp_all_indices = [-1] * self.num_samples
+                indices_available = list(range(self.num_samples))
+
+                for indice in dp_indices_list:
+
+                    original_indices = range(len(indice))
+                    transformed_indices = [idx * len(indices_available) // len(indice) for idx in original_indices]
+
+                    mapped_indices = [indices_available[idx] for idx in transformed_indices]
+                    # update indices_available
+                    for idx in reversed(transformed_indices):
+                        del indices_available[idx]
+                    for i, idx in enumerate(mapped_indices):
+                        dp_all_indices[idx] = indice[i]
+
+                all_indices_dict[rank] = dp_all_indices
+
+            # Interleaving Merge
+            merged_indices = []
+            interleaved_indices = []
+            for item_idx in range(len(all_indices_dict[self.corresponding_ranks[0]])):
+                for rank in self.corresponding_ranks:
+                    interleaved_indices.append(all_indices_dict[rank][item_idx])
+            merged_indices.append(interleaved_indices)
+
+            all_indices = merged_indices[0]
+        else:
+            # let's first do subsample
+            for idx, indices in enumerate(indices_list):
+                indices_list[idx] = indices[
+                    self.rank * self.per_replica_samples[idx] : (self.rank + 1) * self.per_replica_samples[idx]
+                ]
+
+            random.seed(self.seed + self.epoch)
+            for indice in range(len(indices_list)):
+                random.shuffle(indices_list[indice])
+
+            indices_list = sorted(indices_list, key=lambda x: -len(x))
+            all_indices = [-1] * self.num_samples
+            indices_available = list(range(self.num_samples))
+
+            for indice in indices_list:
+
+                original_indices = range(len(indice))
+                transformed_indices = [idx * len(indices_available) // len(indice) for idx in original_indices]
+
+                mapped_indices = [indices_available[idx] for idx in transformed_indices]
+                # update indices_available
+                for idx in reversed(transformed_indices):
+                    del indices_available[idx]
+                for i, idx in enumerate(mapped_indices):
+                    all_indices[idx] = indice[i]
         assert -1 not in all_indices
-
         return iter(all_indices)
 
     # # (Qinghao): Implementation for validating accuracy of SP
@@ -288,15 +354,6 @@ class VILADPOTrainer(DPOTrainer):
         seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
         num_replicas = self.args.world_size
         rank = self.args.process_index
-
-        # Consider sequence parallelism
-        sp_degree = self.args.seq_parallel_size
-        if sp_degree > 1:  # Sequence Parallelism is enabled
-            num_replicas = num_replicas // sp_degree
-            PROCESS_GROUP_MANAGER = get_pg_manager()
-            rank = PROCESS_GROUP_MANAGER.dp_rank
-            # rank = dist.get_rank() // sp_degree
-
         return VILADistributedSampler(
             self.train_dataset,
             num_replicas=num_replicas,
@@ -304,23 +361,8 @@ class VILADPOTrainer(DPOTrainer):
             seed=seed,
             batch_size=self.args.train_batch_size,
             sample_len_list=sample_len_list,
+            sp_degree=self.args.seq_parallel_size,
         )
-
-        # if self.args.group_by_modality_length:
-        #     if not isinstance(self.train_dataset, ConcatDataset):
-        #         lengths = self.train_dataset.modality_lengths
-        #     else:
-        #         lengths = []
-        #         for d in self.train_dataset.datasets:
-        #             lengths += d.modality_lengths
-        #     return LengthGroupedSampler(
-        #         self.args.train_batch_size,
-        #         world_size=self.args.world_size * self.args.gradient_accumulation_steps,
-        #         lengths=lengths,
-        #         group_by_modality=True,
-        #     )
-        # else:
-        #     return super()._get_train_sampler()
 
     def _get_eval_sampler(self, eval_dataset: Dataset) -> Optional[torch.utils.data.Sampler]:
         if self.eval_dataset is None or not has_length(self.eval_dataset):
@@ -460,13 +502,13 @@ class LLaVATrainer(Trainer):
         num_replicas = self.args.world_size
         rank = self.args.process_index
 
-        # Consider sequence parallelism
-        sp_degree = self.args.seq_parallel_size
-        if sp_degree > 1:  # Sequence Parallelism is enabled
-            num_replicas = num_replicas // sp_degree
-            PROCESS_GROUP_MANAGER = get_pg_manager()
-            rank = PROCESS_GROUP_MANAGER.dp_rank
-            # rank = dist.get_rank() // sp_degree
+        # # Consider sequence parallelism
+        # sp_degree = self.args.seq_parallel_size
+        # if sp_degree > 1:  # Sequence Parallelism is enabled
+        #     num_replicas = num_replicas // sp_degree
+        #     PROCESS_GROUP_MANAGER = get_pg_manager()
+        #     rank = PROCESS_GROUP_MANAGER.dp_rank
+        #     # rank = dist.get_rank() // sp_degree
 
         return VILADistributedSampler(
             self.train_dataset,
@@ -475,6 +517,7 @@ class LLaVATrainer(Trainer):
             seed=seed,
             batch_size=self.args.train_batch_size,
             sample_len_list=sample_len_list,
+            sp_degree=self.args.seq_parallel_size,
         )
 
         # if self.args.group_by_modality_length:
@@ -626,3 +669,30 @@ class LLaVATrainer(Trainer):
 
         if self.args.should_save:
             return self.model.save_pretrained(output_dir, state_dict=state_dict)
+
+    def log(self, logs: Dict[str, float]) -> None:
+        """
+        Log `logs` on the various objects watching training.
+
+        Subclass and override this method to inject custom behavior.
+
+        Args:
+            logs (`Dict[str, float]`):
+                The values to log.
+        """
+        if self.state.epoch is not None:
+            logs["epoch"] = round(self.state.epoch, 2)
+        if self.args.include_num_input_tokens_seen:
+            logs["num_input_tokens_seen"] = self.state.num_input_tokens_seen
+
+        output = {**logs, **{"step": self.state.global_step}}
+        self.state.log_history.append(output)
+
+        if self.args.debug_e2e and self.control.should_training_stop:
+
+            # Only save log history if the current process is rank 0
+            if dist.get_rank() == 0:
+                with open(f"{self.args.output_dir}/log_history.json", "w") as f:
+                    json.dump(self.state.log_history, f, indent=4)
+
+        self.control = self.callback_handler.on_log(self.args, self.state, self.control, logs)

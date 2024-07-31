@@ -21,6 +21,7 @@ from typing import Optional, Tuple
 
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 
 __all__ = ["update_out_and_lse", "RingComm"]
 
@@ -35,11 +36,9 @@ def _update_out_and_lse(
     block_out = block_out.to(torch.float32)
     block_lse = block_lse.transpose(-2, -1).unsqueeze(dim=-1)
 
-    new_lse = lse + torch.log(1 + torch.exp(block_lse - lse))
+    out = out - F.sigmoid(block_lse - lse) * (out - block_out)
+    lse = lse - F.logsigmoid(lse - block_lse)
 
-    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
-
-    lse = new_lse
     return out, lse
 
 

@@ -32,12 +32,9 @@ from transformers import (
 )
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
+from ...train.utils import calculate_loss_weight
 from ..configuration_llava import LlavaConfig
 from ..llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
-from ..multimodal_encoder.builder import build_vision_tower
-from ..multimodal_projector.builder import build_mm_projector
-from ..utils import get_model_config
-from .builder import build_llm_and_tokenizer
 
 
 class LlavaLlamaConfig(LlavaConfig):
@@ -184,6 +181,10 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
             )
+
+        # Loss rescale for SP & DP loss match
+        loss_weight = calculate_loss_weight(new_labels)
+        outputs.loss = outputs.loss * loss_weight
 
         if dpo_forward:
             return outputs.logits, new_labels

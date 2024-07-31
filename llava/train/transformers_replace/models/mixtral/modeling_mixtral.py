@@ -1417,16 +1417,6 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
             shift_labels = shift_labels.to(shift_logits.device)
             loss = loss_fct(shift_logits, shift_labels)
 
-            # (Qinghao): Weighted loss based on num_active_elements
-            # To achieve accurate sequence parallel loss calculation, we need to get
-            # the real active_elements of each sequence partitions.
-            # For data parallelism, the loss almost remains the same because the
-            # number_active_elements of each batch is very close.
-            from llava.train.utils import calculate_loss_weight
-
-            loss_weight = calculate_loss_weight(shift_labels)
-            loss *= loss_weight
-
         aux_loss = None
         if output_router_logits:
             aux_loss = load_balancing_loss_func(

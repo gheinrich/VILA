@@ -12,54 +12,80 @@ from flash_attn import flash_attn_func
 from torch import Tensor
 from torch.nn import Module
 
-from llava.train.sequence_parallel.globals import get_ulysess_seq_len, get_ulysess_sp_rank, get_ulysess_sp_size
+from llava.train.sequence_parallel.globals import get_ulysses_seq_len, get_ulysses_sp_rank, get_ulysses_sp_size
 
 from .all_to_all import SeqAllGather, SeqAllToAll4D, SeqAllToAll5D
 
-# def single_all_to_all(input, scatter_idx, gather_idx, group):
-#     seq_world_size = dist.get_world_size(group)
-#     inp_shape = list(input.shape)
-#     inp_shape[scatter_idx] = inp_shape[scatter_idx] // seq_world_size
-#     if scatter_idx < 2:
-#         input_t = input.reshape([seq_world_size, inp_shape[scatter_idx]] + inp_shape[scatter_idx + 1 :]).contiguous()
-#     else:
-#         # transpose groups of heads with the seq-len parallel dimension, so that we can scatter them!
-#         input_t = (
-#             input.reshape([-1, seq_world_size, inp_shape[scatter_idx]] + inp_shape[scatter_idx + 1 :])
-#             .transpose(0, 1)
-#             .contiguous()
-#         )
 
-#     output = torch.empty_like(input_t)
-#     dist.all_to_all_single(output, input_t, group=group)
+class _ExpandKVFunction(torch.autograd.Function):
+    """
+    Copy the KV head repeat times to extend sequence parallel support for Ulysses.
 
-#     # if scattering the seq-dim, transpose the heads back to the original dimension
-#     if scatter_idx < 2:
-#         output = output.transpose(0, 1).contiguous()
+    Args:
+        kv: input kv.
+        repeat_times: the repeat number of each head.
+        num_head_dim: the dimension of head number.
+    """
 
-#     return output.reshape(
-#         inp_shape[:gather_idx]
-#         + [
-#             inp_shape[gather_idx] * seq_world_size,
-#         ]
-#         + inp_shape[gather_idx + 1 :]
-#     ).contiguous()
+    @staticmethod
+    def forward(ctx, k, v, repeat_times, num_head_dim):
+
+        kv_shape = k.shape
+        num_heads_kv = kv_shape[num_head_dim]
+
+        ctx.num_head_dim = num_head_dim
+        ctx.num_heads_kv = num_heads_kv
+
+        # here we construct a repeat index to indicate which dim should copy
+        repeat_index = [1] * k.ndim
+        repeat_index[num_head_dim] = repeat_times
+
+        # split the kv into head num splits
+        k_splits = torch.chunk(k, chunks=num_heads_kv, dim=num_head_dim)
+        v_splits = torch.chunk(v, chunks=num_heads_kv, dim=num_head_dim)
+        k_repeats, v_repeats = [], []
+        # for each split, we copy it to repeat_times copys.
+        for split in k_splits:
+            k_split_repeat = split.repeat(repeat_index)
+            k_repeats.append(k_split_repeat)
+
+        for split in v_splits:
+            v_split_repeat = split.repeat(repeat_index)
+            v_repeats.append(v_split_repeat)
+
+        return torch.cat(k_repeats, dim=num_head_dim), torch.cat(v_repeats, dim=num_head_dim)
+
+    @staticmethod
+    def backward(ctx, grad_output_k, grad_output_v):
+        """
+        For backward, we sum the copy head inside a query group.
+        """
+
+        num_head_dim = ctx.num_head_dim
+        num_heads_kv = ctx.num_heads_kv
+
+        # we split the grad into query groups splits.
+        grad_output_k_splits = torch.chunk(grad_output_k, chunks=num_heads_kv, dim=num_head_dim)
+        grad_output_v_splits = torch.chunk(grad_output_v, chunks=num_heads_kv, dim=num_head_dim)
+
+        grad_output_k_sums, grad_output_v_sums = [], []
+        # for each split, we sum the head
+        for grad_output_k_split in grad_output_k_splits:
+            grad_output_k_sum = grad_output_k_split.sum(dim=num_head_dim, keepdim=True)
+            grad_output_k_sums.append(grad_output_k_sum)
+
+        for grad_output_v_split in grad_output_v_splits:
+            grad_output_v_sum = grad_output_v_split.sum(dim=num_head_dim, keepdim=True)
+            grad_output_v_sums.append(grad_output_v_sum)
+
+        # then we concat the split sums on the num_head_dim dimension.
+        grad_k = torch.cat(grad_output_k_sums, dim=num_head_dim)
+        grad_v = torch.cat(grad_output_v_sums, dim=num_head_dim)
+
+        return grad_k, grad_v, None, None
 
 
-# class _SeqAllToAll(torch.autograd.Function):
-
-#     @staticmethod
-#     def forward(ctx: Any, group: dist.ProcessGroup, input: Tensor, scatter_idx: int, gather_idx: int) -> Tensor:
-
-#         ctx.group = group
-#         ctx.scatter_idx = scatter_idx
-#         ctx.gather_idx = gather_idx
-
-#         return single_all_to_all(input, scatter_idx, gather_idx, group)
-
-#     @staticmethod
-#     def backward(ctx: Any, *grad_output: Tensor) -> Tuple[None, Tensor, None, None]:
-#         return (None, _SeqAllToAll.apply(ctx.group, *grad_output, ctx.gather_idx, ctx.scatter_idx), None, None)
+expandKV = _ExpandKVFunction.apply
 
 
 class UlyssesAttention(torch.nn.Module):
@@ -85,6 +111,7 @@ class UlyssesAttention(torch.nn.Module):
         self.spg = sequence_process_group
         self.scatter_idx = scatter_idx
         self.gather_idx = gather_idx
+        self.ulysses_degree = get_ulysses_sp_size()
 
     def forward(
         self,
@@ -118,18 +145,26 @@ class UlyssesAttention(torch.nn.Module):
         # in shape : e.g.,  [s/p:h:]
         # (bs, seq_len/N, head_cnt, head_size) -> (bs, seq_len, head_cnt/N, head_size)
 
+        # KV Replication for GQA
+        head_dim = 2
+        num_head_kv = key.shape[head_dim]
+        if self.ulysses_degree > num_head_kv:
+            assert self.ulysses_degree % num_head_kv == 0, "Ulysses require num_head_kv to be dividable by sp degree."
+            key, value = expandKV(key, value, self.ulysses_degree // num_head_kv, head_dim)
+
         # scatter 2, gather 1
         q = SeqAllToAll4D.apply(self.spg, query, self.scatter_idx, self.gather_idx)
         k = SeqAllToAll4D.apply(self.spg, key, self.scatter_idx, self.gather_idx)
         v = SeqAllToAll4D.apply(self.spg, value, self.scatter_idx, self.gather_idx)
+
         if attention_mask is not None:
             local_attention_mask = copy.deepcopy(attention_mask)
             shard_seqlen = local_attention_mask.size(1)
-            ulysess_seq_len = get_ulysess_seq_len()
-            max_global_length = max(ulysess_seq_len)
+            ulysses_seq_len = get_ulysses_seq_len()
+            max_global_length = max(ulysses_seq_len)
             global_attention_mask_list = []
-            for i in range(get_ulysess_sp_size()):
-                if i == get_ulysess_sp_rank():
+            for i in range(get_ulysses_sp_size()):
+                if i == get_ulysses_sp_rank():
                     global_attention_mask_list.append(
                         torch.cat(
                             [
@@ -153,14 +188,12 @@ class UlyssesAttention(torch.nn.Module):
                     )
 
             global_attention_mask = torch.stack(global_attention_mask_list, dim=0)
-            # print("Before all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
             torch_dist.all_reduce(global_attention_mask, group=self.spg)
-            # print("After all reduce Rank {} global_attention_mask: {}".format(get_ulysess_sp_rank(), global_attention_mask.size()))
             torch_dist.barrier(group=self.spg)
             new_global_attention_mask_list = list(torch.unbind(global_attention_mask, dim=0))
             # Unpad the global attention mask list and concatenate them
             for i in range(len(new_global_attention_mask_list)):
-                new_global_attention_mask_list[i] = new_global_attention_mask_list[i][:, : ulysess_seq_len[i]]
+                new_global_attention_mask_list[i] = new_global_attention_mask_list[i][:, : ulysses_seq_len[i]]
             global_attention_mask = torch.cat(new_global_attention_mask_list, dim=1)
             context_layer = self.local_attn(
                 q,

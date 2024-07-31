@@ -20,7 +20,7 @@ echo "node rank:" $SLURM_PROCID
 torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$SLURM_PROCID \
     llava/train/train_hybrid.py \
-    --deepspeed ./scripts/zero2.json \
+    --deepspeed ./scripts/zero3.json \
     --model_name_or_path NousResearch/Llama-2-7b-hf \
     --version v1 \
     --data_mixture panda70m_longseq \

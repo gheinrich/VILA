@@ -17,6 +17,7 @@
 from typing import List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import transformers
 from einops import rearrange
 from flash_attn import flash_attn_func, flash_attn_varlen_func
@@ -26,49 +27,25 @@ from transformers import LlamaConfig
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaAttention, _get_unpad_data, apply_rotary_pos_emb
 
-from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysess_sp_pg
+from llava.train.sequence_parallel.globals import get_pg_manager, get_ring_sp_pg, get_ulysses_sp_pg
 
 from .hybrid_attn import HybridAttention
+from .ring import (
+    ring_flash_attn_func,
+    ring_flash_attn_qkvpacked_func,
+    ring_flash_attn_varlen_func,
+    ring_flash_attn_varlen_qkvpacked_func,
+    stripe_flash_attn_func,
+    stripe_flash_attn_qkvpacked_func,
+    zigzag_ring_flash_attn_func,
+    zigzag_ring_flash_attn_qkvpacked_func,
+    zigzag_ring_flash_attn_varlen_func,
+    zigzag_ring_flash_attn_varlen_qkvpacked_func,
+)
 from .ulysses_attn import UlyssesAttention
 
 
-def new_flash_attn_forward(
-    self,
-    query_states,
-    key_states,
-    value_states,
-    attention_mask,
-    query_length,
-    dropout=0.0,
-    softmax_scale=None,
-    seqlens_in_batch=None,
-):
-    # if not self._flash_attn_uses_top_left_mask:
-    #     causal = self.is_causal
-    # else:
-    #     causal = self.is_causal and query_length != 1
-    causal = self.is_causal
-
-    # Contains at least one padding token in the sequence
-
-    # TODO (QH): Check the data
-    # assert attention_mask is None
-    assert causal is True
-
-    attn_func = HybridAttention()
-    attn_output = attn_func(
-        query_states,
-        key_states,
-        value_states,
-        dropout,
-        softmax_scale,
-        causal=causal,
-    )
-
-    return attn_output
-
-
-def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch):
+def _upad_input(self, query_layer, key_layer, value_layer, attention_mask, query_length, seqlens_in_batch=None):
     indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask, seqlens_in_batch=seqlens_in_batch)
     batch_size, kv_seq_len, num_key_value_heads, head_dim = key_layer.shape
 
@@ -119,11 +96,13 @@ def flash_attn_varlen_func_helper(
     causal=None,
 ):
     batch_size = query_states.shape[0]
-    assert attention_mask.shape[1] == query_states.shape[1]
+    assert (
+        attention_mask.shape[1] == query_states.shape[1]
+    ), f"attention_mask.shape {attention_mask.shape}, query_states.shape {query_states.shape}"
 
     # overwrite query_length with the actual length of the sequence after seq parallel communciation
     query_length = attention_mask.shape[1]
-    # print('Before unpad attention_mask', attention_mask.shape, "query_states", query_states.shape, "query_length", query_length)
+
     query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
         query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=seqlens_in_batch
     )
@@ -131,7 +110,6 @@ def flash_attn_varlen_func_helper(
     cu_seqlens_q, cu_seqlens_k = cu_seq_lens
     max_seqlen_in_batch_q, max_seqlen_in_batch_k = max_seq_lens
 
-    # print("batch_size", batch_size, "cu_seqlens_q", cu_seqlens_q.shape, "cu_seqlens_k", cu_seqlens_k.shape, "query_states", query_states.shape)
     attn_output_unpad = flash_attn_varlen_func(
         query_states,
         key_states,
@@ -143,9 +121,68 @@ def flash_attn_varlen_func_helper(
         dropout_p=dropout_p,
         softmax_scale=softmax_scale,
         causal=self.is_causal,
+        # deterministic=True
     )
 
     attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
+
+    return attn_output
+
+
+def hybrid_attn_varlen_func_helper(
+    self,
+    query_states,
+    key_states,
+    value_states,
+    query_length,
+    attention_mask=None,
+    dropout_p=0.0,
+    softmax_scale=None,
+    seqlens_in_batch=None,
+    causal=None,
+    group=None,
+):
+    batch_size = query_states.shape[0]
+    # assert (
+    #     attention_mask.shape[1] == query_states.shape[1]
+    # ), f"attention_mask.shape {attention_mask.shape}, query_states.shape {query_states.shape}"
+
+    # overwrite query_length with the actual length of the sequence after seq parallel communication
+    query_length = attention_mask.shape[1]
+
+    # print("query_states", query_states.shape, query_states.device)
+    # print("attn_mask", attention_mask.shape, attention_mask.device, attention_mask)
+
+    query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = self._upad_input(
+        query_states, key_states, value_states, attention_mask, query_length, seqlens_in_batch=None
+    )
+
+    # print("max_seq_lens", max_seq_lens)
+
+    # print("after_upad_query_states", query_states.shape, query_states.device)
+    # exit()
+
+    cu_seq_lens = cu_seq_lens[0]
+
+    # print("rank", dist.get_rank(), "cu_seq_lens", cu_seq_lens)
+    # exit()
+
+    attn_output_unpad = ring_flash_attn_varlen_func(
+        query_states,
+        key_states,
+        value_states,
+        cu_seq_lens,
+        max_seq_lens[0],
+        dropout_p=dropout_p,
+        softmax_scale=softmax_scale,
+        causal=self.is_causal,
+        group=group,
+    )
+
+    # print(dist.get_rank(), "finish ring_flash_attn_varlen_func")
+
+    attn_output = pad_input(attn_output_unpad, indices_q, batch_size, query_length)
+
     return attn_output
 
 
@@ -175,8 +212,14 @@ def __init__(self, config: LlamaConfig):
     self._init_rope()
 
     # wrap two potential "local-attention" up with DeepSpeed Ulysses logic.
-    self.ulysses_attn_varlen_func = UlyssesAttention(self.flash_attn_varlen_func_helper, get_ulysess_sp_pg())
-    self.ulysses_attn_func = UlyssesAttention(flash_attn_func, get_ulysess_sp_pg())
+    self.ulysses_attn_varlen_func = UlyssesAttention(self.flash_attn_varlen_func_helper, get_ulysses_sp_pg())
+    self.ulysses_attn_func = UlyssesAttention(flash_attn_func, get_ulysses_sp_pg())
+
+    # Using Hybrid Sequence Parallelism
+    self.ring_enabled = get_ring_sp_pg() is not None
+    if self.ring_enabled:
+        self.hybrid_attn_varlen_func = HybridAttention(attention_warper=self.hybrid_attn_varlen_func_helper)
+        self.hybrid_attn_func = HybridAttention()
 
 
 def _flash_attention_forward(
@@ -213,38 +256,52 @@ def _flash_attention_forward(
     try:
         assert attention_mask is not None
     except AssertionError:
-        print(
-            "attention_mask is None",
-            "query_states",
-            query_states.shape,
-            "query_length",
-            query_length,
-            "seqlens_in_batch",
-            seqlens_in_batch,
-        )
-        print(asd)
+        print("attention_mask is None")
 
-    if attention_mask is not None:
-        attn_output = self.ulysses_attn_varlen_func(
-            query_states,
-            key_states,
-            value_states,
-            query_length,
-            attention_mask=attention_mask,
-            dropout_p=dropout,
-            softmax_scale=softmax_scale,
-            seqlens_in_batch=seqlens_in_batch,
-            # casual=self.is_causal,
-        )
+    if self.ring_enabled:
+        if attention_mask is not None:
+            attn_output = self.hybrid_attn_varlen_func(
+                query_states,
+                key_states,
+                value_states,
+                query_length,
+                attention_mask=attention_mask,
+                dropout_p=dropout,
+                softmax_scale=softmax_scale,
+                seqlens_in_batch=seqlens_in_batch,
+                # casual=self.is_causal,
+            )
+        else:
+            attn_output = self.hybrid_attn_func(
+                query_states,
+                key_states,
+                value_states,
+                dropout_p=dropout,
+                softmax_scale=softmax_scale,
+                causal=self.is_causal,
+            )
     else:
-        attn_output = self.ulysses_attn_func(
-            query_states,
-            key_states,
-            value_states,
-            dropout_p=dropout,
-            softmax_scale=softmax_scale,
-            causal=self.is_causal,
-        )
+        if attention_mask is not None:
+            attn_output = self.ulysses_attn_varlen_func(
+                query_states,
+                key_states,
+                value_states,
+                query_length,
+                attention_mask=attention_mask,
+                dropout_p=dropout,
+                softmax_scale=softmax_scale,
+                seqlens_in_batch=seqlens_in_batch,
+                # casual=self.is_causal,
+            )
+        else:
+            attn_output = self.ulysses_attn_func(
+                query_states,
+                key_states,
+                value_states,
+                dropout_p=dropout,
+                softmax_scale=softmax_scale,
+                causal=self.is_causal,
+            )
 
     return attn_output
 

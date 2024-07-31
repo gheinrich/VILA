@@ -27,7 +27,7 @@ from accelerate.hooks import add_hook_to_module
 from transformers import PretrainedConfig, PreTrainedModel
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
-from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysess_sp_pg
+from llava.train.sequence_parallel.globals import get_pg_manager, get_ulysses_sp_pg
 
 
 def rprint(*args, **kwargs):
@@ -148,20 +148,19 @@ def unit_test_rope_scaling(model: PreTrainedModel, config: PretrainedConfig, tra
     return False
 
 
-def calculate_loss_weight(shift_labels, ignore_index=-100):
+def calculate_loss_weight(labels, ignore_index=-100):
     # (Qinghao): Weighted loss based on num_active_elements
     # To achieve accurate sequence parallel loss calculation, we need to get
     # the real active_elements of each sequence partitions.
     # For data parallelism, the loss almost remains the same (also more accurate).
-    PROCESS_GROUP_MANAGER = get_pg_manager()
-    if PROCESS_GROUP_MANAGER is None:
-        return 1.0
+    shift_labels = labels[..., 1:].contiguous()
+    shift_labels = shift_labels.view(-1)
+
     padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
     num_active_elements = padding_mask.numel() - padding_mask.long().sum()
     global_active_sum = copy.deepcopy(num_active_elements)
-    # dist.barrier(group=get_ulysess_sp_pg())
-    dist.all_reduce(global_active_sum, group=get_ulysess_sp_pg())
-    loss_weight = num_active_elements / global_active_sum * PROCESS_GROUP_MANAGER.sp_degree
+    dist.all_reduce(global_active_sum)
+    loss_weight = num_active_elements / global_active_sum * dist.get_world_size()
     return loss_weight
 
 
@@ -174,14 +173,14 @@ def reshard_hiddne_states_and_labels(hidden_states, labels):
 
     # Get the seq len on different sp ranks
     bs, shard_seqlen = labels.shape
-    ulysess_seq_len = [torch.zeros(1, dtype=torch.int64, device=labels.device) for _ in range(sp_degree)]
+    ulysses_seq_len = [torch.zeros(1, dtype=torch.int64, device=labels.device) for _ in range(sp_degree)]
     dist.barrier(group=sp_group)
-    dist.all_gather(ulysess_seq_len, torch.tensor(shard_seqlen, device=labels.device), group=sp_group)
+    dist.all_gather(ulysses_seq_len, torch.tensor(shard_seqlen, device=labels.device), group=sp_group)
     dist.barrier(group=sp_group)
-    global_seq_len = torch.cat(ulysess_seq_len, dim=0)
+    global_seq_len = torch.cat(ulysses_seq_len, dim=0)
     # Gather all labels and flaten them
     all_labels = [
-        torch.zeros(bs, seq_len, dtype=labels.dtype, device=labels.device).contiguous() for seq_len in ulysess_seq_len
+        torch.zeros(bs, seq_len, dtype=labels.dtype, device=labels.device).contiguous() for seq_len in ulysses_seq_len
     ]
     dist.all_gather(all_labels, labels.contiguous(), group=sp_group)
     # flatten_global_labels = torch.cat(all_labels, dim=1)[:, 1:].view(-1)
@@ -223,7 +222,7 @@ def reshard_hiddne_states_and_labels(hidden_states, labels):
     # Get the local labels
     effective_local_labels = torch.narrow(effective_global_labels, 0, start_id, end_id - start_id)
     # Gather all hidden states and flaten them
-    # all_hidden_states = [torch.zeros(bs, seq_len, hidden_states.shape[-1], dtype=hidden_states.dtype, device=hidden_states.device, requires_grad=True).contiguous() for seq_len in ulysess_seq_len]
+    # all_hidden_states = [torch.zeros(bs, seq_len, hidden_states.shape[-1], dtype=hidden_states.dtype, device=hidden_states.device, requires_grad=True).contiguous() for seq_len in ulysses_seq_len]
     all_hidden_states = torch.zeros(
         bs, torch.sum(global_seq_len), hidden_states.shape[-1], dtype=hidden_states.dtype, device=hidden_states.device
     ).contiguous()
@@ -248,18 +247,18 @@ def sp_loss_rescale(shift_labels, loss):
     labels_mask = shift_labels.ne(IGNORE_INDEX)  # IGNORE_INDEX = -100 by default
     num_active_elements = torch.sum(labels_mask)
     global_active_sum = copy.deepcopy(num_active_elements)
-    # dist.barrier(group=get_ulysess_sp_pg())
-    dist.all_reduce(global_active_sum, group=get_ulysess_sp_pg())
+    # dist.barrier(group=get_ulysses_sp_pg())
+    dist.all_reduce(global_active_sum, group=get_ulysses_sp_pg())
     # print(loss.shape, num_active_elements.shape, global_active_sum.shape)
     loss = loss * num_active_elements / global_active_sum
-    dist.all_reduce(loss, group=get_ulysess_sp_pg())
+    dist.all_reduce(loss, group=get_ulysses_sp_pg())
     return loss
 
     # # if sp_rank == 0:
     # #     start_id = 0
     # # else:
-    # #     start_id = torch.sum(ulysess_seq_len[:sp_rank]).item()
-    # # end_id = torch.sum(ulysess_seq_len[:sp_rank+1]).item()
+    # #     start_id = torch.sum(ulysses_seq_len[:sp_rank]).item()
+    # # end_id = torch.sum(ulysses_seq_len[:sp_rank+1]).item()
     # local_labels = copy.deepcopy(labels[:, 1:])
     # local_labels_mask = local_labels.ne(IGNORE_INDEX)
     # # Get the label!=IGNORE_INDEX's index
@@ -287,7 +286,7 @@ def sp_loss_rescale(shift_labels, loss):
 #     # padding_mask = shift_labels.eq(ignore_index)  # IGNORE_INDEX = -100 by default
 #     # num_active_elements = padding_mask.numel() - padding_mask.long().sum()
 #     # global_active_sum = copy.deepcopy(num_active_elements)
-#     # # dist.barrier(group=get_ulysess_sp_pg())
-#     # dist.all_reduce(global_active_sum, group=get_ulysess_sp_pg())
+#     # # dist.barrier(group=get_ulysses_sp_pg())
+#     # dist.all_reduce(global_active_sum, group=get_ulysses_sp_pg())
 #     # loss_weight = num_active_elements / global_active_sum * PROCESS_GROUP_MANAGER.sp_degree
 #     # return loss_weight

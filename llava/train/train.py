@@ -744,8 +744,11 @@ def train():
         flush=True,
     )
 
-    # print(resume_from_checkpoint); input("DEBUG")
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+
+    if training_args.debug_e2e:
+        exit()
+
     trainer.save_state()
 
     model.llm.config.use_cache = True

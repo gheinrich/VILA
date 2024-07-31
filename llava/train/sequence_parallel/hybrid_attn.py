@@ -14,33 +14,55 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
 from typing import Any
 
 import torch
 import torch.distributed as dist
 from torch import Tensor
+from torch.nn import Module
 
 from .all_to_all import SeqAllToAll4D, SeqAllToAll5D
-from .globals import get_pg_manager, get_ring_sp_pg, get_ulysess_sp_pg
+from .globals import (
+    get_pg_manager,
+    get_ring_sp_pg,
+    get_ring_sp_rank,
+    get_ring_sp_size,
+    get_sequence_parallel_pg,
+    get_sequence_parallel_rank,
+    get_sequence_parallel_size,
+    get_ulysses_seq_len,
+    get_ulysses_sp_pg,
+    get_ulysses_sp_rank,
+    get_ulysses_sp_size,
+)
 from .ring import (
     ring_flash_attn_func,
     ring_flash_attn_qkvpacked_func,
+    ring_flash_attn_varlen_func,
+    ring_flash_attn_varlen_qkvpacked_func,
     stripe_flash_attn_func,
     stripe_flash_attn_qkvpacked_func,
     zigzag_ring_flash_attn_func,
     zigzag_ring_flash_attn_qkvpacked_func,
+    zigzag_ring_flash_attn_varlen_func,
+    zigzag_ring_flash_attn_varlen_qkvpacked_func,
 )
 
 RING_IMPL_DICT = {
     "ring": ring_flash_attn_func,
     "zigzag": zigzag_ring_flash_attn_func,
     "strip": stripe_flash_attn_func,
+    "ring_varlen": ring_flash_attn_varlen_func,
+    "zigzag_varlen": zigzag_ring_flash_attn_varlen_func,
 }
 
 RING_IMPL_QKVPACKED_DICT = {
     "ring": ring_flash_attn_qkvpacked_func,
     "zigzag": zigzag_ring_flash_attn_qkvpacked_func,
     "strip": stripe_flash_attn_qkvpacked_func,
+    "ring_varlen": ring_flash_attn_varlen_qkvpacked_func,
+    "zigzag_varlen": zigzag_ring_flash_attn_varlen_qkvpacked_func,
 }
 
 
@@ -58,13 +80,14 @@ class HybridAttention(torch.nn.Module):
         self,
         scatter_idx: int = 2,
         gather_idx: int = 1,
-        ring_impl_type: str = "zigzag",
+        ring_impl_type: str = "ring_varlen",
         use_pack_qkv: bool = False,
+        attention_warper: Module = None,
     ) -> None:
 
         super().__init__()
         self.ring_pg = get_ring_sp_pg()
-        self.ulysses_pg = get_ulysess_sp_pg()
+        self.ulysses_pg = get_ulysses_sp_pg()
 
         self.use_pack_qkv = use_pack_qkv
         assert (
@@ -72,21 +95,26 @@ class HybridAttention(torch.nn.Module):
         ), f"use set_pg_manager() first. Now ulysses pg {self.ulysses_pg} and ring pg {self.ring_pg}"
         self.scatter_idx = scatter_idx
         self.gather_idx = gather_idx
-        self.ring_attn_fn = RING_IMPL_DICT[ring_impl_type]
+        if attention_warper is None:
+            self.ring_attn_fn = RING_IMPL_DICT[ring_impl_type]
+        else:
+            self.ring_attn_fn = attention_warper
 
     def forward(
         self,
         query: Tensor,
         key: Tensor,
         value: Tensor,
+        *args: Any,
+        attention_mask=None,
         dropout_p=0.0,
         softmax_scale=None,
+        seqlens_in_batch=None,
         causal=False,
         window_size=(-1, -1),
         alibi_slopes=None,
         deterministic=False,
         return_attn_probs=False,
-        *args: Any,
     ) -> Tensor:
         """forward
 
@@ -103,6 +131,9 @@ class HybridAttention(torch.nn.Module):
         # 3 X (bs, seq_len/N, head_cnt, head_size) -> 3 X (bs, seq_len, head_cnt/N, head_size)
         # scatter 2, gather 1
         if self.use_pack_qkv:
+
+            # TODO (Qinghao): To support packed qkv
+            raise NotImplementedError("Packed qkv is not supported yet.")
             # (3*bs, seq_len/N, head_cnt, head_size)
             qkv = torch.cat([query, key, value]).continous()
             # (3*bs, seq_len, head_cnt/N, head_size)
@@ -121,11 +152,27 @@ class HybridAttention(torch.nn.Module):
                 return_attn_probs=return_attn_probs,
                 group=self.ring_pg,
             )
-        else:
-            query_layer = SeqAllToAll4D.apply(self.ulysses_pg, query, self.scatter_idx, self.gather_idx)
-            key_layer = SeqAllToAll4D.apply(self.ulysses_pg, key, self.scatter_idx, self.gather_idx)
-            value_layer = SeqAllToAll4D.apply(self.ulysses_pg, value, self.scatter_idx, self.gather_idx)
 
+        query_layer = SeqAllToAll4D.apply(self.ulysses_pg, query, self.scatter_idx, self.gather_idx)
+        key_layer = SeqAllToAll4D.apply(self.ulysses_pg, key, self.scatter_idx, self.gather_idx)
+        value_layer = SeqAllToAll4D.apply(self.ulysses_pg, value, self.scatter_idx, self.gather_idx)
+
+        if attention_mask is not None:
+            new_attention_mask = torch.cat([attention_mask] * dist.get_world_size(self.ulysses_pg), dim=1)
+
+            out = self.ring_attn_fn(
+                query_layer,
+                key_layer,
+                value_layer,
+                *args,
+                attention_mask=new_attention_mask,
+                dropout_p=dropout_p,
+                softmax_scale=softmax_scale,
+                seqlens_in_batch=seqlens_in_batch,
+                causal=causal,
+                group=self.ring_pg,
+            )
+        else:
             out = self.ring_attn_fn(
                 query_layer,
                 key_layer,
@@ -153,6 +200,7 @@ class HybridAttention(torch.nn.Module):
         return output
 
 
+# TODO (Qinghao): To be supported
 class HybridAttentionQKVPacked(torch.nn.Module):
     """Initialization.
 
@@ -173,7 +221,7 @@ class HybridAttentionQKVPacked(torch.nn.Module):
         super().__init__()
 
         self.ring_pg = get_ring_sp_pg()
-        self.ulysses_pg = get_ulysess_sp_pg()
+        self.ulysses_pg = get_ulysses_sp_pg()
 
         assert (
             self.ulysses_pg is not None or self.ring_pg is not None
@@ -240,6 +288,7 @@ class HybridAttentionQKVPacked(torch.nn.Module):
         return out
 
 
+# TODO (Qinghao): To be supported
 class AsyncHybridAttention(torch.nn.Module):
     """Initialization.
 
@@ -259,7 +308,7 @@ class AsyncHybridAttention(torch.nn.Module):
 
         super().__init__()
         self.ring_pg = get_ring_sp_pg()
-        self.ulysses_pg = get_ulysess_sp_pg()
+        self.ulysses_pg = get_ulysses_sp_pg()
 
         self.stream = torch.cuda.Stream()
         self._async_op = True

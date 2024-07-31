@@ -2589,17 +2589,11 @@ class DataCollatorForSupervisedDatasetSeqParallel:
     training_args: TrainingArguments
     sp_degree: int
     sp_rank: int
+    ring_degree: int
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        # input_ids, labels = tuple([instance[key] for instance in instances]
-        #                           for key in ("input_ids", "labels"))
         input_ids, labels, images = [], [], []
         for instance in instances:
-
-            # Skip samples without images
-            # if instance["image"] is None or len(instance["image"]) == 0:
-            #     continue
-
             if not isinstance(instance["input_ids"], list):
                 input_ids.append(instance["input_ids"])
             else:
@@ -2638,7 +2632,6 @@ class DataCollatorForSupervisedDatasetSeqParallel:
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
         NUM_TOKENS_PER_IMAGE = 196
-        # NUM_TOKENS_PER_IMAGE = 256
 
         # Init the padding sample
         seq_id = 0
@@ -2655,7 +2648,7 @@ class DataCollatorForSupervisedDatasetSeqParallel:
             dummy_input_ids[2] = self.tokenizer.eos_token_id
             dummy_labels = copy.deepcopy(dummy_input_ids)
             dummy_labels[:2] = IGNORE_INDEX
-            dummy_seqlen = NUM_TOKENS_PER_IMAGE + 2
+            dummy_seqlen = NUM_TOKENS_PER_IMAGE + 2  # TODO: Check the hard coding of 2
             dummy_position_ids = torch.arange(start=0, end=dummy_seqlen, dtype=torch.int32)
             break
 
@@ -2666,6 +2659,7 @@ class DataCollatorForSupervisedDatasetSeqParallel:
             reverse=True,  # Start Packing from the sequence with most images.
         )
         sorted_ids, sorted_labels, sorted_images = zip(*combined)
+        sorted_ids, sorted_labels, sorted_images = list(sorted_ids), list(sorted_labels), list(sorted_images)
         max_seq_length = self.tokenizer.model_max_length  # len(sorted_ids[0])
         max_sample_len = 0
 
@@ -2690,6 +2684,25 @@ class DataCollatorForSupervisedDatasetSeqParallel:
                 num_images = (sorted_ids[i] == IMAGE_TOKEN_INDEX).sum().item()
                 num_image_tokens_added = num_images * (NUM_TOKENS_PER_IMAGE - 1)
                 num_incoming_tokens = sorted_ids[i].size(-1) + num_image_tokens_added
+
+                # Handle RingAttn_Varlen which requires `seqlens_in_batch` should be divisible by `ring_degree`
+                if self.ring_degree > 1:
+                    RING_PAD_TOKEN_INDEX = 2
+                    if num_incoming_tokens % self.sp_degree != 0:
+                        pad_len = self.sp_degree - num_incoming_tokens % self.sp_degree
+                        num_incoming_tokens += pad_len
+                        # pad `input_ids`
+                        pad_tensor = torch.full(
+                            (pad_len,), RING_PAD_TOKEN_INDEX, dtype=sorted_ids[i].dtype, device=sorted_ids[i].device
+                        )
+                        sorted_ids[i] = torch.cat([sorted_ids[i], pad_tensor])
+
+                        # pad `label`
+                        pad_label_tensor = torch.full(
+                            (pad_len,), IGNORE_INDEX, dtype=sorted_labels[i].dtype, device=sorted_labels[i].device
+                        )
+                        sorted_labels[i] = torch.cat([sorted_labels[i], pad_label_tensor])
+
                 if num_incoming_tokens > max_seq_length:
                     print(
                         f"Warning: Skipping one packed sample with {num_incoming_tokens} tokens,\
@@ -2819,7 +2832,6 @@ class DataCollatorForSupervisedDatasetSeqParallel:
             images=flat_batch_images,
             position_ids=position_ids,
         )
-
         return batch
 
 
@@ -2840,12 +2852,14 @@ def make_supervised_data_module(
     else:
         sp_degree = training_args.seq_parallel_size
         sp_rank = PROCESS_GROUP_MANAGER.sp_rank
+        ring_degree = PROCESS_GROUP_MANAGER.ring_degree
         data_collator = DataCollatorForSupervisedDatasetSeqParallel(
             tokenizer=tokenizer,
             data_args=data_args,
             training_args=training_args,
             sp_degree=sp_degree,
             sp_rank=sp_rank,
+            ring_degree=ring_degree,
         )
 
     return dict(

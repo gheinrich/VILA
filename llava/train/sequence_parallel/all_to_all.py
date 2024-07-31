@@ -11,11 +11,11 @@ from torch import Tensor
 from torch.nn import Module
 
 from llava.train.sequence_parallel.globals import (
-    get_ulysess_seq_len,
-    get_ulysess_sp_pg,
-    get_ulysess_sp_rank,
-    get_ulysess_sp_size,
-    set_ulysess_seq_len,
+    get_ulysses_seq_len,
+    get_ulysses_sp_pg,
+    get_ulysses_sp_rank,
+    get_ulysses_sp_size,
+    set_ulysses_seq_len,
 )
 
 
@@ -36,7 +36,7 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
 
     # seq_world_size = dist.get_world_size(group)
     # (DL): Change to ulysses size to handle hybrid parallelism.
-    seq_world_size = get_ulysess_sp_size()
+    seq_world_size = get_ulysses_sp_size()
     if scatter_idx == 2 and gather_idx == 1:
         # input (torch.tensor): a tensor sharded along dim 1 (bs, seqlen/P, hc, hs) output: (bs, seqlen, hc/P, hs)
         bs, shard_seqlen, hc, hs = input.shape
@@ -44,12 +44,12 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
         # Pad it first.
         # (Dacheng): This will trigger for each attention to make sure the second a2a is correct.
         # (TODO) Maybe can optimize to per forward call.
-        ulysess_seq_len = [torch.zeros(1, dtype=torch.int64, device=input.device) for _ in range(get_ulysess_sp_size())]
-        dist.barrier(group=get_ulysess_sp_pg())
-        dist.all_gather(ulysess_seq_len, torch.tensor(shard_seqlen, device=input.device), group=get_ulysess_sp_pg())
-        set_ulysess_seq_len(ulysess_seq_len)
+        ulysses_seq_len = [torch.zeros(1, dtype=torch.int64, device=input.device) for _ in range(get_ulysses_sp_size())]
+        dist.barrier(group=get_ulysses_sp_pg())
+        dist.all_gather(ulysses_seq_len, torch.tensor(shard_seqlen, device=input.device), group=get_ulysses_sp_pg())
+        set_ulysses_seq_len(ulysses_seq_len)
 
-        max_global_length = max(ulysess_seq_len)
+        max_global_length = max(ulysses_seq_len)
         # pad to the second dimension to the longest
         input = torch.nn.functional.pad(input, (0, 0, 0, 0, 0, max_global_length - shard_seqlen))
 
@@ -75,30 +75,30 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
 
         # then we will unpad it back
         output_list = torch.split(output, max_global_length, dim=0)
-        assert len(output_list) == get_ulysess_sp_size()
-        unpadded_output_list = [_output[: _seqlen.item()] for _output, _seqlen in zip(output_list, ulysess_seq_len)]
+        assert len(output_list) == get_ulysses_sp_size()
+        unpadded_output_list = [_output[: _seqlen.item()] for _output, _seqlen in zip(output_list, ulysses_seq_len)]
 
         # Concatenate the unpadded tensors back together
         output = torch.cat(unpadded_output_list)
 
         # (seq_len, bs, hc/P, hs) -reshape-> (bs, seq_len, hc/P, hs)
-        output = output.transpose(0, 1).contiguous().reshape(bs, sum(ulysess_seq_len), shard_hc, hs)
+        output = output.transpose(0, 1).contiguous().reshape(bs, sum(ulysses_seq_len), shard_hc, hs)
 
         # assert False
 
         return output
 
     elif scatter_idx == 1 and gather_idx == 2:
-        ulysess_seq_len = get_ulysess_seq_len()
-        assert ulysess_seq_len is not None, "the second a2a (scatter 1, gather 2) is called at first."
+        ulysses_seq_len = get_ulysses_seq_len()
+        assert ulysses_seq_len is not None, "the second a2a (scatter 1, gather 2) is called at first."
         # input (torch.tensor): a tensor sharded along dim 1 (bs, seqlen, hc/P, hs) output: (bs, seqlen/P, hc, hs)
         bs, _, shard_hc, hs = input.shape
         hc = shard_hc * seq_world_size
 
         # First we need to recover how to pad
-        max_global_length = max(ulysess_seq_len)
+        max_global_length = max(ulysses_seq_len)
 
-        unpadded_input_list = torch.split(input, ulysess_seq_len, dim=1)
+        unpadded_input_list = torch.split(input, ulysses_seq_len, dim=1)
         padded_input_list = [
             torch.nn.functional.pad(_unpadded_input, (0, 0, 0, 0, 0, max_global_length - _unpadded_input.shape[1]))
             for _unpadded_input in unpadded_input_list
@@ -125,7 +125,7 @@ def all_to_all_4D(input: torch.tensor, scatter_idx: int = 2, gather_idx: int = 1
         output = output.reshape(hc, max_global_length, bs, hs)
 
         # unpad the output
-        self_length = ulysess_seq_len[get_ulysess_sp_rank()]
+        self_length = ulysses_seq_len[get_ulysses_sp_rank()]
         # print(f"Self length {self_length}")
         output = output[:, :self_length, :, :]
 
