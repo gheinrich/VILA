@@ -84,7 +84,7 @@ wait
 # wait
 wait
 
-# bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/eval_output
+# bash scripts/v1_5/caption/slurm_eval_all.sh $CKPT3 $WORKDIR/runs/eval
 # wait
 '''
 pip install fire markdown

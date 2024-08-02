@@ -9,7 +9,7 @@ which python
 cd ~/VILA
 
 
-GPT_Zero_Shot_QA="./eval_output"
+GPT_Zero_Shot_QA="runs/eval"
 output_name=$1
 if [ -z "$2" ]
 then

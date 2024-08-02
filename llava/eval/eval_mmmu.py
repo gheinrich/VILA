@@ -5,12 +5,7 @@ import json
 from argparse import ArgumentParser
 
 from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, DOMAIN_CAT2SUB_CAT, save_json
-from llava.eval.mmmu_utils.eval_utils import (
-    calculate_ins_level_acc,
-    evaluate,
-    parse_multi_choice_response,
-    parse_open_response,
-)
+from llava.eval.mmmu_utils.eval_utils import calculate_ins_level_acc, evaluate, parse_choice, parse_open_response
 
 if __name__ == "__main__":
 

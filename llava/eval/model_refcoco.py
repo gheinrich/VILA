@@ -236,7 +236,7 @@ def eval_model(args):
 
             answer_all = []
             resamples = []
-            for (input_ids, image_tensor, image_file, raw_data, raw_image) in tqdm(data_loader, total=len(loaded_data)):
+            for input_ids, image_tensor, image_file, raw_data, raw_image in tqdm(data_loader, total=len(loaded_data)):
                 sents = raw_data["sents"]
                 gt_bbox = raw_data["bbox"]
                 h = raw_data["height"]

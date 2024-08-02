@@ -43,7 +43,7 @@ srun \
     -e $OUTDIR/$jname.err -o $OUTDIR/$jname.out \
     python llava/eval/video_mme/video_eval.py \
         --model-path $ckpt --shard $idx --total $total --conv-mode $conv_mode \
-        --output_dir=./eval_output/$model_name/video_mme/ --output_name=frames-$num_video_frames \
+        --output_dir=runs/eval/$model_name/video_mme/ --output_name=frames-$num_video_frames \
         --num_video_frames $num_video_frames \
         --temperature $temperature --num-beams $num_beams
 

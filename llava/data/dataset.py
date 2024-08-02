@@ -1248,7 +1248,7 @@ class LazyMMC4Dataset(Dataset):
         assert len(input_ids.shape) == 1, "Unexpected shape of 'input_ids' from MMC4."
         input_ids = (
             torch.concat([torch.tensor([self.tokenizer.bos_token_id]), input_ids])
-            if input_ids[0] != self.tokenizer.bos_token_id
+            if self.tokenizer.bos_token_id is not None and input_ids[0] != self.tokenizer.bos_token_id
             else input_ids
         )
         targets = input_ids.clone()

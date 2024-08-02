@@ -19,24 +19,24 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
 
     CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python -m llava.eval.model_vqa_mathvista \
         --model-path $MODEL_PATH \
+        --generation-config '{"max_new_tokens": 128}' \
         --split $SPLIT \
-        --answers-file ./eval_output/$CKPT/MathVista/MathVista_$SPLIT/${CHUNKS}_${IDX}.json \
+        --answers-file runs/eval/$CKPT/MathVista/MathVista_$SPLIT/${CHUNKS}_${IDX}.json \
         --num-chunks $CHUNKS \
         --chunk-idx $IDX \
-        --temperature 0 \
         --conv-mode hermes-2 &
 done
 
 wait
 
-output_file=./eval_output/$CKPT/MathVista/MathVista_$SPLIT.json
+output_file=runs/eval/$CKPT/MathVista/MathVista_$SPLIT.json
 
 # Clear out the output file if it exists.
 > "$output_file"
 
 # Loop through the indices and concatenate each file.
 for IDX in $(seq 0 $((CHUNKS-1))); do
-    cat ./eval_output/$CKPT/MathVista/MathVista_$SPLIT/${CHUNKS}_${IDX}.json >> "$output_file"
+    cat runs/eval/$CKPT/MathVista/MathVista_$SPLIT/${CHUNKS}_${IDX}.json >> "$output_file"
 done
 
 

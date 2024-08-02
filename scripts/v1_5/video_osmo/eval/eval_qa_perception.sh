@@ -9,7 +9,7 @@ which python
 cd ~/VILA
 
 
-GPT_Zero_Shot_QA="./eval_output"
+GPT_Zero_Shot_QA="runs/eval"
 output_name=$1
 output_dir="${GPT_Zero_Shot_QA}/${output_name}/PerceptionTest_Zero_Shot_QA"
 pred_path="${GPT_Zero_Shot_QA}/${output_name}/PerceptionTest_Zero_Shot_QA/merge.jsonl"

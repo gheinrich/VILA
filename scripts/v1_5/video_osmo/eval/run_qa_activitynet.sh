@@ -19,7 +19,7 @@ GPT_Zero_Shot_QA="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/GPT_Zero_Shot_QA/
 video_dir="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/all_test"
 gt_file_question="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/test_q.json"
 gt_file_answers="${GPT_Zero_Shot_QA}/Activitynet_Zero_Shot_QA/test_a.json"
-output_dir="./eval_output/${CKPT_NAME}/Activitynet_Zero_Shot_QA"
+output_dir="runs/eval/${CKPT_NAME}/Activitynet_Zero_Shot_QA"
 
 CHUNKS=8
 

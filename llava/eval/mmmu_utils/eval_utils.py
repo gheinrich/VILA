@@ -10,7 +10,7 @@ import numpy as np
 
 
 # ----------- Process Multi-choice -------------
-def parse_multi_choice_response(response, all_choices, index2ans):
+def parse_choice(response, all_choices, index2ans=None):
     """
     Parse the prediction from the generated response.
     Return the predicted index e.g., A, B, C, D.
@@ -33,7 +33,7 @@ def parse_multi_choice_response(response, all_choices, index2ans):
                 candidates.append(choice)
 
     # if all above doesn't get candidates, check if the content is larger than 5 tokens and try to parse the example
-    if len(candidates) == 0 and len(response.split()) > 5:
+    if len(candidates) == 0 and len(response.split()) > 5 and index2ans is not None:
         for index, ans in index2ans.items():
             if ans.lower() in response.lower():
                 candidates.append(index)
@@ -131,6 +131,7 @@ def parse_open_response(response):
     Parse the prediction from the generated response.
     Return a list of predicted strings or numbers.
     """
+
     # content = content.strip("\n").strip(".").strip(" ")
     def get_key_subresponses(response):
         key_responses = []

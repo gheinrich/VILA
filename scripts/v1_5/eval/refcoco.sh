@@ -5,7 +5,7 @@ MODEL_PATH=$1       # Your model path
 CKPT=$2             # Checkpoint name
 CONV_MODE=$3   # Convolution mode
 RANK=0              # Rank of the job (multi-node)
-YOUR_ANSWER_PATH=./eval_output/${CKPT}/RefCOCO/
+YOUR_ANSWER_PATH=runs/eval/${CKPT}/RefCOCO/
 
 mkdir -p ${YOUR_ANSWER_PATH}
 

@@ -26,15 +26,15 @@ mname=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
 # convert the checkpoints
 
 
-eval_output/VILA1.5-40b/video_mme/frames--1.json
+runs/eval/VILA1.5-40b/video_mme/frames--1.json
 
 python llava/eval/video_mme/video_eval.py \
     --model-path Efficient-Large-Model/VILA1.5-40b \
-    --output_dir eval_output/VILA1.5-40b/video_mme \
+    --output_dir runs/eval/VILA1.5-40b/video_mme \
     --output_name frames--1.json \
     -c
 
-YOUR_RESULTS_FILE=eval_output/VILA1.5-40b/video_mme/frames--1_converted.json
+YOUR_RESULTS_FILE=runs/eval/VILA1.5-40b/video_mme/frames--1_converted.json
 VIDEO_DURATION_TYPE=short,medium,long
 python llava/eval/video_mme/mme_calc.py \
     --results_file $YOUR_RESULTS_FILE \
@@ -52,11 +52,11 @@ ckpt=${1:-/home/jasonlu/workspace/VILA-Internal/checkpoints/vila-yi-34b-intern-6
 mname=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
 python llava/eval/video_mme/video_eval.py \
     --model-path $ckpt \
-    --output_dir eval_output/$mname/video_mme \
+    --output_dir runs/eval/$mname/video_mme \
     --output_name $mname.json \
     -c
 
-YOUR_RESULTS_FILE=eval_output/$mname/video_mme/${mname}_converted.json
+YOUR_RESULTS_FILE=runs/eval/$mname/video_mme/${mname}_converted.json
 VIDEO_DURATION_TYPE=short,medium,long
 python llava/eval/video_mme/mme_calc.py \
     --results_file $YOUR_RESULTS_FILE \

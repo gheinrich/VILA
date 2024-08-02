@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument(
         "--pred_path",
         type=str,
-        default="/lustre/fs2/portfolios/nvr/users/yukangc/VILA-Internal-main-3/eval_output/Gemini/pred2.json",
+        default="/lustre/fs2/portfolios/nvr/users/yukangc/VILA-Internal-main-3/runs/eval/Gemini/pred2.json",
         help="The path to file containing prediction.",
     )
     parser.add_argument("--save_dir", type=str, default="Gemini_golden", help="The path to save annotation json files.")

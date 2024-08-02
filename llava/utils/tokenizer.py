@@ -41,6 +41,7 @@ DUMMY_CONVERSATION = [
 def tokenize_conversation_legacy(
     messages: Sequence[Dict[str, str]],
     tokenizer: transformers.PreTrainedTokenizer,
+    add_generation_prompt: bool = False,
     overrides: Optional[Dict[str, str]] = None,
 ) -> torch.Tensor:
     conv = conversation_lib.default_conversation.copy()
@@ -49,6 +50,10 @@ def tokenize_conversation_legacy(
     # Skip the first message if it is not from human
     if messages[0]["from"] != "human":
         messages = messages[1:]
+
+    # Add a generation prompt if needed
+    if add_generation_prompt:
+        messages.append({"from": "gpt", "value": None})
 
     conv.messages = []
     for turn, message in enumerate(messages):
@@ -65,11 +70,17 @@ def tokenize_conversation_legacy(
 def tokenize_conversation(
     messages: Sequence[Dict[str, str]],
     tokenizer: transformers.PreTrainedTokenizer,
+    add_generation_prompt: bool = False,
     overrides: Optional[Dict[str, str]] = None,
 ) -> torch.Tensor:
     supported_tokenizers = ["qwen2tokenizer"]
     if not any(name in tokenizer.__class__.__name__.lower() for name in supported_tokenizers):
-        return tokenize_conversation_legacy(messages, tokenizer, overrides=overrides)
+        return tokenize_conversation_legacy(
+            messages,
+            tokenizer,
+            add_generation_prompt=add_generation_prompt,
+            overrides=overrides,
+        )
 
     conversation = []
     for m in messages:
@@ -86,7 +97,11 @@ def tokenize_conversation(
             message["content"] = overrides[m["from"]]
         conversation.append(message)
 
-    text = tokenizer.apply_chat_template(conversation, tokenize=False)
+    text = tokenizer.apply_chat_template(
+        conversation,
+        add_generation_prompt=add_generation_prompt,
+        tokenize=False,
+    )
     return tokenizer_image_token(text, tokenizer, return_tensors="pt")
 
 

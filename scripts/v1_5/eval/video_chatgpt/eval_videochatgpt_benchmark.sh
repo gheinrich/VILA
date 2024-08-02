@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-GPT_Zero_Shot_QA="./eval_output"
+GPT_Zero_Shot_QA="runs/eval"
 output_name=$1
 model=${2:-"gpt-3.5-turbo-0125"}
 RESULT_DIR="${GPT_Zero_Shot_QA}/${output_name}/videochatgpt"

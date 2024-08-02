@@ -4,7 +4,7 @@ set -e
 model_path=$1 # first argument is the model path
 ckpt_name=$2 # second argument is the evaluation output directory name
 conv_mode=vicuna_v1
-result_dir=./eval_output/${ckpt_name}/videochatgpt
+result_dir=runs/eval/${ckpt_name}/videochatgpt
 if [ "$#" -ge 3 ]; then
     conv_mode="$3"
 fi

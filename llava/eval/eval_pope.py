@@ -6,8 +6,7 @@ import os
 
 
 def eval_pope(answers, label_file):
-    label_list = [json.loads(q)["label"] for q in open(label_file)]
-
+    outputs = []
     for answer in answers:
         text = answer["text"]
 
@@ -18,29 +17,18 @@ def eval_pope(answers, label_file):
         text = text.replace(",", "")
         words = text.split(" ")
         if "No" in words or "not" in words or "no" in words:
-            answer["text"] = "no"
+            outputs.append((answer["question_id"], "no"))
         else:
-            answer["text"] = "yes"
+            outputs.append((answer["question_id"], "yes"))
+    outputs = sorted(outputs)
 
-    for i in range(len(label_list)):
-        if label_list[i] == "no":
-            label_list[i] = 0
-        else:
-            label_list[i] = 1
+    targets = [json.loads(line)["label"] for line in open(label_file)]
 
-    pred_list = []
-    for answer in answers:
-        if answer["text"] == "no":
-            pred_list.append(0)
-        else:
-            pred_list.append(1)
-
-    pos = 1
-    neg = 0
-    yes_ratio = pred_list.count(1) / len(pred_list)
+    pos = "yes"
+    neg = "no"
 
     TP, TN, FP, FN = 0, 0, 0, 0
-    for pred, label in zip(pred_list, label_list):
+    for (_, pred), label in zip(outputs, targets):
         if pred == pos and label == pos:
             TP += 1
         elif pred == pos and label == neg:
@@ -61,8 +49,7 @@ def eval_pope(answers, label_file):
     print(f"Precision: {precision}")
     print(f"Recall: {recall}")
     print(f"F1 score: {f1}")
-    print(f"Yes ratio: {yes_ratio}")
-    print(f"{f1:.3f}, {acc:.3f}, {precision:.3f}, {recall:.3f}, {yes_ratio:.3f}")
+    print(f"{f1:.3f}, {acc:.3f}, {precision:.3f}, {recall:.3f}")
 
 
 if __name__ == "__main__":

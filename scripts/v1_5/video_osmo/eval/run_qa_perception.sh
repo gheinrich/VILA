@@ -19,7 +19,7 @@ GPT_Zero_Shot_QA="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/GPT_Zero_Shot_QA"
 DATA_DIR="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/perception_test/perception_test"
 video_dir="${DATA_DIR}/videos"
 gt_file="${DATA_DIR}/mc_question_valid.json"
-output_dir="./eval_output/${CKPT_NAME}/PerceptionTest_Zero_Shot_QA"
+output_dir="runs/eval/${CKPT_NAME}/PerceptionTest_Zero_Shot_QA"
 
 
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"

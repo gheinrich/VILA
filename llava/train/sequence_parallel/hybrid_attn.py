@@ -259,7 +259,7 @@ class HybridAttentionQKVPacked(torch.nn.Module):
 
         world_size = dist.get_world_size(self.ulysses_pg)
 
-        if world_size > 1:
+        if world_size > 1 and dist.is_initialized():
             qkv = SeqAllToAll5D.apply(self.ulysses_pg, qkv, self.scatter_idx, self.gather_idx)
 
         out = self.ring_attn_fn(
@@ -282,7 +282,7 @@ class HybridAttentionQKVPacked(torch.nn.Module):
         # (bs, seq_len, head_cnt/N, head_size) -> (bs, seq_len/N, head_cnt, head_size)
         # scatter 1, gather 2
 
-        if world_size > 1:
+        if world_size > 1 and dist.is_initialized():
             out = SeqAllToAll4D.apply(self.ulysses_pg, out, self.gather_idx, self.scatter_idx - 1)
         # out e.g., [s/p::h]
         return out

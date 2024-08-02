@@ -15,43 +15,34 @@
 import logging
 import os
 import os.path as osp
-import sys
 import warnings
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import OrderedDict
+from typing import List, Optional, Union
 
 import torch
 import torch.distributed as dist
-from transformers import (
-    AutoConfig,
-    AutoModel,
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    PretrainedConfig,
-    PreTrainedModel,
-)
+from PIL import Image
+from transformers import AutoConfig, GenerationConfig, PreTrainedModel
 from transformers.modeling_utils import ContextManagers, no_init_weights
 
+from llava import modals
 from llava.constants import (
     DEFAULT_IM_END_TOKEN,
     DEFAULT_IM_START_TOKEN,
     DEFAULT_IMAGE_PATCH_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
 )
+from llava.mm_utils import opencv_extract_frames, process_images
 from llava.model.configuration_llava import LlavaConfig
 from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.utils import get_model_config
 from llava.train.sequence_parallel import get_pg_manager
-from llava.train.utils import (
-    get_checkpoint_path,
-    prepare_config_for_training,
-    unit_test_rope_scaling,
-    vision_resolution_elevation,
-)
+from llava.utils.tokenizer import infer_stop_tokens, tokenize_conversation
 
 
 # TODO decide whether should we use metaclass
@@ -816,3 +807,95 @@ class LlavaMetaForCausalLM(ABC):
                     p.requires_grad = False
                 for p in self.get_output_embeddings().parameters():
                     p.requires_grad = False
+
+    @torch.inference_mode()
+    def generate(
+        self,
+        input_ids: Optional[torch.FloatTensor] = None,
+        images: Optional[torch.FloatTensor] = None,
+        attention_mask: Optional[torch.LongTensor] = None,
+        **generation_kwargs,
+    ):
+        if images is not None:
+            (_, _, attention_mask, _, inputs_embeds, _) = self.prepare_inputs_labels_for_multimodal(
+                input_ids, None, attention_mask, None, None, images
+            )
+        else:
+            inputs_embeds = self.get_input_embeddings()(input_ids)
+        inputs_embeds = inputs_embeds.to(self.dtype)
+
+        outputs = self.llm.generate(inputs_embeds=inputs_embeds, attention_mask=attention_mask, **generation_kwargs)
+        return outputs
+
+    @torch.inference_mode()
+    def generate_content(self, prompt: Union[str, List], generation_config: Optional[GenerationConfig] = None) -> str:
+        if isinstance(prompt, str):
+            prompt = [prompt]
+
+        # TODO(zhijianl): This logic will be moved to model forward function
+        if self.config.mm_use_im_start_end:
+            image_token = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
+        else:
+            image_token = DEFAULT_IMAGE_TOKEN
+
+        # Process the prompt
+        text = ""
+        images = []
+        for element in prompt:
+            if isinstance(element, str):
+                text += element
+            elif isinstance(element, (Image.Image, modals.Image)):
+                if isinstance(element, modals.Image):
+                    element = Image.open(element.path)
+                text += image_token + "\n"
+                images.append(element)
+            elif isinstance(element, modals.Video):
+                frames, _ = opencv_extract_frames(
+                    element.path,
+                    self.config.num_video_frames,
+                    getattr(self.config, "fps") or 0,
+                )
+                if not frames:
+                    raise ValueError(f"Video {element.path} has no frames")
+
+                text += (image_token + "\n") * len(frames)
+                images.extend(frames)
+            else:
+                raise ValueError(f"Unsupported prompt element type: {type(element)}")
+
+        # Tokenize the conversation
+        chat = [{"from": "human", "value": text}]
+        input_ids = tokenize_conversation(chat, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
+
+        # Process the images
+        if images:
+            images = process_images(images, self.vision_tower.image_processor, self.config).cuda().half()
+        else:
+            images = None
+
+        # Set up the generation config
+        if generation_config is None:
+            generation_config = self.generation_config
+        if self.tokenizer.eos_token_id is None:
+            raise ValueError("Tokenizer must have an EOS token")
+        if generation_config.pad_token_id is None:
+            generation_config.pad_token_id = self.tokenizer.pad_token_id or self.tokenizer.eos_token_id
+        if generation_config.bos_token_id is None:
+            generation_config.bos_token_id = self.tokenizer.bos_token_id or self.tokenizer.eos_token_id
+        if generation_config.eos_token_id is None:
+            generation_config.eos_token_id = self.tokenizer.convert_tokens_to_ids(infer_stop_tokens(self.tokenizer))
+
+        # Generate the response
+        try:
+            output_ids = self.generate(input_ids=input_ids, images=images, generation_config=generation_config)
+        except ValueError:
+            if not generation_config.do_sample:
+                raise
+            # FIXME(zhijianl): This is a temporary workaround for the sampling issue
+            logging.warning("Generation failed with sampling, retrying with greedy decoding.")
+            generation_config.do_sample = False
+            output_ids = self.generate(input_ids=input_ids, images=images, generation_config=generation_config)
+
+        # Decode the response
+        response = self.tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+        return response

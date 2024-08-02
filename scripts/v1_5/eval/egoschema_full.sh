@@ -6,41 +6,19 @@ if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi
 
-output_dir="./eval_output/$CKPT/EgoSchema_full"
+OUTPUT_DIR="runs/eval/$CKPT/egoschema-full"
 
-gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
-IFS=',' read -ra GPULIST <<< "$gpu_list"
-
-CHUNKS=${#GPULIST[@]}
-
-echo "Evaluating $CKPT with conv_mode $CONV_MODE..."
-for IDX in $(seq 0 $((CHUNKS-1))); do
-  CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python3 llava/eval/model_vqa_ego_schema.py \
+torchrun --nproc-per-node=8 \
+    llava/eval/model_vqa_ego_schema.py \
     --model-path $MODEL_PATH \
-    --temperature 0 \
+    --generation-config '{"max_new_tokens": 1024}' \
+    --video-folder playground/data/eval/EgoSchema/videos \
+    --question-file playground/data/eval/EgoSchema/questions.json \
+    --gt-answers-file playground/data/eval/EgoSchema/subset_answers.json \
     --conv-mode $CONV_MODE \
     --split test \
-    --output_dir ${output_dir} \
-    --output_name ${CHUNKS}_${IDX} \
-    --num-chunks $CHUNKS \
-    --chunk-idx $IDX &
-
-done
-
-wait
-
-output_file=${output_dir}/merge.json
-
-# Clear out the output file if it exists.
-if [ -f "$output_file" ]; then
-    > "$output_file"
-fi
-
-
-# Loop through the indices and concatenate each file.
-for IDX in $(seq 0 $((CHUNKS-1))); do
-    cat ${output_dir}/${CHUNKS}_${IDX}.json >> "$output_file"
-done
+    --output_dir $OUTPUT_DIR \
+    --output_name merge \
 
 # convert json to csv for kaggle submission
-python scripts/v1_5/eval/convert_pred_to_csv.py --output_dir ${output_dir}
+python scripts/v1_5/eval/convert_pred_to_csv.py --output_dir $OUTPUT_DIR

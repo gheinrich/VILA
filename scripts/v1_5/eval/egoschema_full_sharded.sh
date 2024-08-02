@@ -6,7 +6,7 @@ if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi
 
-output_dir="./eval_output/$CKPT/EgoSchema_full"
+output_dir="runs/eval/$CKPT/EgoSchema_full"
 
 gpu_list="${CUDA_VISIBLE_DEVICES:-0}"
 IFS=',' read -ra GPULIST <<< "$gpu_list"
@@ -20,7 +20,10 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
 
     CUDA_VISIBLE_DEVICES=${GPULIST[$GPU_IDX1]},${GPULIST[$GPU_IDX2]} python3 llava/eval/model_vqa_ego_schema.py \
     --model-path $MODEL_PATH \
-    --temperature 0 \
+    --generation-config '{"max_new_tokens": 1024}' \
+    --video-folder ./playground/data/eval/EgoSchema/videos \
+    --question-file ./playground/data/eval/EgoSchema/questions.json \
+    --gt-answers-file ./playground/data/eval/EgoSchema/subset_answers.json \
     --conv-mode $CONV_MODE \
     --split test \
     --output_dir ${output_dir} \

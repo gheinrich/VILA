@@ -5,13 +5,21 @@ CONV_MODE=vicuna_v1
 if [ "$#" -ge 3 ]; then
     CONV_MODE="$3"
 fi
-output_dir="./eval_output/$CKPT/EgoSchema"
 
-echo "Evaluating $CKPT with conv_mode $CONV_MODE..."
-CUDA_VISIBLE_DEVICES=2 python -m llava.eval.model_vqa_ego_schema \
+DATA_PATH="playground/data/eval/EgoSchema/questions.json"
+VIDEO_DIR="playground/data/eval/EgoSchema/videos"
+ANSWER_PATH="playground/data/eval/EgoSchema/subset_answers.json"
+OUTPUT_DIR="runs/eval/$CKPT/egoschema/validation"
+GENERATION_CONFIG='{"max_new_tokens": 1024}'
+
+torchrun --nproc-per-node=8 \
+    llava/eval/model_vqa_ego_schema.py \
     --model-path $MODEL_PATH \
-    --temperature 0 \
     --conv-mode $CONV_MODE \
-    --output_dir ${output_dir} \
-    --output_name answers \
+    --generation-config "$GENERATION_CONFIG" \
+    --question-file $DATA_PATH \
+    --video-folder $VIDEO_DIR \
+    --gt-answers-file $ANSWER_PATH \
     --split validation \
+    --output_dir $OUTPUT_DIR \
+    --output_name outputs

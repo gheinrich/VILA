@@ -14,7 +14,7 @@ PROMPT_TEMPLATE=$3
 DEMO_DIR="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/demo_v0/videos"
 video_dir="${DEMO_DIR}"
 # gt_file="${NEXTQA}/test_data_nextoe/test.csv"
-output_dir="./eval_output/${CKPT_NAME}/Demo_Zero_Shot_QA/${CKPT_NAME}_${PROMPT_TEMPLATE}"
+output_dir="runs/eval/${CKPT_NAME}/Demo_Zero_Shot_QA/${CKPT_NAME}_${PROMPT_TEMPLATE}"
 # mkdir $output_dir
 
 # gpu_list="${CUDA_VISIBLE_DEVICES:-0}"

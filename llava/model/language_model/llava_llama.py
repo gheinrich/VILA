@@ -17,19 +17,10 @@
 
 import inspect
 import os
-import os.path as osp
 from typing import List, Optional, Tuple, Union
 
 import torch
-from transformers import (
-    AutoConfig,
-    AutoModel,
-    GenerationConfig,
-    LlamaConfig,
-    LlamaForCausalLM,
-    PretrainedConfig,
-    PreTrainedModel,
-)
+from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from ...train.utils import calculate_loss_weight
@@ -188,30 +179,6 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
 
         if dpo_forward:
             return outputs.logits, new_labels
-        return outputs
-
-    @torch.no_grad()
-    def generate(
-        self,
-        input_ids: Optional[torch.FloatTensor] = None,
-        images: Optional[torch.FloatTensor] = None,
-        attention_mask: Optional[torch.LongTensor] = None,
-        **generation_kwargs,
-    ):
-        if images is not None:
-            (
-                _,
-                _,
-                attention_mask,
-                _,
-                inputs_embeds,
-                _,
-            ) = self.prepare_inputs_labels_for_multimodal(input_ids, None, attention_mask, None, None, images)
-        else:
-            inputs_embeds = self.get_input_embeddings()(input_ids)
-        inputs_embeds = inputs_embeds.to(self.dtype)
-
-        outputs = self.llm.generate(inputs_embeds=inputs_embeds, attention_mask=attention_mask, **generation_kwargs)
         return outputs
 
 
