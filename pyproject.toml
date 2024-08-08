@@ -27,6 +27,9 @@ dependencies = [
     "tyro", "pytest", "pre-commit"
 ]
 
+[project.scripts]
+vilarun = "llava.cli.run:main"
+
 [project.optional-dependencies]
 train = ["deepspeed==0.9.5", "ninja", "wandb"]
 eval = ["word2number", "Levenshtein", "nltk", "pywsd"]
