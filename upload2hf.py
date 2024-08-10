@@ -125,7 +125,7 @@ if __name__ == "__main__":
                     )
                     continue
                 else:
-                    hf_meta = list(api.list_files_info(repo_id=repo, paths=rpath, repo_type=repo_type))[0]
+                    hf_meta = api.get_paths_info(repo_id=repo, paths=rpath, repo_type=repo_type)[0]
 
                     if hf_meta.lfs is not None:
                         hash_type = "lfs-sha256"
