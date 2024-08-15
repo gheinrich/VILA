@@ -23,19 +23,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from .all_to_all import SeqAllToAll4D, SeqAllToAll5D
-from .globals import (
-    get_pg_manager,
-    get_ring_sp_pg,
-    get_ring_sp_rank,
-    get_ring_sp_size,
-    get_sequence_parallel_pg,
-    get_sequence_parallel_rank,
-    get_sequence_parallel_size,
-    get_ulysses_seq_len,
-    get_ulysses_sp_pg,
-    get_ulysses_sp_rank,
-    get_ulysses_sp_size,
-)
+from .globals import get_ring_sp_pg, get_ring_type, get_ulysses_sp_pg
 from .ring import (
     ring_flash_attn_func,
     ring_flash_attn_qkvpacked_func,
@@ -54,7 +42,7 @@ RING_IMPL_DICT = {
     "zigzag": zigzag_ring_flash_attn_func,
     "strip": stripe_flash_attn_func,
     "ring_varlen": ring_flash_attn_varlen_func,
-    "zigzag_varlen": zigzag_ring_flash_attn_varlen_func,
+    "zigzag_ring_varlen": zigzag_ring_flash_attn_varlen_func,
 }
 
 RING_IMPL_QKVPACKED_DICT = {
@@ -80,7 +68,6 @@ class HybridAttention(torch.nn.Module):
         self,
         scatter_idx: int = 2,
         gather_idx: int = 1,
-        ring_impl_type: str = "ring_varlen",
         use_pack_qkv: bool = False,
         attention_warper: Module = None,
     ) -> None:
@@ -96,7 +83,7 @@ class HybridAttention(torch.nn.Module):
         self.scatter_idx = scatter_idx
         self.gather_idx = gather_idx
         if attention_warper is None:
-            self.ring_attn_fn = RING_IMPL_DICT[ring_impl_type]
+            self.ring_attn_fn = RING_IMPL_DICT[get_ring_type()]
         else:
             self.ring_attn_fn = attention_warper
 

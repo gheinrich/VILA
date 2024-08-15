@@ -2590,6 +2590,7 @@ class DataCollatorForSupervisedDatasetSeqParallel:
     sp_degree: int
     sp_rank: int
     ring_degree: int
+    ring_type: str
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         input_ids, labels, images = [], [], []
@@ -2689,20 +2690,39 @@ class DataCollatorForSupervisedDatasetSeqParallel:
                 # Handle RingAttn_Varlen which requires `seqlens_in_batch` should be divisible by `ring_degree`
                 if self.ring_degree > 1:
                     RING_PAD_TOKEN_INDEX = 2
-                    if num_incoming_tokens % self.sp_degree != 0:
-                        pad_len = self.sp_degree - num_incoming_tokens % self.sp_degree
-                        num_incoming_tokens += pad_len
-                        # pad `input_ids`
-                        pad_tensor = torch.full(
-                            (pad_len,), RING_PAD_TOKEN_INDEX, dtype=sorted_ids[i].dtype, device=sorted_ids[i].device
-                        )
-                        sorted_ids[i] = torch.cat([sorted_ids[i], pad_tensor])
+                    if self.ring_type == "ring_varlen":
+                        if num_incoming_tokens % self.sp_degree != 0:
+                            pad_len = self.sp_degree - num_incoming_tokens % self.sp_degree
+                            num_incoming_tokens += pad_len
+                            # pad `input_ids`
+                            pad_tensor = torch.full(
+                                (pad_len,), RING_PAD_TOKEN_INDEX, dtype=sorted_ids[i].dtype, device=sorted_ids[i].device
+                            )
+                            sorted_ids[i] = torch.cat([sorted_ids[i], pad_tensor])
 
-                        # pad `label`
-                        pad_label_tensor = torch.full(
-                            (pad_len,), IGNORE_INDEX, dtype=sorted_labels[i].dtype, device=sorted_labels[i].device
-                        )
-                        sorted_labels[i] = torch.cat([sorted_labels[i], pad_label_tensor])
+                            # pad `label`
+                            pad_label_tensor = torch.full(
+                                (pad_len,), IGNORE_INDEX, dtype=sorted_labels[i].dtype, device=sorted_labels[i].device
+                            )
+                            sorted_labels[i] = torch.cat([sorted_labels[i], pad_label_tensor])
+                    elif self.ring_type == "zigzag_ring_varlen":
+                        self.zigzag_sp_degree = self.sp_degree * 2
+                        if num_incoming_tokens % self.zigzag_sp_degree != 0:
+                            pad_len = self.zigzag_sp_degree - num_incoming_tokens % self.zigzag_sp_degree
+                            num_incoming_tokens += pad_len
+                            # pad `input_ids`
+                            pad_tensor = torch.full(
+                                (pad_len,), RING_PAD_TOKEN_INDEX, dtype=sorted_ids[i].dtype, device=sorted_ids[i].device
+                            )
+                            sorted_ids[i] = torch.cat([sorted_ids[i], pad_tensor])
+
+                            # pad `label`
+                            pad_label_tensor = torch.full(
+                                (pad_len,), IGNORE_INDEX, dtype=sorted_labels[i].dtype, device=sorted_labels[i].device
+                            )
+                            sorted_labels[i] = torch.cat([sorted_labels[i], pad_label_tensor])
+                    else:
+                        raise ValueError(f"Invalid ring_type: {self.ring_type}")
 
                 if num_incoming_tokens > max_seq_length:
                     print(
@@ -2855,6 +2875,7 @@ def make_supervised_data_module(
         sp_degree = training_args.seq_parallel_size
         sp_rank = PROCESS_GROUP_MANAGER.sp_rank
         ring_degree = PROCESS_GROUP_MANAGER.ring_degree
+        ring_type = PROCESS_GROUP_MANAGER.ring_type
         data_collator = DataCollatorForSupervisedDatasetSeqParallel(
             tokenizer=tokenizer,
             data_args=data_args,
@@ -2862,6 +2883,7 @@ def make_supervised_data_module(
             sp_degree=sp_degree,
             sp_rank=sp_rank,
             ring_degree=ring_degree,
+            ring_type=ring_type,
         )
 
     return dict(

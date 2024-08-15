@@ -111,7 +111,9 @@ class TrainingArguments(transformers.TrainingArguments):
     )
     seq_parallel_ring_type: str = field(
         default="ring_varlen",
-        metadata={"help": "Ring Attention implementation."},
+        metadata={
+            "help": "Ring Attention implementation. Support ['ring_varlen', 'zigzag_ring_varlen'] in 2D attention. Only works when `seq_parallel_ring_size` > 1."
+        },
     )
     debug_e2e: bool = field(
         default=False,

@@ -17,11 +17,31 @@
 import torch
 
 
-def extract_local_from_list(vaule_list, sp_rank, sp_size):
-    quotient, remainder = divmod(len(vaule_list), sp_size)
+def extract_local_zigzag(value, rank, world_size, device, dim=1):
+    value_chunks = value.chunk(2 * world_size, dim=dim)
+    local_value = torch.cat([value_chunks[rank], value_chunks[2 * world_size - rank - 1]], dim=dim)
+    return local_value.to(device)
+
+
+def extract_local_from_list(value_list, sp_rank, sp_size):
+    quotient, remainder = divmod(len(value_list), sp_size)
     start_idx = sp_rank * quotient + min(sp_rank, remainder)
     end_idx = (sp_rank + 1) * quotient + min(sp_rank + 1, remainder)
-    return vaule_list[start_idx:end_idx]
+    return value_list[start_idx:end_idx]
+
+
+def extract_local_from_list_zigzag(value_list, sp_rank, sp_size):
+    chunk_size, remainder = divmod(len(value_list), (2 * sp_size))
+    value_chunks = []
+    start_idx = 0
+    for i in range(2 * sp_size):
+        extra = 1 if i < remainder else 0
+        end_idx = start_idx + chunk_size + extra
+        value_chunks.append(value_list[start_idx:end_idx])
+        start_idx = end_idx
+
+    local_value = value_chunks[sp_rank] + value_chunks[2 * sp_size - sp_rank - 1]
+    return local_value
 
 
 def extract_local_input_ids(input_ids, image_positions, sp_rank, sp_size, bos_token_id=1, image_token_len=3):
@@ -58,38 +78,3 @@ def extract_local_position_ids(input_ids, image_positions, image_ids, sp_rank, s
         return input_ids[start_position_idx:]
     else:
         return input_ids[start_position_idx:end_position_idx]
-
-
-def extract_local(value, rank, world_size, dim=1):
-    value_chunks = value.chunk(2 * world_size, dim=dim)
-    local_value = torch.cat([value_chunks[rank], value_chunks[2 * world_size - rank - 1]], dim=dim)
-    return local_value
-
-
-def prepare_hybrid_attn_inputs(input_ids, position_ids, target_ids, rank, world_size, device):
-    local_input_ids = extract_local(
-        input_ids,
-        rank,
-        world_size,
-        device,
-    )
-    local_position_ids = extract_local(
-        position_ids,
-        rank,
-        world_size,
-        device,
-    )
-    if target_ids is not None:
-        local_target_ids = extract_local(
-            target_ids,
-            rank,
-            world_size,
-            device,
-        )
-    else:
-        local_target_ids = None
-    return {
-        "local_input_ids": local_input_ids,
-        "local_position_ids": local_position_ids,
-        "local_target_ids": local_target_ids,
-    }

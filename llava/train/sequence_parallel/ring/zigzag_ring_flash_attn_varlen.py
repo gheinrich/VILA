@@ -113,6 +113,7 @@ def zigzag_ring_flash_attn_varlen_forward(
             window_size=window_size,
             alibi_slopes=alibi_slopes,
             return_softmax=True and dropout_p > 0,
+            block_table=None,
         )
         return block_out, block_lse
 

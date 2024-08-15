@@ -538,6 +538,10 @@ class LlavaMetaForCausalLM(ABC):
             sp_rank = PROCESS_GROUP_MANAGER.sp_rank
             sp_group = PROCESS_GROUP_MANAGER.sp_pg
             ring_degree = PROCESS_GROUP_MANAGER.ring_degree
+            ring_rank = PROCESS_GROUP_MANAGER.ring_rank
+            ring_type = PROCESS_GROUP_MANAGER.ring_type
+            ulysses_degree = PROCESS_GROUP_MANAGER.ulysses_degree
+            ulysses_rank = PROCESS_GROUP_MANAGER.ulysses_rank
 
             bs, shard_seqlen = position_ids.shape
             sp_seq_len = [torch.zeros(1, dtype=torch.int64, device=position_ids.device) for _ in range(sp_degree)]
@@ -642,13 +646,56 @@ class LlavaMetaForCausalLM(ABC):
                     dtype=global_inputs_embeds.dtype,
                     device=global_inputs_embeds.device,
                 )
-                for i in range(bs):
-                    start_idx = new_seqlen_per_rank[i] * sp_rank
-                    end_idx = start_idx + new_seqlen_per_rank[i]
-                    new_attention_mask[i, : new_seqlen_per_rank[i]] = global_attention_mask[i, start_idx:end_idx]
-                    new_position_ids[i, : new_seqlen_per_rank[i]] = global_position_ids[i, start_idx:end_idx]
-                    new_labels[i, : new_seqlen_per_rank[i]] = global_labels[i, start_idx:end_idx]
-                    new_inputs_embeds[i, : new_seqlen_per_rank[i], :] = global_inputs_embeds[i, start_idx:end_idx, :]
+
+                if ring_type == "ring_varlen":
+                    for i in range(bs):
+                        start_idx = new_seqlen_per_rank[i] * sp_rank
+                        end_idx = start_idx + new_seqlen_per_rank[i]
+                        new_attention_mask[i, : new_seqlen_per_rank[i]] = global_attention_mask[i, start_idx:end_idx]
+                        new_position_ids[i, : new_seqlen_per_rank[i]] = global_position_ids[i, start_idx:end_idx]
+                        new_labels[i, : new_seqlen_per_rank[i]] = global_labels[i, start_idx:end_idx]
+                        new_inputs_embeds[i, : new_seqlen_per_rank[i], :] = global_inputs_embeds[
+                            i, start_idx:end_idx, :
+                        ]
+                elif ring_type == "zigzag_ring_varlen":
+                    chunk_size = total_effective_seqlen // (2 * sp_degree)
+                    for i in range(bs):
+                        # Zigzag pattern indices
+                        if sp_degree == ring_degree:
+                            forward_rank_idx = sp_rank
+                            backward_rank_idx = 2 * sp_degree - sp_rank - 1
+                        else:
+                            ulysses_offset = ulysses_rank * ring_degree * 2
+                            forward_rank_idx = ring_rank + ulysses_offset
+                            backward_rank_idx = sp_degree - ring_rank - 1 + ulysses_offset
+
+                        # Calculate start and end indices for the forward and backward zigzag
+                        start_idx_fwd = forward_rank_idx * chunk_size[i]
+                        end_idx_fwd = start_idx_fwd + chunk_size[i]
+
+                        start_idx_bwd = backward_rank_idx * chunk_size[i]
+                        end_idx_bwd = start_idx_bwd + chunk_size[i]
+
+                        # Fill new tensors with zigzag data
+                        new_attention_mask[i, : chunk_size[i]] = global_attention_mask[i, start_idx_fwd:end_idx_fwd]
+                        new_attention_mask[i, chunk_size[i] : 2 * chunk_size[i]] = global_attention_mask[
+                            i, start_idx_bwd:end_idx_bwd
+                        ]
+
+                        new_position_ids[i, : chunk_size[i]] = global_position_ids[i, start_idx_fwd:end_idx_fwd]
+                        new_position_ids[i, chunk_size[i] : 2 * chunk_size[i]] = global_position_ids[
+                            i, start_idx_bwd:end_idx_bwd
+                        ]
+
+                        new_labels[i, : chunk_size[i]] = global_labels[i, start_idx_fwd:end_idx_fwd]
+                        new_labels[i, chunk_size[i] : 2 * chunk_size[i]] = global_labels[i, start_idx_bwd:end_idx_bwd]
+
+                        new_inputs_embeds[i, : chunk_size[i], :] = global_inputs_embeds[i, start_idx_fwd:end_idx_fwd, :]
+                        new_inputs_embeds[i, chunk_size[i] : 2 * chunk_size[i], :] = global_inputs_embeds[
+                            i, start_idx_bwd:end_idx_bwd, :
+                        ]
+                else:
+                    raise ValueError(f"Invalid ring_type: {ring_type}")
             else:
                 global_seq_len = global_attention_mask.shape[-1]
                 seq_len_sharded = global_seq_len // sp_degree

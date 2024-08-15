@@ -426,7 +426,7 @@ def train():
     sp_degree = training_args.seq_parallel_size
     ring_degree = training_args.seq_parallel_ring_size
     if sp_degree > 1:
-        set_pg_manager(sp_degree, ring_degree)
+        set_pg_manager(sp_degree, ring_degree, ring_type=training_args.seq_parallel_ring_type)
         print(f"Sequence parallelism is enabled, SP = {sp_degree}")
 
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)

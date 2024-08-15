@@ -27,7 +27,7 @@ from transformers import LlamaConfig
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.models.llama.modeling_llama import LlamaAttention, _get_unpad_data, apply_rotary_pos_emb
 
-from llava.train.sequence_parallel.globals import get_pg_manager, get_ring_sp_pg, get_ulysses_sp_pg
+from llava.train.sequence_parallel.globals import get_pg_manager, get_ring_sp_pg, get_ring_type, get_ulysses_sp_pg
 
 from .hybrid_attn import HybridAttention
 from .ring import (
@@ -167,17 +167,33 @@ def hybrid_attn_varlen_func_helper(
     # print("rank", dist.get_rank(), "cu_seq_lens", cu_seq_lens)
     # exit()
 
-    attn_output_unpad = ring_flash_attn_varlen_func(
-        query_states,
-        key_states,
-        value_states,
-        cu_seq_lens,
-        max_seq_lens[0],
-        dropout_p=dropout_p,
-        softmax_scale=softmax_scale,
-        causal=self.is_causal,
-        group=group,
-    )
+    ring_type = get_ring_type()
+    if ring_type == "ring_varlen":
+        attn_output_unpad = ring_flash_attn_varlen_func(
+            query_states,
+            key_states,
+            value_states,
+            cu_seq_lens,
+            max_seq_lens[0],
+            dropout_p=dropout_p,
+            softmax_scale=softmax_scale,
+            causal=self.is_causal,
+            group=group,
+        )
+    elif ring_type == "zigzag_ring_varlen":
+        attn_output_unpad = zigzag_ring_flash_attn_varlen_func(
+            query_states,
+            key_states,
+            value_states,
+            cu_seq_lens,
+            max_seq_lens[0],
+            dropout_p=dropout_p,
+            softmax_scale=softmax_scale,
+            causal=self.is_causal,
+            group=group,
+        )
+    else:
+        raise ValueError(f"Invalid ring_type: {ring_type}")
 
     # print(dist.get_rank(), "finish ring_flash_attn_varlen_func")
 
