@@ -20,7 +20,7 @@ import torch
 from transformers import AutoTokenizer
 
 from llava import conversation as conversation_lib
-from llava.data.dataset import preprocess_v1
+from llava.data.dataset import preprocess
 
 
 class TestTokenizerWarning(unittest.TestCase):
@@ -149,7 +149,7 @@ class TestTokenizerWarning(unittest.TestCase):
         ).int()
 
     def test_token_ids_equal(self):
-        processed_dict = preprocess_v1(self.test_conv, tokenizer=self.tokenizer, has_image=True)
+        processed_dict = preprocess(self.test_conv, tokenizer=self.tokenizer, has_image=True)
         tokenized_tensor = processed_dict["input_ids"]
         self.assertTrue(torch.sum(tokenized_tensor == self.expected_tensor).item() == tokenized_tensor.numel())
 

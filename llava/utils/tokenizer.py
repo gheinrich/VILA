@@ -43,9 +43,13 @@ def tokenize_conversation_legacy(
     tokenizer: transformers.PreTrainedTokenizer,
     add_generation_prompt: bool = False,
     overrides: Optional[Dict[str, str]] = None,
+    no_system_prompt: bool = False,
 ) -> torch.Tensor:
     conv = conversation_lib.default_conversation.copy()
     roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
+
+    if no_system_prompt:
+        conv.system = ""
 
     # Skip the first message if it is not from human
     if messages[0]["from"] != "human":
@@ -72,15 +76,19 @@ def tokenize_conversation(
     tokenizer: transformers.PreTrainedTokenizer,
     add_generation_prompt: bool = False,
     overrides: Optional[Dict[str, str]] = None,
+    no_system_prompt: bool = False,
 ) -> torch.Tensor:
-    supported_tokenizers = ["qwen2tokenizer"]
-    if not any(name in tokenizer.__class__.__name__.lower() for name in supported_tokenizers):
+    if conversation_lib.default_conversation.sep_style != conversation_lib.SeparatorStyle.AUTO:
         return tokenize_conversation_legacy(
             messages,
             tokenizer,
             add_generation_prompt=add_generation_prompt,
             overrides=overrides,
+            no_system_prompt=no_system_prompt,
         )
+
+    if no_system_prompt:
+        raise NotImplementedError("The `no_system_prompt` option is not supported by the current tokenizer.")
 
     conversation = []
     for m in messages:
@@ -108,12 +116,15 @@ def tokenize_conversation(
 def preprocess_conversation(
     conversation: Sequence[Dict[str, str]],
     tokenizer: transformers.PreTrainedTokenizer,
+    no_system_prompt: bool = False,
 ) -> Dict[str, Any]:
-    inputs = tokenize_conversation(conversation, tokenizer)
+    inputs = tokenize_conversation(conversation, tokenizer, no_system_prompt=no_system_prompt)
     labels = torch.ones_like(inputs) * IGNORE_INDEX
 
     # Generate the template by replacing the assistant's response with a sentinel.
-    template = tokenize_conversation(conversation, tokenizer, overrides={"gpt": SENTINEL})
+    template = tokenize_conversation(
+        conversation, tokenizer, overrides={"gpt": SENTINEL}, no_system_prompt=no_system_prompt
+    )
     sentinel = tokenizer(SENTINEL, add_special_tokens=False).input_ids
     sentinel = torch.tensor(sentinel, dtype=template.dtype)
 

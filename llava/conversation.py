@@ -23,6 +23,7 @@ from typing import List
 class SeparatorStyle(Enum):
     """Different separator style."""
 
+    AUTO = auto()
     SINGLE = auto()
     TWO = auto()
     MPT = auto()
@@ -264,6 +265,15 @@ class Conversation:
         }
 
 
+conv_auto = Conversation(
+    system="",
+    roles=("", ""),
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.AUTO,
+    sep="\n",
+)
+
 conv_vicuna_v0 = Conversation(
     system="A chat between a curious human and an artificial intelligence assistant. "
     "The assistant gives helpful, detailed, and polite answers to the human's questions.",
@@ -452,8 +462,9 @@ llama_3_chat = Conversation(
 )
 
 
-default_conversation = conv_vicuna_v1
+default_conversation = conv_auto
 conv_templates = {
+    "auto": conv_auto,
     "default": conv_vicuna_v0,
     "hermes-2": hermes_2,
     "llama_3": llama_3_chat,

@@ -17,13 +17,11 @@
 import unittest
 from typing import Any, Dict, List, Tuple
 
-import torch
 from parameterized import parameterized
 from transformers import AutoTokenizer, PreTrainedTokenizer
 
 from llava import conversation as conversation_lib
 from llava.constants import IGNORE_INDEX
-from llava.data import dataset
 from llava.utils.tokenizer import infer_stop_tokens, preprocess_conversation
 
 TEST_CONVERSATIONS = [
@@ -70,20 +68,18 @@ TEST_CONVERSATIONS = [
 def _build_test_tokenizers() -> List[Tuple[PreTrainedTokenizer, Dict[str, Any]]]:
     tokenizers = []
 
-    # Vicuna 1.5
-    tokenizer = AutoTokenizer.from_pretrained("lmsys/vicuna-7b-v1.5", use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained("princeton-nlp/Sheared-LLaMA-2.7B")
+    tokenizers.append((tokenizer, {"conv_mode": "v1", "stop_tokens": ["</s>"]}))
+
+    tokenizer = AutoTokenizer.from_pretrained("Efficient-Large-Model/Meta-Llama-3-8B-Instruct")
+    tokenizers.append((tokenizer, {"conv_mode": "llama_3", "stop_tokens": ["<|eot_id|>", "<|end_of_text|>"]}))
+
+    tokenizer = AutoTokenizer.from_pretrained("lmsys/vicuna-7b-v1.5")
     tokenizers.append((tokenizer, {"conv_mode": "vicuna_v1", "stop_tokens": ["</s>"]}))
 
-    # Hermes 2
     tokenizer = AutoTokenizer.from_pretrained("NousResearch/Nous-Hermes-2-Yi-34B", use_fast=False)
     tokenizers.append((tokenizer, {"conv_mode": "hermes-2", "stop_tokens": ["<|im_end|>"]}))
 
-    # Llama 3
-    tokenizer = AutoTokenizer.from_pretrained("Efficient-Large-Model/Meta-Llama-3-8B-Instruct", use_fast=False)
-    tokenizer.add_special_tokens({"pad_token": "[PAD]"})
-    tokenizers.append((tokenizer, {"conv_mode": "llama_3", "stop_tokens": ["<|eot_id|>", "<|end_of_text|>"]}))
-
-    # Qwen 2
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B")
     tokenizers.append((tokenizer, {"stop_tokens": ["<|im_end|>", "<|endoftext|>"]}))
 
@@ -96,10 +92,7 @@ TEST_TOKENIZERS = _build_test_tokenizers()
 class TestTokenizerUtils(unittest.TestCase):
     @parameterized.expand(TEST_TOKENIZERS)
     def test_preprocess_conversation(self, tokenizer: PreTrainedTokenizer, info: Dict[str, Any]) -> None:
-        if info.get("conv_mode") is not None:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[info["conv_mode"]]
-
-        # Test correctness
+        conversation_lib.default_conversation = conversation_lib.conv_templates[info.get("conv_mode", "auto")]
         for conversation in TEST_CONVERSATIONS:
             labels = preprocess_conversation(conversation, tokenizer)["labels"]
 
@@ -122,17 +115,9 @@ class TestTokenizerUtils(unittest.TestCase):
 
             self.assertListEqual(outputs, targets)
 
-        # Test regression
-        for conversation in TEST_CONVERSATIONS:
-            after = preprocess_conversation(conversation, tokenizer)["labels"]
-            before = dataset.preprocess([conversation], tokenizer, has_image=True)["labels"][0]
-            self.assertTrue(torch.equal(before, after))
-
     @parameterized.expand(TEST_TOKENIZERS)
     def test_infer_stop_tokens(self, tokenizer: PreTrainedTokenizer, info: Dict[str, Any]) -> None:
-        if info.get("conv_mode") is not None:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[info["conv_mode"]]
-
+        conversation_lib.default_conversation = conversation_lib.conv_templates[info.get("conv_mode", "auto")]
         outputs = infer_stop_tokens(tokenizer)
         targets = info["stop_tokens"]
         self.assertSetEqual(set(outputs), set(targets))
