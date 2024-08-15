@@ -7,7 +7,6 @@ import subprocess
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--job-name", "-J", type=str, required=True)
-    parser.add_argument("--run-name", "-n", type=str)
     parser.add_argument("--nodes", "-N", type=int, default=1)
     parser.add_argument("--gpus-per-node", type=int, default=8)
     parser.add_argument("--mode", "-m", type=str, default="train")
@@ -16,9 +15,9 @@ def main() -> None:
     args = parser.parse_args()
 
     # Generate run name and output directory
-    if args.run_name is None:
-        args.run_name = args.job_name + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    output_dir = os.path.join("runs", args.mode, args.run_name)
+    if "%t" in args.job_name:
+        args.job_name = args.job_name.replace("%t", datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    output_dir = os.path.join("runs", args.mode, args.job_name)
 
     # Calculate the timeout
     time = datetime.datetime.strptime(args.time, "%H:%M:%S")
@@ -36,7 +35,7 @@ def main() -> None:
 
     # Set environment variables
     env = os.environ.copy()
-    env["RUN_NAME"] = args.run_name
+    env["RUN_NAME"] = args.job_name
     env["OUTPUT_DIR"] = output_dir
 
     # Compose the SLURM command
