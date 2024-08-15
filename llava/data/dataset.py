@@ -2632,15 +2632,16 @@ class DataCollatorForSupervisedDatasetSeqParallel:
 
         # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
         NUM_TOKENS_PER_IMAGE = 196
+        if hasattr(self.data_args.image_processor, "crop_size"):
+            crop_size = self.data_args.image_processor.crop_size
+        else:
+            crop_size = self.data_args.image_processor.size
 
         # Init the padding sample
         seq_id = 0
         while seq_id < len(input_ids):
             # Skip the samples without images
-            if len(images[seq_id]) == 0:
-                seq_id += 1
-                continue
-            dummy_image = torch.ones_like(images[seq_id][:1])
+            dummy_image = torch.ones((1, 3, crop_size["height"], crop_size["width"]), device=input_ids[seq_id].device)
             # dummy input_ids include one bos, one image token, and one eos
             dummy_input_ids = torch.zeros_like(input_ids[seq_id][:3])
             dummy_input_ids[0] = self.tokenizer.bos_token_id
@@ -2832,6 +2833,7 @@ class DataCollatorForSupervisedDatasetSeqParallel:
             images=flat_batch_images,
             position_ids=position_ids,
         )
+
         return batch
 
 

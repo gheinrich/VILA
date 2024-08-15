@@ -976,6 +976,22 @@ def register_datasets_mixtures():
     )
     add_dataset(shot2story_shotonly)
 
+    longvideo_sft = Dataset(
+        dataset_name="longvideo_sft",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/longvideo_sft/longvideo_sft.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos",
+    )
+    add_dataset(longvideo_sft)
+
+    longvideo_sft_deepseek = Dataset(
+        dataset_name="longvideo_sft_deepseek",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/longvideo_sft/longvideo_sft_deepseek.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos",
+    )
+    add_dataset(longvideo_sft_deepseek)
+
     sharegpt_video = Dataset(
         dataset_name="sharegpt_video",
         dataset_type="torch",

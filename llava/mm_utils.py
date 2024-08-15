@@ -132,8 +132,9 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
 
         while success:
             if frame_count >= num_frames:
-                success, frame = vidcap.read()
+                # success, frame = vidcap.read()
                 if count in frame_indices:
+                    success, frame = vidcap.read()
                     try:
                         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         im_pil = Image.fromarray(img)
@@ -143,6 +144,8 @@ def get_frame_from_vcap_with_fps(vidcap, num_frames=10, max_fps=0.0, fps=None, f
                         continue
                     if len(images) >= num_frames:
                         return images, num_frames
+                else:
+                    success = vidcap.grab()
                 count += 1
             else:
                 # Left padding frames if the video is not long enough

@@ -162,7 +162,7 @@ class VILADistributedSampler(DistributedSampler):
         self.epoch = 0
         self.drop_last = True  # always True
         self.sp_degree = max(1, sp_degree)
-        assert batch_size % self.sp_degree == 0, "Batch size must be divisible by sequence parallelism degree."
+        self.bs_divisible_by_sp = batch_size % self.sp_degree == 0
 
         # Consider sequence parallelism
         if self.sp_degree > 1:  # Sequence Parallelism is enabled
@@ -218,7 +218,9 @@ class VILADistributedSampler(DistributedSampler):
             self.total_size,
         )
 
-        if self.sp_degree > 1:  # Sequence Parallelism is enabled, to ensure the same behavior as data parallelism
+        if (
+            self.sp_degree > 1 and self.bs_divisible_by_sp
+        ):  # Sequence Parallelism is enabled, to ensure the same behavior as data parallelism
             dp_indices_dict = {}  # {rank: indices_list}
             all_indices_dict = {}  # {rank: all_indices}
 
@@ -292,18 +294,104 @@ class VILADistributedSampler(DistributedSampler):
         assert -1 not in all_indices
         return iter(all_indices)
 
-    # # (Qinghao): Implementation for validating accuracy of SP
-    # def __iter__(self):
-    #     iterator = super().__iter__()
-    #     indices = list(iterator)
-    #     indices = indices[self.start_index :]
-    #     return iter(indices)
 
-    # def __len__(self) -> int:
-    #     return self.num_samples - self.start_index
+class LongVILADistributedSampler(VILADistributedSampler):
+    """This class is implemented by Yukang Chen."""
 
-    # def set_start_index(self, start_index: int) -> None:
-    #     self.start_index = start_index
+    def __iter__(self):
+        def batch_shuffle(indices):
+            batch_indices = list(range(indices[0] // self.batch_size, indices[-1] // self.batch_size + 1))
+            random.shuffle(batch_indices)
+            indices_shuffled = [
+                batch_indices[i // self.batch_size] * self.batch_size + index % self.batch_size
+                for i, index in enumerate(indices)
+            ]
+            return indices_shuffled
+
+        indices = list(range(len(self.dataset)))
+
+        # 1. split the full indices first (note: without drop last at this moment)
+        indices_list = []
+        for i in range(len(self.org_sample_len_list)):
+            indices_list.append(
+                indices[sum(self.org_sample_len_list[:i]) : sum(self.org_sample_len_list[:i]) + self.total_samples[i]]
+            )
+
+        assert sum([len(indices) for indices in indices_list]) == self.total_size, (
+            sum([len(indices) for indices in indices_list]),
+            self.total_size,
+        )
+
+        if self.sp_degree > 1:  # Sequence Parallelism is enabled, to ensure the same behavior as data parallelism
+            dp_indices_dict = {}  # {rank: indices_list}
+            all_indices_dict = {}  # {rank: all_indices}
+
+            for i in self.corresponding_ranks:
+                dp_indices_list = []
+                for idx, indices in enumerate(indices_list):
+                    dp_indices_list.append(
+                        indices[i * self.per_replica_samples[idx] : (i + 1) * self.per_replica_samples[idx]]
+                    )
+
+                random.seed(self.seed + self.epoch)
+                for indice in range(len(dp_indices_list)):
+                    batch_shuffle(dp_indices_list[indice])
+
+                dp_indices_dict[i] = dp_indices_list.copy()
+
+            for rank, dp_indices_list in dp_indices_dict.items():
+                dp_indices_list = sorted(dp_indices_list, key=lambda x: -len(x))
+                dp_all_indices = [-1] * self.num_samples
+                indices_available = list(range(self.num_samples))
+
+                for indice in dp_indices_list:
+
+                    original_indices = range(len(indice))
+                    transformed_indices = [idx * len(indices_available) // len(indice) for idx in original_indices]
+
+                    mapped_indices = [indices_available[idx] for idx in transformed_indices]
+                    # update indices_available
+                    for idx in reversed(transformed_indices):
+                        del indices_available[idx]
+                    for i, idx in enumerate(mapped_indices):
+                        dp_all_indices[idx] = indice[i]
+
+                all_indices_dict[rank] = dp_all_indices
+
+            # Interleaving Merge
+            merged_indices = []
+            interleaved_indices = []
+            for item_idx in range(len(all_indices_dict[self.corresponding_ranks[0]])):
+                for rank in self.corresponding_ranks:
+                    interleaved_indices.append(all_indices_dict[rank][item_idx])
+            merged_indices.append(interleaved_indices)
+
+            all_indices = merged_indices[0]
+        else:
+            # let's first do subsample
+            for idx, indices in enumerate(indices_list):
+                indices_list[idx] = indices[
+                    self.rank * self.per_replica_samples[idx] : (self.rank + 1) * self.per_replica_samples[idx]
+                ]
+
+            random.seed(self.seed + self.epoch)
+            for indice in range(len(indices_list)):
+                batch_shuffle(indices_list[indice])
+
+            indices_list = sorted(indices_list, key=lambda x: -len(x))
+            all_indices = [-1] * self.num_samples
+            indices_available = list(range(self.num_samples))
+            for indice in indices_list:
+                original_indices = range(len(indice))
+                transformed_indices = [idx * len(indices_available) // len(indice) for idx in original_indices]
+                mapped_indices = [indices_available[idx] for idx in transformed_indices]
+                # update indices_available
+                for idx in reversed(transformed_indices):
+                    del indices_available[idx]
+                for i, idx in enumerate(mapped_indices):
+                    all_indices[idx] = indice[i]
+        assert -1 not in all_indices
+        return iter(all_indices)
 
 
 class LengthGroupedSampler(Sampler):
@@ -501,6 +589,8 @@ class LLaVATrainer(Trainer):
         seed = self.args.data_seed if self.args.data_seed is not None else self.args.seed
         num_replicas = self.args.world_size
         rank = self.args.process_index
+        longvila_sampler = self.args.longvila_sampler
+        sampler = LongVILADistributedSampler if longvila_sampler else VILADistributedSampler
 
         # # Consider sequence parallelism
         # sp_degree = self.args.seq_parallel_size
@@ -510,7 +600,7 @@ class LLaVATrainer(Trainer):
         #     rank = PROCESS_GROUP_MANAGER.dp_rank
         #     # rank = dist.get_rank() // sp_degree
 
-        return VILADistributedSampler(
+        return sampler(
             self.train_dataset,
             num_replicas=num_replicas,
             rank=rank,
