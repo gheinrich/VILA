@@ -28,11 +28,12 @@ dependencies = [
 ]
 
 [project.scripts]
-vilarun = "llava.cli.run:main"
+vila-run = "llava.cli.run:main"
+vila-eval = "llava.cli.eval:main"
 
 [project.optional-dependencies]
 train = ["deepspeed==0.9.5", "ninja", "wandb"]
-eval = ["word2number", "Levenshtein", "nltk", "pywsd"]
+eval = ["word2number", "Levenshtein", "nltk", "pywsd", "lmms-eval"]
 
 [project.urls]
 "Homepage" = "https://hanlab.mit.edu/projects/vila"

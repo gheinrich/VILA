@@ -44,7 +44,8 @@ def main() -> None:
     # Set up distributed environment
     if args.num_chunks is None:
         dist.init()
-        torch.cuda.set_device(dist.local_rank())
+        devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
+        torch.cuda.set_device(devices[0])
         world_size, global_rank = dist.size(), dist.rank()
     else:
         world_size, global_rank = args.num_chunks, args.chunk_idx
@@ -53,7 +54,7 @@ def main() -> None:
     conversation_lib.default_conversation = conversation_lib.conv_templates[args.conv_mode].copy()
 
     # Load model
-    model = llava.load(args.model_path, model_base=args.model_base)
+    model = llava.load(args.model_path, model_base=args.model_base, devices=devices)
 
     # Set up generation config
     generation_config = model.generation_config

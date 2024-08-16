@@ -220,7 +220,3 @@ def prepare_config_for_eval(config: PretrainedConfig, kwargs: dict):
         raise ValueError(f"Invalid configuration! Cannot find vision_tower in config:\n{config}")
 
     config.model_dtype = kwargs.pop("torch_dtype").__str__()
-    # siglip does not support device_map = "auto"
-    vision_tower_name = parse_model_name_or_path(config, "vision_tower")
-    if "siglip" in vision_tower_name.lower():
-        kwargs["device_map"] = "cuda"
