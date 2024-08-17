@@ -23,6 +23,8 @@ import torch
 from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
+from llava.model.loss import soft_cross_entropy
+
 from ...train.utils import calculate_loss_weight
 from ..configuration_llava import LlavaConfig
 from ..llava_arch import LlavaMetaForCausalLM, LlavaMetaModel
@@ -40,7 +42,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
 
     def __init__(self, config: LlavaLlamaConfig = None, *args, **kwargs) -> None:
         super().__init__(config)
-        return self.init_vlm(config=config, *args, **kwargs)
+        self.init_vlm(config=config, *args, **kwargs)
 
     @classmethod
     def from_pretrained(
@@ -102,6 +104,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         dpo_forward: bool = False,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         self.freezed_module_patch()
+
         if inputs_embeds is None:
             (
                 input_ids,
@@ -126,12 +129,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 new_labels,
                 sorted_seqlens_in_batch,
             ) = self.repack_multimodal_data(
-                input_ids,
-                position_ids,
-                attention_mask,
-                past_key_values,
-                inputs_embeds,
-                labels,
+                input_ids, position_ids, attention_mask, past_key_values, inputs_embeds, labels
             )
             if sorted_seqlens_in_batch is None:
                 sorted_seqlens_in_batch = seqlens_in_batch
@@ -173,12 +171,21 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 return_dict=return_dict,
             )
 
+        if self.training and self.config.time_token_ids:
+            outputs.loss = soft_cross_entropy(
+                outputs.logits,
+                new_labels,
+                soft_tokens=self.config.time_token_ids,
+                std=self.config.soft_ce_std,
+            )
+
         # Loss rescale for SP & DP loss match
         loss_weight = calculate_loss_weight(new_labels)
         outputs.loss = outputs.loss * loss_weight
 
         if dpo_forward:
             return outputs.logits, new_labels
+
         return outputs
 
 

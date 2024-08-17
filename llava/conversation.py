@@ -19,6 +19,8 @@ import dataclasses
 from enum import Enum, auto
 from typing import List
 
+from llava.utils.logging import logger
+
 
 class SeparatorStyle(Enum):
     """Different separator style."""
@@ -485,5 +487,24 @@ conv_templates = {
 }
 
 
-if __name__ == "__main__":
-    print(default_conversation.get_prompt())
+CONVERSATION_MODE_MAPPING = {
+    "vila1.5-3b": "vicuna_v1",
+    "vila1.5-8b": "llama_3",
+    "vila1.5-13b": "vicuna_v1",
+    "vila1.5-40b": "hermes-2",
+    "llama-2": "llava_llama_2",
+    "llama2": "llava_llama_2",
+    "llama-3": "llama_3",
+    "llama3": "llama_3",
+    "mpt": "mpt",
+}
+
+
+def auto_set_conversation_mode(model_name_or_path: str) -> str:
+    global default_conversation
+    for k, v in CONVERSATION_MODE_MAPPING.items():
+        if k in model_name_or_path.lower():
+            logger.info(f"Setting conversation mode to `{v}` based on model name/path `{model_name_or_path}`.")
+            default_conversation = conv_templates[v]
+            return
+    raise ValueError(f"Cannot find a valid conversation mode for model name/path `{model_name_or_path}`.")

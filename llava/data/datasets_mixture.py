@@ -41,15 +41,15 @@ class Dataset:
     end_idx: float = field(default=-1, metadata={"help": "Start index of the dataset."})
 
 
-DATASETS = {}
+DATASETS_LEGACY = {}
 
 
 def add_dataset(dataset):
-    if dataset.dataset_name in DATASETS:
+    if dataset.dataset_name in DATASETS_LEGACY:
         # make sure the data_name is unique
         warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
-    DATASETS.update({dataset.dataset_name: dataset})
+    DATASETS_LEGACY.update({dataset.dataset_name: dataset})
 
 
 def register_datasets_mixtures():

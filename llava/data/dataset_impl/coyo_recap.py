@@ -49,7 +49,6 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.data.dataset import LazySupervisedDataset
-from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
 from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token
 from llava.model import *

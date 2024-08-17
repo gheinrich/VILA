@@ -321,7 +321,7 @@ class DPODataset(Dataset):
 
     def __init__(self, data_mixture: str, tokenizer: transformers.PreTrainedTokenizer, data_args: DataArguments):
         super(Dataset, self).__init__()
-        data_path = datasets_mixture.DATASETS[data_mixture].data_path
+        data_path = datasets_mixture.DATASETS_LEGACY[data_mixture].data_path
         list_data_dict = load_data(data_path)
         # if data_args.num_sample is not None:
         #     list_data_dict = list_data_dict[:data_args.num_sample]
@@ -330,7 +330,7 @@ class DPODataset(Dataset):
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
         self.data_args = data_args
-        self.image_folder = datasets_mixture.DATASETS[data_mixture].image_path
+        self.image_folder = datasets_mixture.DATASETS_LEGACY[data_mixture].image_path
 
     def __len__(self):
         # return 20
@@ -671,9 +671,22 @@ def train():
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
         model.config.mm_use_im_start_end = data_args.mm_use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_projector_lr = training_args.mm_projector_lr
-        training_args.use_im_start_end = model_args.mm_use_im_start_end
-        model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
-        model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
+        if model_args.mm_use_im_start_end:
+            num_new_tokens = tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
+        assert not model_args.mm_use_im_patch_token
+
+        model.config.num_time_tokens = data_args.num_time_tokens = model_args.num_time_tokens
+        model.config.time_token_format = data_args.time_token_format = model_args.time_token_format
+        if model_args.num_time_tokens > 0:
+            time_tokens = [model.config.time_token_format.format(t=t) for t in range(model.config.num_time_tokens)]
+            num_new_tokens = tokenizer.add_tokens(time_tokens)
+            assert len(time_tokens) == num_new_tokens or num_new_tokens == 0
+            model.resize_token_embeddings(len(tokenizer))
+            model.config.time_token_ids = tokenizer.convert_tokens_to_ids(time_tokens)
+        else:
+            model.config.time_token_ids = []
+        model.config.soft_ce_std = model_args.soft_ce_std
+
     ## TODO pay attention to quantize
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer

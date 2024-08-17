@@ -57,7 +57,6 @@ from llava.constants import (
 )
 from llava.data.dataset import LazySupervisedDataset
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
-from llava.data.datasets_mixture import DATASETS
 from llava.data.simple_vila_webdataset import VILAWebDataset
 from llava.data.utils import VILAEncodedVideo
 from llava.mm_utils import is_gemma_tokenizer, tokenizer_image_token

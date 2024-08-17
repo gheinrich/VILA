@@ -52,7 +52,6 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
-from llava.data.datasets_mixture import DATASETS
 from llava.train.args import DataArguments, TrainingArguments
 
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/hiertext"

@@ -42,7 +42,9 @@ class LlavaConfig(PretrainedConfig):
         s2=None,
         s2_scales=None,
         s2_max_split_size=None,
-        **kwargs
+        num_time_tokens=None,
+        time_token_format=None,
+        **kwargs,
     ):
         super().__init__()
         self.architectures = architectures
@@ -67,3 +69,5 @@ class LlavaConfig(PretrainedConfig):
         self.s2 = s2
         self.s2_scales = s2_scales
         self.s2_max_split_size = s2_max_split_size
+        self.num_time_tokens = num_time_tokens
+        self.time_token_format = time_token_format

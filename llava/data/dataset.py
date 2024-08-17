@@ -17,7 +17,6 @@ import base64
 import copy
 import io
 import json
-import logging
 import os
 import os.path as osp
 import pickle
@@ -33,7 +32,7 @@ import torch
 import transformers
 from datasets import concatenate_datasets, load_dataset
 from PIL import Image, ImageFile
-from torch.utils.data import ConcatDataset, Dataset, default_collate
+from torch.utils.data import Dataset, default_collate
 from transformers import PreTrainedTokenizer
 
 import llava.data.datasets_mixture as datasets_mixture
@@ -45,7 +44,6 @@ from llava.constants import (
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
 )
-from llava.data.datasets_mixture import DATASETS
 from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import opencv_extract_frames, process_image, tokenizer_image_token
 from llava.model import *
@@ -56,6 +54,7 @@ from llava.train.sequence_parallel import (
     extract_local_position_ids,
     get_pg_manager,
 )
+from llava.utils.logging import logger
 from llava.utils.tokenizer import preprocess_conversation
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -1269,7 +1268,7 @@ class LazyVFlanDataset(Dataset):
 
         self.list_data_dict = []
 
-        logging.warning("Loading data...")
+        logger.warning("Loading data...")
         pkl_list = os.listdir(data_path)
 
         self.sharded = False
@@ -1287,7 +1286,7 @@ class LazyVFlanDataset(Dataset):
                         data = pickle.load(f)
                         self.list_data_dict.extend(data)
             self.n_samples = len(self.list_data_dict)
-            logging.warning(f"Loaded {len(self.list_data_dict)} samples...")
+            logger.warning(f"Loaded {len(self.list_data_dict)} samples...")
         else:
             # kentang-mit@: memory efficient loading of vflan via sharding.
             n_samples = []
@@ -2030,7 +2029,7 @@ class DataCollatorForSupervisedDataset:
                 labels += instance["labels"]
             # Note (kentang-mit@: we do not directly push tensors to
             # images, but list of tensors.
-            if instance["image"] is not None:
+            if instance.get("image") is not None:
                 cur_image = instance["image"]
                 assert len(cur_image.shape) == 4
                 # n_images, 3, size, size
@@ -2376,8 +2375,12 @@ def make_supervised_data_module(
     This function is originally implemented by the LLaVA team and
     modified by Jason Lu, Haotian Tang and Ligeng Zhu."""
     datasets_mixture.register_datasets_mixtures()
-    train_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="train")
-    eval_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="eval")
+
+    from .builder import build_dataset
+
+    train_dataset = build_dataset(data_args.data_mixture, data_args, training_args, tokenizer)
+    training_args.sample_lens = [len(d) for d in train_dataset.datasets]
+
     PROCESS_GROUP_MANAGER = get_pg_manager()
     if PROCESS_GROUP_MANAGER is None:
         data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
@@ -2398,116 +2401,6 @@ def make_supervised_data_module(
 
     return dict(
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
+        eval_dataset=None,
         data_collator=data_collator,
     )
-
-
-def build_datasets(
-    data_args: DataArguments,
-    training_args: TrainingArguments,
-    tokenizer: PreTrainedTokenizer,
-    split: str = "train",
-) -> None:
-    all_datasets = []
-    extra_info = []
-    # mixture = datasets_mixture.DATASETS_MIXTURES[data_args.data_mixture]
-    try:
-        # keep the name 'data_mixture' for development FIXME
-        # mixture_names = getattr(data_args, f"{split}_data_mixture").strip().split("+")
-        attr_name = "data_mixture" if split == "train" else "eval_data_mixture"
-        mixture_names = getattr(data_args, attr_name).strip().split("+")
-    except:
-        logging.warning(f"Pay attention, split {split} is not built...")
-        return None
-    mixture = (DATASETS[_] for _ in mixture_names)
-    print(f"[Dataset-INFO]: Loading from {mixture_names}")
-    image_folder = None
-    for dataset in mixture:
-        dataset_type = dataset.dataset_type
-        if dataset_type == "torch":
-            dataset_cls = LazySupervisedDataset
-            if hasattr(dataset, "image_path"):
-                image_folder = dataset.image_path
-        elif dataset_type == "wds":
-            print(f"[DEBUG] {dataset_type}")
-            dataset_cls = LazyWDSDataset
-        elif dataset_type == "mmc4":
-            dataset_cls = LazyMMC4Dataset
-        elif dataset_type == "coyo":
-            dataset_cls = LazyCoyoDataset
-        elif dataset_type == "sam-wds":
-            print("dataset.py: Loading SAM class")
-            from llava.data.dataset_impl.sam import LazySAMWebDataset
-
-            dataset_cls = LazySAMWebDataset
-        elif dataset_type == "sam-wds-tmp":
-            print("dataset.py: Loading SAM class")
-            from llava.data.dataset_impl.sam_tmp import LazySAMTmpWebDataset
-
-            dataset_cls = LazySAMTmpWebDataset
-        elif dataset_type == "coyo-wds":
-            dataset_cls = LazyCoyoWebDataset
-        elif dataset_type == "coyo-wds-recap":
-            print("dataset.py: Loading coyo-wds-recap class")
-            from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
-
-            dataset_cls = LazyCoyoWebRecapDataset
-        elif dataset_type == "textocr":
-            print("dataset.py: Loading textocr class")
-            from llava.data.dataset_impl.textocr import VILATextOCR
-
-            dataset_cls = VILATextOCR
-        elif dataset_type == "hiertext":
-            print("dataset.py: Loading hiertext class")
-            from llava.data.dataset_impl.hiertext import VILAHierText
-
-            dataset_cls = VILAHierText
-        elif dataset_type == "panda70m":
-            print("dataset.py: Loading VILAPanda70m class")
-            from llava.data.dataset_impl.panda70m import VILAPanda70m
-
-            dataset_cls = VILAPanda70m
-        elif dataset_type == "ccs-wds":
-            dataset_cls = LazyCCSWebDataset
-        elif dataset_type == "vflan":
-            dataset_cls = LazyVFlanDataset
-        elif dataset_type == "video-wds":
-            dataset_cls = LazyVideoWebDataset
-        elif dataset_type == "imgtxt-wds":
-            print("dataset.py: Loading VILAPanda70m class")
-            from llava.data.dataset_impl.general_img_text import LazyImageTextWebDataset
-
-            dataset_cls = LazyImageTextWebDataset
-        elif dataset_type == "evaluation":
-            dataset_cls = LazyEvaluateDataset
-        elif dataset_type == "dummy":
-            dataset_cls = DummyDataset
-            if hasattr(dataset, "image_path"):
-                image_folder = dataset.image_path
-        elif dataset_type == "panda70m_sp":
-            dataset_cls = VILAPanda70m_LongSeq
-        else:
-            raise NotImplementedError(f"{dataset_type} is not supported.")
-        data_args.meta_path = getattr(dataset, "meta_path", None)
-        # extra args for vila^2, will not affect original logic
-        data_args.caption_choice = getattr(dataset, "caption_choice", None)
-        data_args.caption_choice_2 = getattr(dataset, "caption_choice_2", None)
-        data_args.start_idx = getattr(dataset, "start_idx", None)
-        data_args.end_idx = getattr(dataset, "end_idx", None)
-        dataset = dataset_cls(
-            tokenizer=tokenizer,
-            data_path=dataset.data_path,
-            image_folder=image_folder,
-            data_args=data_args,
-            training_args=training_args,
-        )
-        all_datasets.append(dataset)
-        extra_info.append(len(dataset))
-
-    all_datasets = ConcatDataset(all_datasets)
-    if split == "train":
-        training_args.sample_lens = extra_info
-    elif split == "eval":
-        training_args.eval_sample_lens = extra_info
-    return all_datasets

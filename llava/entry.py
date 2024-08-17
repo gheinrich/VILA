@@ -15,11 +15,14 @@ def load(
     model_base: Optional[str] = None,
     devices: Optional[List[int]] = None,
     **kwargs,
-):
+) -> PreTrainedModel:
     import torch
 
+    from llava.conversation import auto_set_conversation_mode
     from llava.mm_utils import get_model_name_from_path
     from llava.model.builder import load_pretrained_model
+
+    auto_set_conversation_mode(model_path)
 
     model_name = get_model_name_from_path(model_path)
     model_path = os.path.expanduser(model_path)

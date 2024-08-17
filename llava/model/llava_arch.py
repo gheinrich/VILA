@@ -22,26 +22,18 @@ from typing import List, Optional, Union
 
 import torch
 import torch.distributed as dist
-from PIL import Image
 from transformers import AutoConfig, GenerationConfig, PreTrainedModel
 from transformers.modeling_utils import ContextManagers, no_init_weights
 
-from llava import modals
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_PATCH_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    IGNORE_INDEX,
-    IMAGE_TOKEN_INDEX,
-)
-from llava.mm_utils import opencv_extract_frames, process_images
+from llava.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
+from llava.mm_utils import process_images
 from llava.model.configuration_llava import LlavaConfig
 from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.utils import get_model_config
 from llava.train.sequence_parallel import get_pg_manager
+from llava.utils.media import extract_media
 from llava.utils.tokenizer import infer_stop_tokens, tokenize_conversation
 
 
@@ -817,44 +809,6 @@ class LlavaMetaForCausalLM(ABC):
             sorted_seqlens_in_batch,
         )
 
-    def initialize_vision_tokenizer(self, model_args, tokenizer):
-        if model_args.mm_use_im_patch_token:
-            tokenizer.add_tokens([DEFAULT_IMAGE_PATCH_TOKEN], special_tokens=True)
-            self.resize_token_embeddings(len(tokenizer))
-
-        if model_args.mm_use_im_start_end:
-            num_new_tokens = tokenizer.add_tokens([DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True)
-            self.resize_token_embeddings(len(tokenizer))
-
-            if num_new_tokens > 0:
-                input_embeddings = self.get_input_embeddings().weight.data
-                output_embeddings = self.get_output_embeddings().weight.data
-
-                input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-                output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-
-                input_embeddings[-num_new_tokens:] = input_embeddings_avg
-                output_embeddings[-num_new_tokens:] = output_embeddings_avg
-            ## TODO yunhao: handle cases for <im_st> <im_end>
-            if model_args.pretrain_mm_mlp_adapter:
-                mm_projector_weights = torch.load(model_args.pretrain_mm_mlp_adapter, map_location="cpu")
-                embed_tokens_weight = mm_projector_weights["model.embed_tokens.weight"]
-                assert num_new_tokens == 2
-                if input_embeddings.shape == embed_tokens_weight.shape:
-                    input_embeddings[-num_new_tokens:] = embed_tokens_weight[-num_new_tokens:]
-                elif embed_tokens_weight.shape[0] == num_new_tokens:
-                    input_embeddings[-num_new_tokens:] = embed_tokens_weight
-                else:
-                    raise ValueError(
-                        f"Unexpected embed_tokens_weight shape. Pretrained: {embed_tokens_weight.shape}. Current: {input_embeddings.shape}. Numer of new tokens: {num_new_tokens}."
-                    )
-        elif model_args.mm_use_im_patch_token:
-            if model_args.mm_projector:
-                for p in self.get_input_embeddings().parameters():
-                    p.requires_grad = False
-                for p in self.get_output_embeddings().parameters():
-                    p.requires_grad = False
-
     @torch.inference_mode()
     def generate(
         self,
@@ -876,47 +830,18 @@ class LlavaMetaForCausalLM(ABC):
 
     @torch.inference_mode()
     def generate_content(self, prompt: Union[str, List], generation_config: Optional[GenerationConfig] = None) -> str:
-        if isinstance(prompt, str):
-            prompt = [prompt]
+        # TODO(zhijianl): Support directly taking conversation as input
+        conversation = [{"from": "human", "value": prompt}]
 
-        # TODO(zhijianl): This logic will be moved to model forward function
-        if self.config.mm_use_im_start_end:
-            image_token = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
-        else:
-            image_token = DEFAULT_IMAGE_TOKEN
-
-        # Process the prompt
-        text = ""
-        images = []
-        for element in prompt:
-            if isinstance(element, str):
-                text += element
-            elif isinstance(element, (Image.Image, modals.Image)):
-                if isinstance(element, modals.Image):
-                    element = Image.open(element.path)
-                text += image_token + "\n"
-                images.append(element)
-            elif isinstance(element, modals.Video):
-                frames, _ = opencv_extract_frames(
-                    element.path,
-                    self.config.num_video_frames,
-                    getattr(self.config, "fps") or 0,
-                )
-                if not frames:
-                    raise ValueError(f"Video {element.path} has no frames")
-
-                text += (image_token + "\n") * len(frames)
-                images.extend(frames)
-            else:
-                raise ValueError(f"Unsupported prompt element type: {type(element)}")
+        # Extract media from the conversation
+        media = extract_media(conversation, self.config)
 
         # Tokenize the conversation
-        chat = [{"from": "human", "value": text}]
-        input_ids = tokenize_conversation(chat, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
+        input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).unsqueeze(0)
 
-        # Process the images
-        if images:
-            images = process_images(images, self.vision_tower.image_processor, self.config).cuda().half()
+        # Process media
+        if "image" in media:
+            images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
         else:
             images = None
 
