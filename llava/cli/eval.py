@@ -4,7 +4,16 @@ import time
 from argparse import ArgumentParser
 from collections import deque
 
+from tabulate import tabulate
+
 from llava.eval import EVAL_ROOT, TASKS
+from llava.utils import io
+
+
+def load_task_results(output_dir: str, task: str):
+    if os.path.exists(os.path.join(output_dir, task, "results.json")):
+        return io.load(os.path.join(output_dir, task, "results.json"))
+    return None
 
 
 def main() -> None:
@@ -17,15 +26,16 @@ def main() -> None:
     parser.add_argument("--exclude-tags", "-e", type=str)
     args = parser.parse_args()
 
-    # Get the model name from the path
+    # Get the model name and output directory
     model_name = os.path.basename(args.model_path).lower()
+    output_dir = os.path.join("runs", "eval", model_name)
 
     # Filter tasks based on name and tags
     tasks = []
-    for task, tags in TASKS.items():
+    for task, metainfo in TASKS.items():
+        tags = set(metainfo.get("tags", []))
         if args.tasks is not None and task not in args.tasks.split(","):
             continue
-        tags = set(tags)
         if args.include_tags is not None and tags.isdisjoint(args.include_tags.split(",")):
             continue
         if args.exclude_tags is not None and tags.intersection(args.exclude_tags.split(",")):
@@ -36,6 +46,10 @@ def main() -> None:
     # Prepare the evaluation commands
     cmds = []
     for task in tasks:
+        if load_task_results(output_dir, task=task):
+            print(f"Skipping evaluation on {task} as it has already been evaluated.")
+            continue
+
         cmd = []
         if task.startswith("lmms-"):
             cmd += [f"{EVAL_ROOT}/lmms.sh", task.replace("lmms-", ""), args.model_path]
@@ -47,7 +61,6 @@ def main() -> None:
         cmd += [args.conv_mode]
 
         # Wrap the command with vila-run if not running on SLURM
-        # FIXME: This is a bit hacky, but it works for now
         if os.environ.get("SLURM_JOB_ID"):
             concurrency = 1
         else:
@@ -82,6 +95,21 @@ def main() -> None:
             process.terminate()
         for process in processes:
             process.wait()
+
+    # Collect the results and save them
+    metrics = {}
+    for task in tasks:
+        results = load_task_results(output_dir, task=task)
+        if results is None:
+            continue
+        for name, path in TASKS[task]["metrics"].items():
+            val = results
+            for key in path.split("/"):
+                val = val[key]
+            metrics[f"{task}/{name}"] = val
+
+    io.save(os.path.join(output_dir, "metrics.json"), metrics, indent=4)
+    print(tabulate(metrics.items(), tablefmt="simple_outline", headers=["Metric", "Value"]))
 
 
 if __name__ == "__main__":

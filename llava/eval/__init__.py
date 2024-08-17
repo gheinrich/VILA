@@ -1,33 +1,9 @@
-EVAL_ROOT = "scripts/v1_5/eval"
+import os
 
-TASKS = {
-    "cinepile": ["local"],
-    "egoschema": ["local"],
-    "egoschema_full": [],
-    "llavabench": ["openai"],
-    "lmms-ai2d": ["local"],
-    "lmms-chartqa": ["local"],
-    "lmms-docvqa_test": [],
-    "lmms-docvqa_val": ["local"],
-    "lmms-gqa": ["local"],
-    "lmms-mmbench": [],
-    "lmms-mme": ["local"],
-    "lmms-mmmu_test": [],
-    "lmms-mmmu_val": ["local"],
-    "lmms-ocrbench": ["local"],
-    "lmms-pope": ["local"],
-    "lmms-realworldqa": ["local"],
-    "lmms-seedbench": ["local"],
-    "lmms-scienceqa_full": ["local"],
-    "lmms-vizwiz_vqa_test": [],
-    "lmms-vizwiz_vqa_val": ["local"],
-    "lmms-vqav2_test": [],
-    "lmms-vqav2_val": ["local"],
-    "mathvista-test": [],
-    "mathvista-testmini": ["local"],
-    "mmmu-test": [],
-    "mmmu-validation": ["local"],
-    "mmvet": ["openai"],
-    "textvqa": ["local"],
-    "vqav2": [],
-}
+from llava.utils import io
+
+__all__ = ["EVAL_ROOT", "TASKS"]
+
+
+EVAL_ROOT = "scripts/v1_5/eval"
+TASKS = io.load(os.path.join(os.path.dirname(__file__), "registry.yaml"))
