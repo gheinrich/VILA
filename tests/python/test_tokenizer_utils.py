@@ -69,7 +69,7 @@ def _build_test_tokenizers() -> List[Tuple[PreTrainedTokenizer, Dict[str, Any]]]
     tokenizers = []
 
     tokenizer = AutoTokenizer.from_pretrained("princeton-nlp/Sheared-LLaMA-2.7B")
-    tokenizers.append((tokenizer, {"conv_mode": "v1", "stop_tokens": ["</s>"]}))
+    tokenizers.append((tokenizer, {"conv_mode": "vicuna_v1", "stop_tokens": ["</s>"]}))
 
     tokenizer = AutoTokenizer.from_pretrained("Efficient-Large-Model/Meta-Llama-3-8B-Instruct")
     tokenizers.append((tokenizer, {"conv_mode": "llama_3", "stop_tokens": ["<|eot_id|>", "<|end_of_text|>"]}))
@@ -77,7 +77,7 @@ def _build_test_tokenizers() -> List[Tuple[PreTrainedTokenizer, Dict[str, Any]]]
     tokenizer = AutoTokenizer.from_pretrained("lmsys/vicuna-7b-v1.5")
     tokenizers.append((tokenizer, {"conv_mode": "vicuna_v1", "stop_tokens": ["</s>"]}))
 
-    tokenizer = AutoTokenizer.from_pretrained("NousResearch/Nous-Hermes-2-Yi-34B", use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained("NousResearch/Nous-Hermes-2-Yi-34B")
     tokenizers.append((tokenizer, {"conv_mode": "hermes-2", "stop_tokens": ["<|im_end|>"]}))
 
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B")
