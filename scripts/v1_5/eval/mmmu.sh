@@ -9,10 +9,12 @@ fi
 
 DATA_PATH="playground/data/eval/MMMU"
 ANSWER_PATH="playground/data/eval/MMMU/answer_dict_val.json"
-OUTPUT_PATH="runs/${CKPT}/mmmu/${SPLIT}/outputs.json"
+OUTPUT_PATH="runs/eval/${CKPT}/mmmu/${SPLIT}/outputs.json"
+
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 128, "do_sample": true, "num_beams": 5}'
 
-torchrun --nproc-per-node=8 \
+torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/model_vqa_mmmu.py \
     --model-path $MODEL_PATH \
     --conv-mode $CONV_MODE \

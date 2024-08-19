@@ -8,9 +8,11 @@ if [ "$#" -ge 4 ]; then
 fi
 
 OUTPUT_PATH="runs/eval/$CKPT/mathvista/$SPLIT/outputs.json"
+
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 128}'
 
-torchrun --nproc-per-node=8 \
+torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/model_vqa_mathvista.py \
     --model-path $MODEL_PATH \
     --conv-mode $CONV_MODE \

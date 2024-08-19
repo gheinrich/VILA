@@ -16,6 +16,8 @@
 
 import os.path as osp
 import unittest
+from unittest.case import _id as __id
+from unittest.case import skip as __skip
 
 import numpy as np
 import torch
@@ -27,7 +29,16 @@ from transformers import SiglipImageProcessor
 from llava import conversation as conversation_lib
 from llava.data.dataset import make_supervised_data_module
 from llava.train.args import DataArguments, TrainingArguments
-from llava.unit_test_utils import requires_lustre
+
+
+def requires_lustre(reason=None):
+    import os.path as osp
+
+    if not (osp.isdir("/lustre") or osp.isdir("/mnt")):
+        reason = "lustre path is not avaliable." if reason is None else reason
+        return __skip(reason)
+    return __id
+
 
 DATASETS = [
     # "ccs_recaptioned"

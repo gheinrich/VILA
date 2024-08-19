@@ -24,7 +24,7 @@ else
 fi
 
 
-python tests/server_tests/openai_client.py
+python tests/utils/client.py
 
 # Kill the server process
 kill -9 $server_pid

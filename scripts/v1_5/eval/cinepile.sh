@@ -8,10 +8,12 @@ fi
 
 VIDEO_DIR="/home/xiuli/workspace/cinepile/yt_videos"
 OUTPUT_DIR="runs/eval/$CKPT/cinepile"
+
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 1024}'
 
-torchrun --nproc-per-node=8 \
-    llava/eval/model_vqa_cinepile.py \
+torchrun --nproc-per-node=$NPROC_PER_NODE \
+    llava/eval/cinepile.py \
     --model-path $MODEL_PATH \
     --conv-mode $CONV_MODE \
     --generation-config "$GENERATION_CONFIG" \

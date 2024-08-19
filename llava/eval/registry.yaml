@@ -10,10 +10,6 @@ egoschema_full:
   tags:
     - submission
 
-llavabench:
-  tags:
-    - openai
-
 lmms-ai2d:
   tags:
     - local
@@ -45,6 +41,10 @@ lmms-gqa:
   metrics:
     accuracy: results/gqa/exact_match,none
 
+lmms-llava-in-the-wild:
+  tags:
+    - openai
+
 lmms-mmbench:
   tags:
     - submission
@@ -67,6 +67,10 @@ lmms-mmmu_val:
     - regression
   metrics:
     accuracy: results/mmmu_val/mmmu_acc,none
+
+lmms-mmvet:
+  tags:
+    - openai
 
 lmms-ocrbench:
   tags:
@@ -141,14 +145,6 @@ mmmu-validation:
   tags:
     - local
 
-mmvet:
-  tags:
-    - openai
-
 textvqa:
   tags:
     - local
-
-vqav2:
-  tags:
-    - submission

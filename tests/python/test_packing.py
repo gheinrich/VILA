@@ -71,7 +71,6 @@ class TestInputPacking(unittest.TestCase):
         self.model.llm.pad_token_id = self.tokenizer.pad_token_id
         self.data = data
 
-    # @requires_gpu()
     def test_loss_close(self):
         print("Preprocessing inputs...")
         data = copy.deepcopy(self.data)

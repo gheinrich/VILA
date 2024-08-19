@@ -10,9 +10,11 @@ DATA_PATH="playground/data/eval/EgoSchema/questions.json"
 VIDEO_DIR="playground/data/eval/EgoSchema/videos"
 ANSWER_PATH="playground/data/eval/EgoSchema/subset_answers.json"
 OUTPUT_DIR="runs/eval/$CKPT/egoschema/validation"
+
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 1024}'
 
-torchrun --nproc-per-node=8 \
+torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/model_vqa_ego_schema.py \
     --model-path $MODEL_PATH \
     --conv-mode $CONV_MODE \

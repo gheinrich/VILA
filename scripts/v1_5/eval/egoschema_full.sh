@@ -8,7 +8,9 @@ fi
 
 OUTPUT_DIR="runs/eval/$CKPT/egoschema-full"
 
-torchrun --nproc-per-node=8 \
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
+
+torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/model_vqa_ego_schema.py \
     --model-path $MODEL_PATH \
     --generation-config '{"max_new_tokens": 1024}' \

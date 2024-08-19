@@ -37,8 +37,6 @@ def main() -> None:
     parser.add_argument("--generation-config", type=json.loads)
     parser.add_argument("--video-dir", type=str, required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--num-chunks", type=int)
-    parser.add_argument("--chunk-idx", type=int)
     args = parser.parse_args()
 
     # Set up distributed environment

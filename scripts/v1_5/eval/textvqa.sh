@@ -10,9 +10,11 @@ DATA_PATH="playground/data/eval/textvqa/llava_textvqa_val_v051_ocr.jsonl"
 IMAGE_DIR="playground/data/eval/textvqa/train_images"
 ANNOTATION_PATH="playground/data/eval/textvqa/TextVQA_0.5.1_val.json"
 OUTPUT_PATH="runs/eval/$CKPT/textvqa/outputs.jsonl"
+
+NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 128}'
 
-torchrun --nproc-per-node=8 \
+torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/model_vqa_loader.py \
     --model-path $MODEL_PATH \
     --generation-config "$GENERATION_CONFIG" \

@@ -18,8 +18,6 @@ import os
 import sys
 import unittest
 
-from llava.unit_test_utils import requires_gpu, requires_lustre
-
 
 def patch_unit_test_rope_scaling(model, config, training_args):
 
@@ -86,8 +84,6 @@ class TestRopeScaling(unittest.TestCase):
         self.PatchedTrainingArguments = PatchedTrainingArguments
         self.PatchedModelArguments = PatchedModelArguments
 
-    @requires_gpu()
-    @requires_lustre()
     def test_rope_scaling(self):
 
         with (

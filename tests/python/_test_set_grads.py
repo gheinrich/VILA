@@ -23,7 +23,6 @@ from transformers import AutoTokenizer
 from llava.model import LlavaLlamaConfig, LlavaLlamaModel
 from llava.train.args import ModelArguments, TrainingArguments
 from llava.train.utils import prepare_config_for_training
-from llava.unit_test_utils import requires_gpu
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -181,7 +180,6 @@ class TestSetGrads(unittest.TestCase):
                         (self.updated_weights_dict[name] != self.loaded_weights_dict[name]).any(), tune_language_model
                     )
 
-    @requires_gpu
     def test_tune_projector_and_language_model(self):
         print("Testing tune projector and language model ...")
         self.training_args.tune_mm_projector = True
@@ -205,7 +203,6 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
     def test_tune_projector_and_vision_tower(self):
         print("Testing tune projector and vision tower ...")
         self.training_args.tune_mm_projector = True
@@ -229,7 +226,6 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
     def test_tune_projector(self):
         print("Testing tune projector ...")
         self.training_args.tune_mm_projector = True
@@ -252,7 +248,6 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
     def test_tune_vision_tower(self):
         print("Testing tune vision tower ...")
         self.training_args.tune_vision_tower = True
@@ -275,7 +270,6 @@ class TestSetGrads(unittest.TestCase):
             self.training_args.tune_mm_projector,
         )
 
-    @requires_gpu
     def test_tune_language_model(self):
         print("Testing tune language model ...")
         self.training_args.tune_language_model = True

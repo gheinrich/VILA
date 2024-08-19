@@ -29,7 +29,6 @@ from transformers import AutoConfig
 from llava.model import LlavaLlamaConfig, LlavaLlamaModel
 from llava.train.args import ModelArguments, TrainingArguments
 from llava.train.utils import get_checkpoint_path, prepare_config_for_training
-from llava.unit_test_utils import requires_gpu
 
 torch.manual_seed(1)
 if torch.cuda.is_available():
@@ -92,7 +91,6 @@ class TestModelInitialization(unittest.TestCase):
         model = model_cls(config=config)
         return model
 
-    @requires_gpu
     def test_first_build(self):
         """
         Build model from scratch.
@@ -120,7 +118,6 @@ class TestModelInitialization(unittest.TestCase):
             if k in first_loading_params.keys():
                 self.assertAlmostEqual(torch.equal(v.data, first_loading_params[k].data), True)
 
-    @requires_gpu
     def test_resume(self):
         """
         Resume the whole model from checkpoints.

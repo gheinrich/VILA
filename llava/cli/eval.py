@@ -44,7 +44,7 @@ def main() -> None:
     print(f"Running evaluation for {model_name} on {len(tasks)} tasks: {tasks}")
 
     # Prepare the evaluation commands
-    cmds = []
+    cmds = {}
     for task in tasks:
         if load_task_results(output_dir, task=task):
             print(f"Skipping evaluation on {task} as it has already been evaluated.")
@@ -67,25 +67,26 @@ def main() -> None:
             concurrency = 10
             cmd = [f"vila-run -m eval -J {model_name}/{task}"] + cmd
 
-        cmds.append(cmd)
-    cmds = deque(cmds)
+        cmds[task] = " ".join(cmd)
 
     # Prepare the environment variables
     env = os.environ.copy()
     env["NPROC_PER_NODE"] = str(args.nproc_per_node)
 
     # Run the commands with the specified concurrency
-    processes = []
+    remaining = deque(tasks)
+    processes, returncodes = {}, {}
     try:
-        while cmds or processes:
-            while cmds and len(processes) < concurrency:
-                cmd = " ".join(cmds.popleft())
+        while remaining or processes:
+            while remaining and len(processes) < concurrency:
+                cmd = cmds[remaining.popleft()]
                 print(f"Running: {cmd}")
-                processes.append(subprocess.Popen(cmd, env=env, shell=True))
+                processes[task] = subprocess.Popen(cmd, env=env, shell=True)
 
-            for k, process in enumerate(processes):
+            for task, process in processes.items():
                 if process.poll() is not None:
-                    processes.pop(k)
+                    returncodes[task] = process.returncode
+                    processes.pop(task)
                     break
 
             time.sleep(1)
@@ -95,6 +96,11 @@ def main() -> None:
             process.terminate()
         for process in processes:
             process.wait()
+
+    # Check the return codes
+    for task, returncode in returncodes.items():
+        if returncode != 0:
+            print(f"Error running {task}: {returncode}")
 
     # Collect the results and save them
     metrics = {}
