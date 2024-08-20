@@ -81,6 +81,7 @@ def get_checkpoint_path(output_dir: str, checkpoint_prefix: str = "checkpoint") 
 def prepare_config_for_training(
     config: PretrainedConfig, model_args: dataclass, training_args: dataclass, data_args: dataclass
 ) -> None:
+    config.chat_template = model_args.chat_template
     assert model_args.vision_tower is not None, "requires vision tower"
     # set module configurations
     if getattr(config, "llm_cfg", None) is None:

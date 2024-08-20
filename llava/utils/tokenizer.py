@@ -98,9 +98,6 @@ def tokenize_conversation(
             no_system_prompt=no_system_prompt,
         )
 
-    if no_system_prompt:
-        raise NotImplementedError("The `no_system_prompt` option is not supported by the current tokenizer.")
-
     conversation = []
     for m in messages:
         message = {}
@@ -115,6 +112,9 @@ def tokenize_conversation(
         if overrides is not None and m["from"] in overrides:
             message["content"] = overrides[m["from"]]
         conversation.append(message)
+
+    if no_system_prompt:
+        conversation = [{"role": "system", "content": None}] + conversation
 
     text = tokenizer.apply_chat_template(
         conversation,

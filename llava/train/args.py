@@ -40,6 +40,7 @@ class DataArguments:
 @dataclass
 class ModelArguments:
     version: Optional[str] = field(default="auto")
+    chat_template: Optional[str] = field(default=None)
     model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
     vision_tower: Optional[str] = field(default="google/siglip-so400m-patch14-384")
     mm_projector: Optional[str] = field(default="mlp2x_gelu")

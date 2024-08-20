@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import math
+import os
 import os.path as osp
 import warnings
 from typing import Tuple
@@ -30,6 +31,8 @@ from transformers import (
     PreTrainedModel,
     PreTrainedTokenizer,
 )
+
+from llava.utils.logging import logger
 
 
 def has_tokenizer(repo_id_or_path: str) -> bool:
@@ -108,6 +111,14 @@ def build_llm_and_tokenizer(
             use_fast=False,
             legacy=False,
         )
+
+    # Load chat template if specified.
+    if getattr(config, "chat_template", None) is not None:
+        logger.info(f"Using chat template: {config.chat_template}")
+        fpath = os.path.join(os.path.dirname(__file__), "chat_templates", f"{config.chat_template}.jinja")
+        with open(fpath) as fd:
+            chat_template = fd.read()
+        tokenizer.chat_template = chat_template.replace("    ", "").replace("\n", "")
 
     # TODO(ligeng): is this necessary for llava?
     config.hidden_size = llm.config.hidden_size
