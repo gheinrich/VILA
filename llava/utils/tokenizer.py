@@ -69,6 +69,15 @@ def tokenize_conversation_legacy(
     return tokenizer_image_token(conv.get_prompt(), tokenizer, return_tensors="pt")
 
 
+def _normalize(text: str) -> str:
+    while True:
+        normalized = text.removeprefix("\n").strip()
+        if normalized == text:
+            break
+        text = normalized
+    return text
+
+
 def tokenize_conversation(
     messages: Sequence[Dict[str, str]],
     tokenizer: transformers.PreTrainedTokenizer,
@@ -76,6 +85,10 @@ def tokenize_conversation(
     overrides: Optional[Dict[str, str]] = None,
     no_system_prompt: bool = False,
 ) -> torch.Tensor:
+    # Normalize the conversation before tokenization
+    for message in messages:
+        message["value"] = _normalize(message["value"])
+
     if conversation_lib.default_conversation.sep_style != conversation_lib.SeparatorStyle.AUTO:
         return tokenize_conversation_legacy(
             messages,
