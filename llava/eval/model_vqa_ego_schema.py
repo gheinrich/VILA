@@ -24,19 +24,12 @@ def main() -> None:
     parser.add_argument("--gt-answers-file", type=str)
     parser.add_argument("--split", type=str, choices=["validation", "test"], default="validation")
     parser.add_argument("--output_dir", type=str)
-    parser.add_argument("--output_name", type=str)
-    parser.add_argument("--num-chunks", type=int)
-    parser.add_argument("--chunk-idx", type=int)
     args = parser.parse_args()
 
     # Set up distributed environment
-    if args.num_chunks is None:
-        dist.init()
-        devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
-        torch.cuda.set_device(devices[0])
-        world_size, global_rank = dist.size(), dist.rank()
-    else:
-        world_size, global_rank = args.num_chunks, args.chunk_idx
+    dist.init()
+    devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
+    torch.cuda.set_device(devices[0])
 
     # TODO(zhijianl): This will be removed in the future
     conversation_lib.default_conversation = conversation_lib.conv_templates[args.conv_mode].copy()
@@ -54,11 +47,11 @@ def main() -> None:
     if args.split == "validation":
         answers = io.load(args.gt_answers_file)
         instances = [instance for instance in instances if instance["q_uid"] in answers]
-    instances = instances[global_rank::world_size]
+    instances = instances[dist.rank() :: dist.size()]
 
     # Run inference
     outputs = []
-    for instance in tqdm(instances, disable=global_rank != 0):
+    for instance in tqdm(instances, disable=not dist.is_main()):
         uuid = instance["q_uid"]
         video = llava.Video(os.path.join(args.video_folder, f"{uuid}.mp4"))
 
@@ -81,11 +74,13 @@ def main() -> None:
         if not dist.is_main():
             return
         outputs = list(itertools.chain(*outputs))
-    io.save(os.path.join(args.output_dir, f"{args.output_name}.json"), outputs)
+    io.save(os.path.join(args.output_dir, "outputs.json"), outputs)
 
     # Run evaluation
     if args.split == "validation":
-        print(sum(output["pred"] == output["answer"] for output in outputs) / len(outputs) * 100)
+        accuracy = sum(output["pred"] == output["answer"] for output in outputs) / len(outputs)
+        io.save(os.path.join(args.output_dir, "metrics.json"), {"accuracy": accuracy})
+        print(f"Accuracy: {accuracy:.2f}")
 
 
 if __name__ == "__main__":

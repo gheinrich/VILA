@@ -59,7 +59,10 @@ def main() -> None:
         if returncode != 124:
             break
         print("Job timed out, retrying...")
+
+    # Exit with the return code
     print(f"Job finished with exit code {returncode}")
+    exit(returncode)
 
 
 if __name__ == "__main__":

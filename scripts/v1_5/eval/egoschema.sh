@@ -23,5 +23,4 @@ torchrun --nproc-per-node=$NPROC_PER_NODE \
     --video-folder $VIDEO_DIR \
     --gt-answers-file $ANSWER_PATH \
     --split validation \
-    --output_dir $OUTPUT_DIR \
-    --output_name outputs
+    --output_dir $OUTPUT_DIR

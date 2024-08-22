@@ -507,4 +507,4 @@ def auto_set_conversation_mode(model_name_or_path: str) -> str:
             logger.info(f"Setting conversation mode to `{v}` based on model name/path `{model_name_or_path}`.")
             default_conversation = conv_templates[v]
             return
-    raise ValueError(f"Cannot find a valid conversation mode for model name/path `{model_name_or_path}`.")
+    logger.warning(f"Cannot automatically find a conversation mode based on model name/path `{model_name_or_path}`.")

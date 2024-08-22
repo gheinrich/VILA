@@ -21,12 +21,9 @@ conda install -c nvidia cuda-toolkit -y
 pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.8/flash_attn-2.5.8+cu122torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 
 # Install VILA
-pip install -e .
-pip install -e ".[train]"
-pip install -e ".[eval]"
+pip install -e ".[train,eval]"
 
-# Install HF's Transformers
-pip install git+https://github.com/huggingface/transformers@v4.37.2
+# Replace transformers and deepspeed files
 site_pkg_path=$(python -c 'import site; print(site.getsitepackages()[0])')
 cp -rv ./llava/train/transformers_replace/* $site_pkg_path/transformers/
 cp -rv ./llava/train/deepspeed_replace/* $site_pkg_path/deepspeed/

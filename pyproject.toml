@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vila"
-version = "1.0.0"
+version = "1.5.0"
 description = "VILA: On Pre-training for Visual Language Models"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,7 +33,7 @@ vila-eval = "llava.cli.eval:main"
 
 [project.optional-dependencies]
 train = ["deepspeed==0.9.5", "ninja", "wandb"]
-eval = ["word2number", "Levenshtein", "nltk", "pywsd", "lmms-eval"]
+eval = ["word2number", "Levenshtein", "nltk", "pywsd"]
 
 [project.urls]
 "Homepage" = "https://hanlab.mit.edu/projects/vila"

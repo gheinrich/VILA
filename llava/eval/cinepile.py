@@ -40,13 +40,9 @@ def main() -> None:
     args = parser.parse_args()
 
     # Set up distributed environment
-    if args.num_chunks is None:
-        dist.init()
-        devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
-        torch.cuda.set_device(devices[0])
-        world_size, global_rank = dist.size(), dist.rank()
-    else:
-        world_size, global_rank = args.num_chunks, args.chunk_idx
+    dist.init()
+    devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
+    torch.cuda.set_device(devices[0])
 
     # TODO(zhijianl): This will be removed in the future
     conversation_lib.default_conversation = conversation_lib.conv_templates[args.conv_mode].copy()
@@ -61,11 +57,11 @@ def main() -> None:
 
     # Load data and chunk it
     data = load_dataset("tomg-group-umd/cinepile")["test"]
-    instances = data.select(range(global_rank, len(data), world_size))
+    instances = data.select(range(dist.rank(), len(data), dist.size()))
 
     # Run inference
     outputs = []
-    for instance in tqdm(instances, disable=global_rank != 0):
+    for instance in tqdm(instances, disable=not dist.is_main()):
         video = llava.Video(os.path.join(args.video_dir, instance["yt_clip_link"].split("watch?v=")[-1] + ".mp4"))
 
         question, choices = instance["question"], instance["choices"]
@@ -102,8 +98,8 @@ def main() -> None:
 
     metrics = {}
     for category in ["overall"] + list(CATEGORY_MAPPING.values()):
-        metrics[category] = counts[category]["match"] / max(counts[category]["total"], 1) * 100
-        print(f"{category}: {metrics[category]:.2f}%")
+        metrics[category] = counts[category]["match"] / max(counts[category]["total"], 1)
+        print(f"{category}: {metrics[category]}")
     io.save(os.path.join(args.output_dir, "metrics.json"), metrics)
 
 

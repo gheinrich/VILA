@@ -1,6 +1,8 @@
 cinepile:
   tags:
     - local
+  metrics:
+    overall: overall
 
 egoschema:
   tags:

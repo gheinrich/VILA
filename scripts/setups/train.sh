@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source scripts/setups/base.sh
-
 DEFAULT_GPUS_PER_NODE=8
 DEFAULT_MASTER_ADDR="127.0.0.1"
 DEFAULT_MASTER_PORT=25001

@@ -837,7 +837,7 @@ class LlavaMetaForCausalLM(ABC):
         media = extract_media(conversation, self.config)
 
         # Tokenize the conversation
-        input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).unsqueeze(0)
+        input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
 
         # Process media
         if "image" in media:
