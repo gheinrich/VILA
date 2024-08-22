@@ -1,3 +1,5 @@
+#!/bin/bash
+
 MODEL_PATH=$1
 OUTPUT_DIR=$2
 

@@ -2,24 +2,29 @@ cinepile:
   tags:
     - local
   metrics:
-    overall: overall
+    accuracy: overall
 
-egoschema:
-  tags:
-    - local
-
-egoschema_full:
+egoschema_test:
   tags:
     - submission
 
+egoschema_val:
+  tags:
+    - core
+    - local
+  metrics:
+    accuracy: accuracy
+
 lmms-ai2d:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/ai2d/exact_match,flexible-extract
 
 lmms-chartqa:
   tags:
+    - core
     - local
   metrics:
     overall: results/chartqa/relaxed_overall,none
@@ -32,14 +37,15 @@ lmms-docvqa_test:
 
 lmms-docvqa_val:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/docvqa_val/anls,none
 
 lmms-gqa:
   tags:
+    - core
     - local
-    - regression
   metrics:
     accuracy: results/gqa/exact_match,none
 
@@ -53,8 +59,8 @@ lmms-mmbench:
 
 lmms-mme:
   tags:
+    - core
     - local
-    - regression
   metrics:
     cognition: results/mme/mme_cognition_score,none
     perception: results/mme/mme_percetion_score,none
@@ -65,8 +71,8 @@ lmms-mmmu_test:
 
 lmms-mmmu_val:
   tags:
+    - core
     - local
-    - regression
   metrics:
     accuracy: results/mmmu_val/mmmu_acc,none
 
@@ -76,14 +82,15 @@ lmms-mmvet:
 
 lmms-ocrbench:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/ocrbench/ocrbench_accuracy,none
 
 lmms-pope:
   tags:
+    - core
     - local
-    - regression
   metrics:
     accuracy: results/pope/pope_accuracy,none
     precision: results/pope/pope_precision,none
@@ -92,14 +99,15 @@ lmms-pope:
 
 lmms-realworldqa:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/realworldqa/exact_match,flexible-extract
 
 lmms-seedbench:
   tags:
+    - core
     - local
-    - regression
   metrics:
     all: results/seedbench/seed_all,none
     image: results/seedbench/seed_image,none
@@ -107,11 +115,22 @@ lmms-seedbench:
 
 lmms-scienceqa_full:
   tags:
+    - core
     - local
-    - regression
   metrics:
     full: results/scienceqa/exact_match,none
     image: results/scienceqa_img/exact_match,none
+
+lmms-textvqa_test:
+  tags:
+    - submission
+
+lmms-textvqa_val:
+  tags:
+    - core
+    - local
+  metrics:
+    accuracy: results/textvqa_val/exact_match,none
 
 lmms-vizwiz_vqa_test:
   tags:
@@ -119,6 +138,7 @@ lmms-vizwiz_vqa_test:
 
 lmms-vizwiz_vqa_val:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/vizwiz_vqa_val/exact_match,none
@@ -130,23 +150,34 @@ lmms-vqav2_test:
 lmms-vqav2_val:
   tags:
     - local
+  metrics:
+    accuracy: results/vqav2_val/exact_match,none
 
-mathvista-test:
+mathvista_test:
   tags:
     - submission
 
-mathvista-testmini:
+mathvista_testmini:
   tags:
+    - core
     - local
+  metrics:
+    accuracy: average/accuracy
 
-mmmu-test:
+mmmu_test:
   tags:
     - submission
 
-mmmu-validation:
+mmmu_val:
   tags:
+    - core
     - local
+  metrics:
+    accuracy: Overall/acc
 
-textvqa:
+textvqa_val:
   tags:
+    - core
     - local
+  metrics:
+    accuracy: accuracy

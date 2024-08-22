@@ -11,6 +11,7 @@ import PIL.Image
 from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN
 from llava.media import Image, Video
 from llava.train.args import DataArguments, TrainingArguments
+from llava.utils.logging import logger
 
 __all__ = ["extract_media"]
 
@@ -61,7 +62,7 @@ def _load_video(video_path: str, *, num_frames: int) -> List[PIL.Image.Image]:
 def _extract_video(video: Video, config: Config) -> List[PIL.Image.Image]:
     num_frames = config.num_video_frames
     if getattr(config, "fps") != 0:
-        raise NotImplementedError("Extracting frames from video with specified FPS is not supported yet")
+        logger.warning("Extracting frames from video with specified FPS is not supported yet. Ignored.")
 
     frames = _load_video(video.path, num_frames=num_frames)
     if not frames:

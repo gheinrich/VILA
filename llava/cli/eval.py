@@ -9,6 +9,7 @@ from tabulate import tabulate
 
 from llava.eval import EVAL_ROOT, TASKS
 from llava.utils import io
+from llava.utils.logging import logger
 
 
 def lstr(s: Optional[str]) -> Optional[List[str]]:
@@ -49,24 +50,24 @@ def main() -> None:
         if args.tags_exclude is not None and tags.intersection(args.tags_exclude):
             continue
         tasks.append(task)
-    print(f"Running evaluation for `{model_name}` on {len(tasks)} tasks: {tasks}")
+    logger.info(f"Running evaluation for '{model_name}' on {len(tasks)} tasks: {tasks}")
 
     # Prepare the evaluation commands
     cmds = {}
     for task in tasks:
         if _load_results(output_dir, task=task):
-            print(f"Skipping evaluation on `{task}` as it has already been evaluated.")
+            logger.warning(f"Skipping '{task}' as it has already been evaluated.")
             continue
 
         cmd = []
         if task.startswith("lmms-"):
-            cmd += [f"{EVAL_ROOT}/lmms.sh", task.replace("lmms-", ""), args.model_path]
-        elif "-" in task:
-            name, split = task.split("-")
-            cmd += [f"{EVAL_ROOT}/{name}.sh", args.model_path, model_name, split]
+            cmd += [f"{EVAL_ROOT}/lmms.sh", task.replace("lmms-", "")]
+        elif "_" in task:
+            name, split = task.split("_")
+            cmd += [f"{EVAL_ROOT}/{name}.sh", split]
         else:
-            cmd += [f"{EVAL_ROOT}/{task}.sh", args.model_path, model_name]
-        cmd += [args.conv_mode]
+            cmd += [f"{EVAL_ROOT}/{task}.sh"]
+        cmd += [args.model_path, args.conv_mode]
 
         # Wrap the command with vila-run if not running on SLURM
         if os.environ.get("SLURM_JOB_ID"):
@@ -88,8 +89,14 @@ def main() -> None:
         while remaining or processes:
             while remaining and len(processes) < concurrency:
                 task = remaining.popleft()
-                print(f"Running evaluation on `{task}`: {cmds[task]}")
-                processes[task] = subprocess.Popen(cmds[task], env=env, shell=True)
+                logger.info(f"Running '{cmds[task]}'")
+                processes[task] = subprocess.Popen(
+                    cmds[task],
+                    stdout=subprocess.DEVNULL if concurrency > 1 else None,
+                    stderr=subprocess.DEVNULL if concurrency > 1 else None,
+                    shell=True,
+                    env=env,
+                )
 
             for task, process in processes.items():
                 if process.poll() is not None:
@@ -99,7 +106,7 @@ def main() -> None:
 
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Terminating all processes...")
+        logger.warning("Terminating all processes...")
         for _, process in processes.items():
             process.terminate()
         for _, process in processes.items():
@@ -108,7 +115,7 @@ def main() -> None:
     # Check the return codes
     for task, returncode in returncodes.items():
         if returncode != 0:
-            print(f"Error running evaluation on `{task}`: {returncode}")
+            logger.error(f"Error running '{task}' evaluation (return code: {returncode})")
 
     # Collect the results and save them
     metrics = {}
@@ -116,15 +123,16 @@ def main() -> None:
         results = _load_results(output_dir, task=task)
         if results is None:
             continue
-        for name, path in TASKS[task]["metrics"].items():
+        for name, path in TASKS[task].get("metrics", {}).items():
             val = results
             for key in path.split("/") if "/" in path else [path]:
                 val = val[key]
             metrics[f"{task}/{name}"] = val
     io.save(os.path.join(output_dir, "metrics.json"), metrics, indent=4)
+    logger.info(f"Saved all metrics to '{output_dir}/metrics.json'")
 
     # Print the metrics in a tabular format
-    print(tabulate(metrics.items(), tablefmt="simple_outline", headers=["Metric", "Value"]))
+    logger.info("Results:\n" + tabulate(metrics.items(), tablefmt="simple_outline", headers=["Metric", "Value"]))
 
 
 if __name__ == "__main__":

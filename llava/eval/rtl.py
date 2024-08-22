@@ -106,12 +106,13 @@ def main() -> None:
         }
         outputs.append(output)
 
-    # Gather outputs
+    # Gather and save outputs
     if dist.size() > 1:
         outputs = dist.gather(outputs, dst=0)
         if not dist.is_main():
             return
         outputs = list(itertools.chain(*outputs))
+    io.save(os.path.join(args.output_dir, "outputs.jsonl"), outputs)
 
     # Run evaluation
     metric_func = {"iou": iou, "precision@0.5": precision(0.5)}
@@ -126,12 +127,8 @@ def main() -> None:
             )
     for name in metrics:
         metrics[name] = np.mean([np.mean(metrics[name][vid]) for vid in metrics[name]])
-    logger.info(f"Metrics: {metrics}")
-
-    # Save outputs and metrics
-    logger.info(f"Saving outputs and metrics to {args.output_dir}")
-    io.save(os.path.join(args.output_dir, "outputs.jsonl"), outputs)
     io.save(os.path.join(args.output_dir, "metrics.json"), metrics)
+    logger.info(f"Metrics: {metrics}")
 
 
 if __name__ == "__main__":

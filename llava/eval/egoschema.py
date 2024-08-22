@@ -1,4 +1,5 @@
 import argparse
+import csv
 import itertools
 import json
 import os
@@ -11,6 +12,7 @@ from llava import conversation as conversation_lib
 from llava.eval.mmmu_utils.eval_utils import parse_choice
 from llava.utils import distributed as dist
 from llava.utils import io
+from llava.utils.logging import logger
 
 
 def main() -> None:
@@ -19,11 +21,11 @@ def main() -> None:
     parser.add_argument("--model-base", type=str)
     parser.add_argument("--conv-mode", type=str, required=True)
     parser.add_argument("--generation-config", type=json.loads)
-    parser.add_argument("--question-file", type=str, required=True)
-    parser.add_argument("--video-folder", type=str, required=True)
-    parser.add_argument("--gt-answers-file", type=str)
-    parser.add_argument("--split", type=str, choices=["validation", "test"], default="validation")
-    parser.add_argument("--output_dir", type=str)
+    parser.add_argument("--data-path", type=str, required=True)
+    parser.add_argument("--video-dir", type=str, required=True)
+    parser.add_argument("--split", type=str, required=True)
+    parser.add_argument("--answer-path", type=str)
+    parser.add_argument("--output-dir", type=str, required=True)
     args = parser.parse_args()
 
     # Set up distributed environment
@@ -43,9 +45,9 @@ def main() -> None:
         generation_config.update(**args.generation_config)
 
     # Load data and chunk it
-    instances = io.load(args.question_file)
-    if args.split == "validation":
-        answers = io.load(args.gt_answers_file)
+    instances = io.load(args.data_path)
+    if args.split == "val":
+        answers = io.load(args.answer_path)
         instances = [instance for instance in instances if instance["q_uid"] in answers]
     instances = instances[dist.rank() :: dist.size()]
 
@@ -53,7 +55,7 @@ def main() -> None:
     outputs = []
     for instance in tqdm(instances, disable=not dist.is_main()):
         uuid = instance["q_uid"]
-        video = llava.Video(os.path.join(args.video_folder, f"{uuid}.mp4"))
+        video = llava.Video(os.path.join(args.video_dir, f"{uuid}.mp4"))
 
         question = instance["question"] + "\n"
         for i, c in enumerate(["A", "B", "C", "D", "E"]):
@@ -64,23 +66,36 @@ def main() -> None:
         choice = ord(parse_choice(response, ["A", "B", "C", "D", "E"])) - ord("A")
 
         output = {"id": uuid, "question": question, "pred": choice}
-        if args.split == "validation":
+        if args.split == "val":
             output["answer"] = answers[uuid]
         outputs.append(output)
 
-    # Gather outputs and save
+    # Gather and save outputs
     if dist.size() > 1:
         outputs = dist.gather(outputs, dst=0)
         if not dist.is_main():
             return
         outputs = list(itertools.chain(*outputs))
-    io.save(os.path.join(args.output_dir, "outputs.json"), outputs)
+    io.save(os.path.join(args.output_dir, "outputs.jsonl"), outputs)
 
     # Run evaluation
-    if args.split == "validation":
-        accuracy = sum(output["pred"] == output["answer"] for output in outputs) / len(outputs)
-        io.save(os.path.join(args.output_dir, "metrics.json"), {"accuracy": accuracy})
-        print(f"Accuracy: {accuracy:.2f}")
+    if args.split == "val":
+        metrics = {"accuracy": sum(output["pred"] == output["answer"] for output in outputs) / len(outputs)}
+        io.save(os.path.join(args.output_dir, "metrics.json"), metrics)
+        logger.info(f"Metrics: {metrics}")
+
+    # Prepare for submission
+    if args.split == "test":
+        rows = []
+        for output in outputs:
+            q_uid, answer = output["id"], output["pred"]
+            if str(answer) not in ["0", "1", "2", "3", "4"]:
+                answer = 0
+            rows.append({"q_uid": q_uid, "answer": answer})
+        with open(os.path.join(args.output_dir, "submission.csv"), "w", newline="") as fd:
+            writer = csv.DictWriter(fd, fieldnames=["q_uid", "answer"])
+            writer.writeheader()
+            writer.writerows(rows)
 
 
 if __name__ == "__main__":

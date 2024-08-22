@@ -1,16 +1,15 @@
 #!/bin/bash
-MODEL_PATH=$1
-CKPT=$2
-CONV_MODE=vicuna_v1
-if [ "$#" -ge 3 ]; then
-    CONV_MODE="$3"
-fi
 
-VIDEO_DIR="/home/xiuli/workspace/cinepile/yt_videos"
-OUTPUT_DIR="runs/eval/$CKPT/cinepile"
+MODEL_PATH=$1
+CONV_MODE=$2
+
+MODEL_NAME=$(basename $MODEL_PATH)
+OUTPUT_DIR=${OUTPUT_DIR:-"runs/eval/$MODEL_NAME/cinepile"}
 
 NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 GENERATION_CONFIG='{"max_new_tokens": 1024}'
+
+VIDEO_DIR="/home/xiuli/workspace/cinepile/yt_videos"
 
 torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/cinepile.py \

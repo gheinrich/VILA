@@ -13,6 +13,7 @@ from llava import conversation as conversation_lib
 from llava.eval.mmmu_utils.eval_utils import parse_choice
 from llava.utils import distributed as dist
 from llava.utils import io
+from llava.utils.logging import logger
 
 PROMPT_TEMPLATE = """You will be provided with subtitles from a specific scene of a movie and a few frames from that scene. After going through the movie scene and seeing the frames, please answer the question that follows. The question will have five possible answers labeled A, B, C, D, and E, please try to provide the most probable answer in your opinion. Your output should be just one of A,B,C,D,E and nothing else.
 
@@ -36,7 +37,7 @@ def main() -> None:
     parser.add_argument("--conv-mode", type=str, required=True)
     parser.add_argument("--generation-config", type=json.loads)
     parser.add_argument("--video-dir", type=str, required=True)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--output-dir", type=str, required=True)
     args = parser.parse_args()
 
     # Set up distributed environment
@@ -81,7 +82,7 @@ def main() -> None:
             }
         )
 
-    # Gather outputs and save
+    # Gather and save outputs
     if dist.size() > 1:
         outputs = dist.gather(outputs, dst=0)
         if not dist.is_main():
@@ -99,8 +100,8 @@ def main() -> None:
     metrics = {}
     for category in ["overall"] + list(CATEGORY_MAPPING.values()):
         metrics[category] = counts[category]["match"] / max(counts[category]["total"], 1)
-        print(f"{category}: {metrics[category]}")
     io.save(os.path.join(args.output_dir, "metrics.json"), metrics)
+    logger.info(f"Metrics: {metrics}")
 
 
 if __name__ == "__main__":
