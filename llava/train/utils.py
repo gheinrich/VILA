@@ -132,6 +132,7 @@ def prepare_config_for_training(
         config.s2 = model_args.s2
         config.s2_scales = model_args.s2_scales
         config.s2_max_split_size = model_args.s2_max_split_size
+        config.s2_resize_output_to_scale_idx = model_args.s2_resize_output_to_scale_idx
 
 
 def vision_resolution_elevation(model: PreTrainedModel, config: PretrainedConfig):
