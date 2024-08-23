@@ -182,7 +182,6 @@ class VisionTowerS2(VisionTower):
         self.scales = list(map(int, args.s2_scales.split(",")))
         self.scales.sort()
         self.max_split_size = args.s2_max_split_size
-        self.resize_output_to_scale_idx = getattr(args, "s2_resize_output_to_scale_idx", 0)
 
     @torch.no_grad()
     def forward_feature(self, images):
@@ -198,20 +197,12 @@ class VisionTowerS2(VisionTower):
             image_features = []
             for image in images:
                 image_feature = multiscale_forward(
-                    self.forward_feature,
-                    image.unsqueeze(0),
-                    img_sizes=self.scales,
-                    max_split_size=self.max_split_size,
-                    resize_output_to_idx=self.resize_output_to_scale_idx,
+                    self.forward_feature, image.unsqueeze(0), img_sizes=self.scales, max_split_size=self.max_split_size
                 )
                 image_features.append(image_feature)
         else:
             image_features = multiscale_forward(
-                self.forward_feature,
-                images,
-                img_sizes=self.scales,
-                max_split_size=self.max_split_size,
-                resize_output_to_idx=self.resize_output_to_scale_idx,
+                self.forward_feature, images, img_sizes=self.scales, max_split_size=self.max_split_size
             )
 
         return image_features

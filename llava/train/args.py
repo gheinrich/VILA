@@ -55,7 +55,6 @@ class ModelArguments:
     s2: bool = field(default=False)
     s2_scales: Optional[str] = field(default="336,672,1008")
     s2_max_split_size: int = field(default=336)
-    s2_resize_output_to_scale_idx: int = field(default=0)
     num_time_tokens: int = 0
     time_token_format: str = "<t{t}>"
     soft_ce_std: float = 1.0

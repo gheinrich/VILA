@@ -42,7 +42,6 @@ class LlavaConfig(PretrainedConfig):
         s2=None,
         s2_scales=None,
         s2_max_split_size=None,
-        s2_resize_output_to_scale_idx=None,
         num_time_tokens=None,
         time_token_format=None,
         **kwargs,
@@ -70,6 +69,5 @@ class LlavaConfig(PretrainedConfig):
         self.s2 = s2
         self.s2_scales = s2_scales
         self.s2_max_split_size = s2_max_split_size
-        self.s2_resize_output_to_scale_idx = s2_resize_output_to_scale_idx
         self.num_time_tokens = num_time_tokens
         self.time_token_format = time_token_format
