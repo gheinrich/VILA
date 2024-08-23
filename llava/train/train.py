@@ -623,6 +623,14 @@ def train():
 
     # @yunhao: tokenizer instantiation is moved into build_llm
     tokenizer = model.tokenizer
+
+    if tokenizer.bos_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(bos_token="[BOS]"),
+            tokenizer=tokenizer,
+            model=model.llm,
+        )
+
     # @yunhao: may move this block into method "build_llm"
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
