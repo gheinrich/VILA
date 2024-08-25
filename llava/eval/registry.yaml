@@ -132,6 +132,12 @@ lmms-textvqa_val:
   metrics:
     accuracy: results/textvqa_val/exact_match,none
 
+lmms-videomme:
+  tags:
+    - video
+  metrics:
+    accuracy: results/videomme/videomme_percetion_score,none
+
 lmms-vizwiz_vqa_test:
   tags:
     - submission

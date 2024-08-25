@@ -1,6 +1,5 @@
 import copy
-import json
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import accelerate
 import torch
@@ -11,6 +10,7 @@ from tqdm import tqdm
 
 import llava
 from llava import conversation as conversation_lib
+from llava.media import Video
 from llava.utils import distributed as dist
 
 
@@ -36,12 +36,27 @@ class VILA(lmms):
         for request in tqdm(requests, disable=not dist.is_main()):
             contexts, generation_kwargs, doc_to_visual, doc_id, task, split = request.args
 
-            images = doc_to_visual(self.task_dict[task][split][doc_id])
-            prompt = images + [contexts]
+            # NOTE(zhijianl): This is a hack to make sure the video path is correct for `videomme` task.
+            doc = self.task_dict[task][split][doc_id]
+            if task == "videomme":
+                doc["videoID"] = "data/" + doc["videoID"]
 
+            # Generate multimodal prompt
+            medias = []
+            for media in doc_to_visual(doc):
+                if isinstance(media, str):
+                    if media.endswith(".mp4"):
+                        media = Video(media)
+                    else:
+                        raise NotImplementedError(f"Unsupported media type: {media}")
+                medias.append(media)
+            prompt = medias + [contexts]
+
+            # Override generation config
             generation_config = copy.deepcopy(self.model.generation_config)
             generation_config.update(**generation_kwargs)
 
+            # Generate response
             response = self.model.generate_content(prompt, generation_config=generation_config)
             responses.append(response)
 
