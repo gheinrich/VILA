@@ -21,26 +21,27 @@ idx=$SLURM_ARRAY_TASK_ID
 total=$SLURM_ARRAY_TASK_COUNT
 jname=seval-$idx-of-$total-random
 
-
 ckpt=${1:-"Efficient-Large-Model/VILA1.5-3b"}
 _model_name=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
 # llava_v1
 # hermes-2
 model_name=${2:-"$_model_name"}
-conv_mode=${3:-"hermes-2"}
+
+
+conv_mode=${conv_mode:-"hermes-2"}
 temperature=${temperature:-"0.0"}
 num_beams=${num_beams:-1}
 
 num_video_frames=${num_video_frames:-"-1"}
 
-OUTDIR=slurm-logs/$ckpt
+OUTDIR=slurm-logs/$SLURM_JOB_NAME
 #_$wname
 > $OUTDIR/$jname.err
 > $OUTDIR/$jname.out
 
 
 srun \
-    -e $OUTDIR/$jname.err -o $OUTDIR/$jname.out \
+    -o $OUTDIR/$jname.out \
     python llava/eval/video_mme/video_eval.py \
         --model-path $ckpt --shard $idx --total $total --conv-mode $conv_mode \
         --output_dir=runs/eval/$model_name/video_mme/ --output_name=frames-$num_video_frames \

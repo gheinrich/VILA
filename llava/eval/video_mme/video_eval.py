@@ -8,6 +8,7 @@ import os
 import os.path as osp
 import shutil
 import signal
+import warnings
 
 import numpy as np
 import shortuuid
@@ -52,6 +53,7 @@ def safely_merge_info(out_fpath, info):
     return info
 
 
+# TODO(ligeng): switch to new inference API
 def get_model_output(
     model,
     image_processor,
@@ -187,6 +189,11 @@ def eval_model(args):
     subtitle_folder = "/home/ligengz/nvr_elm_llm/dataset/Video-MME/subtitle"
 
     if args.convert:
+        warnings.warn(
+            "This function is deprecated and will be removed in the future. Please use llava/eval/video_mme/convert.py \
+                    --answer_file $ORIG_RESULTS_FILE \
+                    --output_file $YOUR_RESULTS_FILE"
+        )
         for vmeta in jinfo:
             for question in vmeta["questions"]:
                 qid = question["question_id"]

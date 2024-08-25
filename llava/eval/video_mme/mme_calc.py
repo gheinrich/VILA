@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import json
 import os
 import os.path as osp
@@ -111,6 +112,7 @@ def eval_your_results(
     """
     key_name = your_answer_key.replace("response_", "")
     ckpt_name = osp.basename(your_results_path).replace("_converted.json", "")
+    num_video_frames = int(os.environ.get("num_video_frames", "8"))
     wandb_project = os.environ.get("WANDB_PROJECT", "VILA-evaluation")
     wandb_name = os.environ.get("WANDB_NAME", ckpt_name)
 
@@ -121,7 +123,11 @@ def eval_your_results(
         sha.update(fpath.encode())
         return sha.hexdigest()[:8]
 
-    wandb_id = hash_path(osp.realpath(your_results_path) + "2024")
+    current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    year_month_week = datetime.datetime.now().strftime("%Y-%m-W%W")
+    wandb_id = hash_path(
+        osp.realpath(your_results_path) + f"frames-{num_video_frames}" + datetime.datetime.now().strftime("%Y-%m-W%W")
+    )
     # wandb.require("core")
     wandb.init(
         project=wandb_project,
@@ -130,6 +136,7 @@ def eval_your_results(
         id=wandb_id,
         config={
             "results_path": osp.realpath(your_results_path),
+            "num_video_frames": num_video_frames,
         },
     )
 
