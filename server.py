@@ -115,7 +115,7 @@ def normalize_image_tags(qs: str) -> str:
             qs = re.sub(IMAGE_PLACEHOLDER, DEFAULT_IMAGE_TOKEN, qs)
 
     if DEFAULT_IMAGE_TOKEN not in qs:
-        raise ValueError("No image was found in input messages.")
+        print("No image was found in input messages. Continuing with text only prompt.")
     return qs
 
 
@@ -173,6 +173,7 @@ async def chat_completions(request: ChatCompletionRequest):
                             image = load_image(content.image_url.url)
                             images.append(image)
                             prompt += IMAGE_PLACEHOLDER
+
                 normalized_prompt = normalize_image_tags(prompt)
                 conv.append_message(user_role, normalized_prompt)
             if message.role == "assistant":
@@ -182,7 +183,13 @@ async def chat_completions(request: ChatCompletionRequest):
         prompt_text = conv.get_prompt()
         print("Prompt input: ", prompt_text)
 
-        images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
+        # support generation with text only inputs
+        if len(images) == 0:
+            images_input = None
+        else:
+            images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
+            images_input = [images_tensor]
+
         input_ids = (
             tokenizer_image_token(prompt_text, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
             .unsqueeze(0)
@@ -196,9 +203,7 @@ async def chat_completions(request: ChatCompletionRequest):
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
-                images=[
-                    images_tensor,
-                ],
+                images=images_input,
                 do_sample=True if temperature > 0 else False,
                 temperature=temperature,
                 top_p=top_p,
