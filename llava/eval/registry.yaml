@@ -49,6 +49,16 @@ lmms-gqa:
   metrics:
     accuracy: results/gqa/exact_match,none
 
+lmms-infovqa_test:
+  tags:
+    - submission
+
+lmms-infovqa_val:
+  tags:
+    - local
+  metrics:
+    accuracy: results/infovqa_val/anls,none
+
 lmms-llava-in-the-wild:
   tags:
     - openai
