@@ -1,4 +1,4 @@
-# Copyright 2024 NVIDIA CORPORATION & AFFILIATES
+# Copyright 2024 NVIDIA CORPORATION & AFFILIATES (authored by @Lyken17)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 import argparse
 import os
 import os.path as osp
+import re
 import time
 from hashlib import sha1, sha256
 
@@ -25,7 +26,8 @@ from huggingface_hub.hf_api import CommitOperationAdd
 from termcolor import colored
 
 MAX_UPLOAD_FILES_PER_COMMIT = 64
-MAX_UPLOAD_SIZE_PER_COMMIT = 32 * 1024 * 1024 * 1024  # 64 GiB
+MAX_UPLOAD_SIZE_PER_COMMIT = 64 * 1024 * 1024 * 1024  # 64 GiB
+MAX_UPLOAD_SIZE_PER_SINGLE_FILE = 45 * 1024 * 1024 * 1024  # 45 GiB
 
 
 def compute_git_hash(filename):
@@ -46,7 +48,7 @@ def compute_lfs_hash(filename):
     return h.hexdigest()
 
 
-if __name__ == "__main__":
+def main():
     import os
 
     os.environ["CURL_CA_BUNDLE"] = ""
@@ -63,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument("--repo-id", type=str, default=None)
     parser.add_argument("--root-dir", type=str, default=None)
 
+    parser.add_argument("-e", "--exclude", action="append", default=[r"checkpoint-[\d]*/.*", ".git/.*"])
     parser.add_argument("--fast-check", action="store_true")
     parser.add_argument("--sleep-on-error", action="store_true")
 
@@ -110,9 +113,30 @@ if __name__ == "__main__":
         for name in files:
             fpath = osp.join(root, name)
             rpath = osp.relpath(fpath, osp.abspath(root_dir))
-            # print(rpath)
-            if "checkpoint-" in rpath:
-                print(colored(f"Checkpoint detected: {rpath}, skipping", "yellow"))
+
+            exclude_flag = False
+            for pattern in args.exclude:
+                if re.search(pattern, rpath):
+                    exclude_flag = True
+            if exclude_flag:
+                print(colored(f"""[regex filter-out][{pattern}]: {rpath}, skipping""", "yellow"))
+                continue
+
+            # if "checkpoint-" in rpath:
+            #     print(colored(f"123 Checkpoint detected: {rpath}, skipping", "yellow"))
+            #     continue
+
+            # if ".tar" in rpath or ".zip" in rpath:
+            #     print(colored(f"Archive detected: {rpath}, skipping", "yellow"))
+            #     continue
+
+            if osp.getsize(fpath) > MAX_UPLOAD_SIZE_PER_SINGLE_FILE:
+                print(
+                    colored(
+                        f"Huggingface only supports filesize less than {MAX_UPLOAD_SIZE_PER_SINGLE_FILE}, skipping",
+                        "red",
+                    )
+                )
                 continue
 
             if api.file_exists(repo_id=repo, filename=rpath, repo_type=repo_type):
@@ -164,7 +188,6 @@ if __name__ == "__main__":
                 continue
 
             commit_message = "Upload files with huggingface_hub"
-
             result = None
             while result is None:
                 try:
@@ -200,3 +223,7 @@ if __name__ == "__main__":
         commit_message=commit_message,
         commit_description=commit_description,
     )
+
+
+if __name__ == "__main__":
+    main()
