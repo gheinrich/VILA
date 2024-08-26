@@ -37,7 +37,7 @@ eval = ["word2number", "Levenshtein", "nltk", "pywsd"]
 
 [project.urls]
 "Homepage" = "https://hanlab.mit.edu/projects/vila"
-"Bug Tracker" = "https://github.com/Efficient-Large-Model/VILA-Internal/issues"
+"Bug Tracker" = "https://github.com/NVlabs/VILA/issues"
 
 [tool.black]
 line-length = 120

@@ -88,7 +88,10 @@ class LazyCoyoWebRecapDataset(LazyCoyoWebDataset):
             n_samples_per_idx=n_samples_per_idx,
         )
         if getattr(data_args, "caption_choice", None) is None:
+            self.caption_choice = "~/workspace/coyo-25m-recap"
+            # nvcode: on
             self.caption_choice = "/home/ligengz/workspace/coyo-25m-recap"
+            # nvcode: off
         else:
             self.caption_choice = data_args.caption_choice
         print(f"Current caption choice: {self.caption_choice}.")

@@ -215,7 +215,9 @@ class LazyImageTextWebDataset(Dataset):
 
 
 if __name__ == "__main__":
+    # nvcode: on
     data_path = "/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/data"
+    # nvcode: off
     dst = VILAWebDataset(
         data_path=osp.abspath(data_path),
     )

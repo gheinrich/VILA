@@ -227,6 +227,7 @@ class LazySAMWebDataset(Dataset):
         return dict(input_ids=input_ids, labels=targets, image=image_list)
 
 
+# nvcode: on
 if __name__ == "__main__":
     data_path = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-reformat"
     dst = VILAWebDataset(
@@ -235,3 +236,4 @@ if __name__ == "__main__":
     # print(dst[0])
     for idx, data in enumerate(dst):
         print(idx, data.keys())
+# nvcode: off

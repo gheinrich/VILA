@@ -53,6 +53,7 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    # nvcode: on
     nvclip_5m_vfc_recap30 = Dataset(
         dataset_name="nvclip_5m_vfc_recap30",
         dataset_type="imgtxt-wds",
@@ -61,9 +62,7 @@ def register_datasets_mixtures():
         end_idx=30 / 100,
         caption_choice="/home/ligengz/nvr_elm_llm/dataset/nv-clip-5m/vfc_longcaption_jsonraw",
     )
-
     add_dataset(nvclip_5m_vfc_recap30)
-
     nvclip_5m_vfc_recap70 = Dataset(
         dataset_name="nvclip_5m_vfc_recap70",
         dataset_type="imgtxt-wds",
@@ -1551,3 +1550,4 @@ def register_datasets_mixtures():
         image_path="/mnt/amlfs-01/home/fuzhaox/video_datasets_v2/sherlock/sherlock/images",
     )
     add_dataset(osmo_sherlock)
+    # nvcode: off

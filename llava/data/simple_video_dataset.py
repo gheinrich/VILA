@@ -44,9 +44,11 @@ def load_tarfile(tar_path):
     return tarfile.open(tar_path)
 
 
+# nvcode: on
 # INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video"
 INTERNVID = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v3/ego4d/ego4d_clips_tar/ego4d_1m"
 CACHEDIR = "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v3/ego4d/ego4d_clips_tar/ego4d_1m-webds-meta"
+# nvcode: off
 
 
 def process_tarfile(tar_abspath, tar_meta_path, cache_dir):
@@ -102,15 +104,20 @@ def process_tarfile(tar_abspath, tar_meta_path, cache_dir):
 class SimpleVideoDataset(torch.utils.data.Dataset):
     def __init__(
         self,
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt",
-        # cache_dir="/home/ligengz/.cache/simplecoyo",
-        # cache_dir="/lustre/fsw/portfolios/llmservice/projects/llmservice_nlp_fm/datasets/captioning/vila-webds-meta",
-        cache_dir="/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta",
+        data_path=None,  # required
+        cache_dir=None,  # required
         meta_path=None,
-        # image_load_mode="pil",  # pil / rawbytes / fpath,
         max_shards_to_load=None,
         overwrite=False,
     ):
+        # nvcode: on
+        data_path = (
+            "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt",
+        )
+        cache_dir = (
+            "/lustre/fsw/portfolios/nvr/projects/nvr_aialgo_robogptagent/loragen_workspace/video_datasets_v2/internvid/video_data_tar/InternVid-1300K-flt-webds-meta",
+        )
+        # nvcode: off
         self.data_path = data_path
         self.meta_path = meta_path
         if meta_path is None:
@@ -189,9 +196,7 @@ class SimpleVideoDataset(torch.utils.data.Dataset):
         print(f"User name: {user_name}")
         self.dataset = ShardListDataset(
             self.meta_path,
-            cache_dir=osp.expanduser(
-                f"/lustre/fsw/portfolios/nvr/users/{user_name}/cache/_wids_cache/{getpass.getuser()}-{uuid}"
-            ),
+            cache_dir=osp.expanduser(f"~/.cache/_wids_cache/{getpass.getuser()}-{uuid}"),
         )
 
     def __getitem__(self, idx):

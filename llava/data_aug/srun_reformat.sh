@@ -1,7 +1,7 @@
+# nvcode: on
 JOBS_LIMIT=100  # Set your limit here
 ACCOUNT=${ACCOUNT:-llmservice_nlp_fm}
 PARTITION=${PARTITION:-cpu,cpu_long} #draco: cpu,cpu_long,batch_singlenode,grizzly,polar
-
 src_folder=/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/sam-raw
 
 for f in $src_folder/*.tar; do

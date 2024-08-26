@@ -54,7 +54,9 @@ from llava.constants import (
 from llava.data.dataset_impl.textocr import GenericDataset, preprocess_OCR
 from llava.train.args import DataArguments, TrainingArguments
 
+# nvcode: on
 DEFAULT_HIERTEXT = "/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/hiertext"
+# nvcode: off
 
 
 def bbx_from_vertices_list(vertices):

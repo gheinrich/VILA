@@ -116,7 +116,7 @@ def eval_model(args):
     model_name = get_model_name_from_path(model_path)
 
     print(model_path)
-    video_list = list(glob.glob(osp.expanduser(osp.join(args.video_dir, "*.mp4"))))
+    video_list = list(glob.glob(osp.join(args.video_dir, "**/*.mp4")))
     assert len(video_list) > 0, f"no video found in {args.video_dir}"
 
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
