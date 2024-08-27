@@ -32,6 +32,7 @@ from transformers import (
     PreTrainedTokenizer,
 )
 
+from llava.model.utils import packing
 from llava.utils.logging import logger
 
 
@@ -74,6 +75,7 @@ def build_llm_and_tokenizer(
     llm = AutoModelForCausalLM.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs
     )
+    packing.patch(llm)
 
     # Locate the tokenizer.
     llm_path = model_name_or_path

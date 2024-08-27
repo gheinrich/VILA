@@ -512,15 +512,7 @@ class LlavaMetaForCausalLM(ABC):
             new_labels,
         )
 
-    def repack_multimodal_data(
-        self,
-        input_ids,
-        position_ids,
-        attention_mask,
-        past_key_values,
-        inputs_embeds,
-        labels,
-    ):
+    def repack_multimodal_data(self, inputs_embeds, attention_mask, position_ids, labels):
         # Handle sequence parallelism
         PROCESS_GROUP_MANAGER = get_pg_manager()
 
@@ -705,109 +697,35 @@ class LlavaMetaForCausalLM(ABC):
                     global_inputs_embeds, 1, start_idx_reshard, end_idx_reshard - start_idx_reshard
                 )
 
-            return (
-                None,
-                new_position_ids,
-                new_attention_mask,
-                past_key_values,
-                new_inputs_embeds,
-                new_labels,
-                None,  # sorted_seqlens_in_batch set as None for sequence parallelism
-            )
+            return new_inputs_embeds, new_attention_mask, new_position_ids, new_labels
 
-        # kentang-mit@: reorder and repack (reduce computation overhead)
-        # requires transformers replacement.
-        new_inputs_embeds = []
-        new_position_ids = []
-        new_labels = []
-        seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
-        sorted_seqlens_in_batch, sorted_idx = torch.sort(seqlens_in_batch, descending=True)
-        max_seqlen = inputs_embeds.shape[1]
+        device = inputs_embeds.device
+        batch_size = inputs_embeds.shape[0]
+        seqlens = [attention_mask[k].sum().item() for k in range(batch_size)]
 
-        cur_inputs_embeds = []
-        cur_position_ids = []
-        cur_labels = []
-        cur_batch_len = 0
-        for i in range(len(sorted_seqlens_in_batch)):
-            cur_seqlen = sorted_seqlens_in_batch[i].item()
-            if cur_seqlen + cur_batch_len <= max_seqlen:
-                cur_batch_len += cur_seqlen
-                # each item: num_tokens x num_channels
-                # remove padding on-the-fly
-                cur_inputs_embeds.append(inputs_embeds[sorted_idx[i]][attention_mask[sorted_idx[i]]])
-                cur_position_ids.append(
-                    torch.arange(
-                        cur_inputs_embeds[-1].shape[0],
-                        device=cur_inputs_embeds[-1].device,
-                    )
-                )
-                # each item: num_tokens
-                # remove padding on-the-fly
-                cur_labels.append(labels[sorted_idx[i]][attention_mask[sorted_idx[i]]])
-            else:
-                new_inputs_embeds.append(torch.cat(cur_inputs_embeds, 0))
-                new_position_ids.append(torch.cat(cur_position_ids, 0))
-                new_labels.append(torch.cat(cur_labels, 0))
-                # The current batch is too long. We will start a new batch.
-                cur_batch_len = cur_seqlen
-                cur_inputs_embeds = [inputs_embeds[sorted_idx[i]][attention_mask[sorted_idx[i]]]]
-                cur_position_ids = [
-                    torch.arange(
-                        cur_inputs_embeds[-1].shape[0],
-                        device=cur_inputs_embeds[-1].device,
-                    )
-                ]
-                cur_labels = [labels[sorted_idx[i]][attention_mask[sorted_idx[i]]]]
-            # Mask the first token in the labels for every sample
-            # cur_labels[-1][0] = IGNORE_INDEX
+        # Pack all sequences together
+        inputs_embeds_p = [inputs_embeds[k][attention_mask[k]] for k in range(batch_size)]
+        attention_mask_p = [torch.full([seqlens[k]], k + 1, dtype=torch.int, device=device) for k in range(batch_size)]
+        position_ids_p = [torch.arange(seqlens[k], dtype=torch.int, device=device) for k in range(batch_size)]
+        labels_p = [labels[k][attention_mask[k]] for k in range(batch_size)]
 
-        if len(cur_inputs_embeds):
-            new_inputs_embeds.append(torch.cat(cur_inputs_embeds, 0))
-            new_position_ids.append(torch.cat(cur_position_ids, 0))
-            new_labels.append(torch.cat(cur_labels, 0))
+        # Add one dummy token at the end of the packed sequence to ensure that `_get_unpacked_data` will be called
+        inputs_embeds_p.append(torch.zeros(1, inputs_embeds.shape[-1], dtype=inputs_embeds.dtype, device=device))
+        attention_mask_p.append(torch.tensor([0], dtype=torch.int, device=device))
+        position_ids_p.append(torch.tensor([0], dtype=torch.int, device=device))
+        labels_p.append(torch.tensor([IGNORE_INDEX], dtype=torch.int, device=device))
 
-        new_inputs_embeds = torch.nn.utils.rnn.pad_sequence(
-            new_inputs_embeds, batch_first=True, padding_value=self.llm.pad_token_id
-        )
+        # Mask the first token of each sequence to avoid contamination
+        for label in labels_p:
+            label[0] = IGNORE_INDEX
 
-        new_position_ids = torch.nn.utils.rnn.pad_sequence(new_position_ids, batch_first=True, padding_value=-1)
+        # Batch the data
+        inputs_embeds_p = torch.cat(inputs_embeds_p, dim=0).unsqueeze(0)
+        attention_mask_p = torch.cat(attention_mask_p, dim=0).unsqueeze(0)
+        position_ids_p = torch.cat(position_ids_p, dim=0).unsqueeze(0)
+        labels_p = torch.cat(labels_p, dim=0).unsqueeze(0)
 
-        new_labels = torch.nn.utils.rnn.pad_sequence(new_labels, batch_first=True, padding_value=IGNORE_INDEX)
-        ## yunhao: it's currently a workaround to avoid errors for seq_len < 100
-        new_attention_mask = new_position_ids.ne(-1)
-        # sanity check
-        assert new_attention_mask.sum() == attention_mask.sum()
-
-        # Handle sequence parallelism: Calculate the position ids for sequence parallelism
-        # NOTE: This implementation only works for [<bos>, <img>, ..., <img>, <caption>] pattern
-        # if sp_degree > 1 and sp_rank > 0:
-        #     cur_len = new_position_ids.shape[-1]
-        #     if sp_rank < sp_degree - 1:  # Intermediate ranks
-        #         offset = cur_len * sp_rank + 1
-        #         new_position_ids = new_position_ids + offset
-        #     elif sp_rank == sp_degree - 1:  # The last rank
-        #         assert new_labels[0, -1] != IGNORE_INDEX, "The first sequence should be longest one."
-        #         last_img_token_index = torch.where(new_labels[0] == IGNORE_INDEX)[0][-1]
-        #         # print(f"last_img_token_index, {last_img_token_index}")
-        #         # if sp_degree == 2: # Handle SP=2, because of bos_token
-        #         #     offset = last_img_token_index + 3
-        #         # else:
-        #         #     offset = (last_img_token_index + 2) * sp_rank + 1
-        #         offset = (last_img_token_index + 1) * sp_rank + 1
-        #         offset_mask = new_position_ids != -1
-        #         new_position_ids[offset_mask] += offset
-        #     else:
-        #         raise ValueError(f"sp_rank {sp_rank} is out of range {sp_degree}")
-
-        return (
-            None,
-            new_position_ids,
-            new_attention_mask,
-            past_key_values,
-            new_inputs_embeds,
-            new_labels,
-            sorted_seqlens_in_batch,
-        )
+        return inputs_embeds_p, attention_mask_p, position_ids_p, labels_p
 
     @torch.inference_mode()
     def generate(
