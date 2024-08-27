@@ -55,6 +55,7 @@ lmms-infovqa_test:
 
 lmms-infovqa_val:
   tags:
+    - core
     - local
   metrics:
     accuracy: results/infovqa_val/anls,none

@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import copy
 import logging
 import os
 import os.path as osp
@@ -764,16 +765,7 @@ class LlavaMetaForCausalLM(ABC):
             images = None
 
         # Set up the generation config
-        if generation_config is None:
-            generation_config = self.generation_config
-        if self.tokenizer.eos_token_id is None:
-            raise ValueError("Tokenizer must have an EOS token")
-        if generation_config.pad_token_id is None:
-            generation_config.pad_token_id = self.tokenizer.pad_token_id or self.tokenizer.eos_token_id
-        if generation_config.bos_token_id is None:
-            generation_config.bos_token_id = self.tokenizer.bos_token_id or self.tokenizer.eos_token_id
-        if generation_config.eos_token_id is None:
-            generation_config.eos_token_id = self.tokenizer.convert_tokens_to_ids(infer_stop_tokens(self.tokenizer))
+        generation_config = generation_config or self.default_generation_config
 
         # Generate the response
         try:
@@ -789,3 +781,18 @@ class LlavaMetaForCausalLM(ABC):
         # Decode the response
         response = self.tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
         return response
+
+    @property
+    def default_generation_config(self) -> GenerationConfig:
+        generation_config = copy.deepcopy(self.generation_config)
+        if self.tokenizer.eos_token_id is None:
+            raise ValueError("Tokenizer must have an EOS token")
+        if generation_config.max_length == GenerationConfig().max_length:
+            generation_config.max_length = self.tokenizer.model_max_length
+        if generation_config.pad_token_id is None:
+            generation_config.pad_token_id = self.tokenizer.pad_token_id or self.tokenizer.eos_token_id
+        if generation_config.bos_token_id is None:
+            generation_config.bos_token_id = self.tokenizer.bos_token_id or self.tokenizer.eos_token_id
+        if generation_config.eos_token_id is None:
+            generation_config.eos_token_id = self.tokenizer.convert_tokens_to_ids(infer_stop_tokens(self.tokenizer))
+        return generation_config

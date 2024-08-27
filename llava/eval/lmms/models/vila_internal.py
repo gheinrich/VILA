@@ -53,7 +53,7 @@ class VILA(lmms):
             prompt = medias + [contexts]
 
             # Override generation config
-            generation_config = copy.deepcopy(self.model.generation_config)
+            generation_config = self.model.default_generation_config
             generation_config.update(**generation_kwargs)
 
             # Generate response
