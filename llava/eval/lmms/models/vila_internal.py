@@ -1,4 +1,3 @@
-import copy
 from typing import List, Tuple
 
 import accelerate
@@ -34,12 +33,8 @@ class VILA(lmms):
     def generate_until(self, requests: List[Instance]) -> List[str]:
         responses = []
         for request in tqdm(requests, disable=not dist.is_main()):
-            contexts, generation_kwargs, doc_to_visual, doc_id, task, split = request.args
-
-            # NOTE(zhijianl): This is a hack to make sure the video path is correct for `videomme` task.
+            prompt, generation_kwargs, doc_to_visual, doc_id, task, split = self._patch(request.args)
             doc = self.task_dict[task][split][doc_id]
-            if task == "videomme":
-                doc["videoID"] = "data/" + doc["videoID"]
 
             # Generate multimodal prompt
             medias = []
@@ -50,7 +45,7 @@ class VILA(lmms):
                     else:
                         raise NotImplementedError(f"Unsupported media type: {media}")
                 medias.append(media)
-            prompt = medias + [contexts]
+            prompt = medias + [prompt]
 
             # Override generation config
             generation_config = self.model.default_generation_config
@@ -63,6 +58,28 @@ class VILA(lmms):
             print("Prompt:", prompt)
             print("Response:", response)
         return responses
+
+    def _patch(self, args: Tuple) -> Tuple:
+        prompt, generation_kwargs, doc_to_visual, doc_id, task, split = args
+        doc = self.task_dict[task][split][doc_id]
+
+        if task in ["videomme", "videomme_w_subtitle"]:
+            from llava.eval.lmms.tasks.videomme import (
+                videomme_doc_to_text,
+                videomme_doc_to_text_subtitle,
+                videomme_doc_to_visual,
+            )
+
+            # NOTE(zhijianl): This is a hack to make sure the video path is correct for Video-MME.
+            doc_to_visual = videomme_doc_to_visual
+
+            # Override the prompt for Video-MME, which can offer more than 1% improvement over the default prompt.
+            if task == "videomme":
+                prompt = videomme_doc_to_text(doc)
+            if task == "videomme_w_subtitle":
+                prompt = videomme_doc_to_text_subtitle(doc, num_frames=self.model.config.num_video_frames)
+
+        return prompt, generation_kwargs, doc_to_visual, doc_id, task, split
 
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
         raise NotImplementedError

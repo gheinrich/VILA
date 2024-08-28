@@ -145,9 +145,17 @@ lmms-textvqa_val:
 
 lmms-videomme:
   tags:
+    - local
     - video
   metrics:
     accuracy: results/videomme/videomme_percetion_score,none
+
+lmms-videomme_w_subtitle:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
 
 lmms-vizwiz_vqa_test:
   tags:
