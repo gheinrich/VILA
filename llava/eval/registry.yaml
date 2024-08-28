@@ -181,17 +181,6 @@ mathvista_testmini:
   metrics:
     accuracy: average/accuracy
 
-mmmu_test:
-  tags:
-    - submission
-
-mmmu_val:
-  tags:
-    - core
-    - local
-  metrics:
-    accuracy: Overall/acc
-
 textvqa_val:
   tags:
     - core

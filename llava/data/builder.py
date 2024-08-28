@@ -83,7 +83,6 @@ def build_dataset_legacy(
         LazyCCSWebDataset,
         LazyCoyoDataset,
         LazyCoyoWebDataset,
-        LazyEvaluateDataset,
         LazyMMC4Dataset,
         LazySupervisedDataset,
         LazyVFlanDataset,

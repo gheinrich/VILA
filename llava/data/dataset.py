@@ -44,7 +44,6 @@ from llava.constants import (
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
 )
-from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import opencv_extract_frames, process_image, tokenizer_image_token
 from llava.model import *
 from llava.train.args import DataArguments, TrainingArguments
@@ -1535,53 +1534,6 @@ from functools import lru_cache
 def lru_json_load(fpath):
     with open(fpath) as fp:
         return json.load(fp)
-
-
-class LazyEvaluateDataset(LazySupervisedDataset):
-    def __init__(
-        self,
-        data_path: str,
-        data_args: dict,
-        tokenizer: PreTrainedTokenizer,
-        config_path: str = "llava/eval/mmmu_utils/configs/llava1.5.yaml",
-        split="validation",
-        **kwargs,
-    ):
-        # run for each subject
-        sub_dataset_list = []
-        for subject in CAT_SHORT2LONG.values():
-            sub_dataset = load_dataset(data_path, subject, split=split)
-            sub_dataset_list.append(sub_dataset)
-
-        all_datasets = concatenate_datasets(sub_dataset_list)
-        self.tokenizer = tokenizer
-        self.data_args = data_args
-        self.image_folder = None
-        self.config = self.get_config(config_path)
-        self.list_data_dict = self.get_processed_prompt(all_datasets)
-
-    def get_config(self, config_path: str) -> str:
-        config = load_yaml(config_path)
-        for key, value in config.items():
-            if key != "eval_params" and type(value) == list:
-                assert len(value) == 1, f"key {key} has more than one value"
-                config[key] = value[0]
-        return config
-
-    def get_processed_prompt(self, dataset: list) -> list:
-        processed_dataset = []
-        for d in dataset:
-            sample = process_single_sample(d)
-            processed_dict = construct_prompt(sample, self.config)
-
-            if "<image>" in processed_dict["gt_content"]:
-                processed_dict["gt_content"] = processed_dict["gt_content"].replace("<image>", "image")
-            sample["conversations"] = [
-                {"from": "human", "value": processed_dict["final_input_prompt"]},
-                {"from": "gpt", "value": processed_dict["gt_content"]},
-            ]
-            processed_dataset.append(sample)
-        return processed_dataset
 
 
 class LazyCoyoWebDataset(Dataset):

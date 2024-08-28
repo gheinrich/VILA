@@ -867,14 +867,6 @@ def register_datasets_mixtures():
     )
     add_dataset(stem_qa)
 
-    mmmu_validation = Dataset(
-        dataset_name="mmmu_validation",
-        dataset_type="evaluation",
-        data_path="./playground/data/eval/MMMU",
-        description="MMMU validation set.",
-    )
-    add_dataset(mmmu_validation)
-
     valley = Dataset(
         dataset_name="valley",
         dataset_type="torch",
