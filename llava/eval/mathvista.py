@@ -38,7 +38,7 @@ def main():
     model = llava.load(args.model_path, model_base=args.model_base, devices=devices)
 
     # Set up generation config
-    generation_config = model.generation_config
+    generation_config = model.default_generation_config
     if args.generation_config is not None:
         generation_config.update(**args.generation_config)
 
