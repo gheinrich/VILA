@@ -101,15 +101,17 @@ class RADIOVisionTower(VisionTower):
             raise ValueError("Delay load not supported for RADIOVisionTower.")
 
         self.sample_count = 0
-        self.debug = True
+        self.debug = False
 
     def get_hidden_size(self):
         if self.select_feature == "cls":
             hidden_size = 5120
-        elif self.select_feature == "dense":
-            hidden_size = 4 * 1280
+        elif self.select_feature in ["dense", "dense_3_1"]:
+            hidden_size = 4*self.vision_tower.model.embed_dim
+        elif self.select_feature == "dense_2_1":
+            hidden_size = 3*self.vision_tower.model.embed_dim
         else:
-            hidden_size = 1280
+            hidden_size = self.vision_tower.model.embed_dim
 
         return hidden_size
 
@@ -216,16 +218,28 @@ class RADIOVisionTower(VisionTower):
     def get_features(self, x: torch.Tensor):
         x_dtype = x.dtype
         x = x.float()
-        with torch.autocast("cuda", dtype=torch.bfloat16):
-            if self.select_feature == "dense":
+        with torch.autocast('cuda', dtype=torch.bfloat16):
+            if "dense" in self.select_feature:
 
                 # Layers to return activations of in case of "return_multilayer=True".
                 num_layers = len(self.vision_tower.model.blocks)
-                multilayers = [
-                    num_layers // 4 - 1,
-                    num_layers // 2 - 1,
-                    num_layers // 4 * 3 - 1,
-                ]
+
+                if self.select_feature in ["dense", "dense_3_1"]:
+                    multilayers = [
+                        num_layers // 4 - 1,
+                        num_layers // 2 - 1,
+                        num_layers // 4 * 3 - 1,
+                        #num_layers - 1,
+                    ]
+                elif self.select_feature == "dense_2_1":
+                    multilayers = [
+                        #num_layers // 4 - 1,
+                        num_layers // 2 - 1,
+                        #num_layers // 4 * 3 - 1,
+                        num_layers - 1,
+                    ]
+                else:
+                    raise ValueError(f"Unexpected select feature: {self.select_feature}")
 
                 features = []
                 intermediate_features = []
@@ -305,7 +319,7 @@ class RADIOVisionTower(VisionTower):
                 image.save(os.path.join("radio-debug/", f"sample_{self.sample_count}_pca_map_{i}.png"))
                 pass
 
-        if self.select_feature in ["patch", "cls_patch", "dense"]:
+        if self.select_feature in ["patch",  "cls_patch"] or "dense" in self.select_feature:
             # Ignore cls-patch for now.
             pass
         # elif self.select_feature == "cls_patch":
