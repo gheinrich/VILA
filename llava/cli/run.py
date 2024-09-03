@@ -3,6 +3,8 @@ import datetime
 import os
 import subprocess
 
+from termcolor import colored
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -11,13 +13,16 @@ def main() -> None:
     parser.add_argument("--gpus-per-node", type=int, default=8)
     parser.add_argument("--mode", "-m", type=str, default="train")
     parser.add_argument("--time", "-t", type=str, default="4:00:00")
+    parser.add_argument("--output-dir", type=str)
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
     # Generate run name and output directory
     if "%t" in args.job_name:
         args.job_name = args.job_name.replace("%t", datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    output_dir = os.path.join("runs", args.mode, args.job_name)
+    if args.output_dir is None:
+        args.output_dir = os.path.join("runs", args.mode, args.job_name)
+    output_dir = os.path.expanduser(args.output_dir)
 
     # Calculate the timeout
     time = datetime.datetime.strptime(args.time, "%H:%M:%S")
@@ -43,19 +48,20 @@ def main() -> None:
     cmd += ["--account", account]
     cmd += ["--partition", partition]
     cmd += ["--job-name", f"{account}:{args.mode}/{args.job_name}"]
-    cmd += ["--output", f"{output_dir}/slurm/%J-%t.out"]
-    cmd += ["--error", f"{output_dir}/slurm/%J-%t.err"]
+    cmd += ["--output", f"{output_dir}/slurm/%J.out"]
+    cmd += ["--error", f"{output_dir}/slurm/%J.err"]
     cmd += ["--nodes", str(args.nodes)]
     cmd += ["--gpus-per-node", str(args.gpus_per_node)]
     cmd += ["--time", args.time]
     cmd += ["--exclusive"]
     cmd += ["timeout", timeout]
     cmd += args.cmd
-    print(" ".join(cmd))
+    cmd = " ".join(cmd)
+    print(colored(cmd, attrs=["bold"]))
 
     # Run the job and resume if it times out
     while True:
-        returncode = subprocess.run(cmd, env=env).returncode
+        returncode = subprocess.run(cmd, env=env, shell=True).returncode
         if returncode != 124:
             break
         print("Job timed out, retrying...")
