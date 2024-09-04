@@ -183,7 +183,6 @@ class VisionTowerS2(VisionTower):
         self.scales.sort()
         self.max_split_size = args.s2_max_split_size
 
-    @torch.no_grad()
     def forward_feature(self, images):
         image_forward_outs = self.vision_tower(
             images.to(device=self.device, dtype=self.dtype), output_hidden_states=True
@@ -191,7 +190,6 @@ class VisionTowerS2(VisionTower):
         image_features = self.feature_select(image_forward_outs).to(images.dtype)
         return image_features
 
-    @torch.no_grad()
     def forward(self, images):
         if type(images) is list:
             image_features = []
