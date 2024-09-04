@@ -52,7 +52,7 @@ def load_pretrained_model(
             bnb_4bit_quant_type="nf4",
         )
     else:
-        kwargs["torch_dtype"] = torch.float16
+        kwargs["torch_dtype"] = torch.float32
         # kwargs["torch_dtype"] = torch.bfloat16
 
     if is_mm_model(model_path):
