@@ -1,0 +1,3 @@
+mint-1t-arxiv:
+  _target_: llava.data.MINTArXivDataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/mint-1t/MINT-1T-ArXiv/wids-meta.json

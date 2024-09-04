@@ -31,22 +31,22 @@ class BaseDataset(Dataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         instance = self.instances[index]
 
-        # Process instance to conversation
-        conversation = self.process(instance)
-
-        # Extract media from conversation
         try:
+            # Process instance to conversation
+            conversation = self.process(instance)
+
+            # Extract media from conversation
             media = extract_media(conversation, self.data_args)
+            # Prepare "input_ids" and "labels" for training
+            data = preprocess_conversation(conversation, self.tokenizer)
+
+            # Process media
+            if "image" in media:
+                data["image"] = _process_image(media["image"], self.data_args)
         except Exception as e:
-            logger.error(f"Error extracting media for instance `{instance}`: `{e}`. Resampling.")
+            # logger.exception(f"Error extracting media for instance `{instance}`: `{e}`. Resampling.")
             return self.__getitem__(random.randint(0, len(self.instances) - 1))
 
-        # Prepare "input_ids" and "labels" for training
-        data = preprocess_conversation(conversation, self.tokenizer)
-
-        # Process media
-        if "image" in media:
-            data["image"] = _process_image(media["image"], self.data_args)
         return data
 
     def __len__(self) -> int:
