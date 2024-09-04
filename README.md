@@ -291,6 +291,41 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+We also support streaming inference with the API server. You can use the following code to stream messages:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000",
+    api_key="fake-key",
+)
+response = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What’s in this image?"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "https://blog.logomyway.com/wp-content/uploads/2022/01/NVIDIA-logo.jpg",
+                    },
+                },
+            ],
+        }
+    ],
+    max_tokens=300,
+    model="VILA1.5-3B",
+    stream=True,
+    extra_body={"num_beams": 1, "use_cache": False},
+)
+
+
+for chunk in response:
+    print(chunk.choices[0].delta.content, end="")
+```
+
 <sup>NOTE: This API server is intended for evaluation purposes only and has not been optimized for production use. It has only been tested on A100 and H100 GPUs.</sup>
 
 ## Checkpoints
