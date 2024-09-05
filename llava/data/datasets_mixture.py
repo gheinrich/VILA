@@ -593,13 +593,45 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_mm_sft)
 
-    nv_metropolis_sft = Dataset(
-        dataset_name="nv_metropolis_sft",
+    nvclip_conversation_complex_filt = Dataset(
+        dataset_name="nvclip_conversation_complex_filt",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/NVCLIP_1M_full.json",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/NVCLIP_conversation_complex_filt.json",
         image_path="/home/jasonlu/vlm_datasets/nv_metropolis_sft/images",
     )
-    add_dataset(nv_metropolis_sft)
+    add_dataset(nvclip_conversation_complex_filt)
+
+    nvclip_conversation_complex_new_unfilt = Dataset(
+        dataset_name="nvclip_conversation_complex_new_unfilt",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/NVCLIP_conversation_complex_new_unfilt.json",
+        image_path="/home/jasonlu/vlm_datasets/nv_metropolis_sft/images",
+    )
+    add_dataset(nvclip_conversation_complex_new_unfilt)
+
+    nvclip_ocr = Dataset(
+        dataset_name="nvclip_ocr",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/NVCLIP_OCR.json",
+        image_path="/home/jasonlu/vlm_datasets/nv_metropolis_sft/images",
+    )
+    add_dataset(nvclip_ocr)
+
+    oi_vila_caption = Dataset(
+        dataset_name="oi_vila_caption",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/OI_VILA_caption_1.2M_filt.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/scha/data/openimages",
+    )
+    add_dataset(oi_vila_caption)
+
+    ln_caption_vila_augment = Dataset(
+        dataset_name="ln_caption_vila_augment",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/LN_VILA_augment_caption.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/scha/data/openimages",
+    )
+    add_dataset(ln_caption_vila_augment)
 
     nv_metropolis_textcaps = Dataset(
         dataset_name="nv_metropolis_textcaps",
@@ -609,13 +641,21 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_textcaps)
 
-    nv_metropolis_refcoco = Dataset(
-        dataset_name="nv_metropolis_refcoco",
+    textvqa_commercial = Dataset(
+        dataset_name="textvqa_commercial",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/refcoco.json",
-        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/textvqa_commercial_new.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/textvqa",
     )
-    add_dataset(nv_metropolis_refcoco)
+    add_dataset(textvqa_commercial)
+
+    textcaps_commercial = Dataset(
+        dataset_name="textcaps_commercial",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/textcaps_commercial_new.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/textvqa",
+    )
+    add_dataset(textcaps_commercial)
 
     nv_metropolis_refcoco_updated = Dataset(
         dataset_name="nv_metropolis_refcoco_updated",
@@ -625,14 +665,6 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_refcoco_updated)
 
-    nv_metropolis_vqav2 = Dataset(
-        dataset_name="nv_metropolis_vqav2",
-        dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/vqav2_okvqa.json",
-        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
-    )
-    add_dataset(nv_metropolis_vqav2)
-
     nv_metropolis_vqav2_updated = Dataset(
         dataset_name="nv_metropolis_vqav2_updated",
         dataset_type="torch",
@@ -641,14 +673,6 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_vqav2_updated)
 
-    nv_metropolis_aokvqa = Dataset(
-        dataset_name="nv_metropolis_aokvqa",
-        dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/a_okvqa.json",
-        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
-    )
-    add_dataset(nv_metropolis_aokvqa)
-
     nv_metropolis_aokvqa_legal = Dataset(
         dataset_name="nv_metropolis_aokvqa_legal",
         dataset_type="torch",
@@ -656,6 +680,37 @@ def register_datasets_mixtures():
         image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/",
     )
     add_dataset(nv_metropolis_aokvqa_legal)
+
+    gqa_commercial_updated = Dataset(
+        dataset_name="gqa_commercial_updated",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/gqa_updated_new.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/gqa/images",
+    )
+    add_dataset(gqa_commercial_updated)
+
+    aokvqa_commercial = Dataset(
+        dataset_name="aokvqa_commercial",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/aokvqa_commercial_new.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/coco",
+    )
+    add_dataset(aokvqa_commercial)
+
+    clevr_merge_explanation = Dataset(
+        dataset_name="clevr_merge_explanation",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/clevr_merge_explanation.json",
+        image_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/MMSFT/clevr/CLEVR_v1.0",
+    )
+    add_dataset(clevr_merge_explanation)
+
+    oasst = Dataset(
+        dataset_name="oasst",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/edgeai/users/parisz/data/OpenAssistant/oasst.json",
+    )
+    add_dataset(oasst)
 
     reason_clevrerqa = Dataset(
         dataset_name="reason_clevrerqa",
