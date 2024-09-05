@@ -73,6 +73,7 @@ activitynet-rtl/val:
   data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/temporal_reasoning/annot_val_1_q229.json
   video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/activitynet_frames
 
-mint-1t-arxiv:
-  _target_: llava.data.MINTArXivDataset
-  data_path: /home/ligengz/nvr_elm_llm/dataset/mint-1t/MINT-1T-ArXiv/wids-meta.json
+mint-1t-arxiv-captions:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/mint-1t-arxiv/captions-20240904.json
+  image_dir: /home/zhijianl/workspace/datasets/mint-1t-arxiv/tiff

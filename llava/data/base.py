@@ -37,6 +37,7 @@ class BaseDataset(Dataset):
 
             # Extract media from conversation
             media = extract_media(conversation, self.data_args)
+
             # Prepare "input_ids" and "labels" for training
             data = preprocess_conversation(conversation, self.tokenizer)
 
@@ -44,7 +45,7 @@ class BaseDataset(Dataset):
             if "image" in media:
                 data["image"] = _process_image(media["image"], self.data_args)
         except Exception as e:
-            # logger.exception(f"Error extracting media for instance `{instance}`: `{e}`. Resampling.")
+            logger.exception(f"Error processing instance '{instance}': '{e}'. Resampling.")
             return self.__getitem__(random.randint(0, len(self.instances) - 1))
 
         return data
