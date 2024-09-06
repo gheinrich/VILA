@@ -23,6 +23,7 @@ from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedMode
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from llava.model.loss import soft_cross_entropy
+from llava.model.utils.packing import set_seqlens_in_batch
 from llava.utils import distributed as dist
 
 from ...train.utils import calculate_loss_weight
@@ -117,19 +118,13 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             )
 
         if packing and self.training and not dpo_forward:
+            if seqlens_in_batch is None:
+                seqlens_in_batch = torch.sum(attention_mask, dim=1)
+            set_seqlens_in_batch(seqlens_in_batch)
+
             (inputs_embeds, attention_mask, position_ids, labels) = self.repack_multimodal_data(
                 inputs_embeds, attention_mask, position_ids, labels
             )
-
-            # FIXME(zhijianl): This is a temporary fix for the sequence-parallel case
-            if seqlens_in_batch is not None:
-                device = inputs_embeds.device
-                batch_size = inputs_embeds.shape[0]
-                attention_mask = [
-                    torch.full([seqlens_in_batch[k]], k + 1, dtype=torch.int, device=device) for k in range(batch_size)
-                ]
-                attention_mask.append(torch.tensor([0], dtype=torch.int, device=device))
-                attention_mask = torch.cat(attention_mask, dim=0).unsqueeze(0)
 
         outputs = self.llm(
             inputs_embeds=inputs_embeds,

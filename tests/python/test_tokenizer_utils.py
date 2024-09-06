@@ -77,7 +77,7 @@ def _build_test_tokenizers() -> List[Tuple[PreTrainedTokenizer, Dict[str, Any]]]
     tokenizer = AutoTokenizer.from_pretrained("lmsys/vicuna-7b-v1.5")
     tokenizers.append((tokenizer, {"conv_mode": "vicuna_v1", "stop_tokens": ["</s>"]}))
 
-    tokenizer = AutoTokenizer.from_pretrained("NousResearch/Nous-Hermes-2-Yi-34B")
+    tokenizer = AutoTokenizer.from_pretrained("NousResearch/Nous-Hermes-2-Yi-34B", use_fast=False)
     tokenizers.append((tokenizer, {"conv_mode": "hermes-2", "stop_tokens": ["<|im_end|>"]}))
 
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B")

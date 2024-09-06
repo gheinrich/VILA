@@ -17,7 +17,6 @@
 import math
 import os
 import os.path as osp
-import warnings
 from typing import Tuple
 
 import torch
@@ -84,19 +83,7 @@ def build_llm_and_tokenizer(
     if not has_tokenizer(llm_path):
         raise ValueError(f"Cannot find tokenizer in {llm_path}.")
 
-    # TODO(ligeng): use LLM class to judge to better compability.
-    try:
-        llm_arch = getattr(llm_cfg, "architectures")[0].lower()
-    except BaseException:
-        warnings.warn(f'Cannot find LLM architecture, please check the "config.json" under "{llm_path}".')
-
-    if "mpt" in llm_arch:
-        tokenizer = AutoTokenizer.from_pretrained(
-            llm_path,
-            model_max_length=llm_cfg.model_max_length,
-            padding_side="right",
-        )
-    elif "yi" in llm_path or (
+    if "yi" in llm_path or (
         getattr(llm_cfg, "num_hidden_layers", -1) == 60 and getattr(llm_cfg, "num_attention_heads", -1) == 56
     ):
         tokenizer = AutoTokenizer.from_pretrained(

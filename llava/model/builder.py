@@ -15,14 +15,13 @@
 
 
 import os
-import shutil
 import warnings
 
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, PretrainedConfig
 
 from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_PATCH_TOKEN
-from llava.model import *
+from llava.model import LlavaLlamaModel
 from llava.model.utils import is_mm_model
 
 
@@ -110,45 +109,11 @@ def load_pretrained_model(
             print("Merging LoRA weights...")
             model = model.merge_and_unload()
             print("Model is loaded...")
-        ## TODO @yunhao: mind fixing this
-        elif model_base is not None:
-            # this may be mm projector only
-            print("Loading LLaVA from base model...")
-            cfg_pretrained = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-            mm_config_wrapper(config, kwargs)
-            if "mpt" in model_name.lower():
-                if not os.path.isfile(os.path.join(model_path, "configuration_mpt.py")):
-                    shutil.copyfile(
-                        os.path.join(model_base, "configuration_mpt.py"),
-                        os.path.join(model_path, "configuration_mpt.py"),
-                    )
-                tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=True)
-                model = LlavaMPTForCausalLM.from_pretrained(
-                    model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs
-                )
-            else:
-                tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=False, legacy=False)
-                model = LlavaLlamaForCausalLM.from_pretrained(
-                    model_base, low_cpu_mem_usage=True, config=cfg_pretrained, **kwargs
-                )
         else:
             config = AutoConfig.from_pretrained(model_path)
             config.resume_path = model_path
             prepare_config_for_eval(config, kwargs)
-            if "mpt" in model_name.lower():
-                model = LlavaMPTForCausalLM.from_pretrained(model_path, config=config, low_cpu_mem_usage=True, **kwargs)
-            elif "mistral" in model_name.lower() or "mixtral" in model_name.lower():
-                model = LlavaMistralForCausalLM.from_pretrained(
-                    model_path, config=config, low_cpu_mem_usage=True, **kwargs
-                )
-            elif "gemma" in model_name.lower():
-                model = LlavaGemmaForCausalLM.from_pretrained(
-                    model_path, config=config, low_cpu_mem_usage=True, **kwargs
-                )
-            else:
-                # kentang-mit@: llama-2 model
-                # config._attn_implementation = "flash_attention_2"
-                model = LlavaLlamaModel(config=config, low_cpu_mem_usage=True, **kwargs)
+            model = LlavaLlamaModel(config=config, low_cpu_mem_usage=True, **kwargs)
             tokenizer = model.tokenizer
     else:
         # Load language model
@@ -165,14 +130,8 @@ def load_pretrained_model(
             print("Convert to FP16...")
             model.to(torch.float16)
         else:
-            if "mpt" in model_name.lower():
-                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_path, low_cpu_mem_usage=True, trust_remote_code=True, **kwargs
-                )
-            else:
-                tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
-                model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, legacy=False)
+            model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
     model.eval()
     image_processor = None
     if is_mm_model(model_path):

@@ -39,7 +39,7 @@ from llava.constants import (
 )
 from llava.data import make_supervised_data_module
 from llava.mm_utils import process_image
-from llava.model import *
+from llava.model import LlavaLlamaConfig, LlavaLlamaModel
 from llava.train.args import DataArguments, ModelArguments, TrainingArguments
 from llava.train.callbacks.autoresume_callback import AutoResumeCallback
 from llava.train.llava_trainer import LLaVATrainer, VILADPOTrainer
@@ -393,7 +393,9 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # FIXME(zhijianl): This should be deprecated when we move to the new scripts.
-    if os.getenv("RUN_NAME") is None:
+    if os.getenv("RUN_NAME") is not None:
+        training_args.run_name = os.getenv("RUN_NAME")
+    else:
         training_args.run_name = training_args.output_dir.split("/")[-1]
 
     local_rank = training_args.local_rank
@@ -448,26 +450,8 @@ def train():
     else:
         ## first time training
         resume_from_checkpoint = False
-        if "mpt" in model_args.model_name_or_path:
-            config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
-            config.attn_config["attn_impl"] = training_args.mpt_attn_impl
-            model_cls = LlavaMPTForCausalLM
-        elif "mistral" in model_args.model_name_or_path.lower():
-            config = LlavaMistralConfig.from_pretrained(model_args.model_name_or_path)
-            config._attn_implementation = "flash_attention_2"
-            model_cls = LlavaMistralForCausalLM
-        elif "mixtral" in model_args.model_name_or_path.lower():
-            config = LlavaMixtralConfig.from_pretrained(model_args.model_name_or_path)
-            config._attn_implementation = "flash_attention_2"
-            model_cls = LlavaMixtralForCausalLM
-        elif "gemma" in model_args.model_name_or_path.lower():
-            config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
-            config._attn_implementation = "flash_attention_2"
-            model_cls = LlavaGemmaForCausalLM
-        else:
-            ## llm and default multimodal model
-            model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
+        model_cls = LlavaLlamaModel
+        config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
         if getattr(config, "resume_path", None) is not None:
             config.resume_path = model_args.model_name_or_path
 
@@ -632,27 +616,17 @@ def train():
         )
 
     # @yunhao: may move this block into method "build_llm"
-    if model_args.version == "v0":
-        if tokenizer.pad_token is None:
-            smart_tokenizer_and_embedding_resize(
-                special_tokens_dict=dict(pad_token="[PAD]"),
-                tokenizer=tokenizer,
-                model=model.llm,
-            )
-    elif model_args.version == "v0.5":
-        tokenizer.pad_token = tokenizer.unk_token
+    tokenizer.pad_token = tokenizer.unk_token
+    if tokenizer.pad_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(pad_token="[PAD]"),
+            tokenizer=tokenizer,
+            model=model.llm,
+        )
+    if model_args.version in conversation_lib.conv_templates:
+        conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
     else:
-        tokenizer.pad_token = tokenizer.unk_token
-        if tokenizer.pad_token is None:
-            smart_tokenizer_and_embedding_resize(
-                special_tokens_dict=dict(pad_token="[PAD]"),
-                tokenizer=tokenizer,
-                model=model.llm,
-            )
-        if model_args.version in conversation_lib.conv_templates:
-            conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
-        else:
-            conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
+        conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.llm.pad_token_id = tokenizer.pad_token_id

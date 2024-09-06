@@ -706,7 +706,7 @@ class LlavaMetaForCausalLM(ABC):
 
         # Pack all sequences together
         inputs_embeds_p = [inputs_embeds[k][attention_mask[k]] for k in range(batch_size)]
-        attention_mask_p = [torch.full([seqlens[k]], k + 1, dtype=torch.int, device=device) for k in range(batch_size)]
+        attention_mask_p = [torch.ones(seqlens[k], dtype=torch.int, device=device) for k in range(batch_size)]
         position_ids_p = [torch.arange(seqlens[k], dtype=torch.int, device=device) for k in range(batch_size)]
         labels_p = [labels[k][attention_mask[k]] for k in range(batch_size)]
 

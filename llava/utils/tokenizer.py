@@ -126,6 +126,7 @@ def preprocess_conversation(
     conversation: Sequence[Dict[str, str]],
     tokenizer: transformers.PreTrainedTokenizer,
     no_system_prompt: bool = False,
+    retried: bool = False,
 ) -> Dict[str, Any]:
     inputs = tokenize_conversation(conversation, tokenizer, no_system_prompt=no_system_prompt)
     labels = torch.ones_like(inputs) * IGNORE_INDEX
@@ -142,7 +143,7 @@ def preprocess_conversation(
         if template[k] == tokenizer.sentinel_token_id:
             mask[k : k + 2] = False
             # NOTE(zhijianl): This is to handle the corner case where there is an empty token before the sentinel token.
-            if k > 0 and tokenizer.decode(template[k - 1]) == "":
+            if k > 0 and retried:
                 mask[k - 1] = False
     template = template[mask]
 
@@ -157,7 +158,14 @@ def preprocess_conversation(
 
     # Mask all tokens in the label if the template is not fully matched.
     if p < template.size(0):
-        logger.error(f"Failed to process the conversation: `{conversation}`. All tokens will be masked in the label.")
+        if not retried:
+            return preprocess_conversation(
+                conversation,
+                tokenizer,
+                no_system_prompt=no_system_prompt,
+                retried=True,
+            )
+        logger.error(f"Failed to process the conversation: '{conversation}'. All tokens will be masked in the label.")
         labels[:] = IGNORE_INDEX
 
     return {"input_ids": inputs, "labels": labels}
