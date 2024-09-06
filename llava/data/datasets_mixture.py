@@ -593,6 +593,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_mm_sft)
 
+    # only exists on cs-oci-ord
     nvclip_conversation_complex_filt = Dataset(
         dataset_name="nvclip_conversation_complex_filt",
         dataset_type="torch",
@@ -601,6 +602,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nvclip_conversation_complex_filt)
 
+    # only exists on cs-oci-ord
     nvclip_conversation_complex_new_unfilt = Dataset(
         dataset_name="nvclip_conversation_complex_new_unfilt",
         dataset_type="torch",
@@ -609,6 +611,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nvclip_conversation_complex_new_unfilt)
 
+    # only exists on cs-oci-ord
     nvclip_ocr = Dataset(
         dataset_name="nvclip_ocr",
         dataset_type="torch",
@@ -617,6 +620,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nvclip_ocr)
 
+    # only exists on cs-oci-ord
     oi_vila_caption = Dataset(
         dataset_name="oi_vila_caption",
         dataset_type="torch",
@@ -625,6 +629,7 @@ def register_datasets_mixtures():
     )
     add_dataset(oi_vila_caption)
 
+    # only exists on cs-oci-ord
     ln_caption_vila_augment = Dataset(
         dataset_name="ln_caption_vila_augment",
         dataset_type="torch",
@@ -633,6 +638,7 @@ def register_datasets_mixtures():
     )
     add_dataset(ln_caption_vila_augment)
 
+    # only exists on cs-oci-ord
     nv_metropolis_textcaps = Dataset(
         dataset_name="nv_metropolis_textcaps",
         dataset_type="torch",
@@ -641,6 +647,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_textcaps)
 
+    # only exists on cs-oci-ord
     textvqa_commercial = Dataset(
         dataset_name="textvqa_commercial",
         dataset_type="torch",
@@ -649,6 +656,7 @@ def register_datasets_mixtures():
     )
     add_dataset(textvqa_commercial)
 
+    # only exists on cs-oci-ord
     textcaps_commercial = Dataset(
         dataset_name="textcaps_commercial",
         dataset_type="torch",
@@ -657,6 +665,7 @@ def register_datasets_mixtures():
     )
     add_dataset(textcaps_commercial)
 
+    # only exists on cs-oci-ord
     nv_metropolis_refcoco_updated = Dataset(
         dataset_name="nv_metropolis_refcoco_updated",
         dataset_type="torch",
@@ -665,6 +674,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_refcoco_updated)
 
+    # only exists on cs-oci-ord
     nv_metropolis_vqav2_updated = Dataset(
         dataset_name="nv_metropolis_vqav2_updated",
         dataset_type="torch",
@@ -673,6 +683,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_vqav2_updated)
 
+    # only exists on cs-oci-ord
     nv_metropolis_aokvqa_legal = Dataset(
         dataset_name="nv_metropolis_aokvqa_legal",
         dataset_type="torch",
@@ -681,6 +692,7 @@ def register_datasets_mixtures():
     )
     add_dataset(nv_metropolis_aokvqa_legal)
 
+    # only exists on cs-oci-ord
     gqa_commercial_updated = Dataset(
         dataset_name="gqa_commercial_updated",
         dataset_type="torch",
@@ -689,6 +701,7 @@ def register_datasets_mixtures():
     )
     add_dataset(gqa_commercial_updated)
 
+    # only exists on cs-oci-ord
     aokvqa_commercial = Dataset(
         dataset_name="aokvqa_commercial",
         dataset_type="torch",
@@ -697,6 +710,7 @@ def register_datasets_mixtures():
     )
     add_dataset(aokvqa_commercial)
 
+    # only exists on cs-oci-ord
     clevr_merge_explanation = Dataset(
         dataset_name="clevr_merge_explanation",
         dataset_type="torch",
@@ -705,6 +719,7 @@ def register_datasets_mixtures():
     )
     add_dataset(clevr_merge_explanation)
 
+    # only exists on cs-oci-ord
     oasst = Dataset(
         dataset_name="oasst",
         dataset_type="torch",
@@ -1598,3 +1613,75 @@ def register_datasets_mixtures():
     )
     add_dataset(osmo_sherlock)
     # nvcode: off
+
+    cambrian_7m = Dataset(
+        dataset_name="cambrian_7m",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/Cambrian/Cambrian7M_withsystemprompt.json",
+        image_path="/home/yunhaof/workspace/datasets/Cambrian/data",
+    )
+    add_dataset(cambrian_7m)
+
+    llave_onevision_sft = Dataset(
+        dataset_name="llave_onevision_sft",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_non_repeat_train.jsonl",
+        image_path="/home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images",
+        description="LLaVA-OneVision single image SFT (w/o repeat with LLaVA1.6+Idefics2 SFT).",
+    )
+    add_dataset(llave_onevision_sft)
+
+    llave_onevision_images_sft = Dataset(
+        dataset_name="llave_onevision_images_sft",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl",
+        image_path="/home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images",
+        description="LLaVA-OneVision single image SFT (w/o repeat with LLaVA1.6+Idefics2 SFT).",
+    )
+    add_dataset(llave_onevision_images_sft)
+
+    cambrian_1375k = Dataset(
+        dataset_name="cambrian_1375k",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/cambrian/cambrian_1375k.json",
+        image_path="/home/yunhaof/workspace/datasets/Cambrian/data",
+    )
+    add_dataset(cambrian_1375k)
+
+    cambrian_doc_1275k = Dataset(
+        dataset_name="cambrian_doc_1275k",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/cambrian/cambrian_doc_1275k.json",
+        image_path="/home/yunhaof/workspace/datasets/Cambrian/data",
+    )
+    add_dataset(cambrian_doc_1275k)
+
+    textocr_qa = Dataset(
+        dataset_name="textocr_qa",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/textocr-gpt4v/processed/textocr_25k.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/TextOCR/train_images",
+        description="https://textvqa.org/textocr/ ",
+    )
+    add_dataset(textocr_qa)
+
+    coyo_25m_wds_spatial_ocr_bbox_interleaved_qas = Dataset(
+        dataset_name="coyo_25m_wds_spatial_ocr_bbox_interleaved_qas",
+        dataset_type="coyo-wds-qas",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-10-subset.json",
+        # Full VILA^2 coyo data: meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta.json",
+        caption_choice="/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_spatial_specialist_clean+/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_ocr_specialist_clean+/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_bbox_interleaved_clean",
+        description="10% subset of coyo_25m_wds.",
+    )
+    add_dataset(coyo_25m_wds_spatial_ocr_bbox_interleaved_qas)
+
+    docmatix_750k = Dataset(
+        dataset_name="docmatix_750k",
+        dataset_type="torch",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_750k.json",
+        # path on draco-oci-iad: data_path="/home/baifengs/baifengs/data/Docmatix/conversations_750k.json",
+        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/",
+        description="Reformatted from https://huggingface.co/datasets/HuggingFaceM4/Docmatix",
+    )
+    add_dataset(docmatix_750k)
