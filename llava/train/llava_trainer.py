@@ -642,6 +642,14 @@ class LLaVATrainer(Trainer):
             sample_len_list=sample_len_list,
         )
 
+    def _inner_training_loop(self, batch_size: Optional[int] = None, *args, **kwargs):
+        # NOTE(zhijianl): In the latest transformers, if the batch size in the training arguments differs from
+        # the one in the training state, the batch size from the state is used by default. This can be
+        # problematic when resuming with different batch sizes or gradient accumulation steps. To prevent this,
+        # we enforce using the batch size specified in the training arguments.
+        batch_size = self.args.train_batch_size
+        return super()._inner_training_loop(batch_size, *args, **kwargs)
+
     def create_optimizer(self):
         """
         Setup the optimizer.
