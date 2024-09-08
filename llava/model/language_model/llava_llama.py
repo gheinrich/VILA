@@ -135,6 +135,14 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
             **kwargs,
         )
 
+        if self.training and getattr(self.config, "time_token_ids", []):
+            outputs.loss = soft_cross_entropy(
+                outputs.logits,
+                labels,
+                soft_tokens=self.config.time_token_ids,
+                std=self.config.soft_ce_std,
+            )
+
         # Loss rescale for SP & DP loss match
         if dist.size() > 1:
             loss_weight = calculate_loss_weight(labels)
