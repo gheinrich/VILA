@@ -14,7 +14,6 @@ torchrun \
     llava/train/train_mem.py \
         --deepspeed scripts/zero3.json \
         --model_name_or_path $STAGE2_PATH \
-        --chat_template qwen2 \
         --data_mixture sharegpt4v_sft+vflan \
         --vision_tower google/siglip-so400m-patch14-384 \
         --mm_vision_select_feature cls_patch \

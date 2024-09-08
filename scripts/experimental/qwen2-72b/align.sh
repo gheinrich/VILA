@@ -12,7 +12,7 @@ torchrun \
     llava/train/train_mem.py \
         --deepspeed scripts/zero3.json \
         --model_name_or_path Qwen/Qwen2-72B \
-        --version plain \
+        --chat_template qwen2 \
         --data_mixture llava_1_5_mm_align \
         --vision_tower google/siglip-so400m-patch14-384 \
         --mm_vision_select_feature cls_patch \

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_RUN_NAME="vila-qwen2-7b-align"
+DEFAULT_RUN_NAME="vila-qwen2-7b-instruct-align"
 DEFAULT_GLOBAL_TRAIN_BATCH_SIZE=2048
 DEFAULT_GRADIENT_ACCUMULATION_STEPS=1
 
@@ -11,7 +11,7 @@ torchrun \
     --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
     llava/train/train_mem.py \
         --deepspeed scripts/zero3.json \
-        --model_name_or_path Qwen/Qwen2-7B \
+        --model_name_or_path Qwen/Qwen2-7B-Instruct \
         --chat_template qwen2 \
         --data_mixture llava_1_5_mm_align \
         --vision_tower google/siglip-so400m-patch14-384 \
