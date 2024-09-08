@@ -9,7 +9,7 @@ OUTPUT_DIR=${OUTPUT_DIR:-"runs/eval/$MODEL_NAME/lmms-$TASK"}
 
 NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 
-export HF_HOME=/home/$(whoami)/.cache/huggingface
+export HF_HOME=$HOME/.cache/huggingface
 export LMMS_EVAL_PLUGINS=llava.eval.lmms
 torchrun --nproc_per_node=$NPROC_PER_NODE \
 	-m lmms_eval \
