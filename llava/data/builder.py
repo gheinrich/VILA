@@ -1,5 +1,6 @@
 import os
-from typing import Any, Optional
+from itertools import chain
+from typing import Any, List, Optional
 
 from hydra.utils import instantiate
 from torch.utils.data import ConcatDataset, Dataset
@@ -7,20 +8,33 @@ from transformers import PreTrainedTokenizer
 
 from llava.data.datasets_mixture import DATASETS_LEGACY
 from llava.train.args import DataArguments, TrainingArguments
+from llava.utils import distributed as dist
 from llava.utils import io
 from llava.utils.logging import logger
 
-__all__ = ["DATASETS", "register_datasets", "build_dataset"]
+__all__ = ["DATASETS", "MIXTURES", "register_datasets", "register_mixtures", "parse_mixture", "build_dataset"]
 
 
 def register_datasets(name: Optional[str] = None):
     if name is None:
         name = os.environ.get("VILA_DATASETS", "default")
-        logger.info(f"Registering datasets from `{name}`.")
-    return io.load(os.path.join(os.path.dirname(__file__), "registry", f"{name}.yaml"))
+        logger.info(f"Registering datasets from '{name}'.")
+    return io.load(os.path.join(os.path.dirname(__file__), "registry", "datasets", f"{name}.yaml"))
+
+
+def register_mixtures():
+    return io.load(os.path.join(os.path.dirname(__file__), "registry", "mixtures.yaml"))
 
 
 DATASETS = register_datasets()
+MIXTURES = register_mixtures()
+
+
+def parse_mixture(mixture: str) -> List[str]:
+    names = mixture.split("+") if "+" in mixture else [mixture]
+    while any(name in MIXTURES for name in names):
+        names = list(chain(*[MIXTURES.get(name, [name]) for name in names]))
+    return sorted(names)
 
 
 class RepeatedDataset(Dataset):
@@ -43,7 +57,7 @@ def build_dataset(
     tokenizer: PreTrainedTokenizer,
 ) -> Dataset:
     datasets = []
-    for name in mixture.strip().lower().split("+"):
+    for name in parse_mixture(mixture):
         if "*" in name:
             name, times = name.split("*")
             times = int(times)
@@ -51,12 +65,14 @@ def build_dataset(
             times = 1
 
         if DATASETS is not None and name in DATASETS:
+            if name in DATASETS_LEGACY:
+                logger.warning(f"Dataset '{name}' exists in both new and legacy registries. Using the new one.")
             dataset = instantiate(DATASETS[name], _partial_=True)(
                 tokenizer=tokenizer,
                 data_args=data_args,
             )
         elif name in DATASETS_LEGACY:
-            logger.warning(f"Dataset {name} is registered under legacy mode.")
+            logger.warning(f"Dataset '{name}' is from the legacy registry. Please consider migrating it.")
             dataset = build_dataset_legacy(
                 name,
                 data_args=data_args,
@@ -64,7 +80,7 @@ def build_dataset(
                 tokenizer=tokenizer,
             )
         else:
-            raise ValueError(f"Dataset {name} is not registered.")
+            raise ValueError(f"Dataset '{name}' is not found in the registries.")
 
         if times > 1:
             dataset = RepeatedDataset(dataset, times)
@@ -79,16 +95,13 @@ def build_dataset_legacy(
     tokenizer: PreTrainedTokenizer,
 ) -> Dataset:
     from llava.data.dataset import (
-        DummyDataset,
         LazyCCSWebDataset,
         LazyCoyoDataset,
         LazyCoyoWebDataset,
         LazyMMC4Dataset,
         LazySupervisedDataset,
-        LazyVFlanDataset,
         LazyVideoWebDataset,
         LazyWDSDataset,
-        VILAPanda70m_LongSeq,
     )
     from llava.data.dataset_impl.coyo_recap import LazyCoyoWebRecapDataset
     from llava.data.dataset_impl.general_img_text import LazyImageTextWebDataset
@@ -126,18 +139,10 @@ def build_dataset_legacy(
         dataset_cls = VILAPanda70m
     elif dataset_type == "ccs-wds":
         dataset_cls = LazyCCSWebDataset
-    elif dataset_type == "vflan":
-        dataset_cls = LazyVFlanDataset
     elif dataset_type == "video-wds":
         dataset_cls = LazyVideoWebDataset
     elif dataset_type == "imgtxt-wds":
         dataset_cls = LazyImageTextWebDataset
-    elif dataset_type == "evaluation":
-        dataset_cls = LazyEvaluateDataset
-    elif dataset_type == "dummy":
-        dataset_cls = DummyDataset
-    elif dataset_type == "panda70m_sp":
-        dataset_cls = VILAPanda70m_LongSeq
     else:
         raise NotImplementedError(f"{dataset_type} is not supported.")
 

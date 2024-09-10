@@ -19,10 +19,16 @@ def _process_image(image: List[Any], data_args: DataArguments) -> torch.Tensor:
 
 
 class BaseDataset(Dataset):
-    def __init__(self, tokenizer: PreTrainedTokenizer, data_args: DataArguments) -> None:
+    def __init__(
+        self,
+        tokenizer: PreTrainedTokenizer,
+        data_args: DataArguments,
+        no_system_prompt: bool = False,
+    ) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.data_args = data_args
+        self.no_system_prompt = no_system_prompt
         self.instances = []
         self.enable_dynamic_res = False
 
@@ -50,7 +56,7 @@ class BaseDataset(Dataset):
                     processed_images = _process_image(media["image"], self.data_args)
 
             # Prepare "input_ids" and "labels" for training
-            data = preprocess_conversation(conversation, self.tokenizer)
+            data = preprocess_conversation(conversation, self.tokenizer, no_system_prompt=self.no_system_prompt)
 
             if "image" in media:
                 data["image"] = processed_images

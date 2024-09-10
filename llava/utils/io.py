@@ -2,7 +2,6 @@ import json
 import os
 import pickle
 from contextlib import contextmanager
-from io import TextIOWrapper
 from typing import IO, Any, BinaryIO, Callable, Dict, Iterator, TextIO, Union
 
 import numpy as np
@@ -39,7 +38,6 @@ def file_descriptor(f: Union[str, IO], mode: str = "r") -> Iterator[IO]:
         yield f
     finally:
         if opened:
-            assert isinstance(f, TextIOWrapper), type(f)
             f.close()
 
 

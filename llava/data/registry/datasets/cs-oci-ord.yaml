@@ -1,0 +1,290 @@
+activitynet-dvc:
+  _target_: llava.data.DVCDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/train.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/activitynet_frames
+
+activitynet-el:
+  _target_: llava.data.ELDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/train.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/activitynet_frames
+
+activitynet-rtl/val:
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/temporal_reasoning/annot_val_1_q229.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/activitynet_frames
+
+activitynet-rtl:
+  _target_: llava.data.RTLDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/temporal_reasoning/activitynet_train_gpt-4-0613_temp_6_f10009.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/activitynet_frames
+
+ai2d_train_12k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/ai2d_train_12k.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/ai2d
+
+captioning_image-paragraph-captioning_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/captioning_image-paragraph-captioning_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/captioning_image-paragraph-captioning_train/images
+  no_system_prompt: true
+
+captioning_msrvtt_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/captioning_msrvtt_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/captioning_msrvtt_train/images
+  no_system_prompt: true
+
+captioning_textcap_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/captioning_textcap_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/captioning_textcap_train/images
+  no_system_prompt: true
+
+charades-el:
+  _target_: llava.data.ELDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/charades/train_processed.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/charades/Charades_v1_480
+
+chartqa_train_18k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/chartqa
+
+didemo-el:
+  _target_: llava.data.ELDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/didemo/train_processed.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/didemo/train_videos_480p
+
+docvqa_train_10k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/docvqa
+
+dvqa_train_200k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/dvqa_train_200k.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/dvqa
+
+generation_visual-dialog_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/generation_visual-dialog_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/generation_visual-dialog_train/images
+  no_system_prompt: true
+
+geoqa:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/geoqa+.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/geoqa+
+
+llava-instruct-150k:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/LLaVA-Instruct-150K/llava_v1_5_mix665k.json
+  media_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets
+
+llava_instruct:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/llava_instruct_150k_zh.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/coco
+
+m4-instruct-image:
+  _target_: llava.data.LLaVANextDataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/m4_instruct_annotations.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data
+
+m4-instruct-image-nuscenes:
+  _target_: llava.data.LLaVANextDataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/ligeng_split/nuscenes.json
+  image_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data
+
+m4-instruct-video:
+  _target_: llava.data.LLaVANextVideoDataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/m4_instruct_video_filtered.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/train_video_and_instruction/extracted-jason
+
+math:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/math/data.json
+
+medical-dvc:
+  _target_: llava.data.DVCDataset
+  data_path: /home/shijial/workspace/LITA-1.5/data/medical/train.json
+  video_dir: /home/shijial/workspace/LITA-1.5/data/medical/videos
+
+medical-el:
+  _target_: llava.data.ELDataset
+  data_path: /home/shijial/workspace/LITA-1.5/data/medical/train.json
+  video_dir: /home/shijial/workspace/LITA-1.5/data/medical/videos
+
+mint-1t-arxiv-captions:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/mint-1t-arxiv/captions-20240904.json
+  media_dir: /home/zhijianl/workspace/datasets/mint-1t-arxiv/tiff
+
+nextqa:
+  _target_: llava.data.VideoQADataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/nextqa/train_processed.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/nextqa/NExTVideo
+  task_prompt: "Answer the question using a short phrase."
+
+reasoning_clevr_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/reasoning_clevr_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/reasoning_clevr_train/images
+  no_system_prompt: true
+
+reasoning_nlvr_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/reasoning_nlvr_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/reasoning_nlvr_train/images
+  no_system_prompt: true
+
+reasoning_visual-mrc_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/reasoning_visual-mrc_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/reasoning_visual-mrc_train/images
+  no_system_prompt: true
+
+scienceqa:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/yunhaof/workspace/datasets/evaluation/scienceqa/scienceqa_train_12k.json
+  media_dir: /home/yunhaof/workspace/datasets/evaluation/scienceqa/images
+
+sharegpt4v-instruct-100k:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/sharegpt4v/sharegpt4v_instruct_gpt4-vision_cap100k.json
+  media_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets
+
+sharegpt4v_gpt4_100k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_instruct_gpt4-vision_cap100k.json
+  media_dir: /home/jasonlu/vlm_datasets/ShareGPT4V/data
+
+sharegpt4v_sft:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
+  media_dir: /home/jasonlu/vlm_datasets/ShareGPT4V/data
+
+sharegpt_video:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/video_caption_pretrain.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos
+
+sherlock:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/yunhaof/workspace/datasets/sherlock/processed/sherlock_317k.json
+  media_dir: /home/yunhaof/workspace/datasets/sherlock/images
+
+shot2story_shotonly:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
+
+synthdog_en:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/synthdog_en.jsonl
+  media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/synthdog-en
+
+text_flan_1m:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/text_flan_1m/data.json
+  no_system_prompt: true
+
+vatex:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/video_datasets/jason_filtered_vatex.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/vatex/videos_clipped
+
+video_chatgpt:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/video_chatgpt/data.json
+  media_dir: /home/jasonlu/video_datasets/Video_ChatGPT/activitynet_videos
+
+vqa_activitynet-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_activitynet-qa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_activitynet-qa_train/images
+  no_system_prompt: true
+
+vqa_docvqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_docvqa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_docvqa_train/images
+  no_system_prompt: true
+
+vqa_gqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_gqa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_gqa_train/images
+  no_system_prompt: true
+
+vqa_ivqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_ivqa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_ivqa_train/images
+  no_system_prompt: true
+
+vqa_msrvtt-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_msrvtt-qa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_msrvtt-qa_train/images
+  no_system_prompt: true
+
+vqa_msvd-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_msvd-qa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_msvd-qa_train/images
+  no_system_prompt: true
+
+vqa_ocr-vqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_ocr-vqa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_ocr-vqa_train/images
+  no_system_prompt: true
+
+vqa_st-vqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_st-vqa_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_st-vqa_train/images
+  no_system_prompt: true
+
+vqa_viquae_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_viquae_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_viquae_train/images
+  no_system_prompt: true
+
+vqa_vqa-v2_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/zhijianl/workspace/datasets/vflan/vqa_vqa-v2_train/data.json
+  media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_vqa-v2_train/images
+  no_system_prompt: true
+
+warehouse-dvc:
+  _target_: llava.data.DVCDataset
+  data_path: /home/shijial/workspace/LITA-1.5/data/warehouse/train.json
+  video_dir: /home/shijial/workspace/LITA-1.5/data/warehouse/videos
+
+warehouse-el:
+  _target_: llava.data.ELDataset
+  data_path: /home/shijial/workspace/LITA-1.5/data/warehouse/train.json
+  video_dir: /home/shijial/workspace/LITA-1.5/data/warehouse/videos
+
+wit_subset:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/yunhaof/workspace/datasets/WIT/wit_1_8m/wit_processed_538k.json
+  media_dir: /home/yunhaof/workspace/datasets/WIT/wit_1_8m/images
+
+youcook2-dvc:
+  _target_: llava.data.DVCDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/VidChapters/YouCook2/train.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/youcook2/youcook2_frames
+
+youcook2-el:
+  _target_: llava.data.ELDataset
+  data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/VidChapters/YouCook2/train.json
+  video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/youcook2/youcook2_frames
+
+youcook2:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/video_datasets/jason_filtered_youcook2.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/video_data_clipped

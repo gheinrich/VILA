@@ -1,4 +1,0 @@
-mint-1t-arxiv-captions:
-  _target_: llava.data.LLaVADataset
-  data_path: /home/zhijianl/workspace/datasets/mint-1t-arxiv/captions-20240904.json
-  image_dir: /home/zhijianl/workspace/datasets/mint-1t-arxiv/tiff

@@ -1,22 +1,20 @@
 import glob
 import os
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import cv2
 import numpy as np
 import PIL
 import PIL.Image
+from transformers import PretrainedConfig
 
-from llava.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IMAGE_TOKEN
+from llava.constants import DEFAULT_IMAGE_TOKEN
 from llava.media import Image, Video
-from llava.train.args import DataArguments, TrainingArguments
+from llava.utils import make_list
 from llava.utils.logging import logger
 
 __all__ = ["extract_media"]
-
-
-Config = Union[DataArguments, TrainingArguments]
 
 
 def _extract_image(image: Union[Image, PIL.Image.Image]) -> PIL.Image.Image:
@@ -59,7 +57,7 @@ def _load_video(video_path: str, *, num_frames: int) -> List[PIL.Image.Image]:
     return frames
 
 
-def _extract_video(video: Video, config: Config) -> List[PIL.Image.Image]:
+def _extract_video(video: Video, config: PretrainedConfig) -> List[PIL.Image.Image]:
     num_frames = config.num_video_frames
     if getattr(config, "fps") != 0:
         logger.warning("Extracting frames from video with specified FPS is not supported yet. Ignored.")
@@ -70,30 +68,31 @@ def _extract_video(video: Video, config: Config) -> List[PIL.Image.Image]:
     return frames
 
 
-def extract_media(messages: List[Dict[str, Any]], config: Config) -> Dict[str, List[Any]]:
-    # TODO(zhijianl): This logic will be moved to model forward function
-    if config.mm_use_im_start_end:
-        image_token = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
-    else:
-        image_token = DEFAULT_IMAGE_TOKEN
-
+def extract_media(
+    messages: List[Dict[str, Any]],
+    config: Optional[PretrainedConfig] = None,
+    draft: bool = False,
+) -> Dict[str, List[Any]]:
     media = defaultdict(list)
     for message in messages:
-        prompt = message["value"]
-        if isinstance(prompt, str):
-            prompt = [prompt]
         text = ""
-        for part in prompt:
+        for part in make_list(message["value"]):
             if isinstance(part, str):
                 text += part
             elif isinstance(part, (Image, PIL.Image.Image)):
-                image = _extract_image(part)
-                text += image_token + "\n"
-                media["image"].append(image)
+                if draft:
+                    media["image"].append(part)
+                else:
+                    image = _extract_image(part)
+                    text += DEFAULT_IMAGE_TOKEN + "\n"
+                    media["image"].append(image)
             elif isinstance(part, Video):
-                video = _extract_video(part, config)
-                text += (image_token + "\n") * len(video)
-                media["image"].extend(video)
+                if draft:
+                    media["video"].append(part)
+                else:
+                    video = _extract_video(part, config)
+                    text += (DEFAULT_IMAGE_TOKEN + "\n") * len(video)
+                    media["image"].extend(video)
             else:
                 raise ValueError(f"Unsupported prompt part type: {type(part)}")
         message["value"] = text

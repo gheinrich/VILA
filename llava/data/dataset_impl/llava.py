@@ -1,98 +1,67 @@
+import copy
 import glob
-import json
 import os
-import warnings
-from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from llava.constants import DEFAULT_IMAGE_TOKEN
 from llava.data.base import BaseDataset
-from llava.media import Image
-from llava.utils import io
-from llava.utils.logging import logger
+from llava.media import Image, Video
+from llava.utils import io, make_list
 
 __all__ = ["LLaVADataset", "LLaVANextDataset", "LLaVANextVideoDataset"]
 
 
+def _remove_media_tokens(text: str) -> str:
+    for token in ["<image>", "<video>"]:
+        text = text.replace(token + "\n", "").replace("\n" + token, "").replace(token, "")
+    return text.strip()
+
+
 class LLaVADataset(BaseDataset):
-    def __init__(self, data_path: str, image_dir: str, **kwargs) -> None:
+    def __init__(self, data_path: str, media_dir: Optional[str] = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
-        self.image_dir = image_dir
-        self.instances = []
-        self.enable_dynamic_res = True
-        for instance in io.load(self.data_path):
-            if "image" in instance:
-                image_path = os.path.join(self.image_dir, instance.pop("image"))
-                if not os.path.exists(image_path):
-                    logger.warning(f"Image `{image_path}` not found. Excluded from dataset.")
-                    continue
-                instance["image_path"] = image_path
-            self.instances.append(instance)
-
-    def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
-        messages = instance["conversations"]
-        if "image_path" in instance:
-            # Remove the image token from the messages
-            for message in instance["conversations"]:
-                message["value"] = message["value"].replace(DEFAULT_IMAGE_TOKEN, "").strip()
-
-            # Add image to the first message
-            image = Image(instance["image_path"])
-            messages[0]["value"] = [image, messages[0]["value"]]
-        return messages
-
-
-"""
-{
-"sample_id": 5390,
-"conversations": [
-    {
-    "from": "human",
-    "value": "<image><image>\nWhat's the detailed difference between the 2 images? Please list in detail."
-    },
-    {
-    "from": "gpt",
-    "value": "The differences between the two images are:\n\n1. In the second image, there are leaves falling from the sunflowers and the surrounding foliage.\n2. The ground in the second image is covered with a layer of fallen leaves, adding a carpet-like appearance."
-    }
-],
-"image": [
-    "HQ-Edit/images/83425.jpg",
-    "HQ-Edit/images/83426.jpg"
-],
-"choice_list": null,
-"metadata": {
-    "dataset": "HQ-Edit-Diff",
-    "split": "train",
-    "num_sample": 98675,
-    "task_instruction": "What's the difference between 2 images?",
-    "question_type": "open-ended"
-}
-},
-"""
-
-
-class LLaVANextDataset(BaseDataset):
-    def __init__(self, data_path: str, image_dir: str, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.data_path = data_path
-        self.image_dir = image_dir
+        self.media_dir = media_dir
         self.instances = io.load(self.data_path)
         self.enable_dynamic_res = True
 
-    def process(self, instance: Dict[str, Any], index: int = None) -> List[Dict[str, Any]]:
-        """
-        "<image> <image> text text <image>"
-        =>
-        [Image, Image, text, text, Image]
-        """
+    def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
+        messages = copy.deepcopy(instance["conversations"])
+
+        # Extract media from the instance
+        medias = []
+        if "image" in instance:
+            for image_path in make_list(instance["image"]):
+                medias.append(Image(os.path.join(self.media_dir, image_path)))
+        if "video" in instance:
+            for video_path in make_list(instance["video"]):
+                medias.append(Video(os.path.join(self.media_dir, video_path)))
+
+        # Remove media tokens from messages
+        for message in messages:
+            message["value"] = _remove_media_tokens(message["value"])
+
+        # Add media to the beginning of the first message
+        messages[0]["value"] = medias + [messages[0]["value"]]
+        return messages
+
+
+class LLaVANextDataset(BaseDataset):
+    def __init__(self, data_path: str, media_dir: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.data_path = data_path
+        self.media_dir = media_dir
+        self.instances = io.load(self.data_path)
+        self.enable_dynamic_res = True
+
+    def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         datasource = instance.get("datasource", None)
         messages = instance["conversations"]
 
         if "image" in instance:
             img_list = []
             for img_path in instance["image"]:
-                img_list.append(Image(os.path.join(self.image_dir, img_path)))
+                img_list.append(Image(os.path.join(self.media_dir, img_path)))
 
             # replace all <image> tokens in the messages
             for idx1, msg in enumerate(messages):
@@ -122,47 +91,19 @@ class LLaVANextDataset(BaseDataset):
         return messages
 
 
-"""
-{
-    "video": "v_XNTy5ZTMqVU-Scene-011",
-    "conversations": [
-        {
-        "from": "human",
-        "value": "<image>\nWhat is the setting of the video?"
-        },
-        {
-        "from": "gpt",
-        "value": "The setting of the video appears to be a newsroom with desks and computers in the background, suggesting an office environment with other personnel working."
-        }
-    ],
-    "id": "v_XNTy5ZTMqVU-Scene-011_1",
-    "sample_id": 1,
-    "metadata": {
-        "dataset": "Video_VQA_Captioning",
-        "split": "train",
-        "task_instruction": "",
-        "num_sample": 255000,
-        "question_type": "open-ended"
-    }
-}
-"""
-
-
 class LLaVANextVideoDataset(BaseDataset):
-    def __init__(self, data_path: str, image_dir: str, **kwargs) -> None:
+    def __init__(self, data_path: str, media_dir: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
-        self.image_dir = image_dir
+        self.media_dir = media_dir
         self.instances = io.load(self.data_path)
 
-    def process(self, instance: Dict[str, Any], index: int = None) -> List[Dict[str, Any]]:
-        datasource = instance.get("datasource", None)
+    def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         messages = instance["conversations"]
 
         if "video" in instance:
-
-            img_flist = glob.glob(os.path.join(self.image_dir, instance["video"]) + "/*.jpeg")
-            vpath = os.path.join(self.image_dir, instance["video"])
+            img_flist = glob.glob(os.path.join(self.media_dir, instance["video"]) + "/*.jpeg")
+            vpath = os.path.join(self.media_dir, instance["video"])
 
             assert len(img_flist) > 0, f"no images found in {vpath}"
             value = messages[0]["value"]
