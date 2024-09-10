@@ -26,8 +26,8 @@ import torch.distributed as dist
 from transformers import AutoConfig, GenerationConfig, PreTrainedModel
 from transformers.modeling_utils import ContextManagers, no_init_weights
 
-from llava.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
-from llava.mm_utils import process_images
+from llava.constants import DEFAULT_IMAGE_TOKEN, IGNORE_INDEX, IMAGE_TOKEN_INDEX
+from llava.mm_utils import process_image, process_images
 from llava.model.configuration_llava import LlavaConfig
 from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
@@ -753,16 +753,25 @@ class LlavaMetaForCausalLM(ABC):
         conversation = [{"from": "human", "value": prompt}]
 
         # Extract media from the conversation
-        media = extract_media(conversation, self.config)
 
-        # Tokenize the conversation
-        input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
+        # TODO (extract and preprocess should be done together, as the preprocess of image and video can be different, i.e. when dynamic res is used)
+        media = extract_media(conversation, self.config)
 
         # Process media
         if "image" in media:
-            images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
+            if len(media["image"]) == 1 and self.config.image_aspect_ratio == "dynamic":
+                self.config.image_processor = self.vision_tower.image_processor
+                images = process_image(media["image"][0], self.config, None, dynamic=True).half()
+                conversation[0]["value"] = conversation[0]["value"].replace(
+                    DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n" * images.shape[0]
+                )
+            else:
+                images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
         else:
             images = None
+
+        # Tokenize the conversation
+        input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
 
         # Set up the generation config
         generation_config = generation_config or self.default_generation_config

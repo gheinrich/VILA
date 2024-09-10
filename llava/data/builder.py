@@ -111,6 +111,11 @@ def build_dataset_legacy(
         dataset_cls = LazySAMWebDataset
     elif dataset_type == "coyo-wds":
         dataset_cls = LazyCoyoWebDataset
+    elif dataset_type == "coyo-wds-qas":
+        print("dataset.py: Loading coyo-wds-qas class")
+        from llava.data.dataset_impl.coyo_qa import LazyCoyoWebQADataset
+
+        dataset_cls = LazyCoyoWebQADataset
     elif dataset_type == "coyo-wds-recap":
         dataset_cls = LazyCoyoWebRecapDataset
     elif dataset_type == "textocr":

@@ -20,6 +20,7 @@ class LLaVADataset(BaseDataset):
         self.data_path = data_path
         self.image_dir = image_dir
         self.instances = []
+        self.enable_dynamic_res = True
         for instance in io.load(self.data_path):
             if "image" in instance:
                 image_path = os.path.join(self.image_dir, instance.pop("image"))
@@ -77,6 +78,7 @@ class LLaVANextDataset(BaseDataset):
         self.data_path = data_path
         self.image_dir = image_dir
         self.instances = io.load(self.data_path)
+        self.enable_dynamic_res = True
 
     def process(self, instance: Dict[str, Any], index: int = None) -> List[Dict[str, Any]]:
         """

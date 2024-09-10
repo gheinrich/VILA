@@ -53,6 +53,42 @@ def add_dataset(dataset):
 
 
 def register_datasets_mixtures():
+    unimm_chat = Dataset(
+        dataset_name="unimm_chat",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/UniMM-Chat/UniMM-Chat_117k.json",
+        image_path="/home/yunhaof/workspace/datasets/coco",
+        description="UniMM-Chat 117K",
+    )
+    add_dataset(unimm_chat)
+
+    svit = Dataset(
+        dataset_name="svit",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/SVIT/SVIT_108k.json",
+        image_path="/home/haotiant/dataset/vila_data/svit",
+        description="SVIT 108K",
+    )
+    add_dataset(svit)
+
+    mmbench_val = Dataset(
+        dataset_name="mmbench_val",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/MMBench/data/mmbench_4k.json",
+        image_path="/home/haotiant/dataset/vila_data/MMBench/images",
+        description="mmbench validation",
+    )
+    add_dataset(mmbench_val)
+
+    cvbench = Dataset(
+        dataset_name="cvbench",
+        dataset_type="torch",
+        data_path="/home/haotiant/dataset/vila_data/CV-Bench/test_2k.json",
+        image_path="/home/haotiant/dataset/vila_data/CV-Bench",
+        description="cvbench",
+    )
+    add_dataset(cvbench)
+
     # nvcode: on
     nvclip_5m_vfc_recap30 = Dataset(
         dataset_name="nvclip_5m_vfc_recap30",
@@ -1679,9 +1715,10 @@ def register_datasets_mixtures():
     docmatix_750k = Dataset(
         dataset_name="docmatix_750k",
         dataset_type="torch",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_750k.json",
-        # path on draco-oci-iad: data_path="/home/baifengs/baifengs/data/Docmatix/conversations_750k.json",
-        image_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/",
+        # data_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_750k.json",
+        data_path="/home/baifengs/baifengs/data/Docmatix/conversations_750k.json",
+        # image_path="/lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/",
+        image_path="/home/baifengs/baifengs/data/Docmatix/",
         description="Reformatted from https://huggingface.co/datasets/HuggingFaceM4/Docmatix",
     )
     add_dataset(docmatix_750k)

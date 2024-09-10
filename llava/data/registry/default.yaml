@@ -3,7 +3,6 @@ m4-instruct-image-nuscenes:
   data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/ligeng_split/nuscenes.json
   image_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data
 
-
 # all nvr and stablized datasets here
 m4-instruct-image:
   _target_: llava.data.LLaVANextDataset

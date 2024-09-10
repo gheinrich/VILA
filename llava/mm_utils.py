@@ -14,6 +14,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# dynamic_preprocess and find_closest_aspect_ratio are referenced from https://github.com/OpenGVLab/InternVL
+
 import base64
 import os
 import tempfile
@@ -24,7 +26,7 @@ import torch
 from PIL import Image
 from transformers import StoppingCriteria
 
-from llava.constants import IMAGE_TOKEN_INDEX
+from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 
 
 def get_frame_from_vcap(vidcap, num_frames=10, max_fps=0.0, fps=None, frame_count=None, video_file_name=None):
@@ -275,7 +277,83 @@ def expand2square(pil_img, background_color):
         return result
 
 
-def process_image(image_file, data_args, image_folder):
+def find_closest_aspect_ratio(aspect_ratio, target_ratios, width, height, image_size):
+    best_ratio_diff = float("inf")
+    best_ratio = (1, 1)
+    area = width * height
+    for ratio in target_ratios:
+        target_aspect_ratio = ratio[0] / ratio[1]
+        ratio_diff = abs(aspect_ratio - target_aspect_ratio)
+        if ratio_diff < best_ratio_diff:
+            best_ratio_diff = ratio_diff
+            best_ratio = ratio
+        elif ratio_diff == best_ratio_diff:
+            if area > 0.5 * image_size * image_size * ratio[0] * ratio[1]:
+                best_ratio = ratio
+    return best_ratio
+
+
+def dynamic_preprocess(image, min_num=1, max_num=12, image_size=384, use_thumbnail=True):
+    orig_width, orig_height = image.size
+    aspect_ratio = orig_width / orig_height
+
+    # calculate the existing image aspect ratio
+    target_ratios = {
+        (i, j)
+        for n in range(min_num, max_num + 1)
+        for i in range(1, n + 1)
+        for j in range(1, n + 1)
+        if i * j <= max_num and i * j >= min_num
+    }
+    target_ratios = sorted(target_ratios, key=lambda x: x[0] * x[1])
+
+    # find the closest aspect ratio to the target
+    target_aspect_ratio = find_closest_aspect_ratio(aspect_ratio, target_ratios, orig_width, orig_height, image_size)
+
+    # calculate the target width and height
+    target_width = image_size * target_aspect_ratio[0]
+    target_height = image_size * target_aspect_ratio[1]
+    blocks = target_aspect_ratio[0] * target_aspect_ratio[1]
+
+    # resize the image
+    resized_img = image.resize((target_width, target_height))
+    processed_images = []
+    for i in range(blocks):
+        box = (
+            (i % (target_width // image_size)) * image_size,
+            (i // (target_width // image_size)) * image_size,
+            ((i % (target_width // image_size)) + 1) * image_size,
+            ((i // (target_width // image_size)) + 1) * image_size,
+        )
+        # split the image
+        split_img = resized_img.crop(box)
+        processed_images.append(split_img)
+    assert len(processed_images) == blocks
+    if use_thumbnail and len(processed_images) != 1:
+        thumbnail_img = image.resize((image_size, image_size))
+        processed_images.append(thumbnail_img)
+    return processed_images
+
+
+def dynamic_process_images_and_prompt(images, prompt, data_args, image_folder=None):
+    prompt = prompt.split(DEFAULT_IMAGE_TOKEN)
+    idx = 0
+    all_images = []
+    for img in images:
+        processed_images = process_image(img, data_args, image_folder, enable_dynamic_res=True)
+        all_images.append(processed_images)
+        prompt.insert(idx + 1, f"{DEFAULT_IMAGE_TOKEN}\n" * processed_images.shape[0])
+        idx += 2
+    prompt = "".join(prompt)
+    if all_images:
+        all_images = torch.cat(all_images)
+    else:
+        all_images = None
+        prompt = prompt.replace(DEFAULT_IMAGE_TOKEN, "")
+    return all_images, prompt
+
+
+def process_image(image_file, data_args, image_folder, enable_dynamic_res=False):
     processor = data_args.image_processor
     if isinstance(image_file, str):
         if image_folder is not None:
@@ -286,14 +364,22 @@ def process_image(image_file, data_args, image_folder):
         # image is stored in bytearray
         image = image_file
     image = image.convert("RGB")
+    if hasattr(data_args.image_processor, "crop_size"):
+        # CLIP vision tower
+        crop_size = data_args.image_processor.crop_size
+    else:
+        # SIGLIP vision tower
+        assert hasattr(data_args.image_processor, "size")
+        crop_size = data_args.image_processor.size
+    if data_args.image_aspect_ratio == "dynamic" and enable_dynamic_res:
+        assert crop_size["height"] == crop_size["width"]
+        images = dynamic_preprocess(
+            image, min_num=data_args.min_tiles, max_num=data_args.max_tiles, image_size=crop_size["height"]
+        )
+        images = [processor.preprocess(image, return_tensors="pt")["pixel_values"][0] for image in images]
+        return torch.stack(images)
+
     if data_args.image_aspect_ratio == "resize":
-        if hasattr(data_args.image_processor, "crop_size"):
-            # CLIP vision tower
-            crop_size = data_args.image_processor.crop_size
-        else:
-            # SIGLIP vision tower
-            assert hasattr(data_args.image_processor, "size")
-            crop_size = data_args.image_processor.size
         image = image.resize((crop_size["height"], crop_size["width"]))
     if data_args.image_aspect_ratio == "pad":
 
@@ -322,13 +408,19 @@ def process_image(image_file, data_args, image_folder):
     return image
 
 
-def process_images(images, image_processor, model_cfg):
-
+def process_images(images, image_processor, model_cfg, enable_dynamic_res=False):
     model_cfg.image_processor = image_processor
-    new_images = [process_image(image, model_cfg, None) for image in images]
+    new_images = [process_image(image, model_cfg, None, enable_dynamic_res=enable_dynamic_res) for image in images]
 
     if all(x.shape == new_images[0].shape for x in new_images):
-        new_images = torch.stack(new_images, dim=0)
+        if len(new_images[0].shape) == 4:
+            new_images = torch.cat(new_images, dim=0)
+        elif len(new_images[0].shape) == 3:
+            new_images = torch.stack(new_images, dim=0)
+        else:
+            raise ValueError(f"new_images rank does not equal to 4, rank: {len(new_images[0].shape)}")
+    else:
+        raise ValueError("The shape of images in new_images is different!")
     return new_images
 
 

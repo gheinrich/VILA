@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer
 
-from llava.mm_utils import process_images
+from llava.mm_utils import dynamic_process_images_and_prompt, process_images
 from llava.train.args import DataArguments
 from llava.utils.logging import logger
 from llava.utils.media import extract_media
@@ -24,6 +24,7 @@ class BaseDataset(Dataset):
         self.tokenizer = tokenizer
         self.data_args = data_args
         self.instances = []
+        self.enable_dynamic_res = False
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -38,12 +39,22 @@ class BaseDataset(Dataset):
             # Extract media from conversation
             media = extract_media(conversation, self.data_args)
 
+            # Process media
+            if "image" in media:
+                if self.enable_dynamic_res and self.data_args.image_aspect_ratio == "dynamic":
+                    processed_images, processed_prompt = dynamic_process_images_and_prompt(
+                        media["image"], conversation[0]["value"], self.data_args
+                    )
+                    conversation[0]["value"] = processed_prompt
+                else:
+                    processed_images = _process_image(media["image"], self.data_args)
+
             # Prepare "input_ids" and "labels" for training
             data = preprocess_conversation(conversation, self.tokenizer)
 
-            # Process media
             if "image" in media:
-                data["image"] = _process_image(media["image"], self.data_args)
+                data["image"] = processed_images
+
         except Exception as e:
             logger.exception(f"Error processing instance '{instance}': '{e}'. Resampling.")
             return self.__getitem__(random.randint(0, len(self.instances) - 1))
