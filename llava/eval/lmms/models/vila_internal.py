@@ -26,15 +26,21 @@ class VILA(lmms):
 
         self.model = llava.load(model_path, devices=devices)
         self.model.config.num_video_frames = num_video_frames
-        self.model.config.model_max_length = num_video_frames * 512
-        self.model.config.tokenizer_model_max_length = num_video_frames * 512
-        self.model.llm.config.model_max_length = num_video_frames * 512
-        self.model.llm.config.tokenizer_model_max_length = num_video_frames * 512
+        context_length = num_video_frames * 512
 
         self.model.config.min_tiles = 1
         self.model.config.max_tiles = max_tiles
         self.model.llm.config.min_tiles = 1
         self.model.llm.config.max_tiles = max_tiles
+
+        if max_tiles > 12:
+            context_length = max(context_length, int(max_tiles / 12.0 * 4096))
+
+        self.model.config.model_max_length = context_length
+        self.model.config.tokenizer_model_max_length = context_length
+        self.model.llm.config.model_max_length = context_length
+        self.model.llm.config.tokenizer_model_max_length = context_length
+
         conversation_lib.default_conversation = conversation_lib.conv_templates[conv_mode].copy()
 
         self.accelerator = accelerate.Accelerator()
