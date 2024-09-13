@@ -20,7 +20,13 @@ generate_training_script() {
 check_log_files() {
     echo "Checking log files..."
     python tests/seq_parallel/test_check_loss_alignment.py "$PROJECT_NAME"
-    return $?
+
+    local status=$?
+    if [ $status -ne 0 ]; then
+        echo "SP Log file check failed!"
+        exit 1  # Trigger failure in the script if the log check fails
+    fi
+    return $status
 }
 
 

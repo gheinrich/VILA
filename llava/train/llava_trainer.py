@@ -202,6 +202,9 @@ class VILADistributedSampler(DistributedSampler):
         # whether to force accumulate
         self.force_accumulation = force_accumulation
 
+    def __len__(self) -> int:
+        return self.num_samples * self.sp_degree
+
     def __iter__(self):
 
         indices = list(range(len(self.dataset)))
