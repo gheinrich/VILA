@@ -33,11 +33,13 @@ def main() -> None:
     parser.add_argument("--tasks", "-t", type=lstr)
     parser.add_argument("--tags-include", "-ti", type=lstr)
     parser.add_argument("--tags-exclude", "-te", type=lstr)
+    parser.add_argument("--num_video_frames", "-nf", type=str, default="8/16/32/64")
     args = parser.parse_args()
 
     # Get the model name and output directory
     model_name = os.path.basename(os.path.normpath(args.model_path)).lower()
     output_dir = os.path.join("runs", "eval", model_name)
+    num_video_frames = args.num_video_frames.split("/")
 
     # Filter tasks based on name and tags
     tasks = []
@@ -49,6 +51,9 @@ def main() -> None:
             continue
         if args.tags_exclude is not None and tags.intersection(args.tags_exclude):
             continue
+        if "videomme" in task:
+            if task.split("-")[-1] not in num_video_frames:
+                continue
         tasks.append(task)
     logger.info(f"Running evaluation for '{model_name}' on {len(tasks)} tasks: {tasks}")
 

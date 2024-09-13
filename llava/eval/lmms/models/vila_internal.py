@@ -15,7 +15,7 @@ from llava.utils import distributed as dist
 
 @register_model("vila_internal")
 class VILA(lmms):
-    def __init__(self, model_path: str, conv_mode: str, batch_size: int = 1) -> None:
+    def __init__(self, model_path: str, conv_mode: str, num_video_frames: int = 8, batch_size: int = 1) -> None:
         super().__init__()
         assert batch_size == 1, "VILA only supports batch size of 1 at the moment."
 
@@ -23,6 +23,11 @@ class VILA(lmms):
         torch.cuda.set_device(devices[0])
 
         self.model = llava.load(model_path, devices=devices)
+        self.model.config.num_video_frames = num_video_frames
+        self.model.config.model_max_length = num_video_frames * 512
+        self.model.config.tokenizer_model_max_length = num_video_frames * 512
+        self.model.llm.config.model_max_length = num_video_frames * 512
+        self.model.llm.config.tokenizer_model_max_length = num_video_frames * 512
         conversation_lib.default_conversation = conversation_lib.conv_templates[conv_mode].copy()
 
         self.accelerator = accelerate.Accelerator()

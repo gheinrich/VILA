@@ -143,14 +143,57 @@ lmms-textvqa_val:
   metrics:
     accuracy: results/textvqa_val/exact_match,none
 
-lmms-videomme:
+lmms-videomme-8:
   tags:
     - local
     - video
   metrics:
     accuracy: results/videomme/videomme_percetion_score,none
 
-lmms-videomme_w_subtitle:
+lmms-videomme_w_subtitle-8:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
+
+
+lmms-videomme-16:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme/videomme_percetion_score,none
+
+lmms-videomme_w_subtitle-16:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
+
+lmms-videomme-32:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme/videomme_percetion_score,none
+
+lmms-videomme_w_subtitle-32:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
+
+lmms-videomme-64:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme/videomme_percetion_score,none
+
+lmms-videomme_w_subtitle-64:
   tags:
     - local
     - video
