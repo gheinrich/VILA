@@ -11,6 +11,7 @@ if [[ "$TASK" =~ videomme ]]; then
 else
   NUM_VIDEO_FRAMES=8
 fi
+MAX_TILES=$4
 
 MODEL_NAME=$(basename $MODEL_PATH)
 OUTPUT_DIR=${OUTPUT_DIR:-"runs/eval/$MODEL_NAME/lmms-$TASK"}
@@ -22,7 +23,7 @@ export LMMS_EVAL_PLUGINS=llava.eval.lmms
 torchrun --nproc_per_node=$NPROC_PER_NODE \
 	-m lmms_eval \
 	--model vila_internal \
-	--model_args model_path=$MODEL_PATH,conv_mode=$CONV_MODE,num_video_frames=$NUM_VIDEO_FRAMES \
+	--model_args model_path=$MODEL_PATH,conv_mode=$CONV_MODE,num_video_frames=$NUM_VIDEO_FRAMES,max_tiles=$MAX_TILES \
 	--tasks $TASK \
 	--log_samples \
 	--output_path $OUTPUT_DIR

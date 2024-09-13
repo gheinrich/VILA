@@ -761,7 +761,7 @@ class LlavaMetaForCausalLM(ABC):
         if "image" in media:
             if len(media["image"]) == 1 and self.config.image_aspect_ratio == "dynamic":
                 self.config.image_processor = self.vision_tower.image_processor
-                images = process_image(media["image"][0], self.config, None, dynamic=True).half()
+                images = process_image(media["image"][0], self.config, None, enable_dynamic_res=True).half()
                 conversation[0]["value"] = conversation[0]["value"].replace(
                     DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n" * images.shape[0]
                 )

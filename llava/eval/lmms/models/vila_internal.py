@@ -15,7 +15,9 @@ from llava.utils import distributed as dist
 
 @register_model("vila_internal")
 class VILA(lmms):
-    def __init__(self, model_path: str, conv_mode: str, num_video_frames: int = 8, batch_size: int = 1) -> None:
+    def __init__(
+        self, model_path: str, conv_mode: str, num_video_frames: int = 8, max_tiles: int = 12, batch_size: int = 1
+    ) -> None:
         super().__init__()
         assert batch_size == 1, "VILA only supports batch size of 1 at the moment."
 
@@ -28,6 +30,11 @@ class VILA(lmms):
         self.model.config.tokenizer_model_max_length = num_video_frames * 512
         self.model.llm.config.model_max_length = num_video_frames * 512
         self.model.llm.config.tokenizer_model_max_length = num_video_frames * 512
+
+        self.model.config.min_tiles = 1
+        self.model.config.max_tiles = max_tiles
+        self.model.llm.config.min_tiles = 1
+        self.model.llm.config.max_tiles = max_tiles
         conversation_lib.default_conversation = conversation_lib.conv_templates[conv_mode].copy()
 
         self.accelerator = accelerate.Accelerator()

@@ -34,6 +34,7 @@ def main() -> None:
     parser.add_argument("--tags-include", "-ti", type=lstr)
     parser.add_argument("--tags-exclude", "-te", type=lstr)
     parser.add_argument("--num_video_frames", "-nf", type=str, default="8/16/32/64")
+    parser.add_argument("--max_tiles", "-mt", type=int, default=12)
     args = parser.parse_args()
 
     # Get the model name and output directory
@@ -72,7 +73,7 @@ def main() -> None:
             cmd += [f"{EVAL_ROOT}/{name}.sh", split]
         else:
             cmd += [f"{EVAL_ROOT}/{task}.sh"]
-        cmd += [args.model_path, args.conv_mode]
+        cmd += [args.model_path, args.conv_mode, str(args.max_tiles)]
 
         # Wrap the command with vila-run if not running on SLURM
         if os.environ.get("SLURM_JOB_ID"):
