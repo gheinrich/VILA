@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--model-path", type=str)
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--conv-mode", type=str, required=True)
+    parser.add_argument("--max-tiles", type=int)
     parser.add_argument("--generation-config", type=json.loads)
     parser.add_argument("--split", type=str, required=True)
     parser.add_argument("--output-dir", type=str, required=True)
@@ -36,6 +37,17 @@ def main():
 
     # Load model
     model = llava.load(args.model_path, model_base=args.model_base, devices=devices)
+    model.config.min_tiles = 1
+    model.config.max_tiles = args.max_tiles
+    model.llm.config.min_tiles = 1
+    model.llm.config.max_tiles = args.max_tiles
+
+    if args.max_tiles > 12:
+        context_length = int(args.max_tiles / 12.0 * 4096)
+        model.config.model_max_length = context_length
+        model.config.tokenizer_model_max_length = context_length
+        model.llm.config.model_max_length = context_length
+        model.llm.config.tokenizer_model_max_length = context_length
 
     # Set up generation config
     generation_config = model.default_generation_config

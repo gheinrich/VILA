@@ -3,6 +3,7 @@
 SPLIT=$1
 MODEL_PATH=$2
 CONV_MODE=$3
+MAX_TILES=$4
 
 MODEL_NAME=$(basename $MODEL_PATH)
 OUTPUT_DIR=${OUTPUT_DIR:-"runs/eval/$MODEL_NAME/textvqa"}
@@ -18,6 +19,7 @@ torchrun --nproc-per-node=$NPROC_PER_NODE \
     llava/eval/textvqa.py \
     --model-path $MODEL_PATH \
     --conv-mode $CONV_MODE \
+    --max-tiles $MAX_TILES \
     --generation-config "$GENERATION_CONFIG" \
     --data-path $DATA_PATH \
     --image-dir $IMAGE_DIR \
