@@ -6,6 +6,13 @@ import subprocess
 from termcolor import colored
 
 
+def supports_gpus_per_node():
+    VILA_DATASETS = os.environ.get("VILA_DATASETS", "")
+    if "eos" in VILA_DATASETS.lower():
+        return False
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--job-name", "-J", type=str, required=True)
@@ -14,6 +21,7 @@ def main() -> None:
     parser.add_argument("--mode", "-m", type=str, default="train")
     parser.add_argument("--time", "-t", type=str, default="4:00:00")
     parser.add_argument("--output-dir", type=str)
+    parser.add_argument("--pty", action="store_true")
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -48,10 +56,14 @@ def main() -> None:
     cmd += ["--account", account]
     cmd += ["--partition", partition]
     cmd += ["--job-name", f"{account}:{args.mode}/{args.job_name}"]
-    cmd += ["--output", f"{output_dir}/slurm/%J.out"]
-    cmd += ["--error", f"{output_dir}/slurm/%J.err"]
+    if not args.pty:
+        # Redirect output to files if not pty / interactive
+        cmd += ["--output", f"{output_dir}/slurm/%J.out"]
+        cmd += ["--error", f"{output_dir}/slurm/%J.err"]
     cmd += ["--nodes", str(args.nodes)]
-    cmd += ["--gpus-per-node", str(args.gpus_per_node)]
+    if supports_gpus_per_node():
+        # eos slurm does not support gpus-per-node option
+        cmd += ["--gpus-per-node", str(args.gpus_per_node)]
     cmd += ["--time", args.time]
     cmd += ["--exclusive"]
     cmd += ["timeout", timeout]

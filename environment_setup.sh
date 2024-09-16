@@ -7,15 +7,14 @@ CONDA_ENV=${1:-""}
 if [ -n "$CONDA_ENV" ]; then
     conda create -n $CONDA_ENV python=3.10 -y
     conda activate $CONDA_ENV
+    # This is optional if you prefer to use built-in nvcc
+    conda install -c nvidia cuda-toolkit -y
 else
     echo "Skipping conda environment creation. Make sure you have the correct environment activated."
 fi
 
 # This is required to enable PEP 660 support
 pip install --upgrade pip
-
-# This is optional if you prefer to use built-in nvcc
-conda install -c nvidia cuda-toolkit -y
 
 # Install FlashAttention2
 pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.8/flash_attn-2.5.8+cu122torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
