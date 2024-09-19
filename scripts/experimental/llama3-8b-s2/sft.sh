@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_RUN_NAME="vila-llama2-7b-v1.5-sft"
+DEFAULT_RUN_NAME="vila-qwen2-7b-sft"
 DEFAULT_GLOBAL_TRAIN_BATCH_SIZE=1024
 DEFAULT_GRADIENT_ACCUMULATION_STEPS=2
 
@@ -14,37 +14,37 @@ torchrun \
     llava/train/train_mem.py \
         --deepspeed scripts/zero3.json \
         --model_name_or_path $STAGE2_PATH \
-        --version v1 \
+        --version llama_3 \
         --data_mixture sharegpt4v_sft \
         --vision_tower google/siglip-so400m-patch14-384 \
+        --s2 True \
+        --s2_scales "384,768" \
+        --s2_max_split_size 384 \
+        --mm_vision_select_feature cls_patch \
         --mm_projector mlp_downsample \
-        --tune_language_model True \
         --tune_vision_tower True \
         --tune_mm_projector True \
+        --tune_language_model True \
         --mm_vision_select_layer -2 \
-        --mm_vision_select_feature cls_patch \
         --mm_use_im_start_end False \
         --mm_use_im_patch_token False \
         --image_aspect_ratio resize \
-        --vflan_no_system_prompt True \
         --bf16 True \
         --output_dir $OUTPUT_DIR/model \
         --num_train_epochs 1 \
         --per_device_train_batch_size $PER_DEVICE_TRAIN_BATCH_SIZE \
-        --per_device_eval_batch_size 4 \
         --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
         --evaluation_strategy no \
         --save_strategy steps \
-        --save_steps 400 \
+        --save_steps 100 \
         --save_total_limit 1 \
         --learning_rate 1e-4 \
         --weight_decay 0. \
         --warmup_ratio 0.03 \
         --lr_scheduler_type cosine \
         --logging_steps 1 \
-        --tf32 True \
         --model_max_length 4096 \
         --gradient_checkpointing True \
-        --dataloader_num_workers 8 \
-        --lazy_preprocess True \
+        --dataloader_num_workers 16 \
+        --vflan_no_system_prompt True \
         --report_to wandb

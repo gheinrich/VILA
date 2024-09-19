@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import os
+import os.path as osp
 import subprocess
 
 from termcolor import colored
@@ -68,12 +69,12 @@ def main() -> None:
     cmd += ["--exclusive"]
     cmd += ["timeout", timeout]
     cmd += args.cmd
-    cmd = " ".join(cmd)
-    print(colored(cmd, attrs=["bold"]))
+    full_cmd = " ".join(cmd)
+    print(colored(full_cmd, attrs=["bold"]))
 
     # Run the job and resume if it times out
     while True:
-        returncode = subprocess.run(cmd, env=env, shell=True).returncode
+        returncode = subprocess.run(full_cmd, env=env, shell=True).returncode
         if returncode != 124:
             break
         print("Job timed out, retrying...")

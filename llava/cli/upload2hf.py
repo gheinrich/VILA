@@ -64,6 +64,7 @@ def main():
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
     parser.add_argument("--repo-id", type=str, default=None)
     parser.add_argument("--root-dir", type=str, default=None)
+    parser.add_argument("--token", type=str, default=None)
 
     parser.add_argument("-e", "--exclude", action="append", default=[r"checkpoint-[\d]*/.*", ".git/.*", "wandb/.*"])
     parser.add_argument("--fast-check", action="store_true")
@@ -71,7 +72,11 @@ def main():
 
     args = parser.parse_args()
 
-    api = HfApi()
+    if args.token is None:
+        api = HfApi()
+    else:
+        print("initing using token from cmd args.")
+        api = HfApi(token=args.token)
 
     repo_type = args.repo_type
 
@@ -115,20 +120,14 @@ def main():
             rpath = osp.relpath(fpath, osp.abspath(root_dir))
 
             exclude_flag = False
+            matched_pattern = None
             for pattern in args.exclude:
                 if re.search(pattern, rpath):
                     exclude_flag = True
+                    matched_pattern = pattern
             if exclude_flag:
-                print(colored(f"""[regex filter-out][{pattern}]: {rpath}, skipping""", "yellow"))
+                print(colored(f"""[regex filter-out][{matched_pattern}]: {rpath}, skipping""", "yellow"))
                 continue
-
-            # if "checkpoint-" in rpath:
-            #     print(colored(f"123 Checkpoint detected: {rpath}, skipping", "yellow"))
-            #     continue
-
-            # if ".tar" in rpath or ".zip" in rpath:
-            #     print(colored(f"Archive detected: {rpath}, skipping", "yellow"))
-            #     continue
 
             if osp.getsize(fpath) > MAX_UPLOAD_SIZE_PER_SINGLE_FILE:
                 print(
@@ -187,7 +186,7 @@ def main():
             if len(ops) <= MAX_UPLOAD_FILES_PER_COMMIT and commit_size <= MAX_UPLOAD_SIZE_PER_COMMIT:
                 continue
 
-            commit_message = "Upload files with huggingface_hub"
+            commit_message = "Upload files with vila-upload."
             result = None
             while result is None:
                 try:

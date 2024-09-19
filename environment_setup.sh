@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# This is required to activate conda environment
-eval "$(conda shell.bash hook)"
-
 CONDA_ENV=${1:-""}
 if [ -n "$CONDA_ENV" ]; then
+    # This is required to activate conda environment
+    eval "$(conda shell.bash hook)"
+
     conda create -n $CONDA_ENV python=3.10 -y
     conda activate $CONDA_ENV
     # This is optional if you prefer to use built-in nvcc

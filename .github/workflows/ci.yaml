@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 
@@ -38,16 +38,8 @@ jobs:
           ./environment_setup.sh
       - name: Run tests with Slurm
         run: |
-          vila-run --pty -m ci -J tests-bash \
-            bash tests/bash/entry.sh
-          # srun \
-          #   --account $VILA_SLURM_ACCOUNT \
-          #   --partition $VILA_SLURM_PARTITION \
-          #   --job-name $VILA_SLURM_ACCOUNT:ci/tests-bash \
-          #   --nodes 1 \
-          #   --gpus-per-node 8 \
-          #   --time 1:00:00 \
-          #     bash -c "for t in tests/bash/test_*.sh; do echo \$t; bash \$t; done"
+          vila-run --pty -m ci -J tests-bash bash tests/bash/entry.sh
+
 
   tests-python:
     needs: pre-commit
@@ -64,13 +56,4 @@ jobs:
           ./environment_setup.sh
       - name: Run tests with Slurm
         run: |
-          vila-run --pty -m ci -J tests-python \
-            pytest tests/python
-          # srun \
-          #   --account $VILA_SLURM_ACCOUNT \
-          #   --partition $VILA_SLURM_PARTITION \
-          #   --job-name $VILA_SLURM_ACCOUNT:ci/tests-python \
-          #   --nodes 1 \
-          #   --gpus-per-node 8 \
-          #   --time 1:00:00 \
-          #     pytest tests/python
+          vila-run --pty -m ci -J tests-python pytest tests/python

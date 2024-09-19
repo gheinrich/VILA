@@ -34,7 +34,7 @@ torchrun \
         --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
         --evaluation_strategy no \
         --save_strategy steps \
-        --save_steps 100 \
+        --save_steps 400 \
         --save_total_limit 1 \
         --learning_rate 5e-5 \
         --weight_decay 0. \

@@ -1,15 +1,14 @@
 #/bin/bash
 set -e
 
-# passed by via environment variables
-conv_mode=${conv_mode:-"hermes-2"}
 # passed by via positional args
 ckpt=${1:-Efficient-Large-Model/VILA1.5-40b}
-mname=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
+_mname=$(echo $ckpt | rev | cut -d "/" -f 1 | rev)
+mname=${2:-${_mname}}
 
 export temperature=0
 export num_beams=1
-export num_video_frames=12
+export num_video_frames=${num_video_frames:-12}
 export conv_mode=${conv_mode:-"hermes-2"}
 
 jname=videomme:$mname-f$num_video_frames

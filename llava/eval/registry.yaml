@@ -1,6 +1,7 @@
 cinepile:
   tags:
     - local
+    - regression
   metrics:
     accuracy: overall
 
@@ -19,6 +20,7 @@ lmms-ai2d:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/ai2d/exact_match,flexible-extract
 
@@ -26,6 +28,7 @@ lmms-chartqa:
   tags:
     - core
     - local
+    - regression
   metrics:
     overall: results/chartqa/relaxed_overall,none
     human: results/chartqa/relaxed_human_split,none
@@ -39,6 +42,7 @@ lmms-docvqa_val:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/docvqa_val/anls,none
 
@@ -46,6 +50,7 @@ lmms-gqa:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/gqa/exact_match,none
 
@@ -57,6 +62,7 @@ lmms-infovqa_val:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/infovqa_val/anls,none
 
@@ -72,6 +78,7 @@ lmms-mme:
   tags:
     - core
     - local
+    - regression
   metrics:
     cognition: results/mme/mme_cognition_score,none
     perception: results/mme/mme_percetion_score,none
@@ -84,6 +91,7 @@ lmms-mmmu_val:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/mmmu_val/mmmu_acc,none
 
@@ -95,6 +103,7 @@ lmms-ocrbench:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/ocrbench/ocrbench_accuracy,none
 
@@ -102,6 +111,7 @@ lmms-pope:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/pope/pope_accuracy,none
     precision: results/pope/pope_precision,none
@@ -112,6 +122,7 @@ lmms-realworldqa:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: results/realworldqa/exact_match,flexible-extract
 
@@ -119,6 +130,7 @@ lmms-seedbench:
   tags:
     - core
     - local
+    - regression
   metrics:
     all: results/seedbench/seed_all,none
     image: results/seedbench/seed_image,none
@@ -128,6 +140,7 @@ lmms-scienceqa_full:
   tags:
     - core
     - local
+    - regression
   metrics:
     full: results/scienceqa/exact_match,none
     image: results/scienceqa_img/exact_match,none
@@ -147,6 +160,7 @@ lmms-videomme-8:
   tags:
     - local
     - video
+    - regression
   metrics:
     accuracy: results/videomme/videomme_percetion_score,none
 
@@ -197,6 +211,7 @@ lmms-videomme_w_subtitle-64:
   tags:
     - local
     - video
+    - regression
   metrics:
     accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
 
@@ -218,6 +233,7 @@ lmms-vqav2_test:
 lmms-vqav2_val:
   tags:
     - local
+    - regression
   metrics:
     accuracy: results/vqav2_val/exact_match,none
 
@@ -236,5 +252,6 @@ textvqa_val:
   tags:
     - core
     - local
+    - regression
   metrics:
     accuracy: accuracy

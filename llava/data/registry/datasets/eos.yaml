@@ -1,0 +1,122 @@
+sharegpt4v_sft:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/data
+
+########################### vflan ###########################
+captioning_image-paragraph-captioning_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_image-paragraph-captioning_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_image-paragraph-captioning_train/images
+  no_system_prompt: true
+
+captioning_msrvtt_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_msrvtt_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_msrvtt_train/images
+  no_system_prompt: true
+
+captioning_textcap_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_textcap_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/captioning_textcap_train/images
+  no_system_prompt: true
+
+chartqa_train_18k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/data/chartqa
+
+docvqa_train_10k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/data/docvqa
+
+dvqa_train_200k:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/dvqa_train_200k.jsonl
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/data/dvqa
+
+generation_visual-dialog_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/generation_visual-dialog_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/generation_visual-dialog_train/images
+  no_system_prompt: true
+
+reasoning_clevr_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_clevr_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_clevr_train/images
+  no_system_prompt: true
+
+reasoning_nlvr_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_nlvr_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_nlvr_train/images
+  no_system_prompt: true
+
+reasoning_visual-mrc_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_visual-mrc_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/reasoning_visual-mrc_train/images
+  no_system_prompt: true
+
+vqa_activitynet-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_activitynet-qa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_activitynet-qa_train/images
+  no_system_prompt: true
+
+vqa_docvqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_docvqa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_docvqa_train/images
+  no_system_prompt: true
+
+vqa_gqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_gqa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_gqa_train/images
+  no_system_prompt: true
+
+vqa_ivqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_ivqa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_ivqa_train/images
+  no_system_prompt: true
+
+vqa_msrvtt-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_msrvtt-qa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_msrvtt-qa_train/images
+  no_system_prompt: true
+
+vqa_msvd-qa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_msvd-qa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_msvd-qa_train/images
+  no_system_prompt: true
+
+vqa_ocr-vqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_ocr-vqa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_ocr-vqa_train/images
+  no_system_prompt: true
+
+vqa_st-vqa_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_st-vqa_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_st-vqa_train/images
+  no_system_prompt: true
+
+vqa_viquae_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_viquae_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_viquae_train/images
+  no_system_prompt: true
+
+vqa_vqa-v2_train:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_vqa-v2_train/data.json
+  media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_vqa-v2_train/images
+  no_system_prompt: true
