@@ -89,6 +89,28 @@ def register_datasets_mixtures():
     )
     add_dataset(cvbench)
 
+    openhermes2_5 = Dataset(
+        dataset_name="openhermes2_5",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/OpenHermes-2.5/openhermes2_5.json",
+    )
+    add_dataset(openhermes2_5)
+
+    vflan_max = Dataset(
+        dataset_name="vflan_max",
+        dataset_type="vflan",
+        data_path="/home/yunhaof/workspace/datasets/vflan_max",
+    )
+    add_dataset(vflan_max)
+
+    encyclopedia_vqa_sft = Dataset(
+            dataset_name="encyclopedia_vqa_sft",
+            dataset_type="torch", data_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/annotations/processed/encyclopedia_vqa_sft_211k.json",
+            image_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/images"
+        )
+    add_dataset(encyclopedia_vqa_sft)
+
+
     # nvcode: on
     nvclip_5m_vfc_recap30 = Dataset(
         dataset_name="nvclip_5m_vfc_recap30",
