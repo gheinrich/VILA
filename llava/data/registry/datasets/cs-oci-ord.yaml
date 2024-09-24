@@ -94,7 +94,7 @@ m4-instruct-image:
 m4-instruct-image-nuscenes:
   _target_: llava.data.LLaVANextDataset
   data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/ligeng_split/nuscenes.json
-  image_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data
 
 m4-instruct-video:
   _target_: llava.data.LLaVANextVideoDataset
@@ -288,3 +288,62 @@ youcook2:
   _target_: llava.data.LLaVADataset
   data_path: /home/jasonlu/video_datasets/jason_filtered_youcook2.json
   media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/video_data_clipped
+
+docmatix_750k:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_750k.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix
+
+docmatix_2:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_750000-1000000.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix
+
+docmatix_3:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix/conversations_1000000-1250000.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/Docmatix
+
+doc_reason:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/workspace/dataset/vila_data/DocReason25K/docreason25k_processed.jsonl
+  media_dir: /home/haotiant/workspace/dataset/vila_data/DocReason25K
+
+kvqa:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/workspace/dataset/vila_data/kvqa/raw/kvqa_processed.json
+  media_dir: /home/haotiant/workspace/dataset/vila_data/kvqa/raw
+
+metamathqa:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/workspace/dataset/vila_data/MetaMathQA/MetaMathQA-395K_processed.json
+
+unichart:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/unichart-qa-data/unichart-qa_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/unichart-qa-data/images
+
+mtwi:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/mtwi_train/mtwi_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/mtwi_train/image_train
+
+art:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/dataset/vila_data/art_shangy/art500k_processed.jsonl
+  media_dir: /home/haotiant/dataset/vila_data/art_shangy
+
+art1:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/ART/ART_processed1.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/ART/train_images
+
+art2:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/ART/ART_processed2.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/ART/train_task2_images
+
+lsvt:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/LSVT/LSVT_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/LSVT/train_full_images
