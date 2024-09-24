@@ -247,3 +247,39 @@ mminstruct:
   _target_: llava.data.LLaVADataset
   data_path: /home/haotiant/dataset/vila_data/MMInstruct/jsons_all/qa_en.jsonl
   media_dir: /home/haotiant/dataset/vila_data/MMInstruct/images
+
+unichart:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/unichart-qa-data/unichart-qa_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/unichart-qa-data/images
+
+mtwi:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets3/mtwi_train/mtwi_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets3/mtwi_train/image_train
+
+art:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/dataset/vila_data/art_shangy/art500k_processed.jsonl
+  media_dir: /home/haotiant/dataset/vila_data/art_shangy
+
+art1:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets3/ART/ART_processed1.jsonl
+  media_dir: /home/jasonlu/vlm_datasets3/ART/train_images
+
+art2:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets3/ART/ART_processed2.jsonl
+  media_dir: /home/jasonlu/vlm_datasets3/ART/train_task2_images
+
+lsvt:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets3/LSVT/LSVT_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets3/LSVT/train_full_images
+
+unichart-pretrain:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets3/unichart-pretrain-data/unichart-pretrain_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets3/UniChart-pretrain-images/content/images
+

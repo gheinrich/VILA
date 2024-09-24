@@ -318,6 +318,11 @@ metamathqa:
   _target_: llava.data.LLaVADataset
   data_path: /home/haotiant/workspace/dataset/vila_data/MetaMathQA/MetaMathQA-395K_processed.json
 
+mminstruct:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/haotiant/dataset/vila_data/MMInstruct/jsons_all/qa_en.jsonl
+  media_dir: /home/haotiant/dataset/vila_data/MMInstruct/images
+
 unichart:
   _target_: llava.data.LLaVADataset
   data_path: /home/jasonlu/vlm_datasets2/unichart-qa-data/unichart-qa_processed.jsonl
@@ -347,3 +352,9 @@ lsvt:
   _target_: llava.data.LLaVADataset
   data_path: /home/jasonlu/vlm_datasets2/LSVT/LSVT_processed.jsonl
   media_dir: /home/jasonlu/vlm_datasets2/LSVT/train_full_images
+
+unichart-pretrain:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/unichart-pretrain-data/unichart-pretrain_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/UniChart-pretrain-images/content/images
+
