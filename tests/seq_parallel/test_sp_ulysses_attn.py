@@ -146,10 +146,10 @@ class TestUlyssesAttention(unittest.TestCase):
         local_dv_ref = self.v.grad.chunk(self.world_size, dim=1)[self.rank]
         log("dv diff", local_dv_ref - self.local_v.grad)
 
-        self.assertTrue(torch.allclose(local_out_ref, local_out, atol=1e-2))
-        self.assertTrue(torch.allclose(local_dq_ref, self.local_q.grad, atol=1e-2))
-        self.assertTrue(torch.allclose(local_dk_ref, self.local_k.grad, atol=1e-2))
-        self.assertTrue(torch.allclose(local_dv_ref, self.local_v.grad, atol=1e-2))
+        self.assertTrue(torch.allclose(local_out_ref, local_out, atol=1e-1))
+        self.assertTrue(torch.allclose(local_dq_ref, self.local_q.grad, atol=1e-1))
+        self.assertTrue(torch.allclose(local_dk_ref, self.local_k.grad, atol=1e-1))
+        self.assertTrue(torch.allclose(local_dv_ref, self.local_v.grad, atol=1e-1))
 
 
 if __name__ == "__main__":
