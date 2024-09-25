@@ -12,15 +12,16 @@ choice_1_prompts = [
     "Inside the defined region {}, what text is present?",
     "What is the text contained within the rectangular area defined by the points {}?",
     "Can you identify the text that falls within the bounding box {}?",
+    "What is written in the image inside the box {}?"
 ]
 
 choice_2_prompts = [
-    "Locate the position of : \"{}\" in the image with a bounding box.",
-    "Identify the coordinates of the text \"{}\" within the image and enclose it in a bounding box.",
-    "Determine the spatial location of \"{}\" in the image and mark it with a rectangular boundary.",
-    "Find the exact position of the phrase {} inside the image and outline it with a box.",
-    "Pinpoint the location of \"{}\" within the image and highlight it with a bounding rectangle.",
-    "Locate the exact position of the text string \"{}\" in the image and define a bounding box around it.",
+    "Locate the position of : '{}' in the image with a bounding box.",
+    "Identify the coordinates of the text '{}' within the image and enclose it in a bounding box.",
+    "Determine the spatial location of '{}' in the image and mark it with a rectangular boundary.",
+    "Find the exact position of the phrase '{}' inside the image and outline it with a box.",
+    "Pinpoint the location of '{}' within the image and highlight it with a bounding rectangle.",
+    "Locate the exact position of the text string '{}' in the image and define a bounding box around it.",
 ]
 
 # PLEASE REPLACE YOUR IMAGE FOLDER HERE.
