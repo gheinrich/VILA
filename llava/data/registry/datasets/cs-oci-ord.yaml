@@ -357,3 +357,18 @@ unichart-pretrain:
   _target_: llava.data.LLaVADataset
   data_path: /home/jasonlu/vlm_datasets2/unichart-pretrain-data/unichart-pretrain_processed.jsonl
   media_dir: /home/jasonlu/vlm_datasets2/UniChart-pretrain-images/content/images
+
+rects:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/ReCTS/ReCTS_processed.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/ReCTS/img
+
+koniq:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/shangy/label/koniq10k/koniq10k.jsonl 
+  media_dir: /home/shangy/label/koniq10k/koniq10k
+
+casia:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/shangy/label/CASIA/CASIA2.0_revised/Au.jsonl
+  media_dir: /home/shangy/label/CASIA/CASIA2.0_revised/Au
