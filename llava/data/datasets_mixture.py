@@ -104,12 +104,12 @@ def register_datasets_mixtures():
     add_dataset(vflan_max)
 
     encyclopedia_vqa_sft = Dataset(
-            dataset_name="encyclopedia_vqa_sft",
-            dataset_type="torch", data_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/annotations/processed/encyclopedia_vqa_sft_211k.json",
-            image_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/images"
-        )
+        dataset_name="encyclopedia_vqa_sft",
+        dataset_type="torch",
+        data_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/annotations/processed/encyclopedia_vqa_sft_211k.json",
+        image_path="/home/yunhaof/workspace/datasets/encyclopedia_vqa/images",
+    )
     add_dataset(encyclopedia_vqa_sft)
-
 
     # nvcode: on
     nvclip_5m_vfc_recap30 = Dataset(

@@ -33,9 +33,7 @@ jobs:
 
     - name: Test pre-commit hooks
       continue-on-error: true
-      uses: pre-commit/action@v3.0.0 # sync with https://github.com/Efficient-Large-Model/VILA-Internal/blob/main/.github/workflows/pre-commit.yaml
-      with:
-        extra_args: --all-files
+      uses: pre-commit/action@v3.0.1 # sync with https://github.com/Efficient-Large-Model/VILA-Internal/blob/main/.github/workflows/pre-commit.yaml
 
     - name: Check if there are any changes
       id: verify_diff

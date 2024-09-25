@@ -76,7 +76,7 @@ class TestRopeScaling(unittest.TestCase):
 
         @dataclass
         class PatchedModelArguments(UnpatchedModelArguments):
-            model_name_or_path: Optional[str] = field(default="/home/jasonlu/models/vicuna-1.5/vicuna-7b-v1.5")
+            model_name_or_path: Optional[str] = field(default="Efficient-Large-Model/VILA1.5-7b")
             vision_tower: Optional[str] = field(default="google/siglip-so400m-patch14-384")
             mm_vision_select_layer: Optional[int] = field(default=-2)
             mm_projector: Optional[str] = field(default="mlp2x_gelu")

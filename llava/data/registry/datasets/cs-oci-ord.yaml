@@ -357,4 +357,3 @@ unichart-pretrain:
   _target_: llava.data.LLaVADataset
   data_path: /home/jasonlu/vlm_datasets2/unichart-pretrain-data/unichart-pretrain_processed.jsonl
   media_dir: /home/jasonlu/vlm_datasets2/UniChart-pretrain-images/content/images
-

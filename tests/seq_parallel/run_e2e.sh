@@ -1,11 +1,6 @@
 #!/bin/bash
 
-source ~/.bashrc
-conda activate vila
-which python
-
-cd ~/workspace/VILA-Internal
-# cd ~/workdir/VILA-Internal
+set -e
 
 export CUDA_LAUNCH_BLOCKING=1
 export TORCH_CUDNN_DETERMINISTIC=1

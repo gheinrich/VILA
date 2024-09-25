@@ -1,3 +1,13 @@
+shot2story_shotonly:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
+
+scienceqa:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/nvr_elm_llm/dataset/evaluation/scienceqa/scienceqa_train_12k.json
+  media_dir: /lustre/fsw/nvr_elm_llm/dataset/evaluation/scienceqa/images
+
 sharegpt4v_sft:
   _target_: llava.data.LLaVADataset
   data_path: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
