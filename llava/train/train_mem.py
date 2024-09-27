@@ -19,7 +19,7 @@
 from unittest import mock
 
 from llava.train.train import train
-from llava.train.transformer_normalize_monkey_patch import patched_normalize
+from llava.train.transformer_normalize_monkey_patch import _save_checkpoint, patched_normalize
 
 
 def __len__(self):
@@ -35,5 +35,6 @@ if __name__ == "__main__":
         mock.patch("transformers.image_processing_utils.normalize", new=patched_normalize),
         mock.patch("accelerate.data_loader.BatchSamplerShard.__len__", new=__len__),
         mock.patch("accelerate.data_loader.BatchSamplerShard.__iter__", new=__iter__),
+        mock.patch("transformers.trainer.Trainer._save_checkpoint", new=_save_checkpoint),
     ):
         train()

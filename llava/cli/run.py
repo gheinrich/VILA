@@ -22,6 +22,7 @@ def main() -> None:
     parser.add_argument("--mode", "-m", type=str, default="train")
     parser.add_argument("--time", "-t", type=str, default="4:00:00")
     parser.add_argument("--output-dir", type=str)
+    parser.add_argument("--max-retry", type=int, default=3)
     parser.add_argument("--pty", action="store_true")
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -32,14 +33,6 @@ def main() -> None:
     if args.output_dir is None:
         args.output_dir = os.path.join("runs", args.mode, args.job_name)
     output_dir = os.path.expanduser(args.output_dir)
-
-    # Calculate the timeout
-    time = datetime.datetime.strptime(args.time, "%H:%M:%S")
-    if time < datetime.datetime.strptime("0:05:00", "%H:%M:%S"):
-        raise ValueError("Time must be at least 5 minutes")
-    timeout = time - datetime.timedelta(minutes=5)
-    timeout = timeout.hour * 60 + timeout.minute
-    timeout = f"{timeout}m"
 
     # Get SLURM account and partition
     if "VILA_SLURM_ACCOUNT" not in os.environ or "VILA_SLURM_PARTITION" not in os.environ:
@@ -67,17 +60,25 @@ def main() -> None:
         cmd += ["--gpus-per-node", str(args.gpus_per_node)]
     cmd += ["--time", args.time]
     cmd += ["--exclusive"]
-    cmd += ["timeout", timeout]
     cmd += args.cmd
     full_cmd = " ".join(cmd)
     print(colored(full_cmd, attrs=["bold"]))
 
     # Run the job and resume if it times out
+    fail_times = 0
     while True:
         returncode = subprocess.run(full_cmd, env=env, shell=True).returncode
-        if returncode != 124:
+        print(f"returncode: {returncode}")
+        if returncode == 0:
+            print("Job finished successfully!")
             break
-        print("Job timed out, retrying...")
+        if returncode != 124:
+            fail_times += 1
+            if fail_times > args.max_retry:
+                break
+            print("Job timed out, retrying...")
+        else:
+            fail_times = 0
 
     # Exit with the return code
     print(f"Job finished with exit code {returncode}")
