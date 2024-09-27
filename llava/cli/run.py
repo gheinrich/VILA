@@ -33,6 +33,14 @@ def main() -> None:
     if args.output_dir is None:
         args.output_dir = os.path.join("runs", args.mode, args.job_name)
     output_dir = os.path.expanduser(args.output_dir)
+        
+    # Calculate the timeout
+    time = datetime.datetime.strptime(args.time, "%H:%M:%S")
+    if time < datetime.datetime.strptime("0:01:00", "%H:%M:%S"):
+        raise ValueError("Time must be at least 1 minutes")
+    timeout = time - datetime.timedelta(minutes=1)
+    timeout = timeout.hour * 60 + timeout.minute
+    timeout = f"{timeout}m"
 
     # Get SLURM account and partition
     if "VILA_SLURM_ACCOUNT" not in os.environ or "VILA_SLURM_PARTITION" not in os.environ:
@@ -60,6 +68,7 @@ def main() -> None:
         cmd += ["--gpus-per-node", str(args.gpus_per_node)]
     cmd += ["--time", args.time]
     cmd += ["--exclusive"]
+    cmd += ["timeout", timeout]
     cmd += args.cmd
     full_cmd = " ".join(cmd)
     print(colored(full_cmd, attrs=["bold"]))
