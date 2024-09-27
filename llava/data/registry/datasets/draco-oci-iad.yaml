@@ -290,7 +290,7 @@ rects:
 
 koniq:
   _target_: llava.data.LLaVADataset
-  data_path: /home/shangy/label/koniq10k/koniq10k.jsonl 
+  data_path: /home/shangy/label/koniq10k/koniq10k.jsonl
   media_dir: /home/shangy/label/koniq10k/koniq10k
 
 casia:

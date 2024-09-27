@@ -1,10 +1,11 @@
-import os, numpy as np
-import random
 import json
-from PIL import Image
+import os
+import random
 from typing import List
-from tqdm import tqdm  # Add this import
 
+import numpy as np
+from PIL import Image
+from tqdm import tqdm  # Add this import
 
 choice_1_prompts = [
     "Inside bounding box: {}, What is the text in the bounding box?",
@@ -12,7 +13,7 @@ choice_1_prompts = [
     "Inside the defined region {}, what text is present?",
     "What is the text contained within the rectangular area defined by the points {}?",
     "Can you identify the text that falls within the bounding box {}?",
-    "What is written in the image inside the box {}?"
+    "What is written in the image inside the box {}?",
 ]
 
 choice_2_prompts = [
@@ -27,12 +28,12 @@ choice_2_prompts = [
 # PLEASE REPLACE YOUR IMAGE FOLDER HERE.
 image_root = "/home/jasonlu/vlm_datasets2/LSVT/train_full_images"
 # PLEASE REPLACE YOUR ANNOTATION FILE HERE.
-with open("/home/jasonlu/vlm_datasets2/LSVT/train_full_labels.json", "r") as f:
+with open("/home/jasonlu/vlm_datasets2/LSVT/train_full_labels.json") as f:
     anns = json.load(f)
 
 return_list = []
 
-jsonl_path = os.path.join("/home/jasonlu/vlm_datasets2/LSVT/", 'LSVT_processed.jsonl')
+jsonl_path = os.path.join("/home/jasonlu/vlm_datasets2/LSVT/", "LSVT_processed.jsonl")
 
 
 def coords_list2bbox(coords_list: List[List[int]], width: int, height: int) -> str:
@@ -45,14 +46,14 @@ def coords_list2bbox(coords_list: List[List[int]], width: int, height: int) -> s
 
 
 # Add a progress bar
-with open(jsonl_path, 'w') as jsonl_file:
+with open(jsonl_path, "w") as jsonl_file:
     for k, v in tqdm(anns.items(), desc="Processing images", total=len(anns)):
         image_name = k + ".jpg"
         image = Image.open(os.path.join(image_root, image_name))
         w, h = image.size
         convs = []
         for v_i in v:
-            if v_i['illegibility']:
+            if v_i["illegibility"]:
                 continue
             coords = coords_list2bbox(v_i["points"], w, h)
             caption = v_i["transcription"]
@@ -80,8 +81,6 @@ with open(jsonl_path, 'w') as jsonl_file:
             convs[0]["value"] = "<image>\n" + convs[0]["value"]
             outputs = {"id": int(k.split("_")[-1]), "image": k + ".jpg", "conversations": convs}
             json.dump(outputs, jsonl_file)
-            jsonl_file.write('\n')  # Add a newline after each JSON object
+            jsonl_file.write("\n")  # Add a newline after each JSON object
 
 print("Processing complete.")
-
-

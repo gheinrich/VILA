@@ -97,7 +97,7 @@ def forward_llama(
     output_attentions: Optional[bool] = None,
     output_hidden_states: Optional[bool] = None,
     return_dict: Optional[bool] = None,
-    seqlens_in_batch: Optional[torch.LongTensor] = None,
+    cache_position: Optional[torch.LongTensor] = None,
 ) -> Union[Tuple, CausalLMOutputWithPast]:
 
     seq_len = input_ids.shape[-1]
@@ -122,7 +122,7 @@ def forward_llama(
         output_attentions=output_attentions,
         output_hidden_states=output_hidden_states,
         return_dict=return_dict,
-        seqlens_in_batch=seqlens_in_batch,
+        cache_position=cache_position,
     )
 
 
