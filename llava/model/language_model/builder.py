@@ -83,23 +83,9 @@ def build_llm_and_tokenizer(
     if not has_tokenizer(llm_path):
         raise ValueError(f"Cannot find tokenizer in {llm_path}.")
 
-    if "yi" in llm_path or (
-        getattr(llm_cfg, "num_hidden_layers", -1) == 60 and getattr(llm_cfg, "num_attention_heads", -1) == 56
-    ):
-        tokenizer = AutoTokenizer.from_pretrained(
-            llm_path,
-            model_max_length=llm_cfg.model_max_length,
-            padding_side="right",
-            use_fast=False,
-        )
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(
-            llm_path,
-            model_max_length=llm_cfg.model_max_length,
-            padding_side="right",
-            use_fast=False,
-            legacy=False,
-        )
+    tokenizer = AutoTokenizer.from_pretrained(llm_path, padding_side="right", use_fast=False, legacy=False)
+    if model_max_length is not None:
+        tokenizer.model_max_length = model_max_length
 
     # Load chat template if specified.
     if getattr(config, "chat_template", None) is not None:

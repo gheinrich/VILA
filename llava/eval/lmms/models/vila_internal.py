@@ -1,3 +1,4 @@
+import os
 from typing import List, Tuple
 
 import accelerate
@@ -11,6 +12,7 @@ import llava
 from llava import conversation as conversation_lib
 from llava.media import Video
 from llava.utils import distributed as dist
+from llava.utils import io
 
 
 @register_model("vila_internal")
@@ -40,6 +42,7 @@ class VILA(lmms):
         self.model.config.tokenizer_model_max_length = context_length
         self.model.llm.config.model_max_length = context_length
         self.model.llm.config.tokenizer_model_max_length = context_length
+        self.model.tokenizer.model_max_length = context_length
 
         conversation_lib.default_conversation = conversation_lib.conv_templates[conv_mode].copy()
 
@@ -69,8 +72,17 @@ class VILA(lmms):
             generation_config = self.model.default_generation_config
             generation_config.update(**generation_kwargs)
 
-            # Generate response
-            response = self.model.generate_content(prompt, generation_config=generation_config)
+            # Generate and cache response
+            cache_path = None
+            if "CACHE_DIR" in os.environ:
+                cache_path = os.path.join(os.environ["CACHE_DIR"], f"{task}_{split}_{doc_id}.txt")
+
+            if cache_path is not None and os.path.exists(cache_path):
+                response = io.load(cache_path)
+            else:
+                response = self.model.generate_content(prompt, generation_config=generation_config)
+                if cache_path is not None:
+                    io.save(cache_path, response)
             responses.append(response)
 
             print("Prompt:", prompt)

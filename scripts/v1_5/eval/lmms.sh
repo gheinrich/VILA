@@ -18,8 +18,10 @@ OUTPUT_DIR=${OUTPUT_DIR:-"runs/eval/$MODEL_NAME/lmms-$TASK"}
 
 NPROC_PER_NODE=${NPROC_PER_NODE:-$(nvidia-smi -L | wc -l)}
 
-export HF_HOME=$HOME/.cache/huggingface
 export LMMS_EVAL_PLUGINS=llava.eval.lmms
+export HF_HOME=$HOME/.cache/huggingface
+export CACHE_DIR=$OUTPUT_DIR/cache
+
 torchrun --nproc_per_node=$NPROC_PER_NODE \
 	-m lmms_eval \
 	--model vila_internal \
