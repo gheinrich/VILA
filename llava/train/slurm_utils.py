@@ -64,26 +64,27 @@ class Timer:
         if self.start_time is not None:
             return self.elapsed_time + (time.time() - self.start_time)
 
-
 timer = Timer()
-timer.start()
 
+def set_timer():
+    timer.start()
 
 def rank_print(*s):
     if not torch.distributed.is_initialized():
         rank = 0
     else:
         rank = torch.distributed.get_rank()
-    print(rank, *s)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{current_time}] Rank {rank}:", *s)
 
 
 class TimeoutTerminateCallback(transformers.TrainerCallback):
     def __init__(self, total_time_limit=240, pre_terminate_time=10):
         self.total_time_limit = total_time_limit
         self.pre_terminate_time = pre_terminate_time
-
+        elapsed_time = timer.get_elapsed_time()
         rank_print(
-            f"Timer for terminate callback has been set.\nTotal limit: {total_time_limit}min\nPre terminate time: {pre_terminate_time}min"
+            f"Timer for terminate callback has been set.\nTotal limit: {total_time_limit}min\nPre terminate time: {pre_terminate_time}min elapsed_time: {elapsed_time}s"
         )
 
         self.time_to_kill = (total_time_limit - pre_terminate_time) * 60
