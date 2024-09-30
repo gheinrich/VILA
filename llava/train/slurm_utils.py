@@ -64,10 +64,13 @@ class Timer:
         if self.start_time is not None:
             return self.elapsed_time + (time.time() - self.start_time)
 
+
 timer = Timer()
+
 
 def set_timer():
     timer.start()
+
 
 def rank_print(*s):
     if not torch.distributed.is_initialized():
@@ -91,6 +94,10 @@ class TimeoutTerminateCallback(transformers.TrainerCallback):
 
     def on_step_end(self, args, state, control, model, **kwargs):
         elapsed_time = timer.get_elapsed_time()
+
+        if elapsed_time is None:
+            # no timer has been set
+            return control
 
         if elapsed_time > self.time_to_kill:
             rank_print("Timeout, start to save checkpoint....")

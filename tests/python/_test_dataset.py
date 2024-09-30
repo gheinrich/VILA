@@ -56,6 +56,8 @@ DATASETS = [
     "vatex",
     "internvid_1300K",
     "internvid_10M",
+    "coyo_25m_wds_spatial_ocr_bbox_interleaved_qas",
+    "coyo_25m_wds",
     # "mmc4core",
 ]
 

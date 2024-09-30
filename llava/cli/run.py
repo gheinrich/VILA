@@ -33,7 +33,7 @@ def main() -> None:
     if args.output_dir is None:
         args.output_dir = os.path.join("runs", args.mode, args.job_name)
     output_dir = os.path.expanduser(args.output_dir)
-        
+
     # Calculate the timeout
     time = datetime.datetime.strptime(args.time, "%H:%M:%S")
     if time < datetime.datetime.strptime("0:01:00", "%H:%M:%S"):

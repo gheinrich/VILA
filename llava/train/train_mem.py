@@ -18,9 +18,10 @@
 
 from unittest import mock
 
+from llava.train.slurm_utils import set_timer
 from llava.train.train import train
 from llava.train.transformer_normalize_monkey_patch import _save_checkpoint, patched_normalize
-from llava.train.slurm_utils import set_timer
+
 
 def __len__(self):
     return len(self.batch_sampler)

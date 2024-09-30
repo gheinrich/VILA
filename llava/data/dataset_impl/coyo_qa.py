@@ -128,7 +128,7 @@ class LazyCoyoWebQADataset(LazyCoyoWebDataset):
                 n_images = len(images)
             else:
                 image = process_image(image_path, self.data_args, image_folder=None)
-                image_list.append(image)
+                image_list.append(image.unsqueeze(0))
                 n_images = 1
 
             ## always use original caption
