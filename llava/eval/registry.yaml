@@ -215,6 +215,21 @@ lmms-videomme_w_subtitle-64:
   metrics:
     accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
 
+lmms-videomme-128:
+  tags:
+    - local
+    - video
+  metrics:
+    accuracy: results/videomme/videomme_percetion_score,none
+
+lmms-videomme_w_subtitle-128:
+  tags:
+    - local
+    - video
+    - regression
+  metrics:
+    accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
+
 lmms-vizwiz_vqa_test:
   tags:
     - submission

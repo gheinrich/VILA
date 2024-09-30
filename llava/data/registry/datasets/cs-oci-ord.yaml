@@ -372,3 +372,8 @@ casia:
   _target_: llava.data.LLaVADataset
   data_path: /home/shangy/label/CASIA/CASIA2.0_revised/Au.jsonl
   media_dir: /home/shangy/label/CASIA/CASIA2.0_revised/Au
+
+pdfa-1m:
+  _target_: llava.data.LLaVADataset
+  data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa/pdfa_1m.json
+  media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa

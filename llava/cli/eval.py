@@ -35,7 +35,7 @@ def main() -> None:
     parser.add_argument("--tasks", "-t", type=lstr)
     parser.add_argument("--tags-include", "-ti", type=lstr)
     parser.add_argument("--tags-exclude", "-te", type=lstr)
-    parser.add_argument("--num_video_frames", "-nf", type=str, default="8/16/32/64")
+    parser.add_argument("--num_video_frames", "-nf", type=str, default="8/16/32/64/128")
     parser.add_argument("--max_tiles", "-mt", type=int, default=12)
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--report-to", "-r", choices=["wandb", None], default=None)
