@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import PIL
 import PIL.Image
+import requests
 from transformers import PretrainedConfig
 
 from llava.constants import DEFAULT_IMAGE_TOKEN
@@ -19,7 +20,10 @@ __all__ = ["extract_media"]
 
 def _extract_image(image: Union[Image, PIL.Image.Image]) -> PIL.Image.Image:
     if isinstance(image, Image):
-        image = PIL.Image.open(image.path)
+        if image.path.startswith("http://") or image.path.startswith("https://"):
+            image = PIL.Image.open(requests.get(image.path, stream=True).raw)
+        else:
+            image = PIL.Image.open(image.path)
     return image
 
 

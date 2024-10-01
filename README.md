@@ -193,31 +193,31 @@ We provide snippets for quick inference with user prompts and images.
 Llama-3-VILA1.5-8B inference:
 
 ```bash
-python -W ignore llava/eval/run_vila.py \
+vila-infer \
     --model-path Efficient-Large-Model/Llama-3-VILA1.5-8b \
     --conv-mode llama_3 \
-    --query "<image>\n Please describe the traffic condition." \
-    --image-file "av.png"
+    --text "Please describe the traffic condition." \
+    --media "av.png"
 ```
 
 VILA1.5-40B inference:
 
 ```bash
-python -W ignore llava/eval/run_vila.py \
+vila-infer \
     --model-path Efficient-Large-Model/VILA1.5-40b \
     --conv-mode hermes-2 \
-    --query "<image>\n Please describe the traffic condition." \
-    --image-file "av.png"
+    --text "Please describe the traffic condition." \
+    --media "av.png"
 ```
 
 VILA1.5-3B video inference:
 
 ```bash
-python -W ignore llava/eval/run_vila.py \
+vila-infer \
     --model-path Efficient-Large-Model/VILA1.5-3b \
     --conv-mode vicuna_v1 \
-    --query "<video>\n Please describe this video." \
-    --video-file "demo.mp4"
+    --text "Please describe this video." \
+    --media "demo.mp4"
 ```
 
 ## Quantization and Deployment
