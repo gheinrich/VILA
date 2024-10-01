@@ -66,10 +66,12 @@ lmms-infovqa_val:
   metrics:
     accuracy: results/infovqa_val/anls,none
 
-lmms-llava-in-the-wild:
+lmms-llava_in_the_wild:
   tags:
     - core
     - openai
+  metrics: 
+    accuracy: results/llava_in_the_wild/gpt_eval_llava_all,none
 
 lmms-mmbench:
   tags:
