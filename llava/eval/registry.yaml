@@ -68,10 +68,12 @@ lmms-infovqa_val:
 
 lmms-llava-in-the-wild:
   tags:
+    - core
     - openai
 
 lmms-mmbench:
   tags:
+    - core
     - submission
 
 lmms-mme:
@@ -85,6 +87,7 @@ lmms-mme:
 
 lmms-mmmu_test:
   tags:
+    - core
     - submission
 
 lmms-mmmu_val:
@@ -97,6 +100,7 @@ lmms-mmmu_val:
 
 lmms-mmvet:
   tags:
+    - core
     - openai
 
 lmms-ocrbench:
@@ -232,17 +236,18 @@ lmms-videomme_w_subtitle-128:
 
 lmms-vizwiz_vqa_test:
   tags:
+    - core
     - submission
 
 lmms-vizwiz_vqa_val:
   tags:
-    - core
     - local
   metrics:
     accuracy: results/vizwiz_vqa_val/exact_match,none
 
 lmms-vqav2_test:
   tags:
+    - core
     - submission
 
 lmms-vqav2_val:
