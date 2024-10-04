@@ -19,37 +19,21 @@ import os
 
 non_repeat_datasets = [
     "GEOS(MathV360K)",
-    "Geometry3K(MathV360K)",
-    "PMC-VQA(MathV360K)",
-    "Super-CLEVR(MathV360K)",
-    "UniGeo(MathV360K)",
-    "VizWiz(MathV360K)",
-    "ai2d(gpt4v)",
+    "figureqa(cauldron,llava_format)",
+    "chart2text(cauldron)",
     "chrome_writting",
-    "geo170k(align)",
-    "geo3k",
-    "hme100k",
     "iiit5k",
     "image_textualization(filtered)",
-    "infographic(gpt4v)",
     "k12_printing",
-    "llavar_gpt4_20k",
-    "lrv_chart",
-    "lrv_normal(filtered)",
-    # "magpie_pro(l3_80b_mt)",
-    # "magpie_pro(l3_80b_st)",
-    # "magpie_pro(qwen2_72b_st)",
-    "mathqa",
     "mavis_math_metagen",
     "mavis_math_rule_geo",
-    "orand_car_a",
-    "rendered_text(cauldron)",
     "scienceqa(nona_context)",
-    "sharegpt4o",
+    "UniGeo(MathV360K)",
     "sroie",
-    "ureader_cap",
-    "ureader_ie",
-    "vision_flan(filtered)",
+    # counted in intern
+    "tqa(cauldron,llava_format)",
+    "PMC-VQA(MathV360K)",
+    "Super-CLEVR(MathV360K)",
 ]
 
 
@@ -89,7 +73,7 @@ def main(save_path="/raid/kentang/datasets/LLaVA-OneVision-Data-processed/"):
         print(cnt, dataset_name, len(all_data), all_data[-1])
         cnt += 1
 
-    with open(os.path.join(save_path, "llava_onevision_sft_images_only_non_repeat_train.jsonl"), "w") as f:
+    with open(os.path.join(save_path, "llava_onevision_sft_images_only_adlr_train.jsonl"), "w") as f:
         for item in all_data:
             json.dump(item, f)
             f.write("\n")
