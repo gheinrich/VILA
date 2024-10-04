@@ -16,6 +16,13 @@ egoschema_val:
   metrics:
     accuracy: accuracy
 
+lmms-activitynetqa:
+  tags:
+    - openai
+  metrics:
+    accuracy: results/activitynetqa/gpt_eval_accuracy,none
+    score: results/activitynetqa/gpt_eval_score,none
+
 lmms-ai2d:
   tags:
     - core
@@ -70,8 +77,18 @@ lmms-llava_in_the_wild:
   tags:
     - core
     - openai
-  metrics: 
+  metrics:
     accuracy: results/llava_in_the_wild/gpt_eval_llava_all,none
+
+lmms-longvideobench_test_v:
+  tags:
+    - submission
+
+lmms-longvideobench_val_v:
+  tags:
+    - local
+  metrics:
+    accuracy: results/longvideobench_val_v/lvb_acc,none
 
 lmms-mmbench:
   tags:
@@ -105,6 +122,16 @@ lmms-mmvet:
     - core
     - openai
 
+lmms-nextqa_oe_test:
+  tags:
+    - submission
+
+lmms-nextqa_oe_val:
+  tags:
+    - local
+  metrics:
+    wups: results/nextqa_oe_val/WUPS,none
+
 lmms-ocrbench:
   tags:
     - core
@@ -112,6 +139,12 @@ lmms-ocrbench:
     - regression
   metrics:
     accuracy: results/ocrbench/ocrbench_accuracy,none
+
+lmms-perceptiontest_val_mc:
+  tags:
+    - local
+  metrics:
+    accuracy: results/perceptiontest_val_mc/accuracy,none
 
 lmms-pope:
   tags:
@@ -162,6 +195,16 @@ lmms-textvqa_val:
   metrics:
     accuracy: results/textvqa_val/exact_match,none
 
+lmms-videochatgpt:
+  tags:
+    - openai
+  metrics:
+    correctness: results/videochatgpt/gpt_eval_score_correctness,none
+    detailed: results/videochatgpt/gpt_eval_score_detailed_orientation,none
+    contextural: results/videochatgpt/gpt_eval_score_context,none
+    temporal: results/videochatgpt/gpt_eval_score_temporal,none
+    consistency: results/videochatgpt/gpt_eval_score_consistency,none
+
 lmms-videomme-8:
   tags:
     - local
@@ -176,7 +219,6 @@ lmms-videomme_w_subtitle-8:
     - video
   metrics:
     accuracy: results/videomme_w_subtitle/videomme_percetion_score,none
-
 
 lmms-videomme-16:
   tags:

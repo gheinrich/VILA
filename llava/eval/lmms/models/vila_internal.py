@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple
 
 import accelerate
+import requests
 import torch
 from lmms_eval.api.instance import Instance
 from lmms_eval.api.model import lmms
@@ -22,6 +23,7 @@ class VILA(lmms):
     ) -> None:
         super().__init__()
         assert batch_size == 1, "VILA only supports batch size of 1 at the moment."
+        self._update_gpt_eval_model()
 
         devices = range(dist.local_rank(), torch.cuda.device_count(), dist.local_size())
         torch.cuda.set_device(devices[0])
@@ -51,6 +53,17 @@ class VILA(lmms):
         self._world_size = dist.size()
         self._rank = dist.rank()
 
+    def _update_gpt_eval_model(self) -> None:
+        _unpatched_post = requests.post
+
+        def _patched_post(url, json, **kwargs):
+            if json is not None and "model" in json:
+                if json["model"] == "gpt-3.5-turbo-0613":
+                    json["model"] = "gpt-4o-mini"
+            return _unpatched_post(url, json=json, **kwargs)
+
+        requests.post = _patched_post
+
     def generate_until(self, requests: List[Instance]) -> List[str]:
         responses = []
         for request in tqdm(requests, disable=not dist.is_main()):
@@ -61,7 +74,7 @@ class VILA(lmms):
             medias = []
             for media in doc_to_visual(doc):
                 if isinstance(media, str):
-                    if media.endswith(".mp4"):
+                    if any(media.endswith(ext) for ext in [".mp4", ".mkv", ".webm"]):
                         media = Video(media)
                     else:
                         raise NotImplementedError(f"Unsupported media type: {media}")
