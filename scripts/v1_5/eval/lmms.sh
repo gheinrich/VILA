@@ -30,6 +30,10 @@ torchrun --nproc_per_node=$NPROC_PER_NODE \
 	--log_samples \
 	--output_path $OUTPUT_DIR
 
+mv $OUTPUT_DIR/checkpoints__*/*_results.json $OUTPUT_DIR/results.json
+mv $OUTPUT_DIR/checkpoints__*/* $OUTPUT_DIR
+rm -r $OUTPUT_DIR/checkpoints__*
+
 mv $OUTPUT_DIR/*_vila_internal_*/* $OUTPUT_DIR
 rm -r $OUTPUT_DIR/*_vila_internal_*
 rm -r $OUTPUT_DIR/rank*_metric_eval_done.txt

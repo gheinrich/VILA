@@ -124,5 +124,8 @@ class VILA(lmms):
 
         return prompt, generation_kwargs, doc_to_visual, doc_id, task, split
 
+    def generate_until_multi_round(self, requests: List[Instance]) -> List[str]:
+        raise NotImplementedError
+
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
         raise NotImplementedError
