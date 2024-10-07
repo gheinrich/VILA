@@ -22,10 +22,17 @@ def main() -> None:
     parser.add_argument("--mode", "-m", type=str, default="train")
     parser.add_argument("--time", "-t", type=str, default="4:00:00")
     parser.add_argument("--output-dir", type=str)
-    parser.add_argument("--max-retry", type=int, default=3)
+    parser.add_argument("--max-retry", type=int, default=-1)
+    # -1: indicates none, for train jobs, it will be set 3 and otherwise 1
     parser.add_argument("--pty", action="store_true")
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args()
+
+    if args.max_retry < 0:
+        if args.mode == "train":
+            args.max_retry = 3
+        else:
+            args.max_retry = 1
 
     # Generate run name and output directory
     if "%t" in args.job_name:
