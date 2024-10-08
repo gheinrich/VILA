@@ -1094,7 +1094,10 @@ class LazyCoyoWebDataset(Dataset):
 
             image_list.append(image_path)
 
-        image_list = torch.stack([process_image(image, self.data_args, image_folder=None) for image in image_list])
+        # image_list = torch.stack([process_image(image, self.data_args, image_folder=None) for image in image_list])
+        # NOTE(fix by ligeng)
+        #  now image_list should return a list of image tensor where each has a dimension of (1, c, h, w)
+        image_list = [process_image(image, self.data_args, image_folder=None).unsqueeze(0) for image in image_list]
 
         if CONCAT_SAMPLES:
             # into <image>cap<eos><image>cap<eos>...
@@ -1260,7 +1263,8 @@ class LazyVideoWebDataset(Dataset):
         if caption is None:
             caption = ""
         prompt = "<image>\n" * frames_loaded_successfully + caption
-        image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
+        # image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
+        image_list = [process_image(image, self.data_args, None).unsqueeze(0) for image in image_list]
 
         input_ids = tokenizer_image_token(
             prompt,
@@ -1268,7 +1272,7 @@ class LazyVideoWebDataset(Dataset):
             return_tensors="pt",
         )
         targets = copy.deepcopy(input_ids)
-        data_dict = dict(input_ids=input_ids, labels=targets, image=image_tensor)
+        data_dict = dict(input_ids=input_ids, labels=targets, image=image_list)
 
         return data_dict
 

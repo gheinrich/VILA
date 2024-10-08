@@ -54,12 +54,23 @@ DATASETS = [
     "youcook2",
     "video_chatgpt",
     "vatex",
-    "internvid_1300K",
-    "internvid_10M",
-    "coyo_25m_wds_spatial_ocr_bbox_interleaved_qas",
     "coyo_25m_wds",
     # "mmc4core",
 ]
+
+# TODO(ligeng, jason): the two are also broken after dynamic res
+#  "internvid_1300K",
+#  "internvid_10M",
+
+# vila-1.5 recipe
+PRETRAIN_DATA = "sharegpt4v_pretrain+mmc4core_10_subset+coyo_25m_wds_spatial_ocr_bbox_interleaved_qas"
+SFT_DATA = "sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock+idefics2_sft+llave_onevision_images_sft+cambrian_1375k+stem_qa+nv_mm_sft+vflan+refcoco_train+shikra+lrv_instruction+textocr_qa+mmc_instruction+unimm_chat+svit+mmbench_val+cvbench+m4-instruct-image-nuscenes+mminstruct"
+
+DATASETS += PRETRAIN_DATA.split("+")
+DATASETS += SFT_DATA.split("+")
+DATASETS = list(set(DATASETS))
+
+print(DATASETS)
 
 
 def _test_fps_module(
@@ -193,7 +204,8 @@ class TestDatasetMethods(unittest.TestCase):
     @requires_lustre()
     @parameterized.expand(DATASETS)
     def test_dataset(self, dataset):
-        _test_make_supervised_data_module(dataset_name=dataset, batch_size=2, num_workers=8, max_samples=10)
+        print("##" * 30, dataset, "##" * 30)
+        _test_make_supervised_data_module(dataset_name=dataset, batch_size=2, num_workers=8, max_samples=20)
 
     @requires_lustre()
     def test_fps(self):

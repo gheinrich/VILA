@@ -1,59 +1,87 @@
+---
 name: ci
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+    pull_request:
+    push:
+        branches: [main]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Check out Git repository
-      uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-    - name: Test pre-commit hooks
-      uses: pre-commit/action@v3.0.1
+    pre-commit:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out Git repository
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.10.14
+            - name: Test pre-commit hooks
+              uses: pre-commit/action@v3.0.1
 
-  tests-bash:
-    needs: pre-commit
-    runs-on: self-hosted
-    steps:
-    - name: Check out Git repository
-      uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-    - name: Set up the environment
-      run: |
-        ./environment_setup.sh
-    - name: Run tests with Slurm
-      run: |
-        vila-run --pty -m ci -J tests-bash bash tests/bash/entry.sh
+    tests-bash:
+        needs: pre-commit
+        runs-on: self-hosted
+        steps:
+            - name: Check out Git repository
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.10.14
+            - name: Set up the environment
+              run: |
+                  ./environment_setup.sh
+            - name: Run tests with Slurm
+              run: |
+                  vila-run --pty -m ci -J tests-bash bash tests/bash/entry.sh
 
 
-  tests-python:
-    needs: pre-commit
-    runs-on: self-hosted
-    steps:
-    - name: Check out Git repository
-      uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-    - name: Set up the environment
-      run: |
-        ./environment_setup.sh
-    - name: Run tests with Slurm
-      run: |
-        vila-run --pty -m ci -J tests-python pytest tests/python
+    tests-python:
+        needs: pre-commit
+        runs-on: self-hosted
+        steps:
+            - name: Check out Git repository
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.10.14
+            - name: Set up the environment
+              run: |
+                  ./environment_setup.sh
+            - name: Run tests with Slurm
+              run: |
+                  vila-run --pty -m ci -J tests-python pytest tests/python
+
+
+    tests-python-datasets:
+        needs: pre-commit
+        runs-on: self-hosted
+        steps:
+            - uses: dorny/paths-filter@v3
+              id: changes
+              with:
+                  filters: |
+                      src:
+                        - 'llava/data/**'
+                        - 'llava/train/**'
+
+            - if: steps.changes.outputs.src == 'true'
+              name: Check out Git repository
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.10.14
+            - name: Set up the environment
+              run: |
+                  ./environment_setup.sh
+            - name: Run tests with Slurm
+              run: |
+                  VILA_SLURM_PARTITION=cpu,$VILA_SLURM_PARTITION vila-run --pty -m ci -J tests-python-datasets pytest tests/python-datasets
