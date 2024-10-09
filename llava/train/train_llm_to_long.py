@@ -31,9 +31,9 @@ from peft import LoraConfig, PeftModel, get_peft_model
 from ring_flash_attn.zigzag_ring_flash_attn import zigzag_ring_flash_attn_func
 from torch.distributed import barrier
 from torch.utils.data import DataLoader, Dataset
-from transformers import DataCollatorForLanguageModeling, LlamaForCausalLM, Trainer
+from transformers import DataCollatorForLanguageModeling, LlamaForCausalLM, Qwen2ForCausalLM, Trainer
 from transformers.modeling_outputs import CausalLMOutputWithPast
-from transformers.models.llama.modeling_llama import LlamaFlashAttention2
+from transformers.models.qwen2.modeling_qwen2 import Qwen2RotaryEmbedding
 from transformers.trainer_utils import seed_worker
 from transformers.utils import is_datasets_available
 
@@ -76,57 +76,10 @@ def get_train_dataloader(self) -> DataLoader:
 Trainer.get_train_dataloader = get_train_dataloader
 
 
-forward_llama_ori = copy.deepcopy(LlamaForCausalLM.forward)
-
-
 def extract_local(value, rank, world_size, device, dim=1):
     value_chunks = value.chunk(2 * world_size, dim=dim)
     local_value = torch.cat([value_chunks[rank], value_chunks[2 * world_size - rank - 1]], dim=dim)
     return local_value.to(device)
-
-
-def forward_llama(
-    self,
-    input_ids: torch.LongTensor = None,
-    attention_mask: Optional[torch.Tensor] = None,
-    position_ids: Optional[torch.LongTensor] = None,
-    past_key_values: Optional[List[torch.FloatTensor]] = None,
-    inputs_embeds: Optional[torch.FloatTensor] = None,
-    labels: Optional[torch.LongTensor] = None,
-    use_cache: Optional[bool] = None,
-    output_attentions: Optional[bool] = None,
-    output_hidden_states: Optional[bool] = None,
-    return_dict: Optional[bool] = None,
-    cache_position: Optional[torch.LongTensor] = None,
-) -> Union[Tuple, CausalLMOutputWithPast]:
-
-    seq_len = input_ids.shape[-1]
-    rank = dist.get_rank()
-    num_processes = dist.get_world_size()
-    input_ids = extract_local(input_ids, rank, num_processes, input_ids.device)
-    labels = extract_local(labels, rank, num_processes, labels.device)
-    position_ids = (
-        torch.arange(seq_len, device=input_ids.device, dtype=torch.long).unsqueeze(0).expand(input_ids.shape[0], -1)
-    )
-    position_ids = extract_local(position_ids, rank, num_processes, position_ids.device)
-
-    return forward_llama_ori(
-        self=self,
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        position_ids=position_ids,
-        past_key_values=past_key_values,
-        inputs_embeds=inputs_embeds,
-        labels=labels,
-        use_cache=use_cache,
-        output_attentions=output_attentions,
-        output_hidden_states=output_hidden_states,
-        return_dict=return_dict,
-        cache_position=cache_position,
-    )
-
-
-LlamaForCausalLM.forward = forward_llama
 
 
 def ring_flash_attention_forward(
@@ -146,7 +99,17 @@ def ring_flash_attention_forward(
     return attn_output
 
 
-LlamaFlashAttention2._flash_attention_forward = ring_flash_attention_forward
+transformers.modeling_flash_attention_utils._flash_attention_forward = ring_flash_attention_forward
+
+forward_qwen2_embed_ori = copy.deepcopy(Qwen2RotaryEmbedding.forward)
+
+
+def forward_qwen2_embed(self, x, seq_len=None):
+    seq_len = seq_len * dist.get_world_size()
+    return forward_qwen2_embed_ori(self, x, seq_len)
+
+
+Qwen2RotaryEmbedding.forward = forward_qwen2_embed
 
 
 def judge_dir(resume_dir):
@@ -270,6 +233,57 @@ def train():
         cache_dir=training_args.cache_dir,
     )
 
+    architectures = config.architectures[0].lower()
+    if "llama" in architectures:
+        llm_model = LlamaForCausalLM
+    elif "qwen" in architectures:
+        llm_model = Qwen2ForCausalLM
+    else:
+        raise ValueError("Unsupported architecture %s." % architectures)
+
+    forward_llm_ori = copy.deepcopy(llm_model.forward)
+
+    def forward_llm(
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        cache_position: Optional[torch.LongTensor] = None,
+    ) -> Union[Tuple, CausalLMOutputWithPast]:
+
+        seq_len = input_ids.shape[-1]
+        rank = dist.get_rank()
+        num_processes = dist.get_world_size()
+        input_ids = extract_local(input_ids, rank, num_processes, input_ids.device)
+        labels = extract_local(labels, rank, num_processes, labels.device)
+        position_ids = (
+            torch.arange(seq_len, device=input_ids.device, dtype=torch.long).unsqueeze(0).expand(input_ids.shape[0], -1)
+        )
+        position_ids = extract_local(position_ids, rank, num_processes, position_ids.device)
+
+        return forward_llm_ori(
+            self=self,
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_values=past_key_values,
+            inputs_embeds=inputs_embeds,
+            labels=labels,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+            cache_position=cache_position,
+        )
+
+    llm_model.forward = forward_llm
     config.rope_theta = training_args.rope_theta
     config.max_position_embeddings = training_args.model_max_length
 
@@ -277,7 +291,7 @@ def train():
     dataset = dataset.map(partial(chunk_fn, None), batched=True, num_proc=1, remove_columns=["text"])
 
     # Load model and tokenizer
-    model = LlamaForCausalLM.from_pretrained(
+    model = llm_model.from_pretrained(
         model_args.model_name_or_path,
         config=config,
         cache_dir=training_args.cache_dir,
