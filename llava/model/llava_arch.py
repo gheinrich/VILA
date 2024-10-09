@@ -415,6 +415,12 @@ class LlavaMetaForCausalLM(ABC):
         # print("Warning: using max_len as tokenizer_model_max_length")
         batch_size = len(new_input_embeds)
 
+        if hasattr(
+            self, "pad_to_multiple_of"
+        ):  # related to quantization, please refer to ModelArguments for more information.
+            if max_len % self.pad_to_multiple_of != 0:
+                max_len = ((max_len // self.pad_to_multiple_of) + 1) * self.pad_to_multiple_of
+
         new_input_embeds_padded = []
         new_labels_padded = torch.full(
             (batch_size, max_len),
@@ -725,6 +731,36 @@ class LlavaMetaForCausalLM(ABC):
         attention_mask_p = torch.cat(attention_mask_p, dim=0).unsqueeze(0)
         position_ids_p = torch.cat(position_ids_p, dim=0).unsqueeze(0)
         labels_p = torch.cat(labels_p, dim=0).unsqueeze(0)
+
+        if hasattr(
+            self, "pad_to_multiple_of"
+        ):  # related to quantization, please refer to ModelArguments for more information.
+            assert len(labels_p.shape) == 2
+            batch_size, max_length, cur_length = labels_p.shape[0], labels_p.shape[1], labels_p.shape[1]
+            hidden_size = inputs_embeds_p.shape[-1]
+
+            if max_length % self.pad_to_multiple_of != 0:
+                max_length = ((max_length // self.pad_to_multiple_of) + 1) * self.pad_to_multiple_of
+                difference = max_length - cur_length
+
+                inputs_embeds_p = torch.cat(
+                    (
+                        inputs_embeds_p,
+                        torch.full((batch_size, difference, hidden_size), self.llm.pad_token_id).to(inputs_embeds_p),
+                    ),
+                    dim=1,
+                )
+                labels_p = torch.cat((labels_p, torch.full((batch_size, difference), IGNORE_INDEX).to(labels_p)), dim=1)
+                attention_mask_p = torch.cat(
+                    (
+                        attention_mask_p,
+                        torch.zeros((batch_size, difference), dtype=torch.bool).to(attention_mask_p),
+                    ),
+                    dim=1,
+                )
+                position_ids_p = torch.cat(
+                    (position_ids_p, torch.full((batch_size, difference), -1).to(position_ids_p)), dim=1
+                )
 
         return inputs_embeds_p, attention_mask_p, position_ids_p, labels_p
 

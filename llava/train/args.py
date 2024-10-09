@@ -61,6 +61,63 @@ class ModelArguments:
     time_token_format: str = "<t{t}>"
     soft_ce_std: float = 1.0
 
+    # Quantization and low precision training
+    quantize_model: Optional[str] = field(default="false")
+    symm: Optional[bool] = field(default=True)
+
+    epsilon: Optional[float] = field(default=1e-10)
+    fabit: Optional[str] = field(default="E4M3")
+    fwbit: Optional[str] = field(default="E4M3")
+    bobit: Optional[str] = field(default="E5M2")
+    row_blocksize: Optional[int] = -1  # -1 means only 1 quantization group along row axis
+    col_blocksize: Optional[int] = -1  # -1 means only 1 quantization group along column axis
+    qchoice: Optional[list[str]] = field(
+        default_factory=lambda: [
+            "none",
+            "all",
+            "linear",
+            "mlp",
+            "attn",
+            "gelu",
+            "layernorm",
+            "backbone",
+            "residual",
+            "backbone",
+        ],
+    )
+
+    pad_to_multiple_of: int = 0  # if sequence length * batch size can not be divided by 128, the triton implementation of fp8 matmul when calculating weight gradient will become highly inefficient. Therefore, I want to pad the sequence length to a multiple of some exponent of 2. This will be used in prepare_inputs_labels_for_multimodal()
+
+    # Memory Efficient FP8 related
+    Ubit: str = field(default="100")
+    fobit: str = field(default="100")
+    babit: str = field(default="100")
+    bwbit: str = field(default="100")
+    min_blockunit_row: int = field(default=4)
+    min_blockunit_col: int = field(default=4)
+    refine_residual_fp: bool = field(default=False)
+    refine_ln_pertoken: bool = field(default=False)
+    refine_ln_blocksize: bool = field(default=False)
+    refine_ln_blocksize_but_only_forward: bool = field(default=False)
+    refine_ln_blocksize_but_only_backward: bool = field(default=False)
+    refine_attn_blocksize: bool = field(default=False)
+    refine_mlp_blocksize: bool = field(default=False)
+    refine_row_blocksize: int = field(default=4)
+    refine_col_blocksize: int = field(default=4)
+    draw_distribution_forward: bool = field(default=False)
+    draw_distribution_backward: bool = field(default=False)
+
+    # Quantize Optimizer Related
+    use_quantize_optimizer: bool = field(default=False)
+    row_blocksize_optimizer: int = field(default=1)
+    col_blocksize_optimizer: int = field(default=128)
+    pad_block: bool = field(default=False)
+    first_order_bit: Optional[str] = field(default=None)
+    first_order_quant_type: Optional[str] = field(default=None)
+    second_order_bit: Optional[str] = field(default=None)
+    second_order_quant_type: Optional[str] = field(default=None)
+    epsilon_optimizer: float = field(default=1e-15)
+
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):

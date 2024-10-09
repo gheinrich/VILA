@@ -1,4 +1,9 @@
 ---
+dummy:
+    _target_: llava.data.DummyDataset
+    num_instances: 10000
+    comments: dummy dataset for testing
+
 ai2d_train_12k:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/ai2d_train_12k.jsonl

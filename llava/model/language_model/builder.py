@@ -17,6 +17,8 @@
 import math
 import os
 import os.path as osp
+import warnings
+from dataclasses import asdict
 from typing import Tuple
 
 import torch
@@ -70,6 +72,30 @@ def build_llm_and_tokenizer(
     llm_cfg.model_max_length = model_max_length
     if model_max_length is not None:
         context_length_extension(llm_cfg)
+
+    # Quantization related
+    if kwargs.get("quantize_model_class") is not None:
+        assert kwargs.get("model_args") is not None
+        quantize_model_class = kwargs.pop("quantize_model_class", None)
+        model_args = kwargs.pop("model_args", None)
+
+        if quantize_model_class == "QLlamaForCausalLM":
+            from .qllama import QLlamaConfig
+
+            llm_cfg.architectures = "QLlamaForCausalLM"
+            llm_cfg = QLlamaConfig(**llm_cfg.to_dict())
+        elif quantize_model_class == "QMemLlamaForCausalLM":
+            from .qmemllama import QMemLlamaConfig
+
+            llm_cfg.architectures = "QMemLlamaForCausalLM"
+            llm_cfg = QMemLlamaConfig(**llm_cfg.to_dict())
+        else:
+            raise ValueError(f"{quantize_model_class} is not supported quantize_model_class.")
+
+        kwargs.pop("quantize_model_class", None)
+
+        llm_cfg.update(asdict(model_args))
+        # print(model_args)
 
     llm = AutoModelForCausalLM.from_pretrained(
         model_name_or_path, config=llm_cfg, torch_dtype=eval(config.model_dtype), *args, **kwargs

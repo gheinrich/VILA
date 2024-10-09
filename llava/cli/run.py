@@ -21,6 +21,7 @@ def main() -> None:
     parser.add_argument("--gpus-per-node", type=int, default=8)
     parser.add_argument("--mode", "-m", type=str, default="train")
     parser.add_argument("--time", "-t", type=str, default="4:00:00")
+    parser.add_argument("--timedelta", type=int, default=5)
     parser.add_argument("--output-dir", type=str)
     parser.add_argument("--max-retry", type=int, default=-1)
     # -1: indicates none, for train jobs, it will be set 3 and otherwise 1
@@ -92,9 +93,10 @@ def main() -> None:
             fail_times += 1
             if fail_times > args.max_retry:
                 break
-            print("Job timed out, retrying...")
+            print(f"Job failed, retrying {fail_times} / {args.max_retry}")
         else:
             fail_times = 0
+            print("Job timed out, retrying...")
 
     # Exit with the return code
     print(f"Job finished with exit code {returncode}")

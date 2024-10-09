@@ -451,20 +451,46 @@ def train():
     else:
         ## first time training
         resume_from_checkpoint = False
-        model_cls = LlavaLlamaModel
+        ## llm and default multimodal model
+        if model_args.quantize_model.lower() in [
+            "qlinear",
+            "te_qlinear",
+            "qmem",
+        ]:  # However, qmem should not used currently becuase I haven't merge the memory reduction version into VILA
+            from functools import partial
+
+            from llava.model.language_model.qllava_qllama import QLlavaLlamaModel
+
+            model_cls = QLlavaLlamaModel
+        else:
+            assert (
+                model_args.quantize_model.lower() == "false"
+            ), f"{model_args.quantize_model.lower()} for model_args.quantize_model is not supported"
+            model_cls = LlavaLlamaModel
         config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
+
         if getattr(config, "resume_path", None) is not None:
             config.resume_path = model_args.model_name_or_path
 
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
-    model = model_cls(
-        config=config,
-        attn_implementation="flash_attention_2",
-        model_max_length=training_args.model_max_length,
-        cache_dir=training_args.cache_dir,
-        **bnb_model_from_pretrained_args,
-    )
+    if model_args.quantize_model.lower() in ["qlinear", "te_qlinear", "qmem"]:
+        model = model_cls(
+            config=config,
+            model_args=model_args,
+            attn_implementation="flash_attention_2",
+            model_max_length=training_args.model_max_length,
+            cache_dir=training_args.cache_dir,
+            **bnb_model_from_pretrained_args,
+        )
+    else:
+        model = model_cls(
+            config=config,
+            attn_implementation="flash_attention_2",
+            model_max_length=training_args.model_max_length,
+            cache_dir=training_args.cache_dir,
+            **bnb_model_from_pretrained_args,
+        )
 
     if not resume_path or training_args.lora_enable:
         if model_args.mlp_path is not None:
@@ -502,6 +528,9 @@ def train():
     )
 
     def need_to_modify_do_sample(generation_config):
+        if generation_config is None:
+            warnings.warn("generation config is None, skip do sample modification")
+            return False
         if generation_config.do_sample is False:
             if generation_config.temperature is not None and generation_config.temperature != 1.0:
                 return True

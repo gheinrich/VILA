@@ -34,7 +34,7 @@ vila-infer = "llava.cli.infer:main"
 vila-upload = "llava.cli.upload2hf:main"
 
 [project.optional-dependencies]
-train = ["deepspeed==0.9.5", "ninja", "wandb"]
+train = ["deepspeed==0.9.5", "ninja", "wandb", "triton-nightly@https://aiinfra.pkgs.visualstudio.com/2692857e-05ef-43b4-ba9c-ccf1c22c437c/_packaging/07c94329-d4c3-4ad4-9e6b-f904a60032ec/pypi/download/triton-nightly/3.post20240610003544/triton_nightly-3.0.0.post20240610003544-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl#sha256=ac2c36a49bf9c2bb780909b38096fb718f17efd78b88a1ca1d649f6d063cdc2c"]
 eval = ["word2number", "Levenshtein", "nltk", "pywsd"]
 
 [project.urls]
