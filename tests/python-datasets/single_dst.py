@@ -1,19 +1,3 @@
-# Copyright 2024 NVIDIA CORPORATION & AFFILIATES
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# SPDX-License-Identifier: Apache-2.0
-
 import os.path as osp
 import unittest
 from unittest.case import _id as __id
@@ -44,36 +28,21 @@ DATASETS = [
     # "ccs_recaptioned"
     # "ccs_recaptioned_test",
     # "vflan",
-    "jukinmedia",
-    "panda70m",
-    "sharegpt4v_pretrain",
-    "sharegpt_video",
-    "sharegpt_video_qa",
-    "shot2story_shotonly",
-    "youcook2",
-    "video_chatgpt",
-    "vatex",
+    "coyo25m_0to10_vila15_40b_recap",
+    # "coyo_25m",
+    # "jukinmedia",
+    # "panda70m",
+    # "sharegpt4v_pretrain",
+    # "sharegpt_video",
+    # "sharegpt_video_qa",
+    # "shot2story_shotonly",
+    # "youcook2",
+    # "video_chatgpt",
+    # "vatex",
+    # "internvid_1300K",
+    # "internvid_10M",
     # "mmc4core",
 ]
-
-# TODO(ligeng, jason): the two are also broken after dynamic res
-# disbable for now
-#  "mminstruct"
-#  "coyo_25m",
-#  "coyo_25m_wds"
-#  "internvid_1300K",
-#  "internvid_10M"
-
-
-# vila-1.5 recipe
-PRETRAIN_DATA = "sharegpt4v_pretrain+mmc4core_10_subset+coyo_25m_wds_spatial_ocr_bbox_interleaved_qas"
-SFT_DATA = "sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock+idefics2_sft+llave_onevision_images_sft+cambrian_1375k+stem_qa+nv_mm_sft+vflan+refcoco_train+shikra+lrv_instruction+textocr_qa+mmc_instruction+unimm_chat+svit+mmbench_val+cvbench+m4-instruct-image-nuscenes"
-
-DATASETS += PRETRAIN_DATA.split("+")
-DATASETS += SFT_DATA.split("+")
-DATASETS = list(set(DATASETS))
-
-print(DATASETS)
 
 
 def _test_fps_module(
@@ -143,7 +112,7 @@ def _test_fps_module(
     print(f"len_list: {len_list}")
     print(f"var: {np.var(len_list)}")
     print(f"mean: {np.mean(len_list)}")
-    assert np.var(len_list) > 0 and np.mean(len_list) > 0, f"var {np.var(len_list)} mean {np.mean(len_list)}"
+    assert np.var(len_list) > 0 and np.mean(len_list) > 0
 
 
 def _test_make_supervised_data_module(
@@ -155,6 +124,7 @@ def _test_make_supervised_data_module(
 ):
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         "lmsys/vicuna-7b-v1.5",
+        # "Qwen/Qwen2.5-1.5B-Instruct",
         model_max_length=8192,
         padding_side="right",
         use_fast=False,
@@ -203,46 +173,11 @@ def _test_make_supervised_data_module(
         print(f"[{idx}/{len(dloader)}]", info)
 
 
-class TestDatasetMethods(unittest.TestCase):
-    @requires_lustre()
-    @parameterized.expand(DATASETS)
-    def test_dataset(self, dataset):
-        print("##" * 30, dataset, "##" * 30)
-        _test_make_supervised_data_module(dataset_name=dataset, batch_size=2, num_workers=8, max_samples=20)
-
-    @requires_lustre()
-    def test_fps(self):
-        # NOTE(ligeng): the following modules are broken, need fix
-        # TODO(zhijian, jason): help check
-        return True
-        print("##" * 30, "sharegpt_video", "##" * 30)
-        _test_fps_module(
-            dataset_name="sharegpt_video" if osp.isdir("/lustre") else "osmo_sharegpt_video",
-            batch_size=4,
-            num_workers=4,
-            max_samples=10,
-            num_video_frames=32,
-            fps=2.0,
-        )
-        print("##" * 30, "shot2story_shotonly", "##" * 30)
-        _test_fps_module(
-            dataset_name="shot2story_shotonly" if osp.isdir("/lustre") else "osmo_shot2story_shotonly",
-            batch_size=4,
-            num_workers=4,
-            max_samples=10,
-            num_video_frames=32,
-            fps=2.0,
-        )
-        print("##" * 30, "panda70m", "##" * 30)
-        _test_fps_module(
-            dataset_name="panda70m" if osp.isdir("/lustre") else "osmo_panda70m",
-            batch_size=4,
-            num_workers=4,
-            max_samples=10,
-            num_video_frames=48,
-            fps=2.0,
-        )
+def main(dataset_name="coyo_25m_wds_spatial_ocr_bbox_interleaved_qas"):
+    _test_make_supervised_data_module(dataset_name=dataset_name, batch_size=1, num_workers=0, max_samples=10)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import fire
+
+    fire.Fire(main)

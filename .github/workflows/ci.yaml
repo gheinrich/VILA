@@ -84,4 +84,4 @@ jobs:
                   ./environment_setup.sh
             - name: Run tests with Slurm
               run: |
-                  VILA_SLURM_PARTITION=cpu,$VILA_SLURM_PARTITION vila-run --pty -m ci -J tests-python-datasets pytest tests/python-datasets
+                  VILA_SLURM_PARTITION=cpu,$VILA_SLURM_PARTITION vila-run --pty -m ci -J tests-python-datasets python -W ignore tests/python-datasets/test_dataset.py
