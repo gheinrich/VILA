@@ -8,6 +8,13 @@ import wandb
 from datasets import load_dataset
 from tqdm import tqdm
 
+"""
+Usage example:
+    python tools/failure_case/analyze.py \
+        --folder=/home/jasonlu/workspace/latest/VILA-Internal/runs/eval/qwen-72b-dynamic-tcn-sft-20240923142957 \
+        --max_samples=-1
+"""
+
 
 def process_ai2d(folder, max_samples=20):
     fpath = osp.join(folder, "lmms-ai2d/ai2d.json")
@@ -49,7 +56,7 @@ def process_ai2d(folder, max_samples=20):
         _item = [
             _log["doc_id"],
             # wandb.Image(data["test"][img_index]["image"]),
-            wandb.Image(img_source_list[idx]),
+            wandb.Image(img_source_list[idx].convert("RGB")),
             _log["arguments"][0][0],
             _log["target"],
             _log["filtered_resps"][0],
@@ -59,7 +66,7 @@ def process_ai2d(folder, max_samples=20):
     return tab
 
 
-def process_docvqa_val(folder, max_samples=20):
+def process_docvqa_val(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-docvqa_val/docvqa_val.json")
 
     with open(fpath) as f:
@@ -103,7 +110,7 @@ def process_docvqa_val(folder, max_samples=20):
             _log["doc"]["ucsf_document_id"],
             _log["doc"]["question_types"][0],
             # wandb.Image(data["test"][img_index]["image"]),
-            wandb.Image(img_source_list[idx]),
+            wandb.Image(img_source_list[idx].convert("RGB")),
             _log["doc"]["question"],
             _log["target"],
             _log["filtered_resps"][0],
@@ -113,7 +120,7 @@ def process_docvqa_val(folder, max_samples=20):
     return tab
 
 
-def process_chartqa(folder, max_samples=20):
+def process_chartqa(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-chartqa/chartqa.json")
 
     with open(fpath) as f:
@@ -156,7 +163,7 @@ def process_chartqa(folder, max_samples=20):
             _log["doc_id"],
             _log["doc"]["type"],
             # wandb.Image(data["test"][img_index]["image"]),
-            wandb.Image(img_source_list[idx]),
+            wandb.Image(img_source_list[idx].convert("RGB")),
             _log["doc"]["question"],
             _log["doc"]["answer"],
             _log["filtered_resps"][0],
@@ -166,7 +173,7 @@ def process_chartqa(folder, max_samples=20):
     return tab
 
 
-def process_mmmu_val(folder, max_samples=20):
+def process_mmmu_val(folder, max_samples=20, dump_failure_case=False):
     fpath = osp.join(folder, "lmms-mmmu_val/mmmu_val.json")
 
     with open(fpath) as f:
@@ -175,7 +182,7 @@ def process_mmmu_val(folder, max_samples=20):
     dataset_path = info["model_configs"]["dataset_path"]
     dataset_split = info["model_configs"]["test_split"]
     print("mmmu_val: ", dataset_path, dataset_split)
-    data = load_dataset(dataset_path, split=dataset_split)
+    data = load_dataset(dataset_path, split="validation")
     print(data)
 
     items = []
@@ -198,12 +205,10 @@ def process_mmmu_val(folder, max_samples=20):
     for idx, img in enumerate(tqdm(data["image_1"])):
         img_source_list.append(img)
 
+    failures = {}
     for idx, _log in enumerate(tqdm(info["logs"])):
         if max_samples > 0 and idx > max_samples:
             break
-        # print(f"Log {idx}:")
-        # print(_log)
-        # print("")
 
         _item = [
             _log["doc_id"],
@@ -212,17 +217,28 @@ def process_mmmu_val(folder, max_samples=20):
             # _log[score_key]["category"],
             _log["mmmu_acc"]["subdomain"],
             # wandb.Image(data["test"][img_index]["image"]),
-            wandb.Image(img_source_list[idx]),
-            _log["doc"]["question"],
+            wandb.Image(img_source_list[idx].convert("RGB")),
+            _log["arguments"][0][0],
             str(_log["mmmu_acc"]["answer"]),
             str(_log["mmmu_acc"]["parsed_pred"]),
             str(_log["mmmu_acc"]["answer"]) == str(_log["mmmu_acc"]["parsed_pred"]),
         ]
         tab.add_data(*_item)
+
+        score = str(_log["mmmu_acc"]["answer"]) == str(_log["mmmu_acc"]["parsed_pred"])
+        if not score and dump_failure_case:
+            failure_case_dir = osp.join("data_curation_dev", "mmmu_val")
+            img_path = osp.join(failure_case_dir, "data", f"{idx}.png")
+            os.makedirs(osp.dirname(img_path), exist_ok=True)
+            img_source_list[idx].convert("RGB").save(img_path)
+
+            with open(osp.join(failure_case_dir, "meta.json"), "w") as f:
+                failures[img_path] = _log
+                json.dump(failures, f, indent=2)
     return tab
 
 
-def process_mme(folder, max_samples=20):
+def process_mme(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-mme/mme.json")
 
     with open(fpath) as f:
@@ -230,6 +246,7 @@ def process_mme(folder, max_samples=20):
 
     dataset_path = info["model_configs"]["dataset_path"]
     data = load_dataset(dataset_path)
+    print(dataset_path)
     print(data)
 
     items = []
@@ -270,7 +287,7 @@ def process_mme(folder, max_samples=20):
             _log["doc_id"],
             _log[score_key]["question_id"],
             _log[score_key]["category"],
-            wandb.Image(data["test"][img_index]["image"]),
+            wandb.Image(data["test"][img_index]["image"].convert("RGB")).convert("RGB"),
             _log["doc"]["question"],
             _log["target"],
             resp,
@@ -280,7 +297,7 @@ def process_mme(folder, max_samples=20):
     return tab
 
 
-def process_gpq(folder, max_samples=20):
+def process_gqa(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-gqa/gqa.json")
 
     with open(fpath) as f:
@@ -291,6 +308,7 @@ def process_gpq(folder, max_samples=20):
     data = load_dataset(dataset_path, dataset_split)
     new_data = load_dataset(dataset_path, "testdev_balanced_images")
 
+    print(dataset_path, dataset_split)
     print(data)
     items = []
     cols = [
@@ -317,7 +335,7 @@ def process_gpq(folder, max_samples=20):
         # print(new_data)
         # print(new_data["testdev"])
         img_index = new_data["testdev"]["id"].index(imageId)
-        wandb_image = wandb.Image(new_data["testdev"][img_index]["image"])
+        wandb_image = wandb.Image(new_data["testdev"][img_index]["image"].convert("RGB"))
 
         _item = [
             _log["doc"]["imageId"],  # imageId
@@ -334,7 +352,7 @@ def process_gpq(folder, max_samples=20):
     return tab
 
 
-def process_ocrbench(folder, max_samples=20):
+def process_ocrbench(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-ocrbench/ocrbench.json")
 
     with open(fpath) as f:
@@ -366,7 +384,7 @@ def process_ocrbench(folder, max_samples=20):
         # print(f"Log {idx}:")
         # pprint(_log)
         # print("")
-        raw_img = img_source_list[idx]
+        raw_img = img_source_list[idx].convert("RGB")
         wandb_image = wandb.Image(raw_img)
 
         _item = [
@@ -381,7 +399,7 @@ def process_ocrbench(folder, max_samples=20):
     return tab
 
 
-def process_textvqa(folder, max_samples=20):
+def process_textvqa(folder, max_samples=20, **kwargs):
     fpath = osp.join(folder, "lmms-textvqa_val/textvqa_val.json")
 
     with open(fpath) as f:
@@ -390,6 +408,7 @@ def process_textvqa(folder, max_samples=20):
     dataset_path = info["model_configs"]["dataset_path"]
     dataset_split = info["model_configs"]["test_split"]
     data = load_dataset(dataset_path, split=dataset_split)
+    print(dataset_path, dataset_split)
     print(data)
 
     items = []
@@ -419,7 +438,7 @@ def process_textvqa(folder, max_samples=20):
         # print(f"Log {idx}:")
         # pprint(_log)
         # print("")
-        wandb_image = wandb.Image(img_source_list[idx])
+        wandb_image = wandb.Image(img_source_list[idx].convert("RGB"))
 
         _item = [
             _log["doc"]["question_id"],  # question
@@ -440,26 +459,21 @@ def main(
     folder="/home/jasonlu/workspace/VILA-Internal/runs/eval/qwen2-vl-7b-dynamic-pretrain_sft-20240908141045",
     max_samples=500,
 ):
-    # mname = "yunhaof-july5-llama3_8b-mmc4_spatial_ocr_coyo-stage2-sft-sharegpt4v_sft+vflan+sharegpt_video"
-    # folder = osp.join("runs/eval/", mname)
-    # folder = "/home/zhijianl/workspace/runs/eval/qwen2-7b-instruct-sft-20240826233532"
-    # folder = "/home/jasonlu/workspace/VILA-Internal/runs/eval/qwen2-vl-7b-dynamic-pretrain_sft-20240908141045"
     run_name = osp.basename(folder)
 
     dataset2fn = {
-        # "dev": process_ai2d,
         "lmms-chartqa": process_chartqa,
         "lmms-docvqa_val": process_docvqa_val,
         "lmms-mmmu_val": process_mmmu_val,
         "lmms-mme": process_mme,
-        "lmms-gqa": process_gpq,
+        "lmms-gqa": process_gqa,
         "lmms-ocrbench": process_ocrbench,
         "lmms-textvqa": process_textvqa,
     }
 
     for k, v in dataset2fn.items():
         print("collecting data for", k)
-        tab = v(folder, max_samples=max_samples)
+        tab = v(folder, max_samples=max_samples, dump_failure_case=True)
         if not wandb.run:
             wandb.init(project="vila-ablation", name=run_name)
         wandb.log(
