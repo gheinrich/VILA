@@ -16,12 +16,14 @@ Usage example:
 """
 
 
-'''
+"""
 Usage example:
     python llava/cli/analyze.py \
         --folder=/home/jasonlu/workspace/latest/VILA-Internal/runs/eval/qwen-72b-dynamic-tcn-sft-20240923142957 \
         --max_samples=-1
-'''
+"""
+
+
 def process_ai2d(folder, max_samples=20):
     fpath = osp.join(folder, "lmms-ai2d/ai2d.json")
 
