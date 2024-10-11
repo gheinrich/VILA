@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 from itertools import chain
 from typing import Any, List, Optional
 
@@ -15,11 +16,34 @@ from llava.utils.logging import logger
 __all__ = ["DATASETS", "MIXTURES", "register_datasets", "register_mixtures", "parse_mixture", "build_dataset"]
 
 
+def load_dataset_yaml(name):
+    fname = f"{name}.yaml" if not name.endswith(".yaml") else name
+
+    # yaml under llava/data/registry/datasets
+    repo_path = osp.join(osp.dirname(__file__), "registry", "datasets", fname)
+    if osp.exists(repo_path):
+        return repo_path
+
+    # # yaml under <fs yaml path>
+    abs_path = osp.expanduser(fname)
+    if osp.exists(abs_path):
+        return abs_path
+
+    raise FileNotFoundError(f"Dataset '{name}' is not found in the {repo_path} or {abs_path}.")
+
+
 def register_datasets(name: Optional[str] = None):
     if name is None:
         name = os.environ.get("VILA_DATASETS", "default")
-        logger.info(f"Registering datasets from '{name}'.")
-    return io.load(os.path.join(os.path.dirname(__file__), "registry", "datasets", f"{name}.yaml"))
+        logger.info(f"Registering datasets from environment: '{name}'.")
+    # return io.load(osp.join(osp.dirname(__file__), "registry", "datasets", f"{name}.yaml"))
+    dataset_meta = {}
+    for _name in name.split(","):
+        yamlpath = load_dataset_yaml(_name)
+        logger.info(f"Registering datasets from: '{yamlpath}'.")
+        meta = io.load(yamlpath)
+        dataset_meta.update(meta)
+    return dataset_meta
 
 
 def register_mixtures():

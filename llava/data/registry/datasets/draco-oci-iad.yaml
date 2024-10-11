@@ -105,6 +105,11 @@ scienceqa:
     data_path: /home/yunhaof/workspace/datasets/evaluation/scienceqa/scienceqa_train_12k.json
     media_dir: /home/yunhaof/workspace/datasets/evaluation/scienceqa/images
 
+shot2story_shotonly:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
+
 sharegpt4v_gpt4_100k:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_instruct_gpt4-vision_cap100k.json
@@ -124,11 +129,6 @@ sherlock:
     _target_: llava.data.LLaVADataset
     data_path: /home/yunhaof/workspace/datasets/sherlock/processed/sherlock_317k.json
     media_dir: /home/yunhaof/workspace/datasets/sherlock/images
-
-shot2story_shotonly:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
-    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
 
 synthdog_en:
     _target_: llava.data.LLaVADataset

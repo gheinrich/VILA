@@ -1,0 +1,10 @@
+---
+dummy:
+    _target_: llava.data.DummyDataset
+    num_instances: 10000
+    comments: dummy dataset for testing
+
+shot2story_shotonly:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
