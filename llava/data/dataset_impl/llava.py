@@ -24,6 +24,9 @@ class LLaVADataset(BaseDataset):
         self.media_dir = media_dir
         self.instances = io.load(self.data_path)
         self.enable_dynamic_res = True
+        for instance in self.instances:
+            if "video" in instance:
+                self.enable_dynamic_res = False
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         messages = copy.deepcopy(instance["conversations"])
