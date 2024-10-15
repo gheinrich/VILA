@@ -68,6 +68,57 @@ class DownSampleBlock(nn.Module):
         x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
         return x
 
+class DownSample2x2BlockFix(nn.Module):
+    def forward(self, x):
+        vit_embeds = x
+        h = w = int(vit_embeds.shape[1] ** 0.5)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], h, w, -1)
+        vit_embeds = flat_square_2x2(vit_embeds)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], -1, vit_embeds.shape[-1])
+        return vit_embeds
+
+
+def flat_square_2x2(x):
+    n, w, h, c = x.size()
+    if w % 2 == 1:
+        x = torch.concat([x, torch.zeros((n, 1, h, c), dtype=x.dtype).to(x.device)], dim=1).contiguous()
+        n, w, h, c = x.size()
+    x = x.contiguous()
+    if h % 2 == 1:
+        x = torch.concat([x, torch.zeros((n, w, 1, c), dtype=x.dtype).to(x.device)], dim=2).contiguous()
+        n, w, h, c = x.size()
+    x = x.view(n, w, int(h / 2), int(c * 2))
+    x = x.permute(0, 2, 1, 3).contiguous()
+    x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
+    x = x.permute(0, 2, 1, 3).contiguous()
+    return x
+
+
+class DownSample3x3BlockFix(nn.Module):
+    def forward(self, x):
+        vit_embeds = x
+        h = w = int(vit_embeds.shape[1] ** 0.5)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], h, w, -1)
+        vit_embeds = flat_square_3x3(vit_embeds)
+        vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], -1, vit_embeds.shape[-1])
+        return vit_embeds
+
+
+def flat_square_3x3(x):
+    n, w, h, c = x.size()
+    if w % 3 != 0:
+        x = torch.concat([x, torch.zeros((n, 3 - (w % 3), h, c), dtype=x.dtype).to(x.device)], dim=1).contiguous()
+        n, w, h, c = x.size()
+    x = x.contiguous()
+    if h % 3 != 0:
+        x = torch.concat([x, torch.zeros((n, w, 3 - (h % 3), c), dtype=x.dtype).to(x.device)], dim=2).contiguous()
+        n, w, h, c = x.size()
+    x = x.view(n, w, int(h / 3), int(c * 3))
+    x = x.permute(0, 2, 1, 3).contiguous()
+    x = x.view(n, int(h / 3), int(w / 3), int(c * 9))
+    x = x.permute(0, 2, 1, 3).contiguous()
+    return x
+
 
 class MultimodalProjectorConfig(PretrainedConfig):
     model_type = "v2l_projector"
@@ -92,6 +143,25 @@ class MultimodalProjector(PreTrainedModel):
                 DownSampleBlock(),
                 nn.LayerNorm(config.mm_hidden_size * 4),
                 nn.Linear(config.mm_hidden_size * 4, config.hidden_size),
+                nn.GELU(),
+                nn.Linear(config.hidden_size, config.hidden_size),
+            )
+        elif mm_projector_type == "mlp_downsample_2x2_fix":
+            self.layers = nn.Sequential(
+                DownSample2x2BlockFix(),
+                nn.LayerNorm(config.mm_hidden_size * 4),
+                nn.Linear(config.mm_hidden_size * 4, config.hidden_size),
+                nn.GELU(),
+                nn.Linear(config.hidden_size, config.hidden_size),
+            )
+        elif mm_projector_type == "mlp_downsample_3x3_fix":
+            self.layers = nn.Sequential(
+                DownSample3x3BlockFix(),
+                nn.LayerNorm(config.mm_hidden_size * 9),
+                nn.Linear(config.mm_hidden_size * 9, config.mm_hidden_size * 3),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size * 3),
+                nn.Linear(config.mm_hidden_size * 3, config.hidden_size),
                 nn.GELU(),
                 nn.Linear(config.hidden_size, config.hidden_size),
             )
