@@ -87,6 +87,16 @@ llava_instruct:
     data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/llava_instruct_150k_zh.jsonl
     media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/coco
 
+m3it/fm-iqa/train:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/m3it/fm-iqa/train.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/m3it/fm-iqa/images
+
+m3it/fm-iqa/val:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/m3it/fm-iqa/val.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/m3it/fm-iqa/images
+
 m4-instruct-image:
     _target_: llava.data.LLaVANextDataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/M4-Instruct-Data/m4_instruct_annotations.json
