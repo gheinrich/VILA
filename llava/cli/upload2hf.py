@@ -55,8 +55,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "local_folder",
+        "--local-folder",
         type=str,
+        default=None
     )
 
     parser.add_argument("--model-name", type=str, default=None)
