@@ -54,12 +54,7 @@ def main():
     os.environ["CURL_CA_BUNDLE"] = ""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--local-folder",
-        type=str,
-        default=None
-    )
-
+    parser.add_argument("--local-folder", type=str, default=None)
     parser.add_argument("--model-name", type=str, default=None)
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
