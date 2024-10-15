@@ -32,6 +32,14 @@ lmms-ai2d:
     metrics:
         accuracy: results/ai2d/exact_match,flexible-extract
 
+lmms-ai2d_no_mask:
+    tags:
+        - core
+        - local
+        - regression
+    metrics:
+        accuracy: results/ai2d_no_mask/exact_match,flexible-extract
+
 lmms-chartqa:
     tags:
         - core
