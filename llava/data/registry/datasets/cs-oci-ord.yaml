@@ -1,4 +1,9 @@
 ---
+tabmwp:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/workspace/PromptPG/data/tabmwp/problems_train_vila.json
+    media_dir: /home/ligengz/workspace/PromptPG/data/tabmwp
+
 activitynet-dvc:
     _target_: llava.data.DVCDataset
     data_path: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/activitynet-captions/train.json

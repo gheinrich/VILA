@@ -68,6 +68,7 @@ class DownSampleBlock(nn.Module):
         x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
         return x
 
+
 class DownSample2x2BlockFix(nn.Module):
     def forward(self, x):
         vit_embeds = x

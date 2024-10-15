@@ -4,6 +4,11 @@ dummy:
     num_instances: 10000
     comments: dummy dataset for testing
 
+tabmwp:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/workspace/PromptPG/data/tabmwp/problems_train_vila.json
+    media_dir: /home/ligengz/workspace/PromptPG/data/tabmwp
+
 ai2d_train_12k:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/ai2d_train_12k.jsonl

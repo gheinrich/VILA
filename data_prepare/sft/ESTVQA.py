@@ -9,19 +9,14 @@ with open(input_json_path) as f:
 with open(jsonl_path, "w") as jsonl_file:
     for item in data:
         image_name = item["image"]
-        convs = []        
+        convs = []
         for annotation in item["annotation"]:
-            convs.extend([
-                {"from": "human", "value": annotation['question']},
-                {"from": "gpt", "value": annotation['answer']}
-            ])
-        
+            convs.extend(
+                [{"from": "human", "value": annotation["question"]}, {"from": "gpt", "value": annotation["answer"]}]
+            )
+
         convs[0]["value"] = "<image>\n" + convs[0]["value"]
-        output = {
-            "id": item["id"],
-            "image": image_name,
-            "conversations": convs
-        }
+        output = {"id": item["id"], "image": image_name, "conversations": convs}
         json.dump(output, jsonl_file, ensure_ascii=False)
         jsonl_file.write("\n")
 
