@@ -374,6 +374,11 @@ unichart-pretrain:
     data_path: /home/jasonlu/vlm_datasets2/unichart-pretrain-data/unichart-pretrain_processed.jsonl
     media_dir: /home/jasonlu/vlm_datasets2/UniChart-pretrain-images/content/images
 
+unichart-pretrain-1m:
+  _target_: llava.data.LLaVADataset
+  data_path: /home/jasonlu/vlm_datasets2/unichart-pretrain-data/unichart-pretrain_processed_1m.jsonl
+  media_dir: /home/jasonlu/vlm_datasets2/UniChart-pretrain-images/content/images
+
 rects:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/vlm_datasets2/ReCTS/ReCTS_processed.jsonl
@@ -393,3 +398,4 @@ pdfa-1m:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa/pdfa_1m.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa
+

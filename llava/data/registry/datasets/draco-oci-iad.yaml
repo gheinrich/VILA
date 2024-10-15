@@ -304,6 +304,11 @@ unichart-pretrain:
     data_path: /home/jasonlu/vlm_datasets3/unichart-pretrain-data/unichart-pretrain_processed.jsonl
     media_dir: /home/jasonlu/vlm_datasets3/UniChart-pretrain-images/content/images
 
+unichart-pretrain-1m:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/jasonlu/vlm_datasets3/unichart-pretrain-data/unichart-pretrain_processed_1m.jsonl
+    media_dir: /home/jasonlu/vlm_datasets3/UniChart-pretrain-images/content/images
+
 rects:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/vlm_datasets3/ReCTS/ReCTS_processed.jsonl
