@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 TASK=$1
 MODEL_PATH=$2
 CONV_MODE=$3
