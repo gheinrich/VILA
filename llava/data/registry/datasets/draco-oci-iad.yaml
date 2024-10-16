@@ -97,6 +97,11 @@ mint-1t-arxiv-captions:
     data_path: /home/zhijianl/workspace/datasets/mint-1t-arxiv/captions-20240904.json
     media_dir: /home/zhijianl/workspace/datasets/mint-1t-arxiv/tiff
 
+real-cqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/data.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/images
+
 reasoning_clevr_train:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/vflan/reasoning_clevr_train/data.json

@@ -142,6 +142,11 @@ nextqa:
     video_dir: /lustre/fsw/portfolios/nvr/users/deahuang/datasets/nextqa/NExTVideo
     task_prompt: Answer the question using a short phrase.
 
+real-cqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/data.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/images
+
 reasoning_clevr_train:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/vflan/reasoning_clevr_train/data.json
