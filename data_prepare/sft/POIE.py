@@ -9,36 +9,27 @@ from tqdm import tqdm  # Add this import
 
 entity_dict = {
     "SS": "Serving Size",
-    "CE-PS": "Calories/Energy per serving",
-    "CE-P1": "Calories per 100g/100ml",
-    "CE-D": "Calories % Daily Value",
-    "CE-PP": "Calories per package",
-    "TF-PS": "Total Fat per serving",
-    "TF-P1": "Total Fat per 100g/100ml",
-    "TF-D": "Total Fat % Daily Value",
-    "TF-PP": "Total Fat per package",
-    "SO-PS": "Sodium per serving",
-    "SO-P1": "Sodium per 100g/100ml",
-    "SO-D": "Sodium % Daily Value",
-    "SO-PP": "Sodium per package",
-    "CAR-PS": "Total Carbohydrate per serving",
-    "CAR-P1": "Total Carbohydrate per 100g/100ml",
-    "CAR-D": "Total Carbohydrate % Daily Value",
-    "CAR-PP": "Total Carbohydrate per package",
-    "PRO-PS": "Protein per serving",
-    "PRO-P1": "Protein per 100g/100ml",
-    "PRO-D": "Protein % Daily Value",
-    "PRO-PP": "Protein per package",
+    "CE-PS": "Calories/Energy of per serving",
+    "CE-P1": "Calories/Energy of per 100g/ml",
+    "CE-D": "Calories/Energy of % Daily Value",
+    "CE-PP": "Calories/Energy of per package",
+    "TF-PS": "Total Fat of per serving",
+    "TF-P1": "Total Fat of per 100g/ml",
+    "TF-D": "Total Fat of % Daily Value",
+    "TF-PP": "Total Fat of per package",
+    "SO-PS": "Sodium of per serving",
+    "SO-P1": "Sodium of per 100g/ml",
+    "SO-D": "Sodium of % Daily Value",
+    "SO-PP": "Sodium of per package",
+    "CAR-PS": "Total Carbohydrate of per serving",
+    "CAR-P1": "Total Carbohydrate of per 100g/ml",
+    "CAR-D": "Total Carbohydrate of % Daily Value",
+    "CAR-PP": "Total Carbohydrate of per package",
+    "PRO-PS": "Protein of per serving",
+    "PRO-P1": "Protein of per 100g/ml",
+    "PRO-D": "Protein of % Daily Value",
+    "PRO-PP": "Protein of per package",
 }
-
-choice_1_prompts = [
-    "Inside bounding box: {}, What is the text in the bounding box?",
-    "What is the textual content enclosed by the coordinates {}?",
-    "Inside the defined region {}, what text is present?",
-    "What is the text contained within the rectangular area defined by the points {}?",
-    "Can you identify the text that falls within the bounding box {}?",
-    "What is written in the image inside the box {}?",
-]
 
 # PLEASE REPLACE YOUR IMAGE FOLDER HERE.
 image_root = "/home/jasonlu/vlm_datasets3/poie/nfv5/nfv5_3125/image_files"
@@ -50,7 +41,7 @@ with open("/home/jasonlu/vlm_datasets3/poie/nfv5/nfv5_3125/train.txt") as f:
 
 return_list = []
 
-jsonl_path = os.path.join("/home/jasonlu/vlm_datasets3/poie/nfv5/nfv5_3125/", "POIE_processed.jsonl")
+jsonl_path = os.path.join("/home/jasonlu/vlm_datasets3/poie/", "POIE_processed.jsonl")
 
 
 def coords_list2bbox(coords_list: List[List[int]], width: int, height: int) -> str:
@@ -71,34 +62,23 @@ with open(jsonl_path, "w") as jsonl_file:
         w = data["width"]
         h = data["height"]
         convs = []
-        for v_i in data["annotations"]:
-            coords = coords_list2bbox(v_i["polygon"], w, h)
-            caption = v_i["text"]
-            convs.extend(
-                [
-                    {
-                        "from": "human",
-                        "value": choice_1_prompts[random.randint(0, 4)].format(coords),
-                    },
-                    {"from": "gpt", "value": caption},
-                ]
-            )
+
         if "entity_dict" in data:
             for k, v in data["entity_dict"].items():
                 convs.extend(
                     [
-                        {"from": "human", "value": f"How much is {entity_dict[k]}?"},
+                        {"from": "human", "value": f"what is the value for {entity_dict[k]}? Answer this question using the text in the image directly."},
                         {"from": "gpt", "value": v},
                     ]
                 )
-        if len(convs) > 0:
-            convs[0]["value"] = "<image>\n" + convs[0]["value"]
-            outputs = {
-                "id": data["file_name"].split("/")[-1].split(".")[0],
-                "image": data["file_name"],
-                "conversations": convs,
-            }
-            json.dump(outputs, jsonl_file)
-            jsonl_file.write("\n")  # Add a newline after each JSON object
+            if len(convs) > 0:
+                convs[0]["value"] = "<image>\n" + convs[0]["value"]
+                outputs = {
+                    "id": data["file_name"].split("/")[-1].split(".")[0],
+                    "image": data["file_name"],
+                    "conversations": convs,
+                }
+                json.dump(outputs, jsonl_file)
+                jsonl_file.write("\n")  # Add a newline after each JSON object
 
 print("Processing complete.")
