@@ -338,3 +338,8 @@ pdfa-1m:
     _target_: llava.data.LLaVADataset
     data_path: /home/baifengs/baifengs/data/pdfa/vanilla_qa/pdfa_1m.json
     media_dir: /home/baifengs/baifengs/data/pdfa/vanilla_qa
+
+sroie:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/jasonlu/vlm_datasets3/sroie/SROIE_processed.jsonl
+    media_dir: /home/jasonlu/vlm_datasets3/sroie/train

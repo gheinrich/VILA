@@ -408,3 +408,8 @@ pdfa-1m:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa/pdfa_1m.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa
+
+sroie:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/jasonlu/vlm_datasets2/sroie/SROIE_processed.jsonl
+    media_dir: /home/jasonlu/vlm_datasets2/sroie/train
