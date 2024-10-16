@@ -14,7 +14,7 @@ torchrun \
     llava/train/train_mem.py \
         --deepspeed scripts/zero3_gradient_clipping.json \
         --model_name_or_path $STAGE2_PATH \
-        --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock+idefics2_sft+llave_onevision_images_sft+cambrian_1375k+shot2story_shotonly+video_chatgpt+youcook2+vatex+sharegpt_video+stem_qa+nv_mm_sft+jukinmedia+sharegpt4video+k710+ssv2+reason_clevrerqa+reason_clevrermc+vcg_human+video_chat1+av_llava_4785+vflan+refcoco_train+shikra+lrv_instruction+textocr_qa+mmc_instruction+m4-instruct-video+nextqa_mc+unimm_chat+svit+mmbench_val+cvbench+m4-instruct-image-nuscenes+webvid_qa+caption_videochat+ doc_reason+metamathqa+mminstruct+unichart+mtwi+kvqa \
+        --data_mixture sharegpt4v_gpt4_100k+llava_instruct+sharegpt4v_sft+dvqa_train_200k+chartqa_train_18k+ai2d_train_12k+docvqa_train_10k+geoqa+synthdog_en+scienceqa+wit_subset+math+sherlock+idefics2_sft+llave_onevision_images_sft+cambrian_1375k+shot2story_shotonly+video_chatgpt+youcook2+vatex+sharegpt_video+stem_qa+nv_mm_sft+jukinmedia+sharegpt4video+k710+ssv2+reason_clevrerqa+reason_clevrermc+vcg_human+video_chat1+av_llava_4785+vflan+refcoco_train+shikra+lrv_instruction+textocr_qa+mmc_instruction+m4-instruct-video+nextqa_mc+unimm_chat+svit+mmbench_val+cvbench+m4-instruct-image-nuscenes+webvid_qa+caption_videochat+doc_reason+metamathqa+mminstruct+unichart+mtwi+kvqa \
         --vision_tower Efficient-Large-Model/paligemma-siglip-so400m-patch14-448 \
         --mm_vision_select_feature cls_patch \
         --mm_projector mlp_downsample_2x2_fix \
