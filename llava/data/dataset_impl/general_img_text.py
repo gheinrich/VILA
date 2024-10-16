@@ -194,7 +194,7 @@ class LazyImageTextWebDataset(Dataset):
 
             image_list.append(image)
 
-        image_list = torch.stack([process_image(image, self.data_args, self.image_folder) for image in image_list])
+        image_list = [process_image(image, self.data_args, None).unsqueeze(0) for image in image_list]
 
         input_ids = [
             tokenizer_image_token(
