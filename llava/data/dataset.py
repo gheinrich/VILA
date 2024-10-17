@@ -1413,8 +1413,7 @@ class DataCollatorForSupervisedDatasetSeqParallel:
                 Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
                 Error input_ids: {_input_ids} {self.tokenizer.decode([x if x != -200 else 200 for x in _input_ids])}"
 
-        # TODO: Remove the hard coding of NUM_TOKENS_PER_IMAGE
-        NUM_TOKENS_PER_IMAGE = 196
+        NUM_TOKENS_PER_IMAGE = self.data_args.num_image_tokens
         if hasattr(self.data_args.image_processor, "crop_size"):
             crop_size = self.data_args.image_processor.crop_size
         else:

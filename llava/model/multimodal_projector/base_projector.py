@@ -135,6 +135,7 @@ class MultimodalProjector(PreTrainedModel):
     def __init__(self, mm_projector_cfg: MultimodalProjectorConfig, config: PretrainedConfig):
         super().__init__(mm_projector_cfg)
         mm_projector_type = mm_projector_cfg.mm_projector_type
+        self.downsample_rate = 1
         if mm_projector_type == "identity":
             self.layers = IdentityMap()
         elif mm_projector_type == "linear":
@@ -147,6 +148,7 @@ class MultimodalProjector(PreTrainedModel):
                 nn.GELU(),
                 nn.Linear(config.hidden_size, config.hidden_size),
             )
+            self.downsample_rate = 2
         elif mm_projector_type == "mlp_downsample_2x2_fix":
             self.layers = nn.Sequential(
                 DownSample2x2BlockFix(),
@@ -155,6 +157,7 @@ class MultimodalProjector(PreTrainedModel):
                 nn.GELU(),
                 nn.Linear(config.hidden_size, config.hidden_size),
             )
+            self.downsample_rate = 2
         elif mm_projector_type == "mlp_downsample_3x3_fix":
             self.layers = nn.Sequential(
                 DownSample3x3BlockFix(),
@@ -166,6 +169,7 @@ class MultimodalProjector(PreTrainedModel):
                 nn.GELU(),
                 nn.Linear(config.hidden_size, config.hidden_size),
             )
+            self.downsample_rate = 3
         else:
             mlp_gelu_match = re.match(r"^mlp(\d+)x_gelu$", mm_projector_type)
             if mlp_gelu_match:
