@@ -67,7 +67,10 @@ with open(jsonl_path, "w") as jsonl_file:
             for k, v in data["entity_dict"].items():
                 convs.extend(
                     [
-                        {"from": "human", "value": f"what is the value for {entity_dict[k]}? Answer this question using the text in the image directly."},
+                        {
+                            "from": "human",
+                            "value": f"what is the value for {entity_dict[k]}? Answer this question using the text in the image directly.",
+                        },
                         {"from": "gpt", "value": v},
                     ]
                 )

@@ -1,6 +1,7 @@
-import os
-from tqdm import tqdm
 import json
+import os
+
+from tqdm import tqdm
 
 # PLEASE REPLACE YOUR IMAGE FOLDER HERE.
 image_root = "/home/jasonlu/vlm_datasets3/sroie/train"
@@ -17,17 +18,21 @@ return_list = []
 jsonl_path = os.path.join("/home/jasonlu/vlm_datasets3/sroie", "SROIE_processed.jsonl")
 
 # Get list of image files
-image_files = [f for f in os.listdir(image_root) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))]
+image_files = [
+    f for f in os.listdir(image_root) if f.lower().endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif"))
+]
 images = []
 
 # Open all images in image_root with progress bar
 with open(jsonl_path, "w") as jsonl_file:
     for image_file in tqdm(image_files, desc="Processing images", unit="image"):
         image_path = os.path.join(image_root, image_file)
-        annotation_path = os.path.join(image_root, image_file.replace('.png', '.txt').replace('.jpg', '.txt').replace('.jpeg', '.txt'))
-        
+        annotation_path = os.path.join(
+            image_root, image_file.replace(".png", ".txt").replace(".jpg", ".txt").replace(".jpeg", ".txt")
+        )
+
         try:
-            with open(annotation_path, 'r') as f:
+            with open(annotation_path) as f:
                 try:
                     annotation_data = json.load(f)
                 except json.JSONDecodeError as json_error:
@@ -41,21 +46,23 @@ with open(jsonl_path, "w") as jsonl_file:
             continue  # Skip to the next image file
 
         for k, v in annotation_data.items():
-            convs = [(
-                [
-                    {"from": "human", "value": "<image>\n"+question_dict[k]},
-                    {"from": "gpt", "value": v},
-                ]
-            )]
+            convs = [
+                (
+                    [
+                        {"from": "human", "value": "<image>\n" + question_dict[k]},
+                        {"from": "gpt", "value": v},
+                    ]
+                )
+            ]
 
             outputs = {
-                "id": image_file[:-3]+k,
+                "id": image_file[:-3] + k,
                 "image": image_file,
                 "conversations": convs,
             }
             json.dump(outputs, jsonl_file)
             jsonl_file.write("\n")  # Add a newline after each JSON object
 
-        
+
 # Now 'images' contains all the opened images from the image_root directory
 print(f"Successfully opened {len(images)} out of {len(image_files)} images.")

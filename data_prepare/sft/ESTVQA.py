@@ -1,12 +1,15 @@
 import json
+
 from langdetect import detect
+
 
 def is_english(text):
     try:
         language = detect(text)
-        return language == 'en'
+        return language == "en"
     except:
         return False
+
 
 input_json_path = "/home/jasonlu/vlm_datasets3/estvqa/estvqa.json"
 jsonl_path = "/home/jasonlu/vlm_datasets3/estvqa/ESTVQA_processed.jsonl"
