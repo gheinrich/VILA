@@ -305,4 +305,4 @@ if __name__ == "__main__":
     parser.add_argument("--workers", type=int, default=workers)
     app.args = parser.parse_args()
 
-    uvicorn.run(app, host=host, port=port, workers=workers)
+    uvicorn.run(app, host=app.args.host, port=app.args.port, workers=app.args.workers)
