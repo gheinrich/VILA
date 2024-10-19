@@ -1263,8 +1263,7 @@ class LazyVideoWebDataset(Dataset):
         if caption is None:
             caption = ""
         prompt = "<image>\n" * frames_loaded_successfully + caption
-        # image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
-        image_list = [process_image(image, self.data_args, None).unsqueeze(0) for image in image_list]
+        image_tensor = torch.stack([process_image(image, self.data_args, None) for image in images])
 
         input_ids = tokenizer_image_token(
             prompt,
@@ -1272,7 +1271,7 @@ class LazyVideoWebDataset(Dataset):
             return_tensors="pt",
         )
         targets = copy.deepcopy(input_ids)
-        data_dict = dict(input_ids=input_ids, labels=targets, image=image_list)
+        data_dict = dict(input_ids=input_ids, labels=targets, image=image_tensor)
 
         return data_dict
 
@@ -1306,7 +1305,7 @@ class DataCollatorForSupervisedDataset:
                 # assert len(cur_image.shape) == 4
                 # n_images, 3, size, size
                 if not isinstance(instance["input_ids"], list):
-                    assert len(cur_image.shape) == 4
+                    assert len(cur_image.shape) == 4, f"got shape {cur_image.shape}"
                     # datasets other than coyo, not packing >1 samples together
                     images.append(cur_image)
                 else:

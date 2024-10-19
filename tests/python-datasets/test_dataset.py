@@ -53,15 +53,15 @@ DATASETS = [
     "youcook2",
     "video_chatgpt",
     "vatex",
+    "internvid_1300K",
+    "coyo_25m_wds",
     # "mmc4core",
 ]
 
-# TODO(ligeng, jason): the two are also broken after dynamic res
+# TODO(ligeng, jason): the followings are broken after dynamic res
 # disbable for now
 #  "mminstruct"
 #  "coyo_25m",
-#  "coyo_25m_wds"
-#  "internvid_1300K",
 #  "internvid_10M"
 
 
