@@ -3,6 +3,7 @@ import os.path as osp
 from itertools import chain
 from typing import Any, List, Optional
 
+import torch
 from hydra.utils import instantiate
 from torch.utils.data import ConcatDataset, Dataset
 from transformers import PreTrainedTokenizer
@@ -80,8 +81,22 @@ def build_dataset(
     training_args: TrainingArguments,
     tokenizer: PreTrainedTokenizer,
 ) -> Dataset:
+    logger.warning(f"Using mixture '{mixture}'.")
     datasets = []
     for name in parse_mixture(mixture):
+        slice_subset = False
+        if "@" in name:
+            try:
+                name, subset_choice = name.split("@")
+                slice_subset = True
+                slice_folder = os.environ.get(
+                    "VILA_SLICE_FOLDER", "/home/ligengz/workspace/dataset-curation/filter_index"
+                )
+            except ValueError as e:
+                logger.warning(f"failed on {name}")
+                raise e
+            # logger.warning(f"Using subset '{subset_choice}' for dataset '{name}'.")
+
         if "*" in name:
             name, times = name.split("*")
             times = int(times)
@@ -105,6 +120,14 @@ def build_dataset(
             )
         else:
             raise ValueError(f"Dataset '{name}' is not found in the registries.")
+
+        if slice_subset:
+            slice_json = osp.join(slice_folder, subset_choice, f"{name}.json")
+            ignore_indices = io.load(slice_json)
+            total_indices = range(len(dataset))
+            indices = sorted(list(set(total_indices) - set(ignore_indices)))
+            logger.info(f"[{name}] Slicing subset indices {slice_json}, len(dataset): {len(dataset)} => {len(indices)}")
+            dataset = torch.utils.data.Subset(dataset, indices)
 
         if times > 1:
             dataset = RepeatedDataset(dataset, times)

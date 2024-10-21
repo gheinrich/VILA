@@ -24,6 +24,7 @@ class BaseDataset(Dataset):
         tokenizer: PreTrainedTokenizer,
         data_args: DataArguments,
         no_system_prompt: bool = False,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.tokenizer = tokenizer

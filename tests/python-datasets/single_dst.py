@@ -173,8 +173,10 @@ def _test_make_supervised_data_module(
         print(f"[{idx}/{len(dloader)}]", info)
 
 
-def main(dataset_name="coyo_25m_wds_spatial_ocr_bbox_interleaved_qas"):
-    _test_make_supervised_data_module(dataset_name=dataset_name, batch_size=1, num_workers=0, max_samples=10)
+def main(dataset_name="coyo_25m_wds_spatial_ocr_bbox_interleaved_qas", batch_size=1, num_workers=0, max_samples=10):
+    _test_make_supervised_data_module(
+        dataset_name=dataset_name, batch_size=batch_size, num_workers=num_workers, max_samples=max_samples
+    )
 
 
 if __name__ == "__main__":

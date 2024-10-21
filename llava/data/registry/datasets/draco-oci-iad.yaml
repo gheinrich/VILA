@@ -260,6 +260,7 @@ docmatix_3:
     data_path: /home/baifengs/baifengs/data/Docmatix/conversations_1000000-1250000.json
     media_dir: /home/baifengs/baifengs/data/Docmatix
 
+# NOTE(ligeng): unclear why jsonl each line is a list?
 doc_reason:
     _target_: llava.data.LLaVADataset
     data_path: /home/haotiant/workspace/dataset/vila_data/DocReason25K/docreason25k_processed.jsonl

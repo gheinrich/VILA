@@ -36,6 +36,12 @@ class LLaVADataset(BaseDataset):
         if "image" in instance:
             for image_path in make_list(instance["image"]):
                 medias.append(Image(os.path.join(self.media_dir, image_path)))
+
+        # NOTE(ligeng): quick workaround for idefics2_sft
+        if "images" in instance:
+            for image_path in make_list(instance["images"]):
+                medias.append(Image(os.path.join(self.media_dir, image_path)))
+
         if "video" in instance:
             for video_path in make_list(instance["video"]):
                 medias.append(Video(os.path.join(self.media_dir, video_path)))

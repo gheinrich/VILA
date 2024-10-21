@@ -295,7 +295,7 @@ def process_mme(folder, max_samples=20, **kwargs):
             _log["doc_id"],
             _log[score_key]["question_id"],
             _log[score_key]["category"],
-            wandb.Image(data["test"][img_index]["image"].convert("RGB")).convert("RGB"),
+            wandb.Image(data["test"][img_index]["image"].convert("RGB")),
             _log["doc"]["question"],
             _log["target"],
             resp,

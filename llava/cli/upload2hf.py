@@ -54,7 +54,7 @@ def main():
     os.environ["CURL_CA_BUNDLE"] = ""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local-folder", type=str, default=None)
+    parser.add_argument("local_folder", type=str)
     parser.add_argument("--model-name", type=str, default=None)
     parser.add_argument("--repo-type", type=str, choices=["model", "dataset"])
     parser.add_argument("--repo-org", type=str, default="Efficient-Large-Model")
@@ -210,7 +210,7 @@ def main():
             print(colored(f"Finish {commit_info}", "yellow"))
 
     # upload residuals
-    commit_message = "Upload files with huggingface_hub"
+    commit_message = "Upload files with `vila-upload`."
     commit_info = api.create_commit(
         repo_id=repo,
         repo_type=repo_type,

@@ -33,7 +33,7 @@ def main() -> None:
         if args.mode == "train":
             args.max_retry = 3
         else:
-            args.max_retry = 1
+            args.max_retry = 0
 
     # Generate run name and output directory
     if "%t" in args.job_name:
@@ -46,7 +46,7 @@ def main() -> None:
     time = datetime.datetime.strptime(args.time, "%H:%M:%S")
     if time < datetime.datetime.strptime("0:01:00", "%H:%M:%S"):
         raise ValueError("Time must be at least 1 minutes")
-    timeout = time - datetime.timedelta(minutes=1)
+    timeout = time - datetime.timedelta(minutes=args.timedelta)
     timeout = timeout.hour * 60 + timeout.minute
     timeout = f"{timeout}m"
 
@@ -62,10 +62,11 @@ def main() -> None:
     env["OUTPUT_DIR"] = output_dir
 
     # Compose the SLURM command
+    job_name = f"{account}:{args.mode}/{args.job_name}"
     cmd = ["srun"]
     cmd += ["--account", account]
     cmd += ["--partition", partition]
-    cmd += ["--job-name", f"{account}:{args.mode}/{args.job_name}"]
+    cmd += ["--job-name", job_name]
     if not args.pty:
         # Redirect output to files if not pty / interactive
         cmd += ["--output", f"{output_dir}/slurm/%J.out"]
@@ -96,7 +97,7 @@ def main() -> None:
             print(f"Job failed, retrying {fail_times} / {args.max_retry}")
         else:
             fail_times = 0
-            print("Job timed out, retrying...")
+            print(f"Job timed out, retrying...")
 
     # Exit with the return code
     print(f"Job finished with exit code {returncode}")
