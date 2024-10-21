@@ -413,3 +413,18 @@ sroie:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/vlm_datasets2/sroie/SROIE_processed.jsonl
     media_dir: /home/jasonlu/vlm_datasets2/sroie/train
+
+grandstaff:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/grandstaff/grandstaff_converted.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/grandstaff/images
+
+pdfvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/pdfvqa/pdfvqa_converted.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/pdfvqa/images
+
+chembl:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/chembl/chembl_converted.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/chembl/images
