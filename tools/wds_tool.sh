@@ -1,27 +1,25 @@
-#/bin/bash
+#!/bin/bash
+#SBATCH --account=nvr_elm_llm
+#SBATCH --partition=cpu,cpu_long,cpu_short,cpu_interactive,interactive
+#SBATCH --job-name=nvr_elm_llm:wds
+#SBATCH --output=runs/wds/gen-%A_%a.out
+#SBATCH --error=runs/wds/gen-%A_%a.err
+#SBATCH --time=4:00:00
+#SBATCH --exclusive
+#SBATCH --array=0-100:10  # total tars to transfer
+
 set -e
 
-idx=${1:-0}
-steps=${2:-20}
+idx=${SLURM_ARRAY_TASK_ID}
+steps=10
 
-# rm -rfv /home/ligengz/nvr_elm_llm/dataset/vila-sft-tar/$idx
-python tools/create_wds.py --start $idx --output_folder /home/ligengz/nvr_elm_llm/dataset/vila-sft-tar/$idx --seg $steps
-rsync -avP /home/ligengz/nvr_elm_llm/dataset/vila-sft-tar/$idx/ login-eos:/home/ligengz/nvr_elm_llm/dataset/vila-sft-tar
-rm -rfv /home/ligengz/nvr_elm_llm/dataset/vila-sft-tar/$idx
+DATADIR="/lustre/fs11/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/pixmo"
+TARDIR="/home/ligengz/nvr_elm_llm/dataset/vila-sft-tar"
+REMOTEDIR=login-eos:$TARDIR
 
+
+python tools/create_wds.py --folder $DATADIR --start $idx --output_folder $TARDIR/$idx --seg $steps
+rsync -avP $TARDIR/$idx/ $REMOTEDIR
+rm -rfv $TARDIR/$idx
 
 exit 0
-
-rm -rfv /home/ligengz/nvr_elm_llm/dataset/vila-sft-tar
-for idx in $(seq 0 20 520); do
-    while [ $(jobs -p | wc -l) -ge 16 ]; do
-        sleep 5
-    done
-    echo "[submit to slurm] Processing $file ";
-    srun --account nvr_elm_llm --partition cpu,cpu_long,cpu_short,cpu_interactive,interactive \
-        --job-name nvr_elm_llm:wds-$idx \
-        --output runs/wds/gen-$idx/%J.out \
-        --error runs/wds/gen-$idx/%J.err \
-        --time 4:00:00 --exclusive \
-        bash tools/wds_tool.sh $idx  &
-done
