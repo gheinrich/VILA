@@ -447,4 +447,3 @@ chembl:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/chembl/chembl_converted.jsonl
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/chembl/images
-
