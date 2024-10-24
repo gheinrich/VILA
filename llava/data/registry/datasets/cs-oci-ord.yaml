@@ -409,6 +409,25 @@ pdfa-1m:
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa/pdfa_1m.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_lpr_llm/datasets/baifengs/pdfa_vanilla_qa
 
+gsm8k_rendering:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/gsm8k/gsm8k_rendering.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/gsm8k/images
+
+metamathqa_rendering:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/MetaMathQA/MetaMathQA_rendering.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/MetaMathQA/images
+
+squad_rendering:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/squad/squad_rendering.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/squad/images
+
+squad:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/squad/squad_converted.jsonl
+
 sroie:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/vlm_datasets2/sroie/SROIE_processed.jsonl

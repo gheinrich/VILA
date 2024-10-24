@@ -40,6 +40,10 @@ class VILA(lmms):
         if max_tiles > 12:
             context_length = max(context_length, int(max_tiles / 12.0 * 4096))
 
+        context_length = max(
+            getattr(self.model.llm.config, "tokenizer_model_max_length", context_length), context_length
+        )
+
         self.model.config.model_max_length = context_length
         self.model.config.tokenizer_model_max_length = context_length
         self.model.llm.config.model_max_length = context_length
