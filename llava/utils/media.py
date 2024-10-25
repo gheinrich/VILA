@@ -46,20 +46,17 @@ def _load_video(video_path: str, *, num_frames: int) -> List[PIL.Image.Image]:
         frame_count -= 1
     else:
         raise ValueError(f"Video '{video_path}' has no frames.")
-    vidcap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     # Extract frames uniformly
     indices = np.round(np.linspace(0, frame_count - 1, num_frames)).astype(int)
     frames = {}
-    for index in range(frame_count):
-        success = vidcap.grab()
-        if not success:
-            raise ValueError(f"Failed to grab frame {index} from video '{video_path}'.")
-        if index not in indices:
+    for index in indices:
+        if index in frames:
             continue
-        success, frame = vidcap.retrieve()
+        vidcap.set(cv2.CAP_PROP_POS_FRAMES, index)
+        success, frame = vidcap.read()
         if not success:
-            logger.warning(f"Failed to retrieve frame {index} from video '{video_path}'. Skipped.")
+            logger.warning(f"Failed to read frame {index} from video '{video_path}'. Skipped.")
             continue
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frames[index] = PIL.Image.fromarray(frame)
