@@ -829,7 +829,7 @@ class LlavaMetaForCausalLM(ABC):
 
     @property
     def default_generation_config(self) -> GenerationConfig:
-        generation_config = copy.deepcopy(self.generation_config)
+        generation_config = copy.deepcopy(self.generation_config or GenerationConfig())
         if self.tokenizer.eos_token_id is None:
             raise ValueError("Tokenizer must have an EOS token")
         if generation_config.max_length == GenerationConfig().max_length:
