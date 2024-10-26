@@ -97,6 +97,66 @@ llava_instruct:
     data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/llava_instruct_150k_zh.jsonl
     media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/coco
 
+llava-video/academic-cap:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-cap.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/academic-mc:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-mc.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/academic-oe:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-oe.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/activitynetqa-oe:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/activitynetqa-oe.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/nextqa-mc:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/nextqa-mc.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/nextqa-oe:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/nextqa-oe.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/perceptiontest-mc:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/perceptiontest-mc.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/sharegptvideo-cap:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/sharegptvideo-cap.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/sharegpt-video/videos
+
+llava-video/sharegptvideo-oe:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/sharegptvideo-oe.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/sharegpt-video/videos
+
+llava-video/youtube-cap:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-cap.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/youtube-mc:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-mc.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
+llava-video/youtube-oe:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-oe.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+
 m3it/fm-iqa/train:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/m3it/fm-iqa/train.json

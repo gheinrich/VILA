@@ -1,4 +1,18 @@
 ---
+llava-video-sft:
+    - llava-video/academic-cap
+    - llava-video/academic-mc
+    - llava-video/academic-oe
+    - llava-video/activitynetqa-oe
+    - llava-video/nextqa-mc
+    - llava-video/nextqa-oe
+    - llava-video/perceptiontest-mc
+    - llava-video/sharegptvideo-cap
+    - llava-video/sharegptvideo-oe
+    - llava-video/youtube-cap
+    - llava-video/youtube-mc
+    - llava-video/youtube-oe
+
 recipe_v13:
     - sharegpt4v_gpt4_100k
     - llava_instruct
