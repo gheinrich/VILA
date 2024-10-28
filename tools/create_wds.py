@@ -5,16 +5,17 @@ import tarfile
 from math import ceil, floor
 
 
-def build_tar(tfiles, DIR, prefix, tar_idx=0, total_idx=None):
+def build_tar(tfiles, DIR, prefix, tar_idx=0, total_idx=None, print_freq=20):
     output_tar = osp.join(DIR, f"{osp.basename(prefix)}_{tar_idx:06d}.tar")
     tar = tarfile.open(output_tar, "w")
 
     for idx, f in enumerate(tfiles):
-        print(
-            output_tar,
-            f"[{idx}/{len(tfiles)} | {tar_idx}-of-{total_idx}]",
-            f,
-        )
+        if idx % print_freq == 0:
+            print(
+                output_tar,
+                f"[{idx}/{len(tfiles)} | {tar_idx}-of-{total_idx}]",
+                f,
+            )
         # override symlinks
         try:
             tar.add(osp.realpath(f), arcname=osp.relpath(f, prefix))

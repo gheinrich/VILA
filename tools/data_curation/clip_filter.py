@@ -28,7 +28,7 @@ from llava.utils.media import extract_media
 def main(
     topk_p=30,
     output_dir="data_curation_dev/val_siglip",
-    indices_folder="data_curation_dev/filter_index",
+    indices_folder="data_curation_dev/filter_index@1023_by_mmmu",
     benchmark_target=None,
 ):
     mmdb_dir = "data_curation_dev/mmdb"

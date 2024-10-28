@@ -157,14 +157,14 @@ def get_textvqa():
 
 
 task2fn = {
-    "ai2d": get_ai2d,
     "mmmu_val": get_mmmu_val,
-    "gqa": get_gqa,
-    "docvqa": get_docvqa,
-    "chartqa": get_chartqa,
-    "mme": get_mme,
-    "ocrbench": get_ocrbench,
-    "textvqa": get_textvqa,
+    # "ai2d": get_ai2d,
+    # "gqa": get_gqa,
+    # "docvqa": get_docvqa,
+    # "chartqa": get_chartqa,
+    # "mme": get_mme,
+    # "ocrbench": get_ocrbench,
+    # "textvqa": get_textvqa,
     # "scienceqa": get_scienceqa, # buggy
     # "vqav2": get_vqav2,
 }
@@ -203,7 +203,6 @@ class FeatureExtractor:
 def main(
     topk_nums=300, topk_threshold=0.75, mmdb_dir="data_curation_dev/mmdb", output_dir="data_curation_dev/val_siglip"
 ):
-    mmdb_dir = "data_curation_dev/mmdb"
     features, text_features, metainfos = [], [], []
     # merge all text and image embeddings
     dataset_len_info = {
@@ -230,6 +229,7 @@ def main(
     ft = FeatureExtractor("google/siglip-so400m-patch14-384")
     val2sft_info_all = {}
 
+    @torch.no_grad()
     def topk_filter(f, all_f, topk=100, topk_thres=0.75):
         _scores = cosine_similarity(f, all_f)
         scores, indices = _scores.topk(topk)
@@ -242,7 +242,7 @@ def main(
     for task, fn in task2fn.items():
         val2sft_info = {}
         if osp.exists(f"{output_dir}/{task}.json") and osp.exists(f"{output_dir}/{task}.pth"):
-            print("skipping ", task)
+            print("`skipping` ", task)
             continue
         print("retrieving images for ", task)
         sum_scores = None

@@ -3,6 +3,8 @@ set -e
 export CUDA_LAUNCH_BLOCKING=1
 
 files=(
+    # new added by jason
+    # #####
     sharegpt4v_gpt4_100k
     llava_instruct
     sharegpt4v_sft
@@ -37,14 +39,22 @@ files=(
     svit
     mmbench_val
     cvbench
+
 )
 
 files=(
-    idefics2_sft
-    cvbench
+    pathvqa
+    pmcvqa
+    medvqa
+    slake
+    mimicvqa
+    metamathqa
+    mminstruct
+    unichart
+    chembl
 )
 
-# rm -rfv runs/dev
+rm -rfv runs/dev
 # export VILA_SLURM_ACCOUNT=llmservice_nlp_fm
 export VILA_SLURM_PARTITION=$VILA_SLURM_PARTITION,interactive
 for file in ${files[@]}; do
