@@ -371,7 +371,7 @@ def register_datasets_mixtures():
     mmc4core_10_subset = Dataset(
         dataset_name="mmc4core_10_subset",
         dataset_type="mmc4",
-        data_path="/home/yunhaof/workspace/datasets/subsets/mmc4core_subset",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/mmc4core_subset",
         description="10% subset of mmc4core.",
     )
     add_dataset(mmc4core_10_subset)
@@ -1522,8 +1522,8 @@ def register_datasets_mixtures():
     coyo_25m_wds_spatial_ocr_bbox_interleaved_qas = Dataset(
         dataset_name="coyo_25m_wds_spatial_ocr_bbox_interleaved_qas",
         dataset_type="coyo-wds-qas",
-        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila",
-        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta-10-subset.json",
+        data_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/coyo-25m-vila",
+        meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/coyo-25m-vila/wids-meta-10-subset.json",
         # Full VILA^2 coyo data: meta_path="/lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/coyo-25m-vila/wids-meta.json",
         caption_choice="/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_spatial_specialist_clean+/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_ocr_specialist_clean+/home/yunhaof/workspace/datasets/data_synthesis/arxiv/compound/coyo_bbox_interleaved_clean",
         description="10% subset of coyo_25m_wds.",

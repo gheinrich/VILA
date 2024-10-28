@@ -307,18 +307,18 @@ youcook2:
 
 docmatix_750k:
     _target_: llava.data.LLaVADataset
-    data_path: /home/baifengs/baifengs/data/Docmatix/conversations_750k.json
-    media_dir: /home/baifengs/baifengs/data/Docmatix
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_750k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix
 
 docmatix_2:
     _target_: llava.data.LLaVADataset
-    data_path: /home/baifengs/baifengs/data/Docmatix/conversations_750000-1000000.json
-    media_dir: /home/baifengs/baifengs/data/Docmatix
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_750000-1000000.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix
 
 docmatix_3:
     _target_: llava.data.LLaVADataset
-    data_path: /home/baifengs/baifengs/data/Docmatix/conversations_1000000-1250000.json
-    media_dir: /home/baifengs/baifengs/data/Docmatix
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_1000000-1250000.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/Docmatix
 
 # NOTE(ligeng): unclear why jsonl each line is a list?
 doc_reason:
@@ -397,8 +397,8 @@ casia:
 
 pdfa-1m:
     _target_: llava.data.LLaVADataset
-    data_path: /home/baifengs/baifengs/data/pdfa/vanilla_qa/pdfa_1m.json
-    media_dir: /home/baifengs/baifengs/data/pdfa/vanilla_qa
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/pdfa/vanilla_qa/pdfa_1m.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/pdfa/vanilla_qa
 
 gsm8k_rendering:
     _target_: llava.data.LLaVADataset
@@ -572,3 +572,18 @@ olmo_capqa:
     _target_: llava.data.LLaVADataset
     data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/capqa.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+
+llava_1_5_mm_align:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/LLaVA-CC3M-Pretrain-595K/chat.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/LLaVA-CC3M-Pretrain-595K/images
+
+allava_caption_vflan:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/ALLaVA-Caption-VFLAN-4V.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/
+
+sharegpt4v_pretrain:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/jason-filter-share-captioner_coco_lcs_sam_1246k_1107.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data
