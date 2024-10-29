@@ -143,6 +143,7 @@ class VILADistributedSampler(DistributedSampler):
         sample_len_list=None,
         force_accumulation=True,
         sp_degree: int = 1,
+        gradient_accumulation_steps: int = 1,
     ) -> None:
         if num_replicas is None:
             if not dist.is_available():
@@ -184,8 +185,8 @@ class VILADistributedSampler(DistributedSampler):
         if self.drop_last:  # type: ignore[arg-type]
             self.per_replica_samples = [
                 sample_len
-                // (self.num_replicas * self.batch_size // self.sp_degree)
-                * self.batch_size
+                // (self.num_replicas * self.batch_size * gradient_accumulation_steps // self.sp_degree)
+                * self.batch_size * gradient_accumulation_steps
                 // self.sp_degree
                 for sample_len in self.per_replica_samples
             ]
@@ -453,6 +454,7 @@ class VILADPOTrainer(DPOTrainer):
             batch_size=self.args.train_batch_size,
             sample_len_list=sample_len_list,
             sp_degree=self.args.seq_parallel_size,
+            gradient_accumulation_steps=self.args.gradient_accumulation_steps,
         )
 
     def _get_eval_sampler(self, eval_dataset: Dataset) -> Optional[torch.utils.data.Sampler]:
@@ -469,6 +471,7 @@ class VILADPOTrainer(DPOTrainer):
             seed=seed,
             batch_size=self.args.eval_batch_size,
             sample_len_list=sample_len_list,
+            gradient_accumulation_steps=self.args.gradient_accumulation_steps,
         )
 
     def create_optimizer(self):
@@ -615,6 +618,7 @@ class LLaVATrainer(Trainer):
             batch_size=self.args.train_batch_size,
             sample_len_list=sample_len_list,
             sp_degree=self.args.seq_parallel_size,
+            gradient_accumulation_steps=self.args.gradient_accumulation_steps,
         )
 
         # if self.args.group_by_modality_length:
@@ -647,6 +651,7 @@ class LLaVATrainer(Trainer):
             seed=seed,
             batch_size=self.args.eval_batch_size,
             sample_len_list=sample_len_list,
+            gradient_accumulation_steps=self.args.gradient_accumulation_steps,
         )
 
     def _inner_training_loop(self, batch_size: Optional[int] = None, *args, **kwargs):
