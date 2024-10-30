@@ -186,7 +186,8 @@ class VILADistributedSampler(DistributedSampler):
             self.per_replica_samples = [
                 sample_len
                 // (self.num_replicas * self.batch_size * gradient_accumulation_steps // self.sp_degree)
-                * self.batch_size * gradient_accumulation_steps
+                * self.batch_size
+                * gradient_accumulation_steps
                 // self.sp_degree
                 for sample_len in self.per_replica_samples
             ]
