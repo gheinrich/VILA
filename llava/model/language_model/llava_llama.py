@@ -143,10 +143,11 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 std=self.config.soft_ce_std,
             )
 
-        # Loss rescale for SP & DP loss match
-        if dist.size() > 1:
-            loss_weight = calculate_loss_weight(labels)
-            outputs.loss = outputs.loss * loss_weight
+        # TODO(qinghao): check whether it is needed for SP
+        # # Loss rescale for SP & DP loss match
+        # if dist.size() > 1:
+        #     loss_weight = calculate_loss_weight(labels)
+        #     outputs.loss = outputs.loss * loss_weight
 
         if dpo_forward:
             return outputs.logits, labels
