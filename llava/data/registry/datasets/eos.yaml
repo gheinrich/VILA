@@ -191,3 +191,53 @@ vqa_vqa-v2_train:
     data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_vqa-v2_train/data.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vflan/vqa_vqa-v2_train/images
     no_system_prompt: true
+
+llava_1_5_mm_align:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/LLaVA-CC3M-Pretrain-595K/chat.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/LLaVA-CC3M-Pretrain-595K/images
+
+allava_caption_vflan:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/ALLaVA-Caption-VFLAN-4V.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/
+
+docmatix_2:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_750000-1000000.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix
+
+docmatix_3:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_1000000-1250000.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix
+
+pdfa-1m:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/pdfa/vanilla_qa/pdfa_1m.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/pdfa/vanilla_qa
+
+unichart-pretrain-1m:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/unichart-pretrain-data/unichart-pretrain_processed_1m.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/UniChart-pretrain-images/content/images
+
+mtwi:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/mtwi_train/mtwi_processed.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/mtwi_train/image_train
+
+art1:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ART/ART_processed1.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ART/train_images
+
+art2:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ART/ART_processed2.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ART/train_task2_images
+
+lsvt:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LSVT/LSVT_processed.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LSVT/train_full_images
