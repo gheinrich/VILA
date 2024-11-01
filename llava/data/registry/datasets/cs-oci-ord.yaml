@@ -466,8 +466,8 @@ casia:
 
 pdfa-1m:
     _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/pdfa_vanilla_qa/pdfa_1m.json
-    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/pdfa_vanilla_qa
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/baifengs/pdfa_vanilla_qa/pdfa_1m.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-pretrain/baifengs/pdfa_vanilla_qa
 
 gsm8k_rendering:
     _target_: llava.data.LLaVADataset
