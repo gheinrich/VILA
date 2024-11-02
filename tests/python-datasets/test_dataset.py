@@ -87,6 +87,7 @@ def _test_fps_module(
 ):
     # datasets_mixture.register_datasets_mixtures()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
+        # "Qwen/Qwen2-VL-7B-Instruct",
         "lmsys/vicuna-7b-v1.5",
         model_max_length=8192 * 2,
         padding_side="right",
@@ -154,6 +155,8 @@ def _test_make_supervised_data_module(
     skip_before=0,
 ):
     tokenizer = transformers.AutoTokenizer.from_pretrained(
+        # TODO(ligeng): seems to fail with the following model, pad_token_id is None
+        # "Qwen/Qwen2-VL-7B-Instruct",
         "lmsys/vicuna-7b-v1.5",
         model_max_length=8192,
         padding_side="right",
