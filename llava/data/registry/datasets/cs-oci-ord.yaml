@@ -209,8 +209,8 @@ nextqa:
 
 real-cqa:
     _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/data.json
-    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/images
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa/data.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa/images
 
 reasoning_clevr_train:
     _target_: llava.data.LLaVADataset
@@ -421,8 +421,8 @@ mtwi:
 
 art:
     _target_: llava.data.LLaVADataset
-    data_path: /home/haotiant/dataset/vila_data/art_shangy/art500k_processed.jsonl
-    media_dir: /home/haotiant/dataset/vila_data/art_shangy
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/art_shangy/art500k_processed.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/art_shangy
 
 art1:
     _target_: llava.data.LLaVADataset
@@ -656,3 +656,68 @@ sharegpt4v_pretrain:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/jason-filter-share-captioner_coco_lcs_sam_1246k_1107.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data
+
+nv_mm_sft:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/nv_mm_sft/nv_mm_sft.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/nv_mm_sftimages
+
+llave_onevision_sft:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_non_repeat_train.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
+
+llave_onevision_images_sft:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
+
+cambrian_1375k:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/cambrian/cambrian_1375k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/Cambrian/data
+
+unimm_chat:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/UniMM-Chat/UniMM-Chat_117k.json
+    media_dir: /home/yunhaof/workspace/datasets/coco # TODO: What should this be?
+
+svit:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/SVIT/SVIT_108k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/svit
+
+mmbench_val:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/MMBench/data/mmbench_4k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/MMBench/images
+
+cvbench:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/CV-Bench/test_2k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/CV-Bench
+
+shikra:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/shikra/shikra.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/flickr30k-images
+
+stem_qa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/STEM/processed/stem_sft_644k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/STEM/processed/images/train
+
+textocr_qa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/textocr-gpt4v/processed/textocr_25k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/TextOCR/train_images
+
+mmc_instruction:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/MMC-Instruction/processed/mmc_instruction_410k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/MMC-Instruction
+
+lrv_instruction:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LRV-Instruction/processed/lrv_instruction_321k.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data/vg
