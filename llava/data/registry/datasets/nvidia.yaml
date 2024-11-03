@@ -6,8 +6,8 @@ dummy:
 
 llave_onevision_images_sft_cot:
     _target_: llava.data.LLaVACOTDataset
-    data_path: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
-    media_dir: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train@@fix_relpath.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
     name: llave_onevision_images_sft
     cot_relabel_path: /home/ligengz/workspace/VILA-dev/data_curation_dev/recaptioned_cot_llava.json
 
@@ -121,7 +121,7 @@ k710:
 
 llave_onevision_images_sft:
     _target_: llava.data.LLaVADataset
-    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train@@fix_relpath.jsonl
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
 
 llave_onevision_sft:
