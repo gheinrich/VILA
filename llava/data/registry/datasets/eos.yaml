@@ -1,4 +1,130 @@
 ---
+orand-b:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/ORAND-CAR-B_train.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/yuxian_data/images/ORAND-CAR-B
+
+wordart:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/WordArt_train_label_out_processed.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/WordArt
+
+unichart:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/unichart-qa-data/unichart-qa_processed.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/unichart-qa-data/images
+
+ureaderkg:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/ureader_kg/ureader_kg_processed.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/ureader_kg
+
+pathvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pathvqa/pvqa/train_32k.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pathvqa/pvqa/images
+
+medvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/medvqa/train_data_17k.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/medvqa/data/
+
+slake:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/slake/slake_train_val_instruct_high_freq_4.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/slake/imgs
+
+sroie:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/sroie/SROIE_processed.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/sroie/train
+
+llave_onevision_images_sft:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train@fix_relpath.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
+
+# 154,608
+olmo_pointing:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/pointing.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 27,856
+olmo_pointing_qa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/pointing_qa.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 65,934
+olmo_pointing_high_freq:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/pointing_high_frequency.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 46,518
+olmo_doc_table:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/documents_tables.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 71,282
+olmo_doc_doc:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/documents_documents.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 16,551
+olmo_doc_diagrams:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/documents_diagrams.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 116,814
+olmo_doc_charts:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/documents_charts.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 203,559
+olmo_clock200k:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/clocks_processed_200k.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 71,172
+olmo_askanything:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/ask_model_anything.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 162,855
+olmo_capqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/capqa.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+    
+sharegpt4v_gpt4_100k:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/jason-filter-sharegpt4v_instruct_gpt4-vision_cap100k.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/data
+
+synthdog_en:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/synthdog_en.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/data/synthdog-en
+
+llava_instruct:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/llava_instruct_150k_zh.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/data/coco
+
+geoqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/geoqa+.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/data/geoqa+
+
+ai2d_train_12k:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/ai2d_train_12k.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/internvl_chat/playground/data/ai2d
+
+text_flan_1m:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vflan/text_flan_1m/data.json
+    no_system_prompt: true
+
 shot2story_shotonly:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
