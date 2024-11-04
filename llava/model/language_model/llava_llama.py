@@ -24,7 +24,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from llava.model.loss import soft_cross_entropy
 from llava.model.utils.packing import set_seqlens_in_batch
-from llava.utils import distributed as dist
+from llava.train.sequence_parallel.globals import get_pg_manager
 
 from ...train.utils import calculate_loss_weight
 from ..configuration_llava import LlavaConfig
@@ -143,11 +143,10 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 std=self.config.soft_ce_std,
             )
 
-        # TODO(qinghao): check whether it is needed for SP
-        # # Loss rescale for SP & DP loss match
-        # if dist.size() > 1:
-        #     loss_weight = calculate_loss_weight(labels)
-        #     outputs.loss = outputs.loss * loss_weight
+        # Loss rescale for SP
+        if get_pg_manager() is not None:
+            loss_weight = calculate_loss_weight(labels)
+            outputs.loss = outputs.loss * loss_weight
 
         if dpo_forward:
             return outputs.logits, labels
