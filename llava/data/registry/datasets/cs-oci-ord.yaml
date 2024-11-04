@@ -702,6 +702,11 @@ shikra:
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/shikra/shikra.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/flickr30k-images
 
+idefics2_sft:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/idefics2-sft/processed/idefics2_sft_w_table.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/idefics2-sft
+
 stem_qa:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/STEM/processed/stem_sft_644k.json
