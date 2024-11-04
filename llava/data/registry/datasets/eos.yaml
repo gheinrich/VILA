@@ -328,6 +328,11 @@ allava_caption_vflan:
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/ALLaVA-Caption-VFLAN-4V.json
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/ALLaVA-4V/
 
+docmatix_750k:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_750k.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix
+
 docmatix_2:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-pretrain/Docmatix/conversations_750000-1000000.json
@@ -367,3 +372,8 @@ lsvt:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LSVT/LSVT_processed.jsonl
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LSVT/train_full_images
+
+sharegpt4v_pretrain:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/jason-filter-share-captioner_coco_lcs_sam_1246k_1107.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data
