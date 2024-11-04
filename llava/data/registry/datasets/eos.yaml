@@ -94,7 +94,7 @@ olmo_capqa:
     _target_: llava.data.LLaVADataset
     data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/capqa.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
-    
+
 sharegpt4v_gpt4_100k:
     _target_: llava.data.LLaVADataset
     data_path: /home/ligengz/nvr_elm_llm/dataset/ShareGPT4V/jason-filter-sharegpt4v_instruct_gpt4-vision_cap100k.json

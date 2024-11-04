@@ -243,6 +243,35 @@ vflan:
     - vqa_viquae_train
     - vqa_vqa-v2_train
 
+vflan_no_video:
+    - captioning_image-paragraph-captioning_train
+    - captioning_textcap_train
+    - generation_visual-dialog_train
+    - reasoning_clevr_train
+    - reasoning_nlvr_train
+    - reasoning_visual-mrc_train
+    - vqa_docvqa_train
+    - vqa_gqa_train
+    - vqa_ivqa_train
+    - vqa_ocr-vqa_train
+    - vqa_st-vqa_train
+    - vqa_viquae_train
+    - vqa_vqa-v2_train
+
+vflan_no_video_no_docvqa:
+    - captioning_image-paragraph-captioning_train
+    - captioning_textcap_train
+    - generation_visual-dialog_train
+    - reasoning_clevr_train
+    - reasoning_nlvr_train
+    - reasoning_visual-mrc_train
+    - vqa_gqa_train
+    - vqa_ivqa_train
+    - vqa_ocr-vqa_train
+    - vqa_st-vqa_train
+    - vqa_viquae_train
+    - vqa_vqa-v2_train
+
 vila-v1.5-sft:
     - ai2d_train_12k
     - chartqa_train_18k

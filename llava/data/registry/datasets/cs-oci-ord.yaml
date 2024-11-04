@@ -731,3 +731,129 @@ poie:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/poie/POIE_processed.jsonl
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/poie/nfv5/nfv5_3125
+
+llave_onevision_images_sft_cot3:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
+    media_dir: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images
+    name: llave_onevision_images_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1028.json
+
+sharegpt4v_sft_cot3:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
+    media_dir: /home/jasonlu/vlm_datasets/ShareGPT4V/data
+    name: sharegpt4v_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1028.json
+
+geoqa_cot3:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/geoqa+.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/geoqa+
+    name: geoqa
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1028.json
+
+chartqa_train_18k_cot3:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/chartqa
+    name: chartqa_train_18k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1028.json
+
+docvqa_train_10k_cot3:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/docvqa
+    name: docvqa_train_10k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+llave_onevision_images_sft_cot4:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
+    media_dir: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images
+    name: llave_onevision_images_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+sharegpt4v_sft_cot4:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
+    media_dir: /home/jasonlu/vlm_datasets/ShareGPT4V/data
+    name: sharegpt4v_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+geoqa_cot4:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/geoqa+.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/geoqa+
+    name: geoqa
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+chartqa_train_18k_cot4:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/chartqa
+    name: chartqa_train_18k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+docvqa_train_10k_cot4:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/docvqa
+    name: docvqa_train_10k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1030.json
+
+llave_onevision_images_sft_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train.jsonl
+    media_dir: /home/haotiant/dataset/vila_data/LLaVA-OneVision-Data-processed/images
+    name: llave_onevision_images_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+sharegpt4v_sft_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/vlm_datasets/ShareGPT4V/jason-filter-sharegpt4v_mix665k_cap23k_coco-ap9k_lcs3k_sam9k_div2k.json
+    media_dir: /home/jasonlu/vlm_datasets/ShareGPT4V/data
+    name: sharegpt4v_sft
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+geoqa_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/geoqa+.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/geoqa+
+    name: geoqa
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+chartqa_train_18k_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/chartqa
+    name: chartqa_train_18k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+docvqa_train_10k_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/docvqa_train_10k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/docvqa
+    name: docvqa_train_10k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+real-cqa_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/data.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/images
+    name: real-cqa
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+dvqa_train_200k_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/workspace/InternVL/internvl_chat/playground/dvqa_train_200k.jsonl
+    media_dir: /home/jasonlu/workspace/InternVL/internvl_chat/playground/data/dvqa
+    name: dvqa_train_200k
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
+
+unichart_cot5:
+    _target_: llava.data.LLaVACOTDataset
+    data_path: /home/jasonlu/vlm_datasets2/unichart-qa-data/unichart-qa_processed.jsonl
+    media_dir: /home/jasonlu/vlm_datasets2/unichart-qa-data/images
+    name: unichart
+    cot_relabel_path: /home/jasonlu/vlm_datasets2/recaptioned_cot_llava_1031.json
