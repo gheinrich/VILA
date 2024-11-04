@@ -392,8 +392,8 @@ docmatix_3:
 
 doc_reason:
     _target_: llava.data.LLaVADataset
-    data_path: /home/haotiant/workspace/dataset/vila_data/DocReason25K/docreason25k_processed.jsonl
-    media_dir: /home/haotiant/workspace/dataset/vila_data/DocReason25K
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/docreason25k_processed.json
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/DocReason25K
 
 kvqa:
     _target_: llava.data.LLaVADataset
