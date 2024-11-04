@@ -26,6 +26,7 @@ def main() -> None:
     parser.add_argument("--max-retry", type=int, default=-1)
     # -1: indicates none, for train jobs, it will be set 3 and otherwise 1
     parser.add_argument("--pty", action="store_true")
+    parser.add_argument("--uuid", action="store_true")
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -72,9 +73,11 @@ def main() -> None:
         cmd += ["--output", f"{output_dir}/slurm/%J.out"]
         cmd += ["--error", f"{output_dir}/slurm/%J.err"]
     cmd += ["--nodes", str(args.nodes)]
-    if supports_gpus_per_node():
+    if supports_gpus_per_node() and args.gpus_per_node > 0:
         # eos slurm does not support gpus-per-node option
         cmd += ["--gpus-per-node", str(args.gpus_per_node)]
+    if args.uuid:
+        cmd += ["--dependency", "singleton"]
     cmd += ["--time", args.time]
     cmd += ["--exclusive"]
     cmd += ["timeout", timeout]
