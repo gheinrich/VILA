@@ -164,7 +164,7 @@ mint-1t-arxiv-captions:
 
 real-cqa:
     _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa/data.json
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa-data_fixed.jsonl
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa/images
 
 reasoning_clevr_train:
@@ -775,8 +775,8 @@ docvqa_train_10k_cot5:
 
 real-cqa_cot5:
     _target_: llava.data.LLaVACOTDataset
-    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/data.json
-    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/real-cqa/images
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa-data_fixed.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/real-cqa/images
     name: real-cqa
     cot_relabel_path: /home/ligengz/workspace/VILA-dev/data_curation_dev/recaptioned_cot_llava_1031.json
 
