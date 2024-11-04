@@ -551,7 +551,7 @@ pmcvqa:
 medvqa:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/medvqa/train_data_17k.json
-    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/medvqa/medvqa/data/
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/medvqa/data/
 
 slake:
     _target_: llava.data.LLaVADataset
