@@ -721,3 +721,13 @@ lrv_instruction:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/LRV-Instruction/processed/lrv_instruction_321k.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data/vg
+
+estvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/estvqa/ESTVQA_processed.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/estvqa/train
+
+poie:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/poie/POIE_processed.jsonl
+    media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/poie/nfv5/nfv5_3125
