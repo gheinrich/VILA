@@ -597,6 +597,11 @@ real-cqa:
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/real-cqa/data.json
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/real-cqa/images
 
+lrv_instruction:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LRV-Instruction/processed/lrv_instruction_321k.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ShareGPT4V/data/vg
+
 chartqa_train_18k_cot2:
     _target_: llava.data.LLaVACOTDataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/InternVL/internvl_chat/playground/chartqa_train_18k.jsonl

@@ -32,6 +32,9 @@ class LLaVADataset(BaseDataset):
 
         residual = global_batch_size - len(self.instances) % global_batch_size
         if residual != global_batch_size:
+            if global_batch_size // len(self.instances) >= 2:
+                self.instances = self.instances * (global_batch_size // len(self.instances))
+                residual = global_batch_size - len(self.instances) % global_batch_size
             selected_elements = random.sample(range(len(self.instances)), residual)
             additional_instance = [self.instances[i] for i in selected_elements]
             self.instances.extend(additional_instance)
