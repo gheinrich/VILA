@@ -561,6 +561,11 @@ olmo_clock200k:
     _target_: llava.data.LLaVADataset
     data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/clocks_processed_200k.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
+# 30,000
+olmo_clock30k:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/clocks_processed_30k.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
 # 71,172
 olmo_askanything:
     _target_: llava.data.LLaVADataset

@@ -5,7 +5,7 @@ dummy:
     comments: dummy dataset for testing
 
 ######### added by ligeng Nov 5 #########
-# not ready yet 
+# not ready yet
 wit_subset:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/WIT/wit_1_8m/wit_processed_538k.json
@@ -17,7 +17,7 @@ estvqa:
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/estvqa/ESTVQA_processed.jsonl
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/estvqa/train
 
-# needs to sync 
+# needs to sync
 math:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/math/data.json
@@ -51,7 +51,7 @@ poie:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/poie/POIE_processed.jsonl
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/poie/nfv5/nfv5_3125
-    
+
 mminstruct:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/MMInstruct/jsons_all/qa_en.jsonl
@@ -230,31 +230,6 @@ ureaderkg:
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ureader_kg/ureader_kg_processed.json
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/ureader_kg
 
-pathvqa:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/pathvqa/pvqa/train_32k.jsonl
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/pathvqa/pvqa/images
-
-medvqa:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/medvqa/train_data_17k.json
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/medvqa/data/
-
-slake:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/slake/slake_train_val_instruct_high_freq_4.json
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/slake/imgs
-
-sroie:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/sroie/SROIE_processed.jsonl
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/sroie/train
-
-llave_onevision_images_sft:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train@fix_relpath.jsonl
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/images
-
 # 154,608
 olmo_pointing:
     _target_: llava.data.LLaVADataset
@@ -295,6 +270,11 @@ olmo_clock200k:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/pixmo/llava/clocks_processed_200k.json
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/pixmo
+# 30,000
+olmo_clock30k:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/clocks_processed_30k.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/pixmo
 # 71,172
 olmo_askanything:
     _target_: llava.data.LLaVADataset
@@ -326,20 +306,10 @@ geoqa:
     data_path: /lustre/fsw/nvr_elm_llm/dataset/InternVL/internvl_chat/playground//geoqa+.jsonl
     media_dir: /lustre/fsw/nvr_elm_llm/dataset/InternVL/internvl_chat/playground//data/geoqa+
 
-ai2d_train_12k:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/InternVL/internvl_chat/playground//ai2d_train_12k.jsonl
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/InternVL/internvl_chat/playground//data/ai2d
-
 text_flan_1m:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vflan/text_flan_1m/data.json
     no_system_prompt: true
-
-shot2story_shotonly:
-    _target_: llava.data.LLaVADataset
-    data_path: /lustre/fsw/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
-    media_dir: /lustre/fsw/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
 
 scienceqa:
     _target_: llava.data.LLaVADataset
