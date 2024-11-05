@@ -23,6 +23,7 @@ class BaseDataset(Dataset):
         self,
         tokenizer: PreTrainedTokenizer,
         data_args: DataArguments,
+        global_batch_size: int,
         no_system_prompt: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -32,6 +33,7 @@ class BaseDataset(Dataset):
         self.no_system_prompt = no_system_prompt
         self.instances = []
         self.enable_dynamic_res = False
+        self.global_batch_size = global_batch_size
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         raise NotImplementedError

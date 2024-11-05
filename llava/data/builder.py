@@ -109,6 +109,11 @@ def build_dataset(
             dataset = instantiate(DATASETS[name], _partial_=True)(
                 tokenizer=tokenizer,
                 data_args=data_args,
+                global_batch_size=(
+                    training_args.per_device_train_batch_size
+                    * torch.distributed.get_world_size()
+                    * training_args.gradient_accumulation_steps
+                ),
             )
         elif name in DATASETS_LEGACY:
             logger.warning(f"Dataset '{name}' is from the legacy registry. Please consider migrating it.")

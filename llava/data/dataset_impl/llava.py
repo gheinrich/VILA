@@ -1,6 +1,7 @@
 import copy
 import glob
 import os
+import random
 from typing import Any, Dict, List, Optional
 
 from llava.constants import DEFAULT_IMAGE_TOKEN
@@ -24,9 +25,16 @@ class LLaVADataset(BaseDataset):
         self.media_dir = media_dir
         self.instances = io.load(self.data_path)
         self.enable_dynamic_res = True
+        global_batch_size = kwargs["global_batch_size"]
         for instance in self.instances:
             if "video" in instance:
                 self.enable_dynamic_res = False
+
+        residual = global_batch_size - len(self.instances) % global_batch_size
+        if residual != global_batch_size:
+            selected_elements = random.sample(range(len(self.instances)), residual)
+            additional_instance = [self.instances[i] for i in selected_elements]
+            self.instances.extend(additional_instance)
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         messages = copy.deepcopy(instance["conversations"])
