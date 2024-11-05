@@ -4,6 +4,61 @@ dummy:
     num_instances: 10000
     comments: dummy dataset for testing
 
+######### added by ligeng Nov 5 #########
+# not ready yet 
+wit_subset:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/WIT/wit_1_8m/wit_processed_538k.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/WIT/wit_1_8m/images
+
+# data_path still missing, needs to sync
+estvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/estvqa/ESTVQA_processed.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/estvqa/train
+
+# needs to sync 
+math:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/math/data.json
+
+sherlock:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/sherlock/processed/sherlock_317k.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/sherlock/images
+
+doc_reason:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/docreason25k_processed2.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/DocReason25K
+
+kvqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/kvqa/raw/kvqa_processed.json
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/kvqa/raw
+
+art:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/art_shangy/art500k_processed.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/art_shangy
+
+chembl:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/chembl/chembl_converted.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/chembl/images
+
+poie:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/poie/POIE_processed.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/poie/nfv5/nfv5_3125
+    
+mminstruct:
+    _target_: llava.data.LLaVADataset
+    data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/MMInstruct/jsons_all/qa_en.jsonl
+    media_dir: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/MMInstruct/images
+
+############################################
+
 llave_onevision_images_sft_cot:
     _target_: llava.data.LLaVACOTDataset
     data_path: /lustre/fsw/nvr_elm_llm/dataset/vila-sft/LLaVA-OneVision-Data-processed/llava_onevision_sft_images_only_non_repeat_train@@fix_relpath.jsonl
