@@ -75,6 +75,12 @@ class RepeatedDataset(Dataset):
         return self.dataset[index % len(self.dataset)]
 
 
+def get_world_size():
+    if torch.distributed.is_initialized():
+        return torch.distributed.get_world_size()
+    else:
+        return 1
+
 def build_dataset(
     mixture: str,
     data_args: DataArguments,
@@ -111,7 +117,8 @@ def build_dataset(
                 data_args=data_args,
                 global_batch_size=(
                     training_args.per_device_train_batch_size
-                    * torch.distributed.get_world_size()
+                    # * torch.distributed.get_world_size()
+                    * get_world_size()
                     * training_args.gradient_accumulation_steps
                 ),
             )
