@@ -539,7 +539,7 @@ olmo_pointing_high_freq:
 # 46,518
 olmo_doc_table:
     _target_: llava.data.LLaVADataset
-    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/documents_tables.json
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/documents_tables.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
 # 71,282
 olmo_doc_doc:
@@ -569,7 +569,7 @@ olmo_clock30k:
 # 71,172
 olmo_askanything:
     _target_: llava.data.LLaVADataset
-    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo/llava/ask_model_anything.json
+    data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/vila-sft/ask_model_anything.json
     media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/pixmo
 # 162,855
 olmo_capqa:
