@@ -95,6 +95,7 @@ class LazyCoyoWebQADataset(LazyCoyoWebDataset):
         input_ids = []
         targets = []
         image_list = []
+        block_sizes = []
 
         for idx in range(begin_idx, end_idx):
             info = self.dataset[idx]
@@ -122,8 +123,17 @@ class LazyCoyoWebQADataset(LazyCoyoWebDataset):
                 print(type(image_path))
                 raise NotImplementedError
 
-            if self.data_args.image_aspect_ratio == "dynamic":
-                images = process_image(image_path, self.data_args, image_folder=None, enable_dynamic_res=True)
+            if self.data_args.image_aspect_ratio == "dynamic_s2":
+                images, block_size = process_image(
+                    image_path, self.data_args, image_folder=None, enable_dynamic_s2=True
+                )
+                image_list.append(images)
+                block_sizes.append(block_size)
+                n_images = 1
+            elif self.data_args.image_aspect_ratio == "dynamic":
+                images = process_image(
+                    image_path, self.data_args, image_folder=None, enable_dynamic_res=True, max_tiles=6
+                )
                 image_list.append(images)
                 n_images = len(images)
             else:
@@ -188,4 +198,8 @@ class LazyCoyoWebQADataset(LazyCoyoWebDataset):
         for i in range(len(targets)):
             targets[i][targets[i] == self.tokenizer.pad_token_id] = IGNORE_INDEX
 
-        return dict(input_ids=input_ids, labels=targets, image=image_list)
+        data_dict = dict(input_ids=input_ids, labels=targets, image=image_list)
+        if self.data_args.image_aspect_ratio == "dynamic_s2":
+            data_dict["block_sizes"] = block_sizes
+
+        return data_dict

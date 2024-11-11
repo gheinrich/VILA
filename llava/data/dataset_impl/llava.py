@@ -19,16 +19,15 @@ def _remove_media_tokens(text: str) -> str:
 
 
 class LLaVADataset(BaseDataset):
-    def __init__(self, data_path: str, media_dir: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, data_path: str, media_dir: Optional[str] = None, is_video=False, **kwargs) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
         self.media_dir = media_dir
         self.instances = io.load(self.data_path)
-        self.enable_dynamic_res = True
         global_batch_size = kwargs["global_batch_size"]
-        for instance in self.instances:
-            if "video" in instance:
-                self.enable_dynamic_res = False
+        self.is_video = is_video or any(["video" in instance for instance in self.instances])
+        self.enable_dynamic_res = self.data_args.image_aspect_ratio == "dynamic" and not self.is_video
+        self.enable_dynamic_res_s2 = self.data_args.image_aspect_ratio == "dynamic_s2" and not self.is_video
 
         residual = global_batch_size - len(self.instances) % global_batch_size
         if residual != global_batch_size:
@@ -67,12 +66,14 @@ class LLaVADataset(BaseDataset):
 
 
 class LLaVANextDataset(BaseDataset):
-    def __init__(self, data_path: str, media_dir: str, **kwargs) -> None:
+    def __init__(self, data_path: str, media_dir: str, is_video=False, **kwargs) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
         self.media_dir = media_dir
         self.instances = io.load(self.data_path)
-        self.enable_dynamic_res = True
+        self.is_video = is_video or any(["video" in instance for instance in self.instances])
+        self.enable_dynamic_res = self.data_args.image_aspect_ratio == "dynamic" and not self.is_video
+        self.enable_dynamic_res_s2 = self.data_args.image_aspect_ratio == "dynamic_s2" and not self.is_video
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
         datasource = instance.get("datasource", None)

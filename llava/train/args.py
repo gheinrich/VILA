@@ -55,8 +55,10 @@ class ModelArguments:
     drop_path_rate: Optional[float] = field(default=0.0)
     mlp_path: Optional[str] = field(default=None)
     s2: bool = field(default=False)
+    dynamic_s2: bool = field(default=False)
     s2_scales: Optional[str] = field(default="336,672,1008")
     s2_max_split_size: int = field(default=336)
+    s2_resize_output_to_scale_idx: int = field(default=0)
     num_time_tokens: int = 0
     time_token_format: str = "<t{t}>"
     soft_ce_std: float = 1.0

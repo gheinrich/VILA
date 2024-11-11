@@ -720,6 +720,8 @@ def train():
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
+    data_args.s2_scales = list(map(int, model_args.s2_scales.split(",")))
+
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         data_args=data_args,

@@ -42,7 +42,12 @@ from llava.constants import (
     IGNORE_INDEX,
     IMAGE_TOKEN_INDEX,
 )
-from llava.mm_utils import dynamic_process_images_and_prompt, process_image, tokenizer_image_token
+from llava.mm_utils import (
+    dynamic_process_images_and_prompt,
+    dynamic_s2_process_images_and_prompt,
+    process_image,
+    tokenizer_image_token,
+)
 from llava.train.args import DataArguments, TrainingArguments
 from llava.train.sequence_parallel import (
     extract_local_from_list,
@@ -211,12 +216,17 @@ class LazySupervisedDataset(Dataset):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         enable_dynamic_res = self.data_args.image_aspect_ratio == "dynamic"
+        enable_dynamic_res_s2 = self.data_args.image_aspect_ratio == "dynamic_s2"
         if "image" in sources[0]:
             image_file = self.list_data_dict[i]["image"]
 
             sources = preprocess_multimodal(copy.deepcopy([e["conversations"] for e in sources]), self.data_args)
             if isinstance(image_file, list):
-                if enable_dynamic_res:
+                if enable_dynamic_res_s2:
+                    processed_images, block_sizes = dynamic_s2_process_images_and_prompt(
+                        image_file, sources[0][0]["value"], self.data_args, self.image_folder
+                    )
+                elif enable_dynamic_res:
                     processed_images, sources[0][0]["value"] = dynamic_process_images_and_prompt(
                         image_file, sources[0][0]["value"], self.data_args, self.image_folder
                     )
@@ -225,7 +235,11 @@ class LazySupervisedDataset(Dataset):
                         [process_image(img, self.data_args, self.image_folder) for img in image_file]
                     )
             else:
-                if enable_dynamic_res:
+                if enable_dynamic_res_s2:
+                    processed_images, block_sizes = dynamic_s2_process_images_and_prompt(
+                        [image_file], sources[0][0]["value"], self.data_args, self.image_folder
+                    )
+                elif enable_dynamic_res:
                     processed_images, sources[0][0]["value"] = dynamic_process_images_and_prompt(
                         [image_file], sources[0][0]["value"], self.data_args, self.image_folder
                     )
@@ -240,7 +254,11 @@ class LazySupervisedDataset(Dataset):
                 image_file["path"] if isinstance(image_file, dict) else image_file
                 for image_file in self.list_data_dict[i]["images"]
             ]
-            if enable_dynamic_res:
+            if enable_dynamic_res_s2:
+                processed_images, block_sizes = dynamic_s2_process_images_and_prompt(
+                    image_files, sources[0][0]["value"], self.data_args, self.image_folder
+                )
+            elif enable_dynamic_res:
                 processed_images, sources[0][0]["value"] = dynamic_process_images_and_prompt(
                     image_files, sources[0][0]["value"], self.data_args, self.image_folder
                 )
@@ -330,8 +348,12 @@ class LazySupervisedDataset(Dataset):
                 data_dict["image"] = processed_images
             else:
                 data_dict["image"] = processed_images.unsqueeze(0)
+            if enable_dynamic_res_s2:
+                data_dict["block_sizes"] = block_sizes
         elif "images" in self.list_data_dict[i]:
             data_dict["image"] = processed_images
+            if enable_dynamic_res_s2:
+                data_dict["block_sizes"] = block_sizes
         elif ("video" in self.list_data_dict[i]) or ("video_id" in self.list_data_dict[i]):
             data_dict["image"] = image_tensor
             if frames_loaded == 0:
@@ -484,8 +506,14 @@ class LazyMMC4Dataset(Dataset):
         text = f"{text}{self.tokenizer.eos_token}"  # add eos token
 
         if len(images) > 0:
-            if self.data_args.image_aspect_ratio == "dynamic":
-                images, text = dynamic_process_images_and_prompt(images, text, self.data_args, self.image_folder)
+            if self.data_args.image_aspect_ratio == "dynamic_s2":
+                images, block_sizes = dynamic_s2_process_images_and_prompt(
+                    images, text, self.data_args, self.image_folder
+                )
+            elif self.data_args.image_aspect_ratio == "dynamic":
+                images, text = dynamic_process_images_and_prompt(
+                    images, text, self.data_args, self.image_folder, max_tiles=6
+                )
             else:
                 images = torch.stack([process_image(image, self.data_args, self.image_folder) for image in images])
 
@@ -515,8 +543,9 @@ class LazyMMC4Dataset(Dataset):
 
         n_im_patch = (input_ids == IMAGE_TOKEN_INDEX).sum().item()
 
-        images = images[:n_im_patch]
-        assert len(images) == n_im_patch, print(text, input_ids)
+        if self.data_args.image_aspect_ratio != "dynamic_s2":
+            images = images[:n_im_patch]
+            assert len(images) == n_im_patch, print(text, input_ids)
         assert len(input_ids.shape) == 1, "Unexpected shape of 'input_ids' from MMC4."
         input_ids = (
             torch.concat([torch.tensor([self.tokenizer.bos_token_id]), input_ids])
@@ -547,7 +576,11 @@ class LazyMMC4Dataset(Dataset):
         # targets[targets == IMAGE_TOKEN_INDEX] = IGNORE_INDEX
         # print(input_ids.shape)
 
-        return dict(input_ids=input_ids, labels=targets, image=images)
+        data_dict = dict(input_ids=input_ids, labels=targets, image=images)
+        if self.data_args.image_aspect_ratio == "dynamic_s2":
+            data_dict["block_sizes"] = block_sizes
+
+        return data_dict
 
 
 class LazyCoyoDataset(Dataset):
@@ -1288,7 +1321,7 @@ class DataCollatorForSupervisedDataset:
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
         # input_ids, labels = tuple([instance[key] for instance in instances]
         #                           for key in ("input_ids", "labels"))
-        input_ids, labels, images = [], [], []
+        input_ids, labels, images, block_sizes = [], [], [], []
         for instance in instances:
             if not isinstance(instance["input_ids"], list):
                 input_ids.append(instance["input_ids"])
@@ -1313,15 +1346,26 @@ class DataCollatorForSupervisedDataset:
                     images.extend(cur_image)
             else:
                 images.append([])
+            if "block_sizes" in instance:
+                assert not isinstance(instance["input_ids"], list)
+                assert len(instance["block_sizes"]) == (instance["input_ids"] == IMAGE_TOKEN_INDEX).sum().item()
+                block_sizes.extend(instance["block_sizes"])
+            elif instance.get("image") is not None:
+                if not isinstance(instance["input_ids"], list):
+                    assert len(cur_image) == (instance["input_ids"] == IMAGE_TOKEN_INDEX).sum().item()
+                    block_sizes.extend([None for _ in range(len(cur_image))])
+                else:
+                    block_sizes.extend([None for _ in range(sum([x.shape[0] for x in cur_image]))])
         # kentang-mit@: we need to make sure these two lists have
         # the same length. We will use input_ids to filter out images corresponding
         # to truncated <image> tokens later.
-        for _images, _input_ids in zip(images, input_ids):
-            assert (
-                len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
-            ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'.\
-                Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
-                Error input_ids: {_input_ids} {self.tokenizer.decode([x if x != -200 else 200 for x in _input_ids])}"
+        if all([_ is None for _ in block_sizes]):
+            for _images, _input_ids in zip(images, input_ids):
+                assert (
+                    len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()
+                ), f"Number mismatch between images and placeholder image tokens in 'len(_images) == (_input_ids == IMAGE_TOKEN_INDEX).sum().item()'.\
+                    Expect to have {len(_images)} images but only found {(_input_ids == IMAGE_TOKEN_INDEX).sum().item()} images in tokens. \
+                    Error input_ids: {_input_ids} {self.tokenizer.decode([x if x != -200 else 200 for x in _input_ids])}"
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
@@ -1339,12 +1383,18 @@ class DataCollatorForSupervisedDataset:
         # kentang-mit@: it is possible that some <image> tokens get removed
         # after truncation. It is important to also remove corresponding images.
         # otherwise, text and image will mismatch in the model.
-        for ix in range(len(input_ids)):
-            num_images = (input_ids[ix] == IMAGE_TOKEN_INDEX).sum().item()
-            cur_images = images[ix]
-            cur_images = cur_images[:num_images]
-            if len(cur_images) > 0:
-                new_images.append(cur_images)
+        if all([_ is None for _ in block_sizes]):
+            for ix in range(len(input_ids)):
+                num_images = (input_ids[ix] == IMAGE_TOKEN_INDEX).sum().item()
+                cur_images = images[ix]
+                cur_images = cur_images[:num_images]
+                if len(cur_images) > 0:
+                    new_images.append(cur_images)
+        else:
+            for ix in range(len(input_ids)):
+                cur_images = images[ix]
+                if len(cur_images) > 0:
+                    new_images.append(cur_images)
         if len(new_images) > 0:
             batch["images"] = torch.cat(new_images, dim=0)
         else:
@@ -1355,6 +1405,9 @@ class DataCollatorForSupervisedDataset:
                 crop_size = self.data_args.image_processor.size
             # we still need 1 dummy image for the vision tower
             batch["images"] = torch.zeros(1, 3, crop_size["height"], crop_size["width"])
+            block_sizes = [None]
+
+        batch["block_sizes"] = block_sizes
 
         return batch
 

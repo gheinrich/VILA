@@ -30,6 +30,7 @@ captioning_msrvtt_train:
     data_path: /home/zhijianl/workspace/datasets/vflan/captioning_msrvtt_train/data.json
     media_dir: /home/zhijianl/workspace/datasets/vflan/captioning_msrvtt_train/images
     no_system_prompt: true
+    is_video: true
 
 captioning_textcap_train:
     _target_: llava.data.LLaVADataset
@@ -72,61 +73,73 @@ llava-video/academic-cap:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-cap.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/academic-mc:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-mc.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/academic-oe:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/academic-oe.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/activitynetqa-oe:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/activitynetqa-oe.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/nextqa-mc:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/nextqa-mc.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/nextqa-oe:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/nextqa-oe.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/perceptiontest-mc:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/perceptiontest-mc.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/sharegptvideo-cap:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/sharegptvideo-cap.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/sharegpt-video/videos
+    is_video: true
 
 llava-video/sharegptvideo-oe:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/sharegptvideo-oe.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/sharegpt-video/videos
+    is_video: true
 
 llava-video/youtube-cap:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-cap.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/youtube-mc:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-mc.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 llava-video/youtube-oe:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/youtube-oe.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/datasets/llava-video/videos
+    is_video: true
 
 m3it/fm-iqa/train:
     _target_: llava.data.LLaVADataset
@@ -194,6 +207,7 @@ shot2story_shotonly:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/train-shortclip-processed-bin.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/shot2story/Shot2Story/data/videos_extracted
+    is_video: true
 
 sharegpt4v_gpt4_100k:
     _target_: llava.data.LLaVADataset
@@ -209,6 +223,7 @@ sharegpt_video:
     _target_: llava.data.LLaVADataset
     data_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/video_caption_pretrain.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/sharegpt_video/videos
+    is_video: true
 
 sherlock:
     _target_: llava.data.LLaVADataset
@@ -229,17 +244,20 @@ vatex:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/video_datasets/jason_filtered_vatex.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/vatex/videos_clipped
+    is_video: true
 
 video_chatgpt:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/video_chatgpt/data.json
     media_dir: /home/jasonlu/video_datasets/Video_ChatGPT/activitynet_videos
+    is_video: true
 
 vqa_activitynet-qa_train:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/vflan/vqa_activitynet-qa_train/data.json
     media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_activitynet-qa_train/images
     no_system_prompt: true
+    is_video: true
 
 vqa_docvqa_train:
     _target_: llava.data.LLaVADataset
@@ -258,18 +276,21 @@ vqa_ivqa_train:
     data_path: /home/zhijianl/workspace/datasets/vflan/vqa_ivqa_train/data.json
     media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_ivqa_train/images
     no_system_prompt: true
+    is_video: true
 
 vqa_msrvtt-qa_train:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/vflan/vqa_msrvtt-qa_train/data.json
     media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_msrvtt-qa_train/images
     no_system_prompt: true
+    is_video: true
 
 vqa_msvd-qa_train:
     _target_: llava.data.LLaVADataset
     data_path: /home/zhijianl/workspace/datasets/vflan/vqa_msvd-qa_train/data.json
     media_dir: /home/zhijianl/workspace/datasets/vflan/vqa_msvd-qa_train/images
     no_system_prompt: true
+    is_video: true
 
 vqa_ocr-vqa_train:
     _target_: llava.data.LLaVADataset
@@ -304,6 +325,7 @@ youcook2:
     _target_: llava.data.LLaVADataset
     data_path: /home/jasonlu/video_datasets/jason_filtered_youcook2.json
     media_dir: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/dataset/video_datasets_v2/youcook2/video_data_clipped
+    is_video: true
 
 docmatix_750k:
     _target_: llava.data.LLaVADataset
@@ -798,3 +820,45 @@ unichart_cot5:
     media_dir: /home/jasonlu/vlm_datasets2/unichart-qa-data/images
     name: unichart
     cot_relabel_path: /home/ligengz/workspace/VILA-dev/data_curation_dev/recaptioned_cot_llava_1031.json
+
+nextqa_mc:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/train-processed-filtered-mc.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/NExTQA/test
+    is_video: true
+
+vcg_human:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/annotations/vcg_human_annotated.json
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/Activity_Videos
+    is_video: true
+
+ssv2:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/annotations/classification_ssv2_converted.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/ssv2
+    is_video: true
+
+# coco_clip and coco?
+refcoco_train:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/yunhaof/workspace/datasets/grounding/annotations/processed/refcoco_train.json
+    media_dir: /home/yunhaof/workspace/datasets
+
+reason_clevrerqa:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/annotations/reasoning_clevrer_qa_converted.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/clevrer
+    is_video: true
+
+reason_clevrermc:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/annotations/reasoning_clevrer_mc_converted.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/clevrer
+    is_video: true
+
+k710:
+    _target_: llava.data.LLaVADataset
+    data_path: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/annotations/classification_k710_converted.jsonl
+    media_dir: /home/ligengz/nvr_elm_llm/dataset/vila-sft/VideoGPT-plus_Training_Dataset/instruction_tuning/k710
+    is_video: true

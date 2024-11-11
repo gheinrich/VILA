@@ -66,6 +66,7 @@ class DownSampleBlock(nn.Module):
         x = x.view(n, w, int(h / 2), int(c * 2))
         x = x.permute(0, 2, 1, 3).contiguous()
         x = x.view(n, int(h / 2), int(w / 2), int(c * 4))
+        x = x.permute(0, 2, 1, 3).contiguous()
         return x
 
 
@@ -170,6 +171,43 @@ class MultimodalProjector(PreTrainedModel):
                 nn.Linear(config.hidden_size, config.hidden_size),
             )
             self.downsample_rate = 3
+        elif mm_projector_type == "mlp_downsample_3x3_s2":
+            self.layers = nn.Sequential(
+                DownSample3x3BlockFix(),
+                nn.LayerNorm(config.mm_hidden_size * 9),
+                nn.Linear(config.mm_hidden_size * 9, config.mm_hidden_size * 3),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size * 3),
+                nn.Linear(config.mm_hidden_size * 3, config.mm_hidden_size),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size),
+                nn.Linear(config.mm_hidden_size, config.mm_hidden_size // 3),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size // 3),
+                nn.Linear(config.mm_hidden_size // 3, config.hidden_size),
+                nn.GELU(),
+                nn.Linear(config.hidden_size, config.hidden_size),
+            )
+        elif mm_projector_type == "mlp_downsample_3x3_s2_new":
+            self.layers = nn.Sequential(
+                DownSample3x3BlockFix(),
+                nn.LayerNorm(config.mm_hidden_size * 9),
+                nn.Linear(config.mm_hidden_size * 9, config.mm_hidden_size * 4),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size * 4),
+                nn.Linear(config.mm_hidden_size * 4, config.mm_hidden_size * 2),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size * 2),
+                nn.Linear(config.mm_hidden_size * 2, config.mm_hidden_size),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size),
+                nn.Linear(config.mm_hidden_size, config.mm_hidden_size // 3),
+                nn.GELU(),
+                nn.LayerNorm(config.mm_hidden_size // 3),
+                nn.Linear(config.mm_hidden_size // 3, config.hidden_size),
+                nn.GELU(),
+                nn.Linear(config.hidden_size, config.hidden_size),
+            )
         else:
             mlp_gelu_match = re.match(r"^mlp(\d+)x_gelu$", mm_projector_type)
             if mlp_gelu_match:

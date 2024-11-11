@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer
 
-from llava.mm_utils import dynamic_process_images_and_prompt, process_images
+from llava.mm_utils import dynamic_process_images_and_prompt, dynamic_s2_process_images_and_prompt, process_images
 from llava.train.args import DataArguments
 from llava.utils.logging import logger
 from llava.utils.media import extract_media
@@ -33,6 +33,7 @@ class BaseDataset(Dataset):
         self.no_system_prompt = no_system_prompt
         self.instances = []
         self.enable_dynamic_res = False
+        self.enable_dynamic_res_s2 = False
         self.global_batch_size = global_batch_size
 
     def process(self, instance: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -50,7 +51,11 @@ class BaseDataset(Dataset):
 
             # Process media
             if "image" in media:
-                if self.enable_dynamic_res and self.data_args.image_aspect_ratio == "dynamic":
+                if self.enable_dynamic_res_s2:
+                    processed_images, block_sizes = dynamic_s2_process_images_and_prompt(
+                        media["image"], conversation[0]["value"], self.data_args
+                    )
+                elif self.enable_dynamic_res and self.data_args.image_aspect_ratio == "dynamic":
                     processed_images, processed_prompt = dynamic_process_images_and_prompt(
                         media["image"], conversation[0]["value"], self.data_args
                     )
@@ -63,6 +68,9 @@ class BaseDataset(Dataset):
 
             if "image" in media:
                 data["image"] = processed_images
+
+            if "image" in media and self.enable_dynamic_res_s2:
+                data["block_sizes"] = block_sizes
 
         except Exception as e:
             logger.exception(f"Error processing instance '{instance}': '{e}'. Resampling.")

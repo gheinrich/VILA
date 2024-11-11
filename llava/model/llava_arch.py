@@ -23,6 +23,8 @@ from typing import List, Optional, Union
 
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
+from einops import rearrange
 from transformers import AutoConfig, GenerationConfig, PreTrainedModel
 from transformers.modeling_utils import ContextManagers, no_init_weights
 
@@ -231,9 +233,139 @@ class LlavaMetaModel(ABC):
             if self.get_mm_projector() and not getattr(self.config, "tune_mm_projector", False):
                 self.get_mm_projector().eval()
 
-    def encode_images(self, images):
-        image_features = self.get_vision_tower()(images)
-        image_features = self.get_mm_projector()(image_features)
+    @staticmethod
+    def merge_chessboard(x, num_split_h, num_split_w):
+        """
+        x: b * n * c or b * h * w * c
+        out: b * c * h * w
+        Assuming x contains num_split**2 sub-squares concatenated along batch dimension, merge the sub-squares back to the original whole square.
+        """
+        B = x.shape[0]
+        if x.dim() == 3:
+            N = x.shape[1]
+            x = rearrange(x, "b (h w) c -> b c h w", h=int(N**0.5), w=int(N**0.5))
+
+        assert B % (num_split_h * num_split_w) == 0
+        b = B // (num_split_h * num_split_w)
+
+        x_merge = torch.cat(
+            [
+                torch.cat(
+                    [x[(i * num_split_w + j) * b : (i * num_split_w + j + 1) * b] for j in range(num_split_w)], dim=-1
+                )
+                for i in range(num_split_h)
+            ],
+            dim=-2,
+        )
+
+        return x_merge
+
+    @staticmethod
+    def split_chessboard(x, num_split_h, num_split_w):
+        """
+        x: b * c * h * w
+        out: b * c * h * w
+        Deividing x into num_split**2 sub-squares, and concatenate all the sub-squares on the batch dimension
+        """
+        B, C, H, W = x.shape
+        assert H % num_split_h == 0 and W % num_split_w == 0
+        h, w = H // num_split_h, W // num_split_w
+        x_split = torch.cat(
+            [x[:, :, i * h : (i + 1) * h, j * w : (j + 1) * w] for i in range(num_split_h) for j in range(num_split_w)],
+            dim=0,
+        )
+        return x_split
+
+    def merge_features_for_dynamic_s2(self, image_features, block_sizes):
+        scales = self.get_vision_tower().scales
+        resize_output_to_scale_idx = self.get_vision_tower().resize_output_to_scale_idx
+
+        image_features_each_image = []
+        new_block_sizes = []
+        block_cnt = 0
+        for block_size_each_image in block_sizes:
+            if block_size_each_image is None:
+                cur_features = image_features[block_cnt : block_cnt + 1]
+                cur_features = rearrange(cur_features, "1 (h w) c -> 1 c h w", h=int(cur_features.shape[1] ** 0.5))
+                cur_features = cur_features.repeat(1, len(scales), 1, 1)
+                image_features_each_image.append(cur_features)
+                new_block_sizes.append((1, 1))
+                block_cnt += 1
+            else:
+                cur_features_each_scale = []
+                for scale in scales[:-1]:
+                    num_blocks_this_scale = (scale // scales[0]) ** 2
+                    cur_features_each_scale.append(
+                        self.merge_chessboard(
+                            image_features[block_cnt : block_cnt + num_blocks_this_scale],
+                            num_split_h=scale // scales[0],
+                            num_split_w=scale // scales[0],
+                        )
+                    )  # 1 * C * H * W
+                    block_cnt += num_blocks_this_scale
+                num_blocks_last_scale = block_size_each_image[0] * block_size_each_image[1]
+                cur_features_each_scale.append(
+                    self.merge_chessboard(
+                        image_features[block_cnt : block_cnt + num_blocks_last_scale],
+                        num_split_h=block_size_each_image[0],
+                        num_split_w=block_size_each_image[1],
+                    )
+                )  # 1 * C * H * W
+                block_cnt += num_blocks_last_scale
+
+                # resize and concat features from different scales
+                output_size = cur_features_each_scale[resize_output_to_scale_idx].shape[-2:]
+                cur_features = torch.cat(
+                    [
+                        F.interpolate(cur_features_each_scale[i].to(torch.float32), size=output_size, mode="area").to(
+                            cur_features_each_scale[i].dtype
+                        )
+                        for i in range(len(cur_features_each_scale))
+                    ],
+                    dim=1,
+                )
+                # cur_features = rearrange(cur_features, "1 c h w -> (h w) c")
+
+                image_features_each_image.append(cur_features)
+
+                if resize_output_to_scale_idx == len(scales) - 1 or resize_output_to_scale_idx == -1:
+                    new_block_sizes.append(block_size_each_image)
+                else:
+                    new_block_sizes.append(
+                        (
+                            scales[resize_output_to_scale_idx] // scales[0],
+                            scales[resize_output_to_scale_idx] // scales[0],
+                        )
+                    )
+
+        assert block_cnt == len(image_features)
+
+        return image_features_each_image, new_block_sizes
+
+    def encode_images(self, images, block_sizes):
+        if getattr(self.config, "dynamic_s2", False):
+            image_features = self.get_vision_tower()(images)
+            image_features, new_block_sizes = self.merge_features_for_dynamic_s2(image_features, block_sizes)
+
+            image_features = [
+                self.split_chessboard(x, block_size[0], block_size[1])
+                for x, block_size in zip(image_features, new_block_sizes)
+            ]  # list of B * C * H * W tensors
+            image_features = torch.cat(
+                [rearrange(x, "b c h w -> b (h w) c") for x in image_features], dim=0
+            )  # B * N * C
+            image_features = self.get_mm_projector()(image_features)
+            image_features = list(
+                image_features.split([block_size[0] * block_size[1] for block_size in new_block_sizes], dim=0)
+            )
+            image_features = [
+                self.merge_chessboard(x, block_size[0], block_size[1])
+                for x, block_size in zip(image_features, new_block_sizes)
+            ]  # list of 1 * C * H * W tensors
+            image_features = [rearrange(x, "1 c h w -> (h w) c") for x in image_features]  # list of N * C tensors
+        else:
+            image_features = self.get_vision_tower()(images)
+            image_features = self.get_mm_projector()(image_features)
         return image_features
 
     ## @yunhao: is there a better way to handle function call and attributes for llm?
@@ -258,9 +390,8 @@ class LlavaMetaForCausalLM(ABC):
 
     ## TODO move the forward function here if there is no need to override it
     def prepare_inputs_labels_for_multimodal(
-        self, input_ids, position_ids, attention_mask, past_key_values, labels, images
+        self, input_ids, position_ids, attention_mask, past_key_values, labels, images, block_sizes
     ):
-
         # Handle sequence parallelism
         PROCESS_GROUP_MANAGER = get_pg_manager()
         if PROCESS_GROUP_MANAGER is None:
@@ -307,7 +438,12 @@ class LlavaMetaForCausalLM(ABC):
             images = torch.cat(images, dim=0)
         elif images.ndim == 5:  # batch_size x seq_len x image_channels
             images = images.flatten(0, 1)
-        image_features = self.encode_images(images).to(self.device)
+        image_features = self.encode_images(images, block_sizes)
+        image_features = (
+            [x.to(self.device) for x in image_features]
+            if type(image_features) is list
+            else image_features.to(self.device)
+        )
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
         if getattr(self.config, "turn_mm_projector", False) and getattr(self.config, "mm_use_im_start_end", False):
             raise NotImplementedError
@@ -769,12 +905,13 @@ class LlavaMetaForCausalLM(ABC):
         self,
         input_ids: Optional[torch.FloatTensor] = None,
         images: Optional[torch.FloatTensor] = None,
+        block_sizes=None,
         attention_mask: Optional[torch.LongTensor] = None,
         **generation_kwargs,
     ):
         if images is not None:
             (_, _, attention_mask, _, inputs_embeds, _) = self.prepare_inputs_labels_for_multimodal(
-                input_ids, None, attention_mask, None, None, images
+                input_ids, None, attention_mask, None, None, images, block_sizes
             )
         else:
             inputs_embeds = self.get_input_embeddings()(input_ids)
@@ -795,14 +932,27 @@ class LlavaMetaForCausalLM(ABC):
 
         # Process media
         if "image" in media:
-            if len(media["image"]) == 1 and self.config.image_aspect_ratio == "dynamic":
+            if self.config.image_aspect_ratio == "dynamic_s2":
+                if len(media["image"]) == 1:
+                    self.config.image_processor = self.vision_tower.image_processor
+                    if type(self.config.s2_scales) is str:
+                        self.config.s2_scales = list(map(int, self.config.s2_scales.split(",")))
+                    images, block_sizes = process_image(media["image"][0], self.config, None, enable_dynamic_s2=True)
+                    images = images.half()
+                    block_sizes = [block_sizes]
+                else:
+                    images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
+                    block_sizes = [None] * len(images)
+            elif len(media["image"]) == 1 and self.config.image_aspect_ratio == "dynamic":
                 self.config.image_processor = self.vision_tower.image_processor
                 images = process_image(media["image"][0], self.config, None, enable_dynamic_res=True).half()
                 conversation[0]["value"] = conversation[0]["value"].replace(
                     DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n" * images.shape[0]
                 )
+                block_sizes = None
             else:
                 images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
+                block_sizes = None
         else:
             images = None
 
@@ -814,14 +964,21 @@ class LlavaMetaForCausalLM(ABC):
 
         # Generate the response
         try:
-            output_ids = self.generate(input_ids=input_ids, images=images, generation_config=generation_config)
+            output_ids = self.generate(
+                input_ids=input_ids,
+                images=images,
+                block_sizes=block_sizes,
+                generation_config=generation_config,
+            )
         except ValueError:
             if not generation_config.do_sample:
                 raise
             # FIXME(zhijianl): This is a temporary workaround for the sampling issue
             logging.warning("Generation failed with sampling, retrying with greedy decoding.")
             generation_config.do_sample = False
-            output_ids = self.generate(input_ids=input_ids, images=images, generation_config=generation_config)
+            output_ids = self.generate(
+                input_ids=input_ids, images=images, block_sizes=block_sizes, generation_config=generation_config
+            )
 
         # Decode the response
         response = self.tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()

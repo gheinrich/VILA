@@ -27,17 +27,17 @@ __all__ = [
 
 class LLaVACOTDataset(BaseDataset):
     def __init__(
-        self, data_path: str, media_dir: Optional[str] = None, name=str, cot_relabel_path=None, **kwargs
+        self, data_path: str, media_dir: Optional[str] = None, name=str, cot_relabel_path=None, is_video=False, **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
         self.media_dir = media_dir
         self.instances = io.load(self.data_path)
-        self.enable_dynamic_res = True
         global_batch_size = kwargs["global_batch_size"]
-        for instance in self.instances:
-            if "video" in instance:
-                self.enable_dynamic_res = False
+        self.is_video = is_video or any(["video" in instance for instance in self.instances])
+        self.enable_dynamic_res = self.data_args.image_aspect_ratio == "dynamic" and not self.is_video
+        self.enable_dynamic_res_s2 = self.data_args.image_aspect_ratio == "dynamic_s2" and not self.is_video
+
         self.name = name
         self.cot_relabel_path = io.load(cot_relabel_path) if cot_relabel_path is not None else None
 
