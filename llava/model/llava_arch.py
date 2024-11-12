@@ -955,6 +955,7 @@ class LlavaMetaForCausalLM(ABC):
                 block_sizes = None
         else:
             images = None
+            block_sizes = None
 
         # Tokenize the conversation
         input_ids = tokenize_conversation(conversation, self.tokenizer, add_generation_prompt=True).cuda().unsqueeze(0)
