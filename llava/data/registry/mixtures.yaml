@@ -1,4 +1,71 @@
 ---
+cvpr_mmmu_v13_5M:
+    - sharegpt4v_gpt4_100k@0.5
+    - llava_instruct@0.5
+    - sharegpt4v_sft@0.5_gqa
+    - dvqa_train_200k@0.5
+    - chartqa_train_18k_cot2
+    - ai2d_train_12k
+    - docvqa_train_10k
+    - geoqa@0.5
+    - synthdog_en@0.5
+    - scienceqa
+    - wit_subset@0.5
+    - math@0.5
+    - sherlock@0.5
+    - idefics2_sft@0.5
+    - llave_onevision_images_sft_cot2
+    - cambrian_1375k@0.5
+    - stem_qa@0.5
+    - nv_mm_sft@0.5
+    - captioning_image-paragraph-captioning_train@0.5
+    - captioning_textcap_train@0.5
+    - generation_visual-dialog_train@0.5
+    - reasoning_clevr_train@0.5
+    - reasoning_nlvr_train@0.5
+    - reasoning_visual-mrc_train@0.5
+    - vqa_docvqa_train
+    - vqa_gqa_train
+    - vqa_ivqa_train@0.5
+    - vqa_ocr-vqa_train@0.5
+    - vqa_st-vqa_train@0.5
+    - vqa_viquae_train@0.5
+    - vqa_vqa-v2_train@0.5
+    - shikra@0.5
+    - lrv_instruction@0.5
+    - textocr_qa@0.5
+    - mmc_instruction@0.5
+    - unimm_chat@0.5
+    - svit@0.5
+    - mmbench_val
+    - cvbench
+    - doc_reason@0.5
+    - mtwi
+    - kvqa
+    - art@0.5
+    - mimicvqa@0.5
+    - slake@0.5
+    - medvqa@0.5
+    - pathvqa@0.5
+    - tabmwp_cot
+    - grandstaff_qa@0.5
+    - chembl@0.5
+    - estvqa
+    - poie
+    - sroie
+    - ureaderkg@0.5
+    - real-cqa@0.5
+    - mminstruct@0.5
+    - unichart@0.5
+    - wordart
+    - orand-b
+    - olmo_doc_table@0.5
+    - olmo_doc_doc@0.5
+    - olmo_doc_diagrams@0.5
+    - olmo_doc_charts@0.5
+    - olmo_clock200k@0.5
+    - olmo_askanything@0.5
+    
 llava-video-sft:
     - llava-video/academic-cap
     - llava-video/academic-mc
