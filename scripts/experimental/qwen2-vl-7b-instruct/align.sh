@@ -14,16 +14,16 @@ torchrun \
         --model_name_or_path Efficient-Large-Model/Qwen2-VL-7B-Instruct \
         --chat_template qwen2 \
         --data_mixture llava_1_5_mm_align \
-        --vision_tower google/siglip-so400m-patch14-384 \
+        --vision_tower /home/jasonlu/models/paligemma-siglip-so400m-patch14-448 \
         --mm_vision_select_feature cls_patch \
-        --mm_projector mlp_downsample \
+        --mm_projector mlp_downsample_fix \
         --tune_vision_tower False \
         --tune_mm_projector True \
         --tune_language_model False \
         --mm_vision_select_layer -2 \
         --mm_use_im_start_end False \
         --mm_use_im_patch_token False \
-        --image_aspect_ratio resize \
+        --image_aspect_ratio dynamic \
         --bf16 True \
         --output_dir $OUTPUT_DIR/model \
         --num_train_epochs 1 \

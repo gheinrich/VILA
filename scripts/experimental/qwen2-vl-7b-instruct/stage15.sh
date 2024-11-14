@@ -18,9 +18,9 @@ torchrun \
         --vision_tower /home/jasonlu/models/paligemma-siglip-so400m-patch14-448 \
         --mm_vision_select_feature cls_patch \
         --mm_projector mlp_downsample_fix \
-        --tune_vision_tower False \
+        --tune_vision_tower True \
         --tune_mm_projector True \
-        --tune_language_model True \
+        --tune_language_model False \
         --mm_vision_select_layer -2 \
         --mm_use_im_start_end False \
         --mm_use_im_patch_token False \
