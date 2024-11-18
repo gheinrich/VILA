@@ -65,7 +65,7 @@ cvpr_mmmu_v13_5M:
     - olmo_doc_charts@0.5
     - olmo_clock200k@0.5
     - olmo_askanything@0.5
-    
+
 llava-video-sft:
     - llava-video/academic-cap
     - llava-video/academic-mc
