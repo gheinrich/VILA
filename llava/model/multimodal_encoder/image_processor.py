@@ -111,6 +111,8 @@ class ImageProcessor(BaseImageProcessor):
             Pad to a multiple of specified number.
         do_convert_rgb (`bool`, *optional*, defaults to `True`):
             Whether to convert the image to RGB.
+        do_pad_to_square_with_nans (`bool`, *optional*, defaults to `False`):
+            Final pad to square using `nan` numbers.
     """
 
     model_input_names = ["pixel_values"]
@@ -130,6 +132,7 @@ class ImageProcessor(BaseImageProcessor):
         pad_multiple: int = None,
         pad_value: Optional[Union[float, List[float]]] = 0.0,
         do_convert_rgb: bool = True,
+        do_pad_to_square_with_nans: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -158,6 +161,7 @@ class ImageProcessor(BaseImageProcessor):
         self.pad_multiple = pad_multiple
         self.pad_size = pad_size
         self.pad_value = tuple(pad_value) if isinstance(pad_value, list) else pad_value
+        self.do_pad_to_square_with_nans = do_pad_to_square_with_nans
         self.do_convert_rgb = do_convert_rgb
         self._valid_processor_keys = [
             "images",
@@ -176,6 +180,7 @@ class ImageProcessor(BaseImageProcessor):
             "return_tensors",
             "data_format",
             "input_data_format",
+            "do_pad_to_square_with_nans",
         ]
 
     def pad_image(
@@ -184,6 +189,7 @@ class ImageProcessor(BaseImageProcessor):
         pad_size: Dict[str, int],
         data_format: Optional[Union[str, ChannelDimension]] = None,
         input_data_format: Optional[Union[str, ChannelDimension]] = None,
+        pad_value: Optional[Union[float, List[float]]] = None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -199,19 +205,22 @@ class ImageProcessor(BaseImageProcessor):
                 `data_format` of the `image` will be used.
             input_data_format (`str` or `ChannelDimension`, *optional*):
                 The channel dimension format of the input image. If not provided, it will be inferred.
+            pad_value: (`float` or `List[float]`, *optional*):
+                Pad value to use.
         """
         output_height, output_width = pad_size["height"], pad_size["width"]
         input_height, input_width = get_image_size(image, channel_dim=input_data_format)
 
         pad_width = output_width - input_width
         pad_height = output_height - input_height
+        pad_value = pad_value if pad_value is not None else self.pad_value
 
         padded_image = pad(
             image,
             ((0, pad_height), (0, pad_width)),
             data_format=data_format,
             input_data_format=input_data_format,
-            constant_values=self.pad_value,
+            constant_values=pad_value,
             **kwargs,
         )
         return padded_image
@@ -297,6 +306,7 @@ class ImageProcessor(BaseImageProcessor):
         do_pad: Optional[bool] = None,
         pad_size: Optional[Dict[str, int]] = None,
         input_data_format: Optional[Union[str, ChannelDimension]] = None,
+        do_pad_to_square_with_nans: Optional[bool] = None,
     ):
         if do_resize:
             image = self.resize(image=image, size=size, resample=resample, input_data_format=input_data_format)
@@ -318,6 +328,17 @@ class ImageProcessor(BaseImageProcessor):
 
             image = self.pad_image(image=image, pad_size=pad_size, input_data_format=input_data_format)
 
+        if do_pad_to_square_with_nans:
+            h, w = get_image_size(image, channel_dim=input_data_format)
+            max_dim = max(h, w)
+            pad_size = {"height": max_dim, "width": max_dim}
+            image = self.pad_image(
+                image=image,
+                pad_size=pad_size,
+                input_data_format=input_data_format,
+                pad_value=np.nan
+                )
+
         return image, reshaped_input_size
 
     def _preprocess_image(
@@ -336,6 +357,7 @@ class ImageProcessor(BaseImageProcessor):
         do_convert_rgb: Optional[bool] = None,
         data_format: Optional[Union[str, ChannelDimension]] = None,
         input_data_format: Optional[Union[str, ChannelDimension]] = None,
+        do_pad_to_square_with_nans: Optional[bool] = None,
     ) -> Tuple[np.ndarray, Tuple[int, int], Tuple[int, int]]:
         # image = to_numpy_array(image)
 
@@ -404,6 +426,7 @@ class ImageProcessor(BaseImageProcessor):
             do_pad=do_pad,
             pad_size=pad_size,
             input_data_format=input_data_format,
+            do_pad_to_square_with_nans=do_pad_to_square_with_nans,
         )
 
         if data_format is not None:
@@ -440,6 +463,7 @@ class ImageProcessor(BaseImageProcessor):
         return_tensors: Optional[Union[str, TensorType]] = None,
         data_format: ChannelDimension = ChannelDimension.FIRST,
         input_data_format: Optional[Union[str, ChannelDimension]] = None,
+        do_pad_to_square_with_nans: Optional[bool] = None,
         **kwargs,
     ):
         """
@@ -491,6 +515,8 @@ class ImageProcessor(BaseImageProcessor):
                 - `"channels_first"` or `ChannelDimension.FIRST`: image in (num_channels, height, width) format.
                 - `"channels_last"` or `ChannelDimension.LAST`: image in (height, width, num_channels) format.
                 - `"none"` or `ChannelDimension.NONE`: image in (height, width) format.
+            do_pad_to_square_with_nans (`bool`, *optional*, defaults to `False`):
+                Pad to sqwuare with NaNs.
         """
         do_resize = do_resize if do_resize is not None else self.do_resize
         size = size if size is not None else self.size
@@ -502,6 +528,7 @@ class ImageProcessor(BaseImageProcessor):
         image_mean = image_mean if image_mean is not None else self.image_mean
         image_std = image_std if image_std is not None else self.image_std
         do_pad = do_pad if do_pad is not None else self.do_pad
+        do_pad_to_square_with_nans = do_pad_to_square_with_nans if do_pad_to_square_with_nans is not None else self.do_pad_to_square_with_nans
         pad_size = pad_size if pad_size is not None else self.pad_size
         if do_pad:
             pad_size = get_size_dict(pad_size, default_to_square=True)
@@ -532,6 +559,7 @@ class ImageProcessor(BaseImageProcessor):
                     do_convert_rgb=do_convert_rgb,
                     data_format=data_format,
                     input_data_format=input_data_format,
+                    do_pad_to_square_with_nans=do_pad_to_square_with_nans,
                 )
                 for img in images
             )
