@@ -953,6 +953,8 @@ class LlavaMetaForCausalLM(ABC):
             else:
                 images = process_images(media["image"], self.vision_tower.image_processor, self.config).half()
                 block_sizes = None
+            # Move images to the correct device.
+            images = images.to(self.device)
         else:
             images = None
             block_sizes = None
