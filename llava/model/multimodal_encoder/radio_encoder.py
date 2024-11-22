@@ -138,7 +138,7 @@ class RADIOVisionTower(VisionTower):
         return hidden_size
 
     def load_model(self):
-        if self.image_aspect_ratio == "resize":
+        if self.image_aspect_ratio in ["resize", "dynamic"]:
             self.image_processor = ImageProcessor(
                 size={"width": self.image_size, "height": self.image_size},
                 do_pad=False,
@@ -430,7 +430,7 @@ class RADIOVisionTower(VisionTower):
 
     def forward(self, images: torch.Tensor):
         """Main forward pass."""
-        if self.image_aspect_ratio == "resize":
+        if self.image_aspect_ratio in ["resize", "dynamic"]:
             return self.forward_dense(images)
         else:
             return self.forward_sparse(images)

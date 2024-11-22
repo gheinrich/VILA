@@ -19,7 +19,10 @@ TUNE_VISION_TOWER=False
 
 MODEL_MAX_LENGTH=4096
 
+MAX_TILES=12
+
 export VILA_DATASETS=draco-oci-iad.yaml
+
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -73,6 +76,11 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
+    --max-tiles)
+        MAX_TILES="$2"
+        shift # past argument
+        shift # past value
+        ;;
     *)
       shift # past argument
       ;;
@@ -86,9 +94,12 @@ source ~/.bashrc
 source scripts/setups/train.sh
 
 # Overwrite Transformers
-cp -r llava/train/transformers_replace/* /opt/conda/envs/vila/lib/python3.10/site-packages/transformers/
+#cp -r llava/train/transformers_replace/* /opt/conda/envs/vila/lib/python3.10/site-packages/transformers/
 
-#conda activate vila
+eval "$(/lustre/fsw/portfolios/llmservice/users/gheinrich/anaconda3/bin/conda shell.bash hook)"
+
+conda activate vila
+
 
 conda run --no-capture-output  -n vila pip install hydra-core
 conda run --no-capture-output  -n vila pip install loguru
@@ -107,6 +118,7 @@ conda run --no-capture-output  -n vila torchrun \
         --mm_use_im_start_end False \
         --mm_use_im_patch_token False \
         --image_aspect_ratio ${IMAGE_ASPECT_RATIO} \
+        --max_tiles ${MAX_TILES} \
         --bf16 True \
         --output_dir $OUTPUT_DIR/model \
         --num_train_epochs 1 \

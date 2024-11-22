@@ -700,9 +700,15 @@ def train():
             model.config.time_token_ids = []
         model.config.soft_ce_std = model_args.soft_ce_std
 
-        num_patches = model.get_vision_tower().num_patches
-        downsample_rate = model.get_mm_projector().downsample_rate
-        num_image_tokens = math.ceil(num_patches**0.5 / downsample_rate) ** 2
+
+        projector = model.get_mm_projector()
+        if hasattr("projector", "num_image_tokens"):
+            num_image_tokens = projector.num_image_tokens
+        else:
+            num_patches = model.get_vision_tower().num_patches
+            downsample_rate = projector.downsample_rate
+            num_image_tokens = math.ceil(num_patches**0.5 / downsample_rate) ** 2
+
         data_args.num_image_tokens = num_image_tokens
 
     ## TODO pay attention to quantize

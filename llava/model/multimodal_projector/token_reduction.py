@@ -240,6 +240,7 @@ class ToME2D(nn.Module):
         self._sx = sx
         self._sy = sy
         self._r = r
+        self.num_image_tokens = w * h - r
 
     def forward(self, x):
         if isinstance(x, list):
